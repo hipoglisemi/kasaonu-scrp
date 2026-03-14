@@ -4,6 +4,7 @@ python-dotenv==1.0.0
 playwright==1.41.0
 beautifulsoup4==4.12.3
 google-genai>=0.8.0
+google-generativeai>=0.7.2
 lxml==5.1.0
 requests==2.31.0
 undetected-chromedriver==3.5.5
