@@ -18,7 +18,7 @@ if not GEMINI_API_KEY:
     raise ValueError("GEMINI_API_KEY must be set in .env")
 
 genai.configure(api_key=GEMINI_API_KEY)
-model = genai.GenerativeModel("gemini-2.5-flash-preview-05-20")
+model = genai.GenerativeModel("gemini-2.5-flash")
 
 # ── Unsplash görselleri ──────────────────────────────────────────────────────
 COVER_IMAGES = [
