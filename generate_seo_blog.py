@@ -3,7 +3,8 @@ import time
 import psycopg2
 from dotenv import load_dotenv
 from slugify import slugify
-import google.generativeai as genai
+from google import genai
+from google.genai import types
 
 load_dotenv()
 
@@ -17,8 +18,7 @@ GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 if not GEMINI_API_KEY:
     raise ValueError("GEMINI_API_KEY must be set in .env")
 
-genai.configure(api_key=GEMINI_API_KEY)
-model = genai.GenerativeModel("gemini-2.5-flash")
+client = genai.Client(api_key=GEMINI_API_KEY)
 
 # ── Unsplash görselleri ──────────────────────────────────────────────────────
 COVER_IMAGES = [
@@ -216,9 +216,10 @@ YAZIM KURALLARI:
 SADECE makale HTML'ini döndür. Başka hiçbir şey yazma.
 """
 
-    response = model.generate_content(
-        prompt,
-        generation_config=genai.types.GenerationConfig(
+    response = client.models.generate_content(
+        model="gemini-2.5-flash",
+        contents=prompt,
+        config=types.GenerateContentConfig(
             temperature=0.7,
             max_output_tokens=8000,
         ),
@@ -250,9 +251,10 @@ Kurallar:
 
 Konu: {topic_title}
 """
-    response = model.generate_content(
-        prompt,
-        generation_config=genai.types.GenerationConfig(
+    response = client.models.generate_content(
+        model="gemini-2.5-flash",
+        contents=prompt,
+        config=types.GenerateContentConfig(
             temperature=0.3,
             max_output_tokens=200,
         ),
