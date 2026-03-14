@@ -113,11 +113,11 @@ def save_to_database(title, slug, content_html, excerpt, meta_description, image
         cur.execute(
             """
             INSERT INTO blogs
-              (title, slug, content, excerpt, is_published, image_url, author, published_at)
-            VALUES (%s, %s, %s, %s, FALSE, %s, %s, NOW())
+              (title, slug, content_html, meta_description, image_url, category, is_published, created_at)
+            VALUES (%s, %s, %s, %s, %s, %s, FALSE, NOW())
             RETURNING id
             """,
-            (title, slug, content_html, meta_description, image_url, "KartAvantaj Editörü"),
+            (title, slug, content_html, meta_description, image_url, "Rehber"),
         )
         blog_id = cur.fetchone()[0]
         conn.commit()
