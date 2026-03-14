@@ -3,9 +3,9 @@ name: SEO Blog Auto-Generator
 
 on:
   schedule:
-    # Pazartesi, Çarşamba ve Cuma günleri Türkiye saati ile 09:00'da çalışır (UTC 06:00)
+    # Pazartesi, Çarşamba ve Cuma günleri Türkiye saati 09:00 (UTC 06:00)
     - cron: '0 6 * * 1,3,5'
-  workflow_dispatch: # Manuel tetikleme (Test için)
+  workflow_dispatch:
 
 jobs:
   generate-seo-blog:
@@ -24,19 +24,9 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
-      - name: Create Vertex Key File
-        run: echo "${{ secrets['GCP_SERVICE_ACCOUNT_KEY'] || '' }}" > vertex-key.json
-
-      - name: Run SEO Blog Generator AI
+      - name: Run SEO Blog Generator
         env:
-          DATABASE_URL: ${{ secrets['DATABASE_URL'] || '' }}
-          GEMINI_API_KEY: ${{ secrets['GEMINI_API_KEY'] || '' }}
-          GEMINI_API_KEY_1: ${{ secrets['GEMINI_API_KEY_1'] || '' }}
-          GEMINI_API_KEY_2: ${{ secrets['GEMINI_API_KEY_2'] || '' }}
-          USE_VERTEX_AI: "True"
-          GOOGLE_CLOUD_PROJECT: ${{ vars.GOOGLE_CLOUD_PROJECT }}
-          GOOGLE_CLOUD_LOCATION: ${{ vars.GOOGLE_CLOUD_LOCATION }}
-          GOOGLE_APPLICATION_CREDENTIALS: "vertex-key.json"
-          GEMINI_MODEL: "gemini-3.1-flash-lite-preview"
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
         run: |
           python generate_seo_blog.py
