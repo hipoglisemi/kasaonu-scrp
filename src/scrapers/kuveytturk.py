@@ -160,35 +160,41 @@ class KuveytTurkScraper:
                     current_count = await page.evaluate('''() => {
                         const links = Array.from(document.querySelectorAll("a[href*='/kampanyalar/']"));
                         const unique = new Set(links.map(a => a.href).filter(h => !h.includes('biten-kampanyalar') && h.includes('/kampanyalar/')));
-                        return unique.size;  # type: ignore # pyre-ignore[7]
+                        return unique.size;
                     }''')
                     print(f"      📊 Current unique campaigns visible: {current_count}")
                     
                     button = page.locator(".show-more")
-                    if await button.count() == 0:
-                        print(f"      ✨ No more 'Daha Fazla Göster' button. Total clicks: {click_count}")
+                    if await button.count() == 0 or not await button.is_visible():
+                        print(f"      ✨ No more 'Daha Fazla Göster' button or it is hidden. Total clicks: {click_count}")
                         break
                     
-                    # Click
+                    # Scroll to button and click robustly
+                    await button.scroll_into_view_if_needed()
+                    await asyncio.sleep(1)
+                    
                     await page.evaluate('''() => {
                         const btn = document.querySelector('.show-more');
-                        if (btn) btn.click();
+                        if (btn) {
+                            btn.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                            btn.click();
+                        }
                     }''')
-                    click_count += 1  # type: ignore # pyre-ignore[58]
+                    
+                    click_count += 1
                     print(f"      👇 Clicked 'Daha Fazla Göster' ({click_count})...")
                     
-                    await page.evaluate("window.scrollTo(0, document.body.scrollHeight)")
-                    await asyncio.sleep(3)
+                    await asyncio.sleep(3) # Wait for content to load
                     
                     # Check if count grew
                     new_count = await page.evaluate('''() => {
                         const links = Array.from(document.querySelectorAll("a[href*='/kampanyalar/']"));
                         const unique = new Set(links.map(a => a.href).filter(h => !h.includes('biten-kampanyalar') && h.includes('/kampanyalar/')));
-                        return unique.size;  # type: ignore # pyre-ignore[7]
+                        return unique.size;
                     }''')
                     
                     if new_count <= current_count:
-                        consecutive_no_growth += 1  # type: ignore # pyre-ignore[58]
+                        consecutive_no_growth += 1
                         print(f"      ⚠️ No new campaigns after click (attempt {consecutive_no_growth}/3)...")
                         if consecutive_no_growth >= 3:
                             print(f"      ✅ Pagination done (no growth for 3 consecutive clicks).")
