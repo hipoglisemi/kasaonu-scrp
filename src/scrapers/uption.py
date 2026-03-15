@@ -287,7 +287,7 @@ class UptionScraper:
         sector = self.sector_cache.get(sector_slug.lower()) or self.sector_cache.get("diger")
         
         # Slug
-        slug = get_unique_slug(self.db, data.get("title", "uption-kampanya"), Campaign)
+        slug = get_unique_slug(data.get("title", "uption-kampanya"), self.db, Campaign)
         
         # Brands
         brand_ids = []
