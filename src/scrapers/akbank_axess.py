@@ -23,7 +23,7 @@ class AkbankAxessScraper(AkbankBaseScraper):
             card_name="Axess",
             base_url="https://www.axess.com.tr",
             list_url="https://www.axess.com.tr/ajax/kampanya-ajax.aspx",
-            referer_url="https://www.axess.com.tr/kampanyalar",
+            referer_url="https://www.axess.com.tr/axess/kampanya/8/393/kampanyalar",
             list_params={'checkBox': '[0]', 'searchWord': '""'}  # type: ignore # pyre-ignore[16,6]
         )
 

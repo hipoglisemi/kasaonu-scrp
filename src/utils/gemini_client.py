@@ -1,21 +1,19 @@
-"""
-gemini_client.py
-----------------
-Merkezi Gemini API istemcisi. 3 anahtar ile otomatik key rotation yapar.
-Fallback sırası: GEMINI_API_KEY → GEMINI_API_KEY_1 → GEMINI_API_KEY_2
-
-Kullanım:
-    from src.utils.gemini_client import get_gemini_client, generate_with_rotation
-    
-    content = generate_with_rotation(prompt="...", model="gemini-2.0-flash-lite")
-"""
-
 import os
 import time
-from typing import Optional, Union
+from typing import Optional, Union, List, Any
+
+# SDK importlarını tip ipuçları için en üstte ama güvenli (try-except) şekilde tutalım.
+# Eğer yüklü değilse çalışma anında hata vermemesi için fonksiyon içinde asıl kullanım yapılır.
+try:
+    from google import genai as _sdk  # type: ignore
+    from google.genai import types as _types  # type: ignore
+    HAS_GENAI = True
+except ImportError:
+    HAS_GENAI = False
+
 
 # ─── Key listesini ortam değişkenlerinden oku ───────────────────────────────
-def _load_keys() -> list[str]:
+def _load_keys() -> List[str]:
     keys = []
     for name in ["GEMINI_API_KEY", "GEMINI_API_KEY_1", "GEMINI_API_KEY_2"]:
         k = os.getenv(name, "").strip()
@@ -35,17 +33,17 @@ def generate_with_rotation(
     prompt: str,
     model: Optional[str] = None,
     retry_delay: float = 5.0,
-    **kwargs
+    **kwargs: Any
 ) -> str:
     """
     Verilen prompt'u Gemini API'ye gönderir.
     USE_VERTEX_AI=True ise Vertex AI üzerinden, aksi halde key rotation ile çalışır.
     """
-    from google import genai as _sdk # type: ignore
-    from google.genai import types as _types # type: ignore
+    if not HAS_GENAI:
+        raise ImportError("google-genai kütüphanesi yüklü değil.")
 
     use_vertex = os.getenv("USE_VERTEX_AI", "False").lower() == "true"
-    model_name = model or os.getenv("GEMINI_MODEL", "gemini-3.1-flash-lite-preview")
+    model_name = model or os.getenv("GEMINI_MODEL", "gemini-1.5-flash")
     
     # Wrap direct parameters into config object
     if "config" in kwargs:
@@ -68,7 +66,7 @@ def generate_with_rotation(
 
     # AI Studio / Key Rotation Mode
     keys = _load_keys()
-    last_error: Union[Exception, None] = None
+    last_error: Optional[Exception] = None
 
     for idx, key in enumerate(keys):
         try:
@@ -104,13 +102,13 @@ def generate_with_rotation(
 
 
 # ─── Vertex AI / AI Studio seçici istemci ────────────────────────────────────
-def get_gemini_client():
+def get_gemini_client() -> Any:
     """
     USE_VERTEX_AI=True ise Vertex AI istemcisi, aksi halde
     API anahtarı olan ilk key ile istemci döndürür.
-    (generate_with_rotation kullanmak her zaman tercih edilmelidir.)
     """
-    from google import genai as _sdk # type: ignore
+    if not HAS_GENAI:
+        raise ImportError("google-genai kütüphanesi yüklü değil.")
 
     use_vertex = os.getenv("USE_VERTEX_AI", "False").lower() == "true"
     if use_vertex:

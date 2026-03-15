@@ -1,10 +1,11 @@
 import os
 import time
-import psycopg2
-from dotenv import load_dotenv
-from slugify import slugify
-from google import genai
-from google.genai import types
+import psycopg2  # type: ignore
+from typing import List, Tuple, Set, Dict, Optional, Any, cast
+from dotenv import load_dotenv  # type: ignore
+from slugify import slugify  # type: ignore
+from google import genai  # type: ignore
+from google.genai import types  # type: ignore
 
 load_dotenv()
 
@@ -39,32 +40,43 @@ def get_connection():
     return psycopg2.connect(DB_URL)
 
 
-def get_existing_titles():
+def get_existing_titles() -> Set[str]:
     """Daha önce yazılmış blog başlıklarını çek (duplicate önleme)."""
-    conn = get_connection()
+    titles: Set[str] = set()
+    conn: Optional[Any] = None
     try:
+        conn = get_connection()
         cur = conn.cursor()
         cur.execute('SELECT LOWER(title) FROM blogs')
-        return {row[0].strip() for row in cur.fetchall()}
+        rows = cur.fetchall()
+        if rows:
+            titles = {row[0].strip() for row in rows}
     except Exception as e:
         print(f"⚠️  Mevcut bloglar çekilemedi: {e}")
-        return set()
     finally:
-        conn.close()
+        if conn:
+            conn.close()
+    return titles
 
 
-def get_banks_and_sectors():
+def get_banks_and_sectors() -> Tuple[List[Any], List[Any]]:
     """Aktif banka ve sektörleri çek."""
-    conn = get_connection()
+    banks: List[Any] = []
+    sectors: List[Any] = []
+    conn: Optional[Any] = None
     try:
+        conn = get_connection()
         cur = conn.cursor()
         cur.execute("SELECT id, name, slug FROM banks WHERE is_active = TRUE ORDER BY id")
-        banks = cur.fetchall()
+        banks = list(cur.fetchall() or [])
         cur.execute("SELECT id, name, slug FROM sectors WHERE is_active = TRUE ORDER BY sort_order")
-        sectors = cur.fetchall()
-        return banks, sectors
+        sectors = list(cur.fetchall() or [])
+    except Exception as e:
+        print(f"⚠️  Banka/sektör listesi çekilemedi: {e}")
     finally:
-        conn.close()
+        if conn:
+            conn.close()
+    return banks, sectors
 
 
 def get_top_campaigns(bank_id=None, sector_id=None, limit=5):
@@ -133,7 +145,7 @@ def save_to_database(title, slug, content_html, excerpt, meta_description, image
 
 # ── Konu üreteci ─────────────────────────────────────────────────────────────
 
-TOPIC_TEMPLATES = [
+TOPIC_TEMPLATES: List[Tuple[str, str]] = [
     ("{bank} Kredi Kartı Kampanyaları {year} — En İyi Fırsatlar", "bank"),
     ("{sector} Alışverişinde En Çok Kazandıran Kredi Kartları {year}", "sector"),
     ("{bank} ile {sector} Harcamalarında Maksimum Avantaj", "bank_sector"),
@@ -144,24 +156,29 @@ TOPIC_TEMPLATES = [
 ]
 
 
-def generate_topics(banks, sectors, existing_titles, year=2026):
+def generate_topics(banks: List[Any], sectors: List[Any], existing_titles: Set[str], year: int = 2026) -> List[Dict[str, Any]]:
     """Banka + sektör kombinasyonlarından yazılmamış konu listesi üret."""
-    topics = []
-    for template, ttype in TOPIC_TEMPLATES:
+    topics: List[Dict[str, Any]] = []
+    for template_raw, ttype in TOPIC_TEMPLATES:
+        template = str(template_raw)
         if ttype == "bank":
-            for bank in banks:
+            for bank in cast(List[Any], banks):
                 title = template.format(bank=bank[1], year=year)
                 if title.lower() not in existing_titles:
                     topics.append({"title": title, "bank": bank, "sector": None})
         elif ttype == "sector":
-            for sector in sectors:
+            for sector in cast(List[Any], sectors):
                 title = template.format(sector=sector[1], year=year)
                 if title.lower() not in existing_titles:
                     topics.append({"title": title, "bank": None, "sector": sector})
         elif ttype == "bank_sector":
-            for bank in banks[:5]:   # ilk 5 banka yeterli
-                for sector in sectors[:6]:  # ilk 6 sektör
-                    title = template.format(bank=bank[1], sector=sector[1], year=year)
+            # List[Any] de'ki indexing uyarısını Any cast ile aşalım
+            selected_banks = cast(Any, banks)[:5]
+            selected_sectors = cast(Any, sectors)[:6]
+            for bank in selected_banks:
+                for sector in selected_sectors:
+                    # IDE uyarısını gidermek için Any cast ve ignore kullanalım
+                    title = cast(Any, template).format(bank=bank[1], sector=sector[1], year=year)  # type: ignore
                     if title.lower() not in existing_titles:
                         topics.append({"title": title, "bank": bank, "sector": sector})
     return topics
@@ -169,7 +186,7 @@ def generate_topics(banks, sectors, existing_titles, year=2026):
 
 # ── Gemini çağrıları ─────────────────────────────────────────────────────────
 
-def build_campaign_context(bank, sector):
+def build_campaign_context(bank: Optional[Any], sector: Optional[Any]) -> str:
     """Kampanya verilerini prompt'a eklenecek metin bloğuna dönüştür."""
     campaigns = get_top_campaigns(
         bank_id=bank[0] if bank else None,
@@ -179,9 +196,10 @@ def build_campaign_context(bank, sector):
         return ""
     lines = ["Aşağıdaki gerçek kampanyalar bu yazıda referans olarak kullanılabilir:\n"]
     for c in campaigns:
-        title, reward, end_date, bank_name, sector_name = c
-        end_str = end_date.strftime("%d.%m.%Y") if end_date else "Süresiz"
-        lines.append(f"• {bank_name or ''} — {title}: {reward or ''} (Son: {end_str})")
+        # campaigns explicitly typed or checked
+        c_title, c_reward, c_end_date, c_bank_name, c_sector_name = c
+        end_str = c_end_date.strftime("%d.%m.%Y") if c_end_date else "Süresiz"
+        lines.append(f"• {c_bank_name or ''} — {c_title}: {c_reward or ''} (Son: {end_str})")
     return "\n".join(lines)
 
 
@@ -217,12 +235,12 @@ SADECE makale HTML'ini döndür. Başka hiçbir şey yazma.
 """
 
     response = client.models.generate_content(
-        model="gemini-2.5-flash",
+        model=cast(str, os.getenv("GEMINI_MODEL", "gemini-2.0-flash")),
         contents=prompt,
-        config=types.GenerateContentConfig(
+        config=cast(Any, types.GenerateContentConfig(
             temperature=0.7,
             max_output_tokens=8000,
-        ),
+        )),
     )
     html = response.text.strip()
     # Markdown kod bloğu gelirse temizle
