@@ -1,6 +1,11 @@
 import os
 import time
 from typing import Optional, Union, List, Any
+from dotenv import load_dotenv
+
+# Find project root
+_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+load_dotenv(os.path.join(_root, ".env"))
 
 # SDK importlarını tip ipuçları için en üstte ama güvenli (try-except) şekilde tutalım.
 # Eğer yüklü değilse çalışma anında hata vermemesi için fonksiyon içinde asıl kullanım yapılır.

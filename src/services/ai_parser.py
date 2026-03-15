@@ -41,7 +41,7 @@ def call_with_timeout(func, args=(), kwargs=None, timeout_sec=60):
         signal.alarm(0)
         signal.signal(signal.SIGALRM, old_handler)
 
-load_dotenv()
+load_dotenv(os.path.join(_root, ".env"))
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -420,16 +420,23 @@ BANK_RULES = {
     - "Uption Kart": The primary payment card.
 - ELIGIBLE CARDS: 
     - 🚨 STRICT: "Uption Kart".
+- DATES (CRITICAL):
+    - Uption detail pages often mention dates like "1-31 Mart" or "tarihleri arasında". 
+    - 🚨 MUST: Search the text carefully for these dates. If found, use the current year.
+    - If NO date is found at all, return null for both start_date and end_date.
 - PARTICIPATION: 
     - Usually automatic when used at the relevant merchant.
-    - If no specific SMS/App instruction, use "Uption kartınızla kampanya kapsamındaki harcamalarınızı yaparak otomatik olarak faydalanabilirsiniz."
+    - If the campaign is about "RIA", "Para Transferi" or "Hesaba Al", participation is "Uption uygulaması üzerinden ilgili işlemi gerçekleştirerek".
+    - If no specific instructions, use "Uption kartınızla kampanya kapsamındaki harcamalarınızı yaparak otomatik olarak faydalanabilirsiniz."
 - BRANDS & SECTOR:
-    - 🚨 CRITICAL: Extract the brand (e.g., 'Spotify', 'Netflix', 'YouTube', 'Steam', 'PlayStation').
+    - 🚨 CRITICAL: Extract the brand (e.g., 'Spotify', 'Netflix', 'YouTube', 'Steam', 'PlayStation', 'RIA', 'Bilet.com').
     - 🚨 SECTOR MATCHING: 
-        * 'Spotify', 'Netflix', 'YouTube', 'Steam', 'PlayStation' -> 'Eğlence & Dijital'
-        * 'Yemeksepeti', 'GetirYemek' -> 'Restoran & Kafe'
-        * 'Uber', 'BiTaksi' -> 'Ulaşım'
-    - Map brands to Turkish sector names accurately.
+        * 'Spotify', 'Netflix', 'YouTube', 'Steam', 'PlayStation' -> 'dijital-platform'
+        * 'Yemeksepeti', 'GetirYemek' -> 'restoran-kafe'
+        * 'Uber', 'BiTaksi' -> 'ulasim'
+        * 'RIA', 'Para Transferi', 'Hesaba Al' -> 'finans-yatirim'
+        * 'Bilet.com', 'Yolcu360', 'Enuygun' -> 'turizm-konaklama'
+    - Map brands to Turkish sector slugs accurately.
 """
 }
 
