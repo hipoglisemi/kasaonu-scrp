@@ -21,6 +21,13 @@ def notify_google_deleted(slugs: list[str]):
         print("⚠️  SEARCH_CONSOLE_KEY bulunamadı, Google bildirimi atlandı.")
         return
     try:
+        # JSON verisindeki olası ekstra tırnakları veya boşlukları temizle
+        key_raw = key_raw.strip()
+        if key_raw.startswith("'") and key_raw.endswith("'"):
+            key_raw = key_raw[1:-1]
+        if key_raw.startswith('"') and key_raw.endswith('"'):
+            key_raw = key_raw[1:-1]
+            
         key_data = json.loads(key_raw)
         credentials = service_account.Credentials.from_service_account_info(
             key_data,

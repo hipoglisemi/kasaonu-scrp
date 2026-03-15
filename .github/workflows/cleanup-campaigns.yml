@@ -27,5 +27,6 @@ jobs:
     - name: Run Cleanup Script
       env:
         DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        SEARCH_CONSOLE_KEY: ${{ secrets.SEARCH_CONSOLE_KEY }}
       run: |
         python cleanup_expired.py
