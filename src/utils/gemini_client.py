@@ -1,7 +1,10 @@
 import os
 import time
 from typing import Optional, Union, List, Any
-from dotenv import load_dotenv
+try:
+    from dotenv import load_dotenv # type: ignore
+except ImportError:
+    def load_dotenv(*args, **kwargs): pass
 
 # Find project root
 _root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))

@@ -157,11 +157,11 @@ class UptionScraper:
                         })
 
                 if limit and isinstance(limit, int):
-                    found_items = found_items[:limit]
+                    found_items = list(found_items)[:limit]
 
-                success_count = 0
-                skipped_count = 0
-                failed_count = 0
+                success_count: int = 0
+                skipped_count: int = 0
+                failed_count: int = 0
 
                 for i, item in enumerate(found_items, 1):
                     url = item['url']
