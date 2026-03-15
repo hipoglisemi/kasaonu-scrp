@@ -142,19 +142,27 @@ class TamiScraper:
                 # 3. Extract Data
                 title = detail_data.get("title") or campaign_obj.get("title")
                 details_html = detail_data.get("details") or ""
+                
+                # Clean HTML for AI to understand better
+                soup_detail = BeautifulSoup(details_html, 'html.parser')
+                clean_details = soup_detail.get_text(separator='\n', strip=True)
+                
                 image_url = detail_data.get("detailImage", {}).get("url") or campaign_obj.get("image", {}).get("url")
                 if image_url and not image_url.startswith("http"):
                     image_url = urljoin(self.BASE_URL, image_url)
 
                 # Collect all text content for AI
-                raw_content = f"Başlık: {title}\nİçerik:\n{details_html}\n\n"
+                content_parts = [f"Başlık: {title}", f"İçerik Detayları:\n{clean_details}"]
                 for section in detail_data.get("sections", []):
                     sec_title = section.get("title", "")
                     sec_desc = section.get("description", "")
                     if sec_title or sec_desc:
-                        raw_content += f"{sec_title}\n{sec_desc}\n\n"
+                        content_parts.append(f"{sec_title}\n{sec_desc}")
+                
+                raw_content = "\n\n".join(content_parts)
 
                 # 4. AI Parse
+                # Note: We use force if we want to re-parse existing campaigns with new AI rules
                 ai_data = parse_api_campaign(
                     title=title,
                     short_description=title,
@@ -225,8 +233,9 @@ class TamiScraper:
             if participation and participation != "Detayları İnceleyin":
                 conditions_lines.append(f"KATILIM: {participation}")
             
-            if ai_data.get("conditions"):
-                conditions_lines.extend(ai_data.get("conditions"))
+            conditions = ai_data.get("conditions")
+            if isinstance(conditions, list):
+                conditions_lines.extend([str(c) for c in conditions if c])
             
             conditions_text = "\n".join(conditions_lines)
             eligible_cards = ", ".join(ai_data.get("cards", [])) if ai_data.get("cards") else self.CARD_NAME

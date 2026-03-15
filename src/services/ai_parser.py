@@ -374,6 +374,24 @@ BANK_RULES = {
     - If the text mentions "Uygulama üzerinden", "Şifre al", "Paycell", extract these exact steps.
 - ELIGIBLE CARDS: Common values: "Tüm Turkcell Müşterileri", "Paycell Kart Sahipleri", "Turkcell Pasaj Müşterileri".
 - BRAND: Identify the partner brand (e.g., Obilet, Sigortam.net, Uber) clearly.
+""",
+    'tami': """
+🚨 TAMI KART SPECIFIC RULES:
+- TERMINOLOGY: 
+    - "Nakit İade": Cash back to the card. (Earning type: "puan" or "indirim" contextually, but usually maps to direct balance).
+    - "Yıldız": Usually for Starbucks campaigns.
+- ELIGIBLE CARDS: 
+    - 🚨 STRICT: "Tami Kart". 
+    - 🚨 NOTE: If it says "Masterpass'e kayıtlı Tami kart", it's still "Tami Kart".
+- PARTICIPATION: 
+    - 🚨 PRIORITY: Tami campaigns are often AUTOMATIC after card usage. 
+    - Look for: "Tami kartınızla yapacağınız harcamalarda", "Masterpass üzerinden ödemelerde".
+    - If no specific "button" or "SMS" is mentioned, use "Tami kartınızla kampanya kapsamındaki harcamalarınızı yaparak otomatik olarak faydalanabilirsiniz."
+- BRANDS & SECTOR:
+    - 🚨 CRITICAL: Extract the partner brand accurately (e.g., 'Starbucks', 'Tıkla Gelsin', 'Hop', 'Kitapyurdu', 'Sigortam.net').
+    - If a brand like 'Tıkla Gelsin' is mentioned, put it in 'brands' and categorize as 'Restoran & Kafe'.
+- CONDITIONS:
+    - Extract min spend and max reward carefully (e.g., "100 TL Nakit İade").
 """
 }
 
