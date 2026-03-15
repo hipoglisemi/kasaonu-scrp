@@ -375,6 +375,20 @@ BANK_RULES = {
 - ELIGIBLE CARDS: Common values: "Tüm Turkcell Müşterileri", "Paycell Kart Sahipleri", "Turkcell Pasaj Müşterileri".
 - BRAND: Identify the partner brand (e.g., Obilet, Sigortam.net, Uber) clearly.
 """,
+    'sekerbank': """
+🚨 SEKERBANK SPECIFIC RULES:
+- TERMINOLOGY: 
+    - "Bonus": Reward currency (linked to Bonus network).
+    - "Şekerbank Bonus", "Şekerbank Diamond": Main card products.
+- ELIGIBLE CARDS: 
+    - 🚨 STRICT: "Şekerbank Bonus", "Şekerbank Diamond", "Şekerbank Bonus Business".
+    - ❌ KESİN YASAK: Diğer bankaların (Garanti vb.) Bonus kartlarını yazma.
+- PARTICIPATION: 
+    - Look for SMS keywords sent to **1953**. (e.g. "KAZAN yaz 1953'e gönder").
+    - App: "Şeker Mobil Şube".
+- BRANDS & SECTOR:
+    - 🚨 CRITICAL: Extract the brand name and match to correct sector.
+""",
     'tami': """
 🚨 TAMI KART SPECIFIC RULES:
 - TERMINOLOGY: 

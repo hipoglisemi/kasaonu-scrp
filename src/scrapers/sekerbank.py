@@ -162,10 +162,10 @@ class SekerbankScraper:
 
         bank = self.db.query(Bank).filter(Bank.slug == "sekerbank").first() # type: ignore # pyre-ignore[16]
         if not bank:
-            bank = Bank(name="Şekerbank", slug="sekerbank", is_active=True)
+            bank = Bank(name="Şekerbank", slug="sekerbank", is_active=True)  # type: ignore
             if self.db:
-                self.db.add(bank) # type: ignore # pyre-ignore[16]
-                self.db.commit() # type: ignore # pyre-ignore[16]
+                self.db.add(bank)  # type: ignore
+                self.db.commit()  # type: ignore
         self.bank_cache = bank
         if not self.db: return # type: ignore
         for c in self.db.query(Card).filter(Card.bank_id == bank.id).all(): # type: ignore # pyre-ignore[16]
@@ -325,7 +325,10 @@ class SekerbankScraper:
         if not force and self.db:
             # Check Blocklist and Campaigns table using unified utility
             if should_skip_campaign(self.db, url):
-                print(f"      ⏭️ Skipped (Blocked or already exists)")
+                # Optionally fetch existing to show title
+                existing = self.db.query(Campaign).filter(Campaign.tracking_url == url).first()  # type: ignore
+                title_log = existing.title if existing else url  # type: ignore
+                print(f"      ⏭️ Skipped (Blocked or already exists): {title_log}")
                 return "skipped"
 
         driver = self.driver
@@ -361,7 +364,9 @@ class SekerbankScraper:
             content_el = soup.select_one('.campaign-detail__content') or soup.find('body')
             
         # Get text but exclude header/footer if possible
-        raw_text = content_el.get_text(separator='\n', strip=True) if content_el else ""
+        # Use BeautifulSoup to clean and get structured text for AI
+        soup_content = BeautifulSoup(str(content_el), 'html.parser') if content_el else BeautifulSoup("", 'html.parser')
+        raw_text = soup_content.get_text(separator='\n', strip=True)
 
         if len(raw_text) < 200:
             print(f"      ❌ Content too short ({len(raw_text)} chars), skipping details.")
@@ -421,30 +426,30 @@ class SekerbankScraper:
             reward_type = "discount"
 
         # Campaign Object
-        campaign = Campaign(
-            card_id=primary_card.id if primary_card else None, # type: ignore # pyre-ignore[16]
-            sector_id=sector.id if sector else None, # type: ignore # pyre-ignore[16]
-            title=data.get("title"),
-            slug=final_slug,
-            description=data.get("description"),
-            conditions="\n".join(data.get("conditions", [])),
-            start_date=data.get("start_date"),
-            end_date=data.get("end_date"),
-            reward_type=reward_type,
-            reward_value=data.get("reward_value"),
-            reward_text=data.get("reward_text"),
+        campaign = Campaign(  # type: ignore
+            card_id=primary_card.id if primary_card else None,  # type: ignore
+            sector_id=sector.id if sector else None,  # type: ignore
+            title=data.get("title"),  # type: ignore
+            slug=final_slug,  # type: ignore
+            description=data.get("description"),  # type: ignore
+            conditions="\n".join(data.get("conditions", [])),  # type: ignore
+            start_date=data.get("start_date"),  # type: ignore
+            end_date=data.get("end_date"),  # type: ignore
+            reward_type=reward_type,  # type: ignore
+            reward_value=data.get("reward_value"),  # type: ignore
+            reward_text=data.get("reward_text"),  # type: ignore
             
             # Additional metadata
-            ai_marketing_text=data.get("ai_marketing_text") or data.get("description"),
-            participation=data.get("participation"),
-            eligible_cards=", ".join(data.get("cards", [])),
-            category=data.get("category"),
-            clean_text=data.get("_clean_text"), # Injected by AIParser
+            ai_marketing_text=data.get("ai_marketing_text") or data.get("description"),  # type: ignore
+            participation=data.get("participation"),  # type: ignore
+            eligible_cards=", ".join(data.get("cards", [])),  # type: ignore
+            category=data.get("category"),  # type: ignore
+            clean_text=data.get("_clean_text"),  # type: ignore
             
-            tracking_url=url,
-            image_url=image_url,
-            is_active=True,
-            affiliate_network="sekerbank"
+            tracking_url=url,  # type: ignore
+            image_url=image_url,  # type: ignore
+            is_active=True,  # type: ignore
+            affiliate_network="sekerbank"  # type: ignore
         )
         
         try:
@@ -475,7 +480,7 @@ class SekerbankScraper:
             return self.card_cache[key]
         
         if not self.db or not self.bank_cache:
-             return Card(name=name, slug=name.lower())
+             return Card(name=name, slug=name.lower())  # type: ignore
 
         bank_instance = self.bank_cache
         bank_id = bank_instance.id # type: ignore # pyre-ignore[16]
@@ -486,15 +491,15 @@ class SekerbankScraper:
         ).first()
         
         if not card:
-            card = Card(
-                bank_id=bank_id,
-                name=name,
-                slug=name.lower().replace(" ", "-"),
-                is_active=True
+            card = Card(  # type: ignore
+                bank_id=bank_id,  # type: ignore
+                name=name,  # type: ignore
+                slug=name.lower().replace(" ", "-"),  # type: ignore
+                is_active=True  # type: ignore
             )
             if self.db:
-                self.db.add(card) # type: ignore # pyre-ignore[16]
-                self.db.flush() # type: ignore # pyre-ignore[16]
+                self.db.add(card)  # type: ignore
+                self.db.flush()  # type: ignore
             
         self.card_cache[key] = card
         return card
@@ -531,11 +536,11 @@ class SekerbankScraper:
                     continue
                     
                 # Create NEW brand if not found
-                b = Brand(
-                    id=uuid.uuid4(),
-                    name=n,
-                    slug=slug_val,
-                    is_active=True
+                b = Brand(  # type: ignore
+                    id=uuid.uuid4(),  # type: ignore
+                    name=n,  # type: ignore
+                    slug=slug_val,  # type: ignore
+                    is_active=True  # type: ignore
                 )
                 if self.db:
                     db_op = self.db
