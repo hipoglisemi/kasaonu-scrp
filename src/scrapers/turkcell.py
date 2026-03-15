@@ -5,7 +5,7 @@ import os
 import re  # type: ignore # pyre-ignore[21]
 import uuid  # type: ignore # pyre-ignore[21]
 import sys
-from typing import List, Dict, Any, Optional  # type: ignore # pyre-ignore[21]
+from typing import List, Dict, Any, Optional, cast  # type: ignore # pyre-ignore[21]
 from datetime import datetime  # type: ignore # pyre-ignore[21]
 from decimal import Decimal  # type: ignore # pyre-ignore[21]
 from urllib.parse import urljoin  # type: ignore # pyre-ignore[21]
