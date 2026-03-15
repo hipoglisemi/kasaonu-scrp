@@ -37,12 +37,11 @@ def generate_with_rotation(
 ) -> str:
     """
     Verilen prompt'u Gemini API'ye gönderir.
-    USE_VERTEX_AI=True ise Vertex AI üzerinden, aksi halde key rotation ile çalışır.
+    Sadece key rotation ile çalışır.
     """
     if not HAS_GENAI:
         raise ImportError("google-genai kütüphanesi yüklü değil.")
 
-    use_vertex = os.getenv("USE_VERTEX_AI", "False").lower() == "true"
     model_name = model or os.getenv("GEMINI_MODEL", "gemini-1.5-flash")
     
     # Wrap direct parameters into config object
@@ -50,19 +49,6 @@ def generate_with_rotation(
         config = kwargs.pop("config")
     else:
         config = _types.GenerateContentConfig(**kwargs) if kwargs else None
-
-    if use_vertex:
-        try:
-            client = get_gemini_client()
-            response = client.models.generate_content(
-                model=model_name,
-                contents=prompt,
-                config=config
-            )
-            return response.text.strip()
-        except Exception as e:
-            print(f"[VertexAI] Error: {e}")
-            raise e
 
     # AI Studio / Key Rotation Mode
     keys = _load_keys()
@@ -101,25 +87,13 @@ def generate_with_rotation(
     raise RuntimeError(f"Tüm Gemini API anahtarları tükendi. Son hata: {last_error}")
 
 
-# ─── Vertex AI / AI Studio seçici istemci ────────────────────────────────────
+# ─── API Studio İstemcisi ────────────────────────────────────
 def get_gemini_client() -> Any:
     """
-    USE_VERTEX_AI=True ise Vertex AI istemcisi, aksi halde
-    API anahtarı olan ilk key ile istemci döndürür.
+    AI Studio: ilk geçerli anahtarı kullan
     """
     if not HAS_GENAI:
         raise ImportError("google-genai kütüphanesi yüklü değil.")
-
-    use_vertex = os.getenv("USE_VERTEX_AI", "False").lower() == "true"
-    if use_vertex:
-        project = os.getenv("GOOGLE_CLOUD_PROJECT")
-        location = os.getenv("GOOGLE_CLOUD_LOCATION", "us-central1")
-        credentials = os.getenv("GOOGLE_APPLICATION_CREDENTIALS")
-        if not project:
-            raise ValueError("USE_VERTEX_AI=True ama GOOGLE_CLOUD_PROJECT tanımlanmamış.")
-        if credentials and os.path.exists(credentials):
-            os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = credentials
-        return _sdk.Client(vertexai=True, project=project, location=location)
 
     # AI Studio: ilk geçerli anahtarı kullan
     key = _load_keys()[0]
