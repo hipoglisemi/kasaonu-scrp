@@ -16,6 +16,7 @@ jobs:
         scraper:
           - sekerbank
           - tami
+          - uption
 
     name: "🤖 ${{ matrix.scraper }}"
 

@@ -403,9 +403,33 @@ BANK_RULES = {
     - If no specific "button" or "SMS" is mentioned, use "Tami kartınızla kampanya kapsamındaki harcamalarınızı yaparak otomatik olarak faydalanabilirsiniz."
 - BRANDS & SECTOR:
     - 🚨 CRITICAL: Extract the partner brand accurately (e.g., 'Starbucks', 'Tıkla Gelsin', 'Hop', 'Kitapyurdu', 'Sigortam.net').
-    - If a brand like 'Tıkla Gelsin' is mentioned, put it in 'brands' and categorize as 'Restoran & Kafe'.
+    - 🚨 SECTOR MATCHING: Identify the sector based on the brand:
+        * 'Starbucks', 'Tıkla Gelsin' -> 'Restoran & Kafe'
+        * 'Hop', 'BinBin' -> 'Ulaşım'
+        * 'Kitapyurdu' -> 'Eğitim & Kitap'
+        * 'Sigortam.net' -> 'Sigorta'
+        * 'Şok', 'A101', 'Migros' -> 'Market'
+    - If a brand is found, put it in 'brands' and categorize under the most logical Turkish sector name.
 - CONDITIONS:
     - Extract min spend and max reward carefully (e.g., "100 TL Nakit İade").
+""",
+    'uption': """
+🚨 UPTION SPECIFIC RULES:
+- TERMINOLOGY: 
+    - "Nakit İade": Cash back (Earning type: "cashback").
+    - "Uption Kart": The primary payment card.
+- ELIGIBLE CARDS: 
+    - 🚨 STRICT: "Uption Kart".
+- PARTICIPATION: 
+    - Usually automatic when used at the relevant merchant.
+    - If no specific SMS/App instruction, use "Uption kartınızla kampanya kapsamındaki harcamalarınızı yaparak otomatik olarak faydalanabilirsiniz."
+- BRANDS & SECTOR:
+    - 🚨 CRITICAL: Extract the brand (e.g., 'Spotify', 'Netflix', 'YouTube', 'Steam', 'PlayStation').
+    - 🚨 SECTOR MATCHING: 
+        * 'Spotify', 'Netflix', 'YouTube', 'Steam', 'PlayStation' -> 'Eğlence & Dijital'
+        * 'Yemeksepeti', 'GetirYemek' -> 'Restoran & Kafe'
+        * 'Uber', 'BiTaksi' -> 'Ulaşım'
+    - Map brands to Turkish sector names accurately.
 """
 }
 
