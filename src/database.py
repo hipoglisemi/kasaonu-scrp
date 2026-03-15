@@ -17,6 +17,9 @@ DATABASE_URL = os.getenv("DATABASE_URL")
 if not DATABASE_URL:
     raise ValueError("DATABASE_URL environment variable is not set")
 
+# Sanitize DATABASE_URL (strip quotes if they exist)
+DATABASE_URL = DATABASE_URL.strip('"').strip("'")
+
 # Create SQLAlchemy engine
 engine = create_engine(
     DATABASE_URL,
