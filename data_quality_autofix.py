@@ -87,7 +87,7 @@ def fetch_html(url: str) -> str:
         print(f"      ⚠️ Failed to fetch HTML for {url}: {e}")
         return ""
 
-def run_autofix(limit: int = 50):
+def run_autofix(limit: int = 1000):
     print(f"🚀 Starting Data Quality Auto-Fixer (Limit: {limit})...")
     
     try:
@@ -482,7 +482,7 @@ def run_autofix(limit: int = 50):
 if __name__ == "__main__":
     import argparse
     parser = argparse.ArgumentParser()
-    parser.add_argument("--limit", type=int, default=50, help="Max campaigns to fix in one run")
+    parser.add_argument("--limit", type=int, default=1000, help="Max campaigns to fix in one run")
     args = parser.parse_args()
     
     run_autofix(limit=args.limit)
