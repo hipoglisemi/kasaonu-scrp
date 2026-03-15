@@ -16,6 +16,7 @@ from src.models import Campaign, Bank, Card, Sector, Brand, CampaignBrand  # typ
 from src.services.ai_parser import parse_api_campaign  # type: ignore # pyre-ignore[21]
 from src.utils.slug_generator import get_unique_slug  # type: ignore # pyre-ignore[21]
 from src.utils.cache_manager import clear_cache  # type: ignore # pyre-ignore[21]
+from src.utils.scraper_utils import is_url_blocked  # type: ignore
 from src.services.brand_normalizer import cleanup_brands  # type: ignore # pyre-ignore[21]
 
 class YapikrediPlayScraper:
@@ -83,9 +84,13 @@ class YapikrediPlayScraper:
             full_url = f"{self.BASE_URL}{url_suffix}"
         
         with get_db_session() as db:
+            if is_url_blocked(db, full_url):
+                print(f"   🚫 Skipped (Blocklisted): {title}")
+                return "skipped"  # type: ignore # pyre-ignore[7]
+
             existing = db.query(Campaign).filter(Campaign.tracking_url == full_url).first()  # type: ignore # pyre-ignore[16]
             if existing:
-                print(f"   Skipping existing: {title}")
+                print(f"   ⏭️ Skipped (Already exists): {title}")
                 return "skipped"  # type: ignore # pyre-ignore[7]
 
         print(f"   Processing: {title}")
@@ -129,6 +134,11 @@ class YapikrediPlayScraper:
                        tracking_url: str, start_date, end_date, ai_data: Dict[str, Any], seo_slug: Optional[str] = None):  # type: ignore # pyre-ignore[16,6]
         try:
             with get_db_session() as db:
+                # Early safety check
+                if is_url_blocked(db, tracking_url):
+                    print(f"   🚫 Skipped (Safety: Blocklisted): {title}")
+                    return "skipped"  # type: ignore # pyre-ignore[7]
+
                 # Map sector
                 sector_name = ai_data.get('sector', 'Diğer')
                 sector = db.query(Sector).filter((Sector.slug == sector_name) | (Sector.name.ilike(sector_name))).first()  # type: ignore # pyre-ignore[16]
@@ -140,24 +150,24 @@ class YapikrediPlayScraper:
                 slug_source = seo_slug if seo_slug and len(seo_slug) > 5 else title
                 slug = get_unique_slug(slug_source, db, Campaign)
 
-                campaign = Campaign(
-                    slug=slug,
-                    title=title,
-                    card_id=self.card.id if self.card else None,  # type: ignore # pyre-ignore[16]
-                    sector_id=sector_id,
-                    reward_value=ai_data.get('reward_value'),
-                    reward_type=ai_data.get('reward_type'),
-                    reward_text=ai_data.get('reward_text', 'Detayları İnceleyin'),
-                    clean_text=ai_data.get('_clean_text', ''),
-                    description=details_text,
-                    conditions="\n".join(ai_data.get('conditions', [])),
-                    start_date=start_date,
-                    end_date=end_date,
-                    image_url=image_url,
-                    tracking_url=tracking_url,
-                    is_active=True,
-                    created_at=datetime.utcnow(),
-                    updated_at=datetime.utcnow()
+                campaign = Campaign(  # type: ignore
+                    slug=slug,  # type: ignore
+                    title=title,  # type: ignore
+                    card_id=self.card.id if self.card else None,  # type: ignore
+                    sector_id=sector_id,  # type: ignore
+                    reward_value=ai_data.get('reward_value'),  # type: ignore
+                    reward_type=ai_data.get('reward_type'),  # type: ignore
+                    reward_text=ai_data.get('reward_text', 'Detayları İnceleyin'),  # type: ignore
+                    clean_text=ai_data.get('_clean_text', ''),  # type: ignore
+                    description=details_text,  # type: ignore
+                    conditions="\n".join(ai_data.get('conditions', [])),  # type: ignore
+                    start_date=start_date,  # type: ignore
+                    end_date=end_date,  # type: ignore
+                    image_url=image_url,  # type: ignore
+                    tracking_url=tracking_url,  # type: ignore
+                    is_active=True,  # type: ignore
+                    created_at=datetime.utcnow(),  # type: ignore
+                    updated_at=datetime.utcnow()  # type: ignore
                 )
                 
                 db.add(campaign)  # type: ignore # pyre-ignore[16]
@@ -172,7 +182,7 @@ class YapikrediPlayScraper:
                     for brand_name in clean_brand_list:
                         brand = db.query(Brand).filter(Brand.name == brand_name).first()  # type: ignore # pyre-ignore[16]
                         if not brand:
-                            brand = Brand(name=brand_name, slug=get_unique_slug(brand_name, db, Brand), is_active=True)
+                            brand = Brand(name=brand_name, slug=get_unique_slug(brand_name, db, Brand), is_active=True)  # type: ignore
                             db.add(brand)  # type: ignore # pyre-ignore[16]
                             db.commit()  # type: ignore # pyre-ignore[16]
                             print(f"      ✨ Created Brand: {brand.name}")

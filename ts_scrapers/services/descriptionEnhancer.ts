@@ -31,7 +31,7 @@ Input: "${rawDescription}"
     `.trim();
 
     try {
-        const enhanced = await generateContent(prompt, 'gemini-2.5-flash-lite', {
+        const enhanced = await generateContent(prompt, 'gemini-3.1-flash-lite-preview', {
             generationConfig: {
                 temperature: 0.1
             }

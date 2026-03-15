@@ -39,6 +39,7 @@ if not DATABASE_URL:
     
 from src.scrapers.param import Bank, Card, Sector, Brand, CampaignBrand, Campaign, SECTOR_MAP  # type: ignore # pyre-ignore[21]
 from src.utils.logger_utils import log_scraper_execution  # type: ignore # pyre-ignore[21]
+from src.utils.scraper_utils import is_url_blocked  # type: ignore
 
 class AmericanExpressScraper:
     """American Express scraper - Playwright based"""
@@ -121,7 +122,7 @@ class AmericanExpressScraper:
             brand = self.db.query(Brand).filter_by(slug=slug).first()  # type: ignore # pyre-ignore[16]
             if not brand:
                 try:
-                    brand = Brand(name=brand_name, slug=slug)
+                    brand = Brand(name=brand_name, slug=slug)  # type: ignore
                     self.db.add(brand)  # type: ignore # pyre-ignore[16]
                     self.db.commit()  # type: ignore # pyre-ignore[16]
                 except Exception as e:
@@ -218,9 +219,10 @@ class AmericanExpressScraper:
         # Check if already exists by URL
         existing = self.db.query(Campaign).filter_by(tracking_url=url).first()  # type: ignore # pyre-ignore[16]
         if existing:
-            print(f"  -> Already exists (url): {url}")
+            print(f"  -> Already exists (url): {existing.title}")
             self.stats["skipped"] += 1  # type: ignore # pyre-ignore[58]
             return
+        
         
         # Check by URL slug as well
         slug = url.rstrip('/').split('/')[-1]
@@ -246,6 +248,11 @@ class AmericanExpressScraper:
             raise ValueError("Could not find campaign title (h1)")
         raw_title = title_elem.get_text(separator=' ', strip=True)
         
+        if is_url_blocked(self.db, url):
+            print(f"  -> Skipped (Blocklisted): {raw_title}")
+            self.stats["skipped"] += 1  # type: ignore # pyre-ignore[58]
+            return
+        
         # ─── 2. Hero Image ───────────────────────────────────────────────────────
         # The hero image is inside section.campaing-details, it's the img that is
         # NOT the logo and NOT the scroll gif:  col-px-left img
@@ -264,7 +271,7 @@ class AmericanExpressScraper:
                     src = img.get('src', '')
                     img_cls = ' '.join(img.get('class', []))
                     if src and 'logo' not in src.lower() and 'gif' not in img_cls.lower() and '.gif' not in src.lower():
-                        img_url = urljoin(self.BASE_URL, src)
+                        img_url = urljoin(self.BASE_URL, src)  # type: ignore
                         break
         
         # ─── 3. Conditions ───────────────────────────────────────────────────────
@@ -361,23 +368,23 @@ class AmericanExpressScraper:
             for c in conditions_lines if c
         )
 
-        campaign = Campaign(
-            title=final_title,
-            slug=parsed_slug,
-            description=ai_data.get("description") or final_title,
-            image_url=img_url,
+        campaign = Campaign(  # type: ignore
+            title=final_title,  # type: ignore
+            slug=parsed_slug,  # type: ignore
+            description=ai_data.get("description") or final_title,  # type: ignore
+            image_url=img_url,  # type: ignore
             sector_id=sector.id,  # type: ignore # pyre-ignore[16]
-            card_id=self.card_id,
-            start_date=start_date,
-            end_date=end_date,
-            reward_text=ai_data.get('reward_text'),
-                        clean_text=ai_data.get('_clean_text'),
-            reward_type=ai_data.get('reward_type'),
-            reward_value=ai_data.get('reward_value'),
-            eligible_cards=", ".join(cards) or "American Express",
-            is_active=True,
-            conditions=final_conditions,
-            tracking_url=url,
+            card_id=self.card_id,  # type: ignore
+            start_date=start_date,  # type: ignore
+            end_date=end_date,  # type: ignore
+            reward_text=ai_data.get('reward_text'),  # type: ignore
+            clean_text=ai_data.get('_clean_text'),  # type: ignore
+            reward_type=ai_data.get('reward_type'),  # type: ignore
+            reward_value=ai_data.get('reward_value'),  # type: ignore
+            eligible_cards=", ".join(cards) or "American Express",  # type: ignore
+            is_active=True,  # type: ignore
+            conditions=final_conditions,  # type: ignore
+            tracking_url=url,  # type: ignore
         )
 
         self.db.add(campaign)  # type: ignore # pyre-ignore[16]

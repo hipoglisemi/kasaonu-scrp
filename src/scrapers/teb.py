@@ -14,6 +14,7 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from sqlalchemy import create_engine, text  # type: ignore # pyre-ignore[21]
 from services.ai_parser import AIParser  # type: ignore # pyre-ignore[21]
 from services.brand_normalizer import cleanup_brands  # type: ignore # pyre-ignore[21]
+from src.utils.scraper_utils import is_url_blocked  # type: ignore
 
 load_dotenv()
 
@@ -185,6 +186,15 @@ class TEBScraper:
         campaign_id = None
         try:
             with self.engine.begin() as conn:
+                # Blocklist check
+                from sqlalchemy import text as _text  # type: ignore
+                # Using engine to get a session for is_url_blocked helper
+                from src.database import get_db_session  # type: ignore
+                with get_db_session() as db:
+                     if is_url_blocked(db, data.get("tracking_url")):
+                          print(f"   🚫 Skipped (Safety: Blocklisted): {data.get('title')}")
+                          return "skipped"
+
                 existing = conn.execute(
                     text("SELECT id FROM campaigns WHERE tracking_url = :url"),
                     {"url": data.get("tracking_url")}
@@ -273,8 +283,15 @@ class TEBScraper:
                     {"url": tracking_url}
                 ).fetchone()
                 if existing:
-                    print(f"   ⏭️ Skipped (Already exists): {tracking_url}")
+                    print(f"   ⏭️ Skipped (Already exists): {title}")
                     return "skipped"
+                
+                # Blocklist check
+                from src.database import get_db_session as _get_db_session  # type: ignore
+                with _get_db_session() as db:
+                     if is_url_blocked(db, tracking_url):
+                          print(f"   🚫 Skipped (Blocklisted): {title}")
+                          return "skipped"
         except Exception as e:
             print(f"   ⚠️ DB Pre-check error: {e}")
 

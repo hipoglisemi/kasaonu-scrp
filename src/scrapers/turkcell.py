@@ -168,7 +168,13 @@ class TurkcellScraper:
         with get_db_session() as db:
             existing = db.query(Campaign).filter(Campaign.tracking_url == url).first()  # type: ignore # pyre-ignore[16]
             if existing:
+                print(f"   ⏭️ Skipped (Already exists): {existing.title}")
                 return "skipped"  # type: ignore # pyre-ignore[7]
+        
+        from src.utils.scraper_utils import is_url_blocked  # type: ignore
+        if is_url_blocked(db, url):
+            print(f"   🚫 Skipped (Blocklisted): {url}")
+            return "skipped"  # type: ignore # pyre-ignore[7]
 
         page = await context.new_page()
         try:
@@ -177,6 +183,12 @@ class TurkcellScraper:
             
             title = await page.inner_text("h1") if await page.query_selector("h1") else "Turkcell Kampanyası"
             
+            # Final Blocklist check with title
+            with get_db_session() as db:
+                if is_url_blocked(db, url):
+                    print(f"   🚫 Skipped (Blocklisted): {title}")
+                    return "skipped"  # type: ignore # pyre-ignore[7]
+
             image_url = await page.evaluate('''() => {
                 const img = document.querySelector('.Detail_detail__image__omC5p img, [class*="Detail_detail__image"] img');
                 return img ? img.src : null;  # type: ignore # pyre-ignore[7]

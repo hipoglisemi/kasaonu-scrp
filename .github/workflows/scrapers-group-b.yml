@@ -1,10 +1,9 @@
 name: "🅱️ Scrapers – Grup B"
 # DünyaKatılım, Enpara, Garanti (Bonus + Miles&Smiles + ShopAndFly)
-# TSİ 03:30 ve 15:30 → UTC 00:30 ve 12:30
-
+# TSİ 03:30 → UTC 00:30
 on:
   schedule:
-    - cron: '30 1 * * *'   # TSİ 04:30 (UTC 01:30) — Group B, A'dan 30dk sonra
+    - cron: '30 0 * * *'   # TSİ 03:30 (UTC 00:30)
   workflow_dispatch: {}
 
 jobs:

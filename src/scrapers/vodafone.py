@@ -136,7 +136,12 @@ class VodafoneScraper:
         # 1. Duplicate Check
         existing = self.db.query(Campaign).filter(Campaign.tracking_url == url).first()  # type: ignore # pyre-ignore[16]
         if existing:
-            print(f"      ⚠️ Skipping (Already exists in DB)")
+            print(f"      ⏭️ Skipping (Already exists): {existing.title}")
+            return False  # type: ignore # pyre-ignore[7]
+
+        from src.utils.scraper_utils import is_url_blocked  # type: ignore
+        if is_url_blocked(self.db, url):
+            print(f"      🚫 Skipping (Blocklisted): {url}")
             return False  # type: ignore # pyre-ignore[7]
 
         try:
@@ -148,6 +153,11 @@ class VodafoneScraper:
             # 2. Extract Basic Info
             h1 = soup.select_one(".gallery--header h1")
             title = h1.get_text(strip=True) if h1 else "Vodafone Kampanyası"
+
+            # Final blocklist check with title
+            if is_url_blocked(self.db, url):
+                print(f"      🚫 Skipping (Blocklisted): {title}")
+                return False  # type: ignore # pyre-ignore[7]
             
             # Enhanced Image extraction
             image_url = None

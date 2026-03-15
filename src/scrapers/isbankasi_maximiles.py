@@ -15,6 +15,7 @@ import traceback  # type: ignore # pyre-ignore[21]
 from datetime import datetime  # type: ignore # pyre-ignore[21]
 from typing import Optional, Dict, Any, List  # type: ignore # pyre-ignore[21]
 from urllib.parse import urljoin  # type: ignore # pyre-ignore[21]
+from src.utils.scraper_utils import is_url_blocked  # type: ignore
 from bs4 import BeautifulSoup  # type: ignore # pyre-ignore[21]
 
 # Fix sys.path
@@ -364,6 +365,13 @@ class IsbankMaximilesScraper:
             if "gecmis" in url or "geçmiş" in title.lower():
                 return None  # type: ignore # pyre-ignore[7]
 
+            # Blocklist check
+            from src.database import get_db_session  # type: ignore
+            with get_db_session() as db:
+                 if is_url_blocked(db, url):
+                      print(f"   🚫 Skipped (Blocklisted): {url}")
+                      return None
+
             # Image (try background-image style first)
             image_url = None
             banner = soup.select_one("section.campaign-banner")
@@ -522,7 +530,12 @@ class IsbankMaximilesScraper:
         ).first()
         
         if existing and not force:
-            print("   ⏭️  Skipped (Already exists)")
+            print(f"   ⏭️  Skipped (Already exists): {existing.title[:40]}")
+            return "skipped"  # type: ignore # pyre-ignore[7]
+        
+        # Blocklist check
+        if is_url_blocked(self.db, url):
+            print(f"   🚫 Skipped (Blocklisted): {url}")
             return "skipped"  # type: ignore # pyre-ignore[7]
         
         if existing and force:
@@ -600,19 +613,24 @@ class IsbankMaximilesScraper:
                 self.db.commit()  # type: ignore # pyre-ignore[16]
                 print(f"   ✅ Updated: {existing.title[:50]}")  # type: ignore # pyre-ignore[16,6]
             else:
-                campaign = Campaign(
-                    card_id=self.card_id, sector_id=sector.id if sector else None,  # type: ignore # pyre-ignore[16]
-                    slug=slug, title=formatted_title,
-                    description=ai_data.get("description") or data["title"][:200],  # type: ignore # pyre-ignore[16,6]
-                    reward_text=ai_data.get("reward_text"),
-                    reward_value=ai_data.get("reward_value"),
-                    reward_type=ai_data.get("reward_type"),
-                    conditions=final_conditions,
-                    eligible_cards=", ".join(ai_data.get("cards", [])) or None,
-                    image_url=data["image_url"],
-                    start_date=start_date, end_date=end_date,
-                    is_active=True, tracking_url=url,
-                    created_at=func.now(), updated_at=func.now(),
+                campaign = Campaign(  # type: ignore
+                    card_id=self.card_id,  # type: ignore
+                    sector_id=sector.id if sector else None,  # type: ignore
+                    slug=slug,  # type: ignore
+                    title=formatted_title,  # type: ignore
+                    description=ai_data.get("description") or data["title"][:200],  # type: ignore
+                    reward_text=ai_data.get("reward_text"),  # type: ignore
+                    reward_value=ai_data.get("reward_value"),  # type: ignore
+                    reward_type=ai_data.get("reward_type"),  # type: ignore
+                    conditions=final_conditions,  # type: ignore
+                    eligible_cards=", ".join(ai_data.get("cards", [])) or None,  # type: ignore
+                    image_url=data["image_url"],  # type: ignore
+                    start_date=start_date,  # type: ignore
+                    end_date=end_date,  # type: ignore
+                    is_active=True,  # type: ignore
+                    tracking_url=url,  # type: ignore
+                    created_at=func.now(),  # type: ignore
+                    updated_at=func.now(),  # type: ignore
                 )
                 self.db.add(campaign)  # type: ignore # pyre-ignore[16]
                 self.db.commit()  # type: ignore # pyre-ignore[16]
@@ -629,7 +647,7 @@ class IsbankMaximilesScraper:
                         (Brand.slug == b_slug) | (Brand.name.ilike(b_name))
                     ).first()
                     if not brand:
-                        brand = Brand(name=self._to_title_case(b_name), slug=b_slug)
+                        brand = Brand(name=self._to_title_case(b_name), slug=b_slug)  # type: ignore
                         self.db.add(brand)  # type: ignore # pyre-ignore[16]
                         self.db.commit()  # type: ignore # pyre-ignore[16]
                 except Exception as e:

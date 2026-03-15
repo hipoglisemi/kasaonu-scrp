@@ -99,10 +99,6 @@ class KuveytTurkScraper:
                     stats['total'] += 1  # type: ignore # pyre-ignore[58]
                     try:
                         # Existing and Blocklist check
-                        if is_url_blocked(self.db, url):
-                            print(f"   🚫 Skipping blocked campaign.")
-                            stats['skipped'] += 1  # type: ignore # pyre-ignore[58]
-                            continue
 
                         existing = self.db.query(Campaign).filter_by(tracking_url=url).first()  # type: ignore # pyre-ignore[16]
                         is_test_mode = os.environ.get('TEST_MODE') == '1'
@@ -248,14 +244,13 @@ class KuveytTurkScraper:
             with get_db_session() as db:
                 existing = db.query(Campaign).filter(Campaign.tracking_url == url).first()  # type: ignore # pyre-ignore[16]
                 if existing:
-                    print(f"   ⏭️ Skipped (Already exists): {url}")
+                    print(f"   ⏭️ Skipped (Already exists): {existing.title}")
                     stats["skipped"] = stats.get("skipped", 0) + 1
                     return True
+                return False
         except Exception as e:
             print(f"   ⚠️ DB Pre-check error: {e}")
-            # Continue anyway or return False? Better to return False if DB check fails critically
-            # but usually it's better to continue to scrape if possible. 
-            # However, for type safety, we need a guaranteed return.
+            return False
 
         page = await context.new_page()
         try:
@@ -267,6 +262,12 @@ class KuveytTurkScraper:
             
             title_el = soup.select_one("h1, .campaign-title, .title h2, .subpage-header h1")
             title = self._clean(title_el.text) if title_el else "Başlık Yok"
+
+            # Blocklist check
+            if is_url_blocked(self.db, url):
+                print(f"   🚫 Skipped (Blocklisted): {title}")
+                stats['skipped'] += 1  # type: ignore # pyre-ignore[58]
+                return True
             
             # Clean unwanted elements
             for unwanted in soup.select("header, nav, .nav-wrapper, .breadcrumb, footer, .subpage-header"):

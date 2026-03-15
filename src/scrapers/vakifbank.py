@@ -16,6 +16,7 @@ from urllib.parse import urljoin  # type: ignore # pyre-ignore[21]
 from sqlalchemy import create_engine, Column, Integer, String, Boolean, DateTime, Date, Numeric, Text, ForeignKey  # type: ignore # pyre-ignore[21]
 from sqlalchemy.orm import sessionmaker, relationship, declarative_base  # type: ignore # pyre-ignore[21]
 from sqlalchemy.dialects.postgresql import UUID  # type: ignore # pyre-ignore[21]
+from src.utils.scraper_utils import is_url_blocked  # type: ignore
 
 # Import AI Parser from sibling directory
 # We need to add the project root to sys.path
@@ -193,9 +194,10 @@ class VakifbankScraper:
     def _process_campaign(self, url):
         # Database Pre-check (Skip Logic)
         try:
+
             existing = self.db.query(Campaign).filter(Campaign.tracking_url == url).first()  # type: ignore # pyre-ignore[16]
             if existing:
-                print(f"   ⏭️ Skipped (Already exists): {url}")
+                print(f"   ⏭️ Skipped (Already exists): {existing.title[:40]}")
                 return "skipped"  # type: ignore # pyre-ignore[7]
         except Exception as e:
             print(f"   ⚠️ DB Pre-check error: {e}")
@@ -204,6 +206,14 @@ class VakifbankScraper:
         try:
             response = self.session.get(url, timeout=30)
             html = response.text
+            
+            # --- Blocklist check (move here to get title for log if possible) ---
+            if is_url_blocked(self.db, url):
+                soup_temp = BeautifulSoup(html, 'html.parser')
+                title_el = soup_temp.select_one('h1')
+                title = title_el.get_text(strip=True) if title_el else url
+                print(f"   🚫 Skipped (Blocklisted): {title}")
+                return "skipped"  # type: ignore # pyre-ignore[7]
             
             # --- USE CENTRALIZED AI PARSER ---
             # It handles JSON extraction, normalization, and safety checks internally

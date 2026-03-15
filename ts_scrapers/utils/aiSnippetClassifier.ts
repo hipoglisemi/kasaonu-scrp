@@ -49,7 +49,7 @@ Campaign:
 ${snippet}`;
 
     try {
-        const text = await generateContent(prompt, 'gemini-2.5-flash-lite', {
+        const text = await generateContent(prompt, 'gemini-3.1-flash-lite-preview', {
             generationConfig: {
                 temperature: 0.1,
                 maxOutputTokens: 15

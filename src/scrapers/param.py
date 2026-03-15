@@ -39,6 +39,7 @@ from sqlalchemy.orm import sessionmaker  # type: ignore # pyre-ignore[21]
 from src.database import engine, get_db_session  # type: ignore # pyre-ignore[21]
 from src.models import Bank, Card, Sector, Brand, Campaign, CampaignBrand  # type: ignore # pyre-ignore[21]
 from src.utils.logger_utils import log_scraper_execution  # type: ignore # pyre-ignore[21]
+from src.utils.scraper_utils import is_url_blocked  # type: ignore
 
 # AIParser is lazy-imported in __init__ to avoid google.generativeai hang
 AIParser = None
@@ -182,7 +183,7 @@ class ParamScraper:
             href = a['href']
             if href != '/avantajlar/' and "tum-avantajlar" not in href:
                 full_url = urljoin(self.BASE_URL, href)
-                all_links.append(full_url)
+                all_links.append(str(full_url))  # type: ignore
 
         unique_urls = list(dict.fromkeys(all_links))
         if limit:
@@ -333,13 +334,18 @@ class ParamScraper:
             ).first()
             
             if existing:
-                print("   ⏭️  Skipped (Already exists)")
+                print(f"   ⏭️  Skipped (Already exists): {existing.title}")
                 return "skipped"  # type: ignore # pyre-ignore[7]
 
         print(f"🔍 Processing: {url}")
         data = self._extract_campaign_data(url)
         if not data:
             print("   ⏭️  Skipped (Parse Error)")
+            return "skipped"  # type: ignore # pyre-ignore[7]
+
+        title = data.get("title") or "Başlıksız"
+        if is_url_blocked(self.db, url):
+            print(f"   🚫 Skipped (Blocklisted): {title}")
             return "skipped"  # type: ignore # pyre-ignore[7]
 
         try:
@@ -418,19 +424,24 @@ class ParamScraper:
                 print(f"   ✅ Updated: {existing.title[:50]}")  # type: ignore # pyre-ignore[16,6]
                 campaign = existing
             else:
-                campaign = Campaign(
-                    card_id=self.card_id, sector_id=sector.id if sector else None,  # type: ignore # pyre-ignore[16]
-                    slug=slug, title=formatted_title,
-                    description=ai_data.get("description") or formatted_title,
-                    reward_text=ai_data.get("reward_text"),
-                    reward_value=ai_data.get("reward_value"),
-                    reward_type=ai_data.get("reward_type"),
-                    conditions=final_conditions,
-                    eligible_cards=eligible_cards_str,
-                    image_url=data.get("image_url"),
-                    start_date=start_date, end_date=end_date,
-                    is_active=True, tracking_url=url,
-                    created_at=func.now(), updated_at=func.now(),
+                campaign = Campaign(  # type: ignore
+                    card_id=self.card_id,  # type: ignore
+                    sector_id=sector.id if sector else None,  # type: ignore # pyre-ignore[16]
+                    slug=slug,  # type: ignore
+                    title=formatted_title,  # type: ignore
+                    description=ai_data.get("description") or formatted_title,  # type: ignore
+                    reward_text=ai_data.get("reward_text"),  # type: ignore
+                    reward_value=ai_data.get("reward_value"),  # type: ignore
+                    reward_type=ai_data.get("reward_type"),  # type: ignore
+                    conditions=final_conditions,  # type: ignore
+                    eligible_cards=eligible_cards_str,  # type: ignore
+                    image_url=data.get("image_url"),  # type: ignore
+                    start_date=start_date,  # type: ignore
+                    end_date=end_date,  # type: ignore
+                    is_active=True,  # type: ignore
+                    tracking_url=url,  # type: ignore
+                    created_at=func.now(),  # type: ignore
+                    updated_at=func.now(),  # type: ignore
                 )
                 self.db.add(campaign)  # type: ignore # pyre-ignore[16]
                 self.db.commit()  # type: ignore # pyre-ignore[16]
@@ -447,7 +458,7 @@ class ParamScraper:
                         (Brand.slug == b_slug) | (Brand.name.ilike(b_name))
                     ).first()
                     if not brand:
-                        brand = Brand(name=self._to_title_case(b_name), slug=b_slug)
+                        brand = Brand(name=self._to_title_case(b_name), slug=b_slug)  # type: ignore
                         self.db.add(brand)  # type: ignore # pyre-ignore[16]
                         self.db.commit()  # type: ignore # pyre-ignore[16]
                 except Exception as e:

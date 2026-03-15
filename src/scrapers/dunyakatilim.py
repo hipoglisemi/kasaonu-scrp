@@ -193,7 +193,12 @@ class DunyaKatilimScraper:
         # Check if exists
         existing = self.db.query(Campaign).filter(Campaign.tracking_url == url).first()  # type: ignore # pyre-ignore[16]
         if existing:
-            print(f"      ⏭️ Skipped (Already exists)")
+            print(f"      ⏭️ Skipped (Already exists): {existing.title}")
+            return "skipped"  # type: ignore # pyre-ignore[7]
+
+        from src.utils.scraper_utils import is_url_blocked  # type: ignore
+        if is_url_blocked(self.db, url):
+            print(f"      🚫 Skipped (Blocklisted): {title}")
             return "skipped"  # type: ignore # pyre-ignore[7]
 
         try:

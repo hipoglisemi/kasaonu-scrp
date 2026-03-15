@@ -21,6 +21,7 @@ from src.models import Campaign, Bank, Card, Sector, Brand, CampaignBrand  # typ
 from src.services.ai_parser import parse_api_campaign  # type: ignore # pyre-ignore[21]
 from src.utils.slug_generator import get_unique_slug  # type: ignore # pyre-ignore[21]
 from src.utils.cache_manager import clear_cache  # type: ignore # pyre-ignore[21]
+from src.utils.scraper_utils import is_url_blocked  # type: ignore
 from sqlalchemy.exc import IntegrityError  # type: ignore # pyre-ignore[21]
 import re  # type: ignore # pyre-ignore[21]
 
@@ -142,6 +143,10 @@ class GarantiShopAndFlyScraper:
         # Database Pre-check (Skip Logic)
         try:
             with get_db_session() as db:
+                if is_url_blocked(db, url):
+                    print(f"   🚫 Skipped (Blocklisted): {url}")
+                    return "skipped"  # type: ignore # pyre-ignore[7]
+
                 existing = db.query(Campaign).filter(Campaign.tracking_url == url).first()  # type: ignore # pyre-ignore[16]
                 if existing:
                     print(f"   ⏭️ Skipped (Already exists): {url}")
@@ -265,7 +270,11 @@ class GarantiShopAndFlyScraper:
                        tracking_url: str, start_date, end_date, ai_data: Dict[str, Any]):  # type: ignore # pyre-ignore[16,6]
         """Save campaign to database"""
         with get_db_session() as db:
-            # Check if campaign already exists
+            # Check if campaign already exists or is blocked
+            if is_url_blocked(db, tracking_url):
+                print(f"   🚫 Skipped (Safety Check: Blocklisted): {tracking_url}")
+                return "skipped"  # type: ignore # pyre-ignore[7]
+
             existing = db.query(Campaign).filter(Campaign.tracking_url == tracking_url).first()  # type: ignore # pyre-ignore[16]
             if isinstance(title, str):
                 print(f"   ⏭️ Skipped (Already exists, preserving manual edits): {title[:50]}...")  # type: ignore # pyre-ignore[16,6]
@@ -302,25 +311,25 @@ class GarantiShopAndFlyScraper:
             if self.card and hasattr(self.card, 'id'):
                 card_id = self.card.id  # type: ignore # pyre-ignore[16]
                 
-            campaign = Campaign(
-                card_id=card_id,
-                sector_id=sector_id,
-                slug=slug,
-                title=ai_data.get('short_title') or ai_data.get('title') or title,
-                reward_text=ai_data.get('reward_text'),
-                        clean_text=ai_data.get('_clean_text'),
-                reward_value=ai_data.get('reward_value'),
-                reward_type=ai_data.get('reward_type'),
-                description=details_text,
-                conditions=conditions_text,
-                eligible_cards=eligible_cards_str,
-                image_url=image_url,
-                start_date=start_date,
-                end_date=end_date,
-                tracking_url=tracking_url,
-                is_active=True,
-                created_at=datetime.utcnow(),
-                updated_at=datetime.utcnow()
+            campaign = Campaign(  # type: ignore
+                card_id=card_id,  # type: ignore
+                sector_id=sector_id,  # type: ignore
+                slug=slug,  # type: ignore
+                title=ai_data.get('short_title') or ai_data.get('title') or title,  # type: ignore
+                reward_text=ai_data.get('reward_text'),  # type: ignore
+                clean_text=ai_data.get('_clean_text'),  # type: ignore
+                reward_value=ai_data.get('reward_value'),  # type: ignore
+                reward_type=ai_data.get('reward_type'),  # type: ignore
+                description=details_text,  # type: ignore
+                conditions=conditions_text,  # type: ignore
+                eligible_cards=eligible_cards_str,  # type: ignore
+                image_url=image_url,  # type: ignore
+                start_date=start_date,  # type: ignore
+                end_date=end_date,  # type: ignore
+                tracking_url=tracking_url,  # type: ignore
+                is_active=True,  # type: ignore
+                created_at=datetime.utcnow(),  # type: ignore
+                updated_at=datetime.utcnow()  # type: ignore
             )
             
             db.add(campaign)  # type: ignore # pyre-ignore[16]
@@ -341,7 +350,7 @@ class GarantiShopAndFlyScraper:
                             brand = db.query(Brand).filter(Brand.name == brand_name).first()  # type: ignore # pyre-ignore[16]
                     
                     if brand:
-                        campaign_brand = CampaignBrand(campaign_id=campaign.id, brand_id=brand.id)  # type: ignore # pyre-ignore[16]
+                        campaign_brand = CampaignBrand(campaign_id=campaign.id, brand_id=brand.id)  # type: ignore
                         db.add(campaign_brand)  # type: ignore # pyre-ignore[16]
             
             db.commit()  # type: ignore # pyre-ignore[16]

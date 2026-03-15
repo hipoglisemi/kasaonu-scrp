@@ -15,6 +15,7 @@ import traceback  # type: ignore # pyre-ignore[21]
 from datetime import datetime  # type: ignore # pyre-ignore[21]
 from typing import Optional, Dict, Any, List  # type: ignore # pyre-ignore[21]
 from urllib.parse import urljoin  # type: ignore # pyre-ignore[21]
+from src.utils.scraper_utils import is_url_blocked  # type: ignore
 from bs4 import BeautifulSoup  # type: ignore # pyre-ignore[21]
 
 # Path setup
@@ -304,6 +305,13 @@ class IsbankMaximumGencScraper:
             if "gecmis" in url or "geçmiş" in title.lower():
                 return None  # type: ignore # pyre-ignore[7]
 
+            # Blocklist check
+            from src.database import get_db_session  # type: ignore
+            with get_db_session() as db:
+                 if is_url_blocked(db, url):
+                      print(f"   🚫 Skipped (Blocklisted): {url}")
+                      return None
+
             # Image
             image_url = None
             img_el = soup.select_one(".detail-img img") or soup.select_one("section img")
@@ -415,7 +423,12 @@ class IsbankMaximumGencScraper:
             Campaign.tracking_url == url, Campaign.card_id == self.card_id
         ).first()
         if existing:
-            print("   ⏭️  Skipped (Already exists)")
+            print(f"   ⏭️  Skipped (Already exists): {existing.title[:40]}")
+            return "skipped"  # type: ignore # pyre-ignore[7]
+
+        # Blocklist check
+        if is_url_blocked(self.db, url):
+            print(f"   🚫 Skipped (Blocklisted): {url}")
             return "skipped"  # type: ignore # pyre-ignore[7]
 
         print(f"🔍 Processing: {url}")

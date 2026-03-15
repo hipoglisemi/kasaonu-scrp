@@ -50,7 +50,7 @@ const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
 async function callGeminiAPI(prompt: string): Promise<any> {
     try {
-        const text = await generateContent(prompt, 'gemini-2.5-flash-lite', {
+        const text = await generateContent(prompt, 'gemini-3.1-flash-lite-preview', {
             generationConfig: {
                 temperature: 0.1
             }
@@ -465,7 +465,7 @@ export async function saveAiFixResult(
         ai_confidence: result.confidence,
         ai_notes: result.notes,
         ai_status: status,
-        ai_model: 'gemini-2.5-flash-lite'
+        ai_model: 'gemini-3.1-flash-lite-preview'
     };
 
     if (status === 'auto_applied') {

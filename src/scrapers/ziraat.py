@@ -23,6 +23,7 @@ from sqlalchemy.orm import Session  # type: ignore # pyre-ignore[21]
 from src.database import get_db_session  # type: ignore # pyre-ignore[21]
 from src.models import Bank, Card, Sector, Brand, Campaign, CampaignBrand  # type: ignore # pyre-ignore[21]
 from src.services.ai_parser import AIParser  # type: ignore # pyre-ignore[21]
+from src.utils.scraper_utils import is_url_blocked  # type: ignore
 from src.utils.logger_utils import log_scraper_execution  # type: ignore # pyre-ignore[21]
 
 
@@ -161,7 +162,7 @@ class ZiraatScraper:
         try:
             existing = self.db.query(Campaign).filter(Campaign.tracking_url == url).first()  # type: ignore # pyre-ignore[16]
             if existing:
-                print(f"   ⏭️ Skipped (Already exists): {url}")
+                print(f"   ⏭️ Skipped (Already exists): {existing.title[:40]}")
                 return "skipped"  # type: ignore # pyre-ignore[7]
         except Exception as e:
             print(f"   ⚠️ DB Pre-check error: {e}")
@@ -172,6 +173,15 @@ class ZiraatScraper:
             response = self.session.get(url, timeout=30)
             html = response.text
             soup = BeautifulSoup(html, 'html.parser')
+
+            title_el = soup.select_one('h1, .campaign-title, .title h2')
+            title = title_el.get_text(strip=True) if title_el else "Kampanya Detayı"
+
+            # Blocklist check
+            from src.utils.scraper_utils import is_url_blocked  # type: ignore
+            if is_url_blocked(self.db, url):
+                print(f"   🚫 Skipped (Blocklisted): {title}")
+                return "skipped"  # type: ignore # pyre-ignore[7]
 
             # --- ENHANCED CONTENT EXTRACTION ---
             # Ziraat puts conditions in Tabs (#tab-1, #tab-2 etc)

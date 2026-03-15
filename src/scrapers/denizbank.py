@@ -332,7 +332,13 @@ class DenizbankScraper:
                     {"url": url}
                 ).fetchone()
                 if existing:
-                    print(f"   ⏭️ Skipped (Already exists): {url}")
+                    # Try to get title from DB if possible
+                    existing_title = conn.execute(
+                        text("SELECT title FROM campaigns WHERE tracking_url = :url"),
+                        {"url": url}
+                    ).fetchone()
+                    title_log = existing_title[0] if existing_title else url
+                    print(f"   ⏭️ Skipped (Already exists): {title_log}")
                     return "skipped"  # type: ignore # pyre-ignore[7]
         except Exception as e:
             print(f"   ⚠️ DB Pre-check error: {e}")
@@ -351,6 +357,19 @@ class DenizbankScraper:
         else:
             h1 = soup.find('h1')
             if h1: title = h1.get_text(strip=True)
+
+        # Blocklist check (move here to get title for log)
+        try:
+            with self.engine.connect() as conn:
+                blocked = conn.execute(
+                    text("SELECT id FROM campaign_blocklist WHERE url = :url"),
+                    {"url": url}
+                ).fetchone()
+                if blocked:
+                    print(f"   🚫 Skipped (Blocklisted): {title}")
+                    return "skipped"  # type: ignore # pyre-ignore[7]
+        except Exception as e:
+            print(f"   ⚠️ Blocklist check error: {e}")
 
         image_url = ""
         
@@ -558,7 +577,7 @@ class DenizbankScraper:
                 ).fetchone()
 
                 if existing:
-                    print(f"   ⏭️ Skipped (Already exists): {data['tracking_url']}")  # type: ignore # pyre-ignore[16,6]
+                    print(f"   ⏭️ Skipped (Already exists): {data['title']}")  # type: ignore # pyre-ignore[16,6]
                     return "skipped"
 
                 # Check Blocklist using raw SQL since we are in a connection
@@ -568,7 +587,7 @@ class DenizbankScraper:
                 ).fetchone()
                 
                 if blocked:
-                    print(f"   🚫 Skipped (Blocklisted): {data['tracking_url']}")
+                    print(f"   🚫 Skipped (Blocklisted): {data['title']}")
                     return "skipped"
                 try:
                     result = conn.execute(

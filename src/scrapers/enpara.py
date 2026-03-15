@@ -14,6 +14,7 @@ from src.database import get_db_session  # type: ignore # pyre-ignore[21]
 from src.models import Campaign, Bank, Card, Sector, Brand, CampaignBrand  # type: ignore # pyre-ignore[21]
 from src.services.ai_parser import parse_api_campaign  # type: ignore # pyre-ignore[21]
 from src.utils.slug_generator import get_unique_slug  # type: ignore # pyre-ignore[21]
+from src.utils.scraper_utils import is_url_blocked  # type: ignore
 from src.utils.cache_manager import clear_cache  # type: ignore # pyre-ignore[21]
 
 class EnparaScraper:
@@ -148,9 +149,14 @@ class EnparaScraper:
         """Process a single campaign detail page."""
         # Database Pre-check (Skip Logic)
         try:
+            # We don't have title here yet, but we will check again after fetching
+            if is_url_blocked(self.db, url):
+                print(f"   🚫 Skipped (Blocklisted): {url}")
+                return "skipped"  # type: ignore # pyre-ignore[7]
+
             existing = self.db.query(Campaign).filter(Campaign.tracking_url == url).first()  # type: ignore # pyre-ignore[16]
             if existing:
-                print(f"   ⏭️ Skipped (Already exists): {url}")
+                print(f"   ⏭️ Skipped (Already exists): {existing.title}")
                 return "skipped"  # type: ignore # pyre-ignore[7]
         except Exception as e:
             print(f"   ⚠️ DB Pre-check error: {e}")
@@ -186,10 +192,10 @@ class EnparaScraper:
             # Clean date text for AI (remove "Geçerlilik tarihi" if present)
             clean_date_text = date_text.replace("Geçerlilik tarihi", "").strip()
             if clean_date_text: 
-                content_parts.append(f"Geçerlilik Tarihi: {clean_date_text}")
+                content_parts.append(f"Geçerlilik Tarihi: {clean_date_text}")  # type: ignore
             
             intro = soup.select_one('#content p')
-            if intro: content_parts.append(f"Özet: {intro.get_text().strip()}")
+            if intro: content_parts.append(f"Özet: {intro.get_text().strip()}")  # type: ignore
             
             # The main details are in .enpara-campaign-detail__text
             detail_text_elm = soup.select_one('.enpara-campaign-detail__text')
@@ -202,7 +208,7 @@ class EnparaScraper:
                     content_parts.append(f"Genel Detaylar: {parts[0].strip()}")  # type: ignore # pyre-ignore[16,6]
                     content_parts.append(f"NELERE DİKKAT ETMELİSİNİZ: {parts[1].strip()}")  # type: ignore # pyre-ignore[16,6]
                 else:
-                    content_parts.append(f"Kampanya Detayları: {all_text}")
+                    content_parts.append(f"Kampanya Detayları: {all_text}")  # type: ignore
             
             raw_content = "\n\n".join(content_parts)
             
@@ -236,10 +242,15 @@ class EnparaScraper:
     def _save_campaign(self, title: str, details_text: str, image_url: Optional[str],  # type: ignore # pyre-ignore[16,6]
                        tracking_url: str, ai_data: Dict[str, Any]):  # type: ignore # pyre-ignore[16,6]
         try:
+            # Check blocklist final safety
+            if is_url_blocked(self.db, tracking_url):
+                print(f"   🚫 Skipped (Safety: Blocklisted): {title}")
+                return "skipped"  # type: ignore # pyre-ignore[7]
+
             # Check if exists
             existing = self.db.query(Campaign).filter(Campaign.tracking_url == tracking_url).first()  # type: ignore # pyre-ignore[16]
             if existing:
-                print(f"   ⏩ Skipping existing: {title}")
+                print(f"   ⏭️ Skipping existing: {title}")
                 return "skipped"  # type: ignore # pyre-ignore[7]
 
             # Map sector

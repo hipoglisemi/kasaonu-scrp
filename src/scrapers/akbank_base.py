@@ -91,7 +91,7 @@ class AkbankBaseScraper:
                     if href:
                         full_url = urljoin(self.base_url, href)
                         if full_url not in campaign_urls:
-                            campaign_urls.append(full_url)
+                            campaign_urls.append(str(full_url))  # type: ignore
                             new_found = True
                             
                 if not new_found:
@@ -169,7 +169,9 @@ class AkbankBaseScraper:
             if should_skip_campaign(db, source_url, card_id=self.card_id):
                 # This should usually be handled by _process_campaign's early check, 
                 # but we keep it here as a safety measure.
-                print(f"   ⏭️  Skipped (Safety Check: URL blocked or exists): {source_url}")
+                existing = db.query(Campaign).filter(Campaign.tracking_url == source_url).first()
+                title_log = existing.title if existing else source_url
+                print(f"   ⏭️  Skipped (Safety Check: URL blocked or exists): {title_log}")
                 return "skipped"  # type: ignore # pyre-ignore[7]
 
             # Ensure slug is unique using the utility
@@ -222,25 +224,25 @@ class AkbankBaseScraper:
             conditions_text = "\n".join(conditions_lines)
             eligible_cards_str = ", ".join(eligible_cards_list) if eligible_cards_list else None
 
-            campaign = Campaign(
-                card_id=self.card_id,
-                sector_id=sector.id if sector else None,  # type: ignore # pyre-ignore[16]
-                slug=slug,
-                title=ai_data.get('short_title') or ai_data.get('title') or title,
-                description=ai_data.get('description') or title,
-                reward_text=ai_data.get('reward_text'),
-                reward_value=ai_data.get('reward_value'),
-                reward_type=ai_data.get('reward_type'),
-                conditions=conditions_text,
-                eligible_cards=eligible_cards_str,
-                image_url=image_url,
-                start_date=start_date,
-                end_date=end_date,
-                clean_text=ai_data.get('_clean_text'),
-                is_active=True,
-                created_at=datetime.utcnow(),
-                updated_at=datetime.utcnow(),
-                tracking_url=source_url
+            campaign = Campaign(  # type: ignore
+                card_id=self.card_id,  # type: ignore
+                sector_id=sector.id if sector else None,  # type: ignore
+                slug=slug,  # type: ignore
+                title=ai_data.get('short_title') or ai_data.get('title') or title,  # type: ignore
+                description=ai_data.get('description') or title,  # type: ignore
+                reward_text=ai_data.get('reward_text'),  # type: ignore
+                reward_value=ai_data.get('reward_value'),  # type: ignore
+                reward_type=ai_data.get('reward_type'),  # type: ignore
+                conditions=conditions_text,  # type: ignore
+                eligible_cards=eligible_cards_str,  # type: ignore
+                image_url=image_url,  # type: ignore
+                start_date=start_date,  # type: ignore
+                end_date=end_date,  # type: ignore
+                clean_text=ai_data.get('_clean_text'),  # type: ignore
+                is_active=True,  # type: ignore
+                created_at=datetime.utcnow(),  # type: ignore
+                updated_at=datetime.utcnow(),  # type: ignore
+                tracking_url=source_url  # type: ignore
             )
             
             db.add(campaign)  # type: ignore # pyre-ignore[16]
@@ -258,7 +260,7 @@ class AkbankBaseScraper:
                         ).first()
                         
                         if not brand:
-                            brand = Brand(name=brand_name, slug=b_slug, is_active=True)
+                            brand = Brand(name=brand_name, slug=b_slug, is_active=True)  # type: ignore
                             db.add(brand)  # type: ignore # pyre-ignore[16]
                             db.commit()  # type: ignore # pyre-ignore[16]
                             
@@ -304,7 +306,9 @@ class AkbankBaseScraper:
                 if not force:
                     with get_db_session() as db:
                         if should_skip_campaign(db, url, card_id=self.card_id):
-                            print(f"⏭️  Skipped (Blocked or already exists): {url}")
+                            existing = db.query(Campaign).filter(Campaign.tracking_url == url).first()
+                            title_log = existing.title if existing else url
+                            print(f"⏭️  Skipped (Blocked or already exists): {title_log}")
                             total_skipped += 1  # type: ignore # pyre-ignore[58]
                             continue
 

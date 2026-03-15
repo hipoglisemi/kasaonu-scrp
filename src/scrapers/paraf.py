@@ -26,6 +26,7 @@ from src.database import get_db_session  # type: ignore # pyre-ignore[21]
 from src.models import Bank, Card, Sector, Brand, Campaign, CampaignBrand  # type: ignore # pyre-ignore[21]
 from src.services.ai_parser import AIParser  # type: ignore # pyre-ignore[21]
 from src.utils.logger_utils import log_scraper_execution  # type: ignore # pyre-ignore[21]
+from src.utils.scraper_utils import is_url_blocked  # type: ignore
 
 class ParafScraper:
     """
@@ -105,6 +106,14 @@ class ParafScraper:
             failed_count = 0
             for i, campaign_data in enumerate(campaigns, 1):
                 url = urljoin(source['base'], campaign_data.get('url', ''))
+                
+                # Blocklist check
+                if is_url_blocked(self.db, url):
+                    title = campaign_data.get('title') or url
+                    print(f"   [{i}/{len(campaigns)}] 🚫 Skipped (Blocklisted): {title}")
+                    skipped_count = int(skipped_count or 0) + 1  # type: ignore
+                    continue
+
                 print(f"   [{i}/{len(campaigns)}] {url}")
                 
                 try:
@@ -169,8 +178,13 @@ class ParafScraper:
         if not force:
             existing = self.db.query(Campaign).filter(Campaign.tracking_url == url).first()  # type: ignore # pyre-ignore[16]
             if existing:
-                print(f"      ⏭️ Skipped (Already exists)")
+                print(f"      ⏭️ Skipped (Already exists): {existing.title[:40]}")
                 return "skipped"  # type: ignore # pyre-ignore[7]
+
+        # Final blocklist check
+        if is_url_blocked(self.db, url):
+            print(f"      🚫 Skipped (Safety Check: Blocklisted): {title if 'title' in locals() else url}")
+            return "skipped"  # type: ignore # pyre-ignore[7]
 
         try:
             # Fetch detail page for full conditions text
@@ -285,30 +299,30 @@ class ParafScraper:
             elif "paraf" in first_card:
                 card_logo_url = "https://www.paraf.com.tr/content/dam/parafcard/paraf-logos/paraf-logo-yeni.png"
         
-        campaign = Campaign(
-            card_id=primary_card.id,  # type: ignore # pyre-ignore[16]
-            sector_id=sector.id if sector else None,  # type: ignore # pyre-ignore[16]
-            title=data.get("title"),
-            slug=slug,
-            description=data.get("description"),
-            conditions="\n".join(data.get("conditions", [])),
-            start_date=data.get("start_date"),
-            end_date=data.get("end_date"),
-            reward_type=data.get("reward_type"),
-            reward_value=data.get("reward_value"),
-            reward_text=data.get("reward_text"),
+        campaign = Campaign(  # type: ignore
+            card_id=primary_card.id,  # type: ignore 
+            sector_id=sector.id if sector else None,  # type: ignore 
+            title=data.get("title"),  # type: ignore 
+            slug=slug,  # type: ignore 
+            description=data.get("description"),  # type: ignore 
+            conditions="\n".join(data.get("conditions", [])),  # type: ignore 
+            start_date=data.get("start_date"),  # type: ignore 
+            end_date=data.get("end_date"),  # type: ignore 
+            reward_type=data.get("reward_type"),  # type: ignore 
+            reward_value=data.get("reward_value"),  # type: ignore 
+            reward_text=data.get("reward_text"),  # type: ignore 
             
             # AI Fields
-            ai_marketing_text=marketing_text,
-            eligible_cards=", ".join(target_cards),
-            category=data.get("category"),
-            badge_color=data.get("badge_color"),
-            card_logo_url=card_logo_url,  # Use mapped logo URL
+            ai_marketing_text=marketing_text,  # type: ignore 
+            eligible_cards=", ".join(target_cards),  # type: ignore 
+            category=data.get("category"),  # type: ignore 
+            badge_color=data.get("badge_color"),  # type: ignore 
+            card_logo_url=card_logo_url,  # type: ignore 
             
-            clean_text=data.get('_clean_text'),
-            tracking_url=url,
-            image_url=image_url,
-            is_active=True
+            clean_text=data.get('_clean_text'),  # type: ignore 
+            tracking_url=url,  # type: ignore 
+            image_url=image_url,  # type: ignore 
+            is_active=True  # type: ignore
         )
         
         if self.db is None: return
@@ -381,7 +395,7 @@ class ParafScraper:
         self.card_cache[key] = card
         return card  # type: ignore # pyre-ignore[7]
 
-    def _get_sector(self, slug: str) -> Optional[Sector]:  # type: ignore # pyre-ignore[16,6]
+    def _get_sector(self, slug: Optional[str]) -> Optional[Sector]:  # type: ignore # pyre-ignore[16,6]
         if not slug:
             return None  # type: ignore # pyre-ignore[7]
         return self.sector_cache.get(slug.lower()) or self.sector_cache.get("diğer")  # type: ignore # pyre-ignore[7]

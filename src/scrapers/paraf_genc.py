@@ -25,6 +25,7 @@ from sqlalchemy.orm import Session  # type: ignore # pyre-ignore[21]
 from src.database import get_db_session  # type: ignore # pyre-ignore[21]
 from src.models import Bank, Card, Sector, Brand, Campaign, CampaignBrand  # type: ignore # pyre-ignore[21]
 from src.services.ai_parser import AIParser  # type: ignore # pyre-ignore[21]
+from src.utils.scraper_utils import is_url_blocked  # type: ignore
 
 class ParafGencScraper:
     """
@@ -92,6 +93,13 @@ class ParafGencScraper:
             error_details = []
             for i, campaign_data in enumerate(campaigns, 1):
                 url = urljoin(source['base'], campaign_data.get('url', ''))
+                
+                # Blocklist check
+                if is_url_blocked(self.db, url):
+                    print(f"   [{i}/{len(campaigns)}] 🚫 Skipped (Blocklisted): {url}")
+                    skipped_count = int(skipped_count or 0) + 1
+                    continue
+
                 print(f"   [{i}/{len(campaigns)}] {url}")
                 
                 try:
@@ -165,7 +173,12 @@ class ParafGencScraper:
         # Check if exists
         existing = self.db.query(Campaign).filter(Campaign.tracking_url == url).first()  # type: ignore # pyre-ignore[16]
         if existing:
-            print(f"      ⏭️ Skipped (Already exists)")
+            print(f"      ⏭️ Skipped (Already exists): {existing.title[:40]}")
+            return "skipped"  # type: ignore # pyre-ignore[7]
+
+        # Final blocklist check
+        if is_url_blocked(self.db, url):
+            print(f"      🚫 Skipped (Safety Check: Blocklisted)")
             return "skipped"  # type: ignore # pyre-ignore[7]
 
         try:

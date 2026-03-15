@@ -17,7 +17,7 @@ if (useVertexAi) {
     genAI = new GoogleGenerativeAI(process.env.GOOGLE_GEMINI_KEY || process.env.GEMINI_API_KEY || '');
 }
 
-export async function generateContent(prompt: string, modelName: string = 'gemini-2.5-flash-lite', options: any = {}) {
+export async function generateContent(prompt: string, modelName: string = 'gemini-3.1-flash-lite-preview', options: any = {}) {
     try {
         if (vertexAi) {
             const model = vertexAi.getGenerativeModel({

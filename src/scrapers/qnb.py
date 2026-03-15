@@ -19,6 +19,7 @@ from src.utils.logger_utils import log_scraper_execution  # type: ignore # pyre-
 from src.services.brand_normalizer import cleanup_brands  # type: ignore # pyre-ignore[21]
 from src.utils.slug_generator import get_unique_slug  # type: ignore # pyre-ignore[21]
 from src.utils.cache_manager import clear_cache  # type: ignore # pyre-ignore[21]
+from src.utils.scraper_utils import is_url_blocked  # type: ignore
 
 class QNBScraper:
     """
@@ -101,8 +102,13 @@ class QNBScraper:
         campaign_url = f"{self.BASE_URL}/kampanyalar/{seo_name}" if seo_name else f"{self.BASE_URL}/kampanyalar/{item.get('Id')}"
 
         with get_db_session() as db:
+            if is_url_blocked(db, campaign_url):
+                print(f"   🚫 Skipped (Blocklisted): {title}")
+                return "skipped"  # type: ignore # pyre-ignore[7]
+
             existing = db.query(Campaign).filter(Campaign.tracking_url == campaign_url).first()  # type: ignore # pyre-ignore[16]
             if existing:
+                print(f"   ⏭️ Skipped (Already exists): {title}")
                 return "skipped"  # type: ignore # pyre-ignore[7]
 
         content_html = item.get("Content") or item.get("Description") or ""
@@ -122,6 +128,10 @@ class QNBScraper:
     def _save_campaign(self, ai_data: Dict[str, Any], url: str, item: Dict[str, Any]) -> str:  # type: ignore # pyre-ignore[16,6]
         try:
             with get_db_session() as db:
+                if is_url_blocked(db, url):
+                    print(f"   🚫 Skipped (Safety: Blocklisted): {ai_data.get('title') or url}")
+                    return "skipped"  # type: ignore # pyre-ignore[7]
+
                 sector_name = ai_data.get('sector', 'Diğer')
                 sector = db.query(Sector).filter((Sector.slug == sector_name) | (Sector.name.ilike(sector_name))).first()  # type: ignore # pyre-ignore[16]
                 if not sector:

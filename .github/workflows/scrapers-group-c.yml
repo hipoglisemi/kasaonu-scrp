@@ -1,10 +1,9 @@
 name: "🆑 Scrapers – Grup C"
 # İşbankası (Genç + Maximiles + Maximum), Masterpass, Paraf (x2), Param, QNB
-# TSİ 04:00 ve 16:00 → UTC 01:00 ve 13:00
-
+# TSİ 04:00 → UTC 01:00
 on:
   schedule:
-    - cron: '0 2 * * *'   # TSİ 05:00 (UTC 02:00) — Group C, B'den 30dk sonra
+    - cron: '0 1 * * *'   # TSİ 04:00 (UTC 01:00)
   workflow_dispatch: {}
 
 jobs:

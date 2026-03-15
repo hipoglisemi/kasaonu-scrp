@@ -1,7 +1,7 @@
 import { supabase } from './supabase';
 import { generateContent } from './genai';
 
-const MODEL_NAME = 'gemini-2.5-flash-lite';
+const MODEL_NAME = 'gemini-3.1-flash-lite-preview';
 
 interface MasterData {
     categories: string[];

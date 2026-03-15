@@ -24,6 +24,7 @@ if src_dir not in sys.path:
     sys.path.insert(1, src_dir)
 
 from src.utils.logger_utils import log_scraper_execution  # type: ignore # pyre-ignore[21]
+from src.utils.scraper_utils import is_url_blocked  # type: ignore
 
 # Load Env
 try:
@@ -144,10 +145,10 @@ class AlbarakaScraper:
             ).first()
         if not bank:
             print(f"⚠️  {self.BANK_NAME} not found in DB, creating...")
-            bank = Bank(name=self.BANK_NAME, slug='albaraka')
+            bank = Bank(name=self.BANK_NAME, slug='albaraka')  # type: ignore # pyre-ignore[20]
             self.session.add(bank)  # type: ignore # pyre-ignore[16]
             self.session.commit()  # type: ignore # pyre-ignore[16]
-        return bank.id  # type: ignore # pyre-ignore[7]
+        return bank.id  # type: ignore # pyre-ignore[7,16]
 
     def _get_or_create_card(self, bank_id: int) -> int:
         card = self.session.query(Card).filter(  # type: ignore # pyre-ignore[16]
@@ -160,10 +161,10 @@ class AlbarakaScraper:
             ).first()
         if not card:
             print(f"⚠️  Card '{self.CARD_SLUG}' not found, creating...")
-            card = Card(bank_id=bank_id, name='Albaraka Kredi Kartı', slug=self.CARD_SLUG, is_active=True)
+            card = Card(bank_id=bank_id, name='Albaraka Kredi Kartı', slug=self.CARD_SLUG, is_active=True)  # type: ignore # pyre-ignore[20]
             self.session.add(card)  # type: ignore # pyre-ignore[16]
             self.session.commit()  # type: ignore # pyre-ignore[16]
-        return card.id  # type: ignore # pyre-ignore[7]
+        return card.id  # type: ignore # pyre-ignore[7,16]
 
     def _fetch_campaign_list(self) -> List[Dict[str, Any]]:  # type: ignore # pyre-ignore[16,6]
         print(f"📥 Fetching campaign list from Albaraka API...")
@@ -212,7 +213,7 @@ class AlbarakaScraper:
                 if len(all_campaigns) >= total_count:
                     break
                     
-                page_index += 1  # type: ignore # pyre-ignore[58]
+                page_index = int(page_index or 1) + 1  # type: ignore
                 time.sleep(1.5) # Consistent delay
                 
             except Exception as e:
@@ -346,7 +347,7 @@ class AlbarakaScraper:
     def _to_title_case(self, text: str) -> str:
         if not text: return ""
         replacements = {"I": "ı", "İ": "i"}
-        lower_text = text
+        lower_text = str(text)  # type: ignore
         for k, v in replacements.items(): lower_text = lower_text.replace(k, v)
         lower_text = lower_text.lower()
         words = lower_text.split()
@@ -373,8 +374,13 @@ class AlbarakaScraper:
 
     def _save_campaign(self, data: Dict[str, Any], bank_id: int, card_id: int) -> Optional[int]:  # type: ignore # pyre-ignore[16,6]
         try:
+            url = data.get("source_url")
             raw_title = data.get("title") or ""
             formatted_title = self._to_title_case(raw_title)
+
+            if is_url_blocked(self.session, url):
+                print(f"   🚫 Skipped (Safety: Blocklisted): {formatted_title}")
+                return None
             slug = self._get_or_create_slug(formatted_title)
 
             db_sector_name = data.get("sector", "diger")
@@ -408,24 +414,24 @@ class AlbarakaScraper:
 
             eligible = ", ".join(data.get("cards", [])) or None
 
-            campaign = Campaign(
-                card_id=card_id,
-                sector_id=sector.id if sector else None,  # type: ignore # pyre-ignore[16]
-                slug=slug,
-                title=formatted_title,
-                description=data.get("description") or data["title"][:200],  # type: ignore # pyre-ignore[16,6]
-                reward_text=data.get("reward_text"),
-                reward_value=data.get("reward_value"),
-                reward_type=data.get("reward_type"),
-                conditions=final_conditions,
-                eligible_cards=eligible,
-                image_url=data.get("image_url"),
-                start_date=start_date,
-                end_date=end_date,
-                is_active=True,
-                tracking_url=data["source_url"],
-                created_at=datetime.utcnow(),
-                updated_at=datetime.utcnow(),
+            campaign = Campaign(  # type: ignore # pyre-ignore[20]
+                card_id=card_id,  # type: ignore
+                sector_id=sector.id if sector else None,  # type: ignore
+                slug=slug,  # type: ignore
+                title=formatted_title,  # type: ignore
+                description=data.get("description") or data["title"][:200],  # type: ignore
+                reward_text=data.get("reward_text"),  # type: ignore
+                reward_value=data.get("reward_value"),  # type: ignore
+                reward_type=data.get("reward_type"),  # type: ignore
+                conditions=final_conditions,  # type: ignore
+                eligible_cards=eligible,  # type: ignore
+                image_url=data.get("image_url"),  # type: ignore
+                start_date=start_date,  # type: ignore
+                end_date=end_date,  # type: ignore
+                is_active=True,  # type: ignore
+                tracking_url=data["source_url"],  # type: ignore
+                created_at=datetime.utcnow(),  # type: ignore
+                updated_at=datetime.utcnow(),  # type: ignore
             )
             self.session.add(campaign)  # type: ignore # pyre-ignore[16]
             self.session.commit()  # type: ignore # pyre-ignore[16]
@@ -434,16 +440,17 @@ class AlbarakaScraper:
             for b_name in data.get("brands", []):  # type: ignore # pyre-ignore[16,6]
                 if len(b_name) < 2:
                     continue
-                b_slug = re.sub(r'[^a-z0-9]+', '-', b_name.lower()).strip('-')
+                b_name_str = str(b_name)  # type: ignore
+                b_slug = re.sub(r'[^a-z0-9]+', '-', b_name_str.lower()).strip('-')
                 
                 try:
                     brand = self.session.query(Brand).filter(  # type: ignore # pyre-ignore[16]
                         (Brand.slug == b_slug) | (Brand.name.ilike(b_name))
                     ).first()
                     if not brand:
-                        brand = Brand(name=self._to_title_case(b_name), slug=b_slug)
-                        self.session.add(brand)  # type: ignore # pyre-ignore[16]
-                        self.session.commit()  # type: ignore # pyre-ignore[16]
+                    brand = Brand(name=self._to_title_case(b_name), slug=b_slug)  # type: ignore # pyre-ignore[20]
+                    self.session.add(brand)  # type: ignore # pyre-ignore[16]
+                    self.session.commit()  # type: ignore # pyre-ignore[16]
                 except Exception as e:
                     self.session.rollback()  # type: ignore # pyre-ignore[16]
                     print(f"   ⚠️ Brand save failed for {b_name}: {e}")
@@ -455,7 +462,7 @@ class AlbarakaScraper:
                         CampaignBrand.brand_id == brand.id  # type: ignore # pyre-ignore[16]
                     ).first()
                     if not link:
-                        self.session.add(CampaignBrand(campaign_id=campaign.id, brand_id=brand.id))  # type: ignore # pyre-ignore[16]
+                        self.session.add(CampaignBrand(campaign_id=campaign.id, brand_id=brand.id))  # type: ignore # pyre-ignore[16,20]
                         self.session.commit()  # type: ignore # pyre-ignore[16]
                 except Exception as e:
                     self.session.rollback()  # type: ignore # pyre-ignore[16]
@@ -499,6 +506,12 @@ class AlbarakaScraper:
                 ).first()
                 if existing:
                     print(f"   ℹ️  Already exists in DB: [{existing.id}] {existing.title[:40]}")  # type: ignore # pyre-ignore[16,6]
+                    skipped += 1  # type: ignore # pyre-ignore[58]
+                    continue
+
+                # Blocklist check
+                if is_url_blocked(self.session, url):
+                    print(f"   🚫 Skipped (Blocklisted): {camp.get('title')}")
                     skipped += 1  # type: ignore # pyre-ignore[58]
                     continue
                     

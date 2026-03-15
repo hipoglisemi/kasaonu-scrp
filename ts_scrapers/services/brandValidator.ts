@@ -87,7 +87,7 @@ ${contextSnippet.substring(0, 500)}
 `;
 
     try {
-        const responseText = await generateContent(prompt, 'gemini-2.5-flash-lite', {
+        const responseText = await generateContent(prompt, 'gemini-3.1-flash-lite-preview', {
             generationConfig: {
                 temperature: 0.1
             }

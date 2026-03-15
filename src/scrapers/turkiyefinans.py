@@ -12,6 +12,7 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from sqlalchemy import create_engine, text  # type: ignore # pyre-ignore[21]
 from services.ai_parser import AIParser  # type: ignore # pyre-ignore[21]
 from services.brand_normalizer import cleanup_brands  # type: ignore # pyre-ignore[21]
+from src.utils.scraper_utils import is_url_blocked  # type: ignore
 
 # Playwright
 from playwright.sync_api import sync_playwright  # type: ignore # pyre-ignore[21]
@@ -257,8 +258,12 @@ class TurkiyeFinansScraper:
                     {"url": url}
                 ).fetchone()
                 if existing:
-                    print(f"   ⏭️ Skipped (Already exists): {url}")
+                    # Try to get title from DB if possible
+                    res = conn.execute(text("SELECT title FROM campaigns WHERE id = :id"), {"id": existing[0]}).fetchone()
+                    title_log = res[0] if res else url
+                    print(f"   ⏭️ Skipped (Already exists): {title_log}")
                     return "skipped"  # type: ignore # pyre-ignore[7]
+                
         except Exception as e:
             print(f"   ⚠️ DB Pre-check error: {e}")
 
@@ -297,6 +302,16 @@ class TurkiyeFinansScraper:
             if not title or title.lower() in GENERIC_TITLES:
                 print(f"      ⚠️ Valid title not found, skipping {url}")
                 return "skipped"  # type: ignore # pyre-ignore[7]
+
+            # Blocklist check (move here to get title for log)
+            try:
+                from src.database import get_db_session  # type: ignore
+                with get_db_session() as db:
+                    if is_url_blocked(db, url):
+                        print(f"   🚫 Skipped (Blocklisted): {title}")
+                        return "skipped"  # type: ignore # pyre-ignore[7]
+            except Exception as e:
+                print(f"   ⚠️ Blocklist check error: {e}")
 
             # Image
             image_url = None

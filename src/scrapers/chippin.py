@@ -20,6 +20,8 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from sqlalchemy import create_engine, text  # type: ignore # pyre-ignore[21]
 from services.ai_parser import AIParser  # type: ignore # pyre-ignore[21]
 from services.brand_normalizer import normalize_brand_name, cleanup_brands  # type: ignore # pyre-ignore[21]
+from utils.scraper_utils import is_url_blocked  # type: ignore
+from sqlalchemy.orm import Session  # type: ignore
 
 load_dotenv()
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
@@ -206,12 +208,18 @@ class ChippinScraper:
 
                 # Database Ops - EARLIER CHECK TO SAVE AI CALLS
                 try:
-                    with self.engine.begin() as conn:
-                        existing = conn.execute(text("SELECT id FROM campaigns WHERE tracking_url = :url"), {"url": tracking_url}).fetchone()
-                        if existing:
-                            print(f"   ⏭️ Skipped (Already exists): {tracking_url}")
-                            skipped_count += 1  # type: ignore # pyre-ignore[58]
-                            continue
+                    with Session(self.engine) as session:
+                        if is_url_blocked(session, tracking_url):
+                             print(f"   🚫 Skipped (Blocklisted): {title}")
+                             skipped_count += 1  # type: ignore # pyre-ignore[58]
+                             continue
+
+                        with self.engine.begin() as conn:
+                            existing = conn.execute(text("SELECT id FROM campaigns WHERE tracking_url = :url"), {"url": tracking_url}).fetchone()
+                            if existing:
+                                print(f"   ⏭️ Skipped (Already exists): {title}")
+                                skipped_count += 1  # type: ignore # pyre-ignore[58]
+                                continue
                 except Exception as e:
                     print(f"   ❌ DB Pre-check Error: {e}")
 

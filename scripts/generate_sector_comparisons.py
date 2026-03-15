@@ -65,7 +65,7 @@ def call_ai_with_retry(prompt: str, max_retries: int = 5) -> str:
             response = generate_with_rotation(
                 prompt, 
                 temperature=0.0,
-                model="gemini-2.5-flash-lite"
+                model="gemini-3.1-flash-lite-preview"
             )
             return response
         except Exception as e:

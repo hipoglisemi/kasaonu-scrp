@@ -1,10 +1,9 @@
 name: "🅰️ Scrapers – Grup A"
 # Akbank (4), AmericanExpress, Chippin, Denizbank
-# TSİ 03:00 ve 15:00 → UTC 00:00 ve 12:00
-
+# TSİ 03:00 → UTC 00:00
 on:
   schedule:
-    - cron: '0 1 * * *'   # TSİ 04:00 (UTC 01:00) — Group A ilk başlar
+    - cron: '0 0 * * *'   # TSİ 03:00 (UTC 00:00)
   workflow_dispatch: {}
 
 jobs:

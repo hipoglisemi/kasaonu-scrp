@@ -12,6 +12,7 @@ from datetime import datetime  # type: ignore # pyre-ignore[21]
 from typing import Optional, Dict, Any, List  # type: ignore # pyre-ignore[21]
 from bs4 import BeautifulSoup  # type: ignore # pyre-ignore[21]
 from urllib.parse import urljoin  # type: ignore # pyre-ignore[21]
+from src.utils.scraper_utils import is_url_blocked  # type: ignore
 
 # Path setup
 project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -275,6 +276,13 @@ class IsbankMaximumScraper:
             if "gecmis" in url or "geçmiş" in title.lower():
                 return None  # type: ignore # pyre-ignore[7]
 
+            # Blocklist check
+            from src.database import get_db_session  # type: ignore
+            with get_db_session() as db:
+                 if is_url_blocked(db, url):
+                      print(f"   🚫 Skipped (Blocklisted): {title}")
+                      return None
+
             # 404 kontrolü - Geçersiz/silinmiş sayfa filtresi
             page_text = soup.get_text()
             if any(phrase in page_text for phrase in [
@@ -409,6 +417,11 @@ class IsbankMaximumScraper:
 
     def _save_campaign(self, data: Dict[str, Any], bank_id: int, card_id: int) -> Optional[int]:  # type: ignore # pyre-ignore[16,6]
         try:
+            # Final blocklist check before saving
+            if is_url_blocked(self.session, data["source_url"]):
+                print(f"   🚫 Skipped (Safety Check: Blocklisted): {data['source_url']}")
+                return None
+
             raw_title = data.get("title") or ""
             formatted_title = self._to_title_case(raw_title)
             slug = self._get_or_create_slug(formatted_title)
@@ -454,24 +467,24 @@ class IsbankMaximumScraper:
 
             eligible = ", ".join(data.get("cards", [])) or None
 
-            campaign = Campaign(
-                card_id=card_id,
-                sector_id=sector.id if sector else None,  # type: ignore # pyre-ignore[16]
-                slug=slug,
-                title=formatted_title,
-                description=data.get("description") or data["title"][:200],  # type: ignore # pyre-ignore[16,6]
-                reward_text=data.get("reward_text"),
-                reward_value=data.get("reward_value"),
-                reward_type=data.get("reward_type"),
-                conditions=final_conditions,
-                eligible_cards=eligible,
-                image_url=data["image_url"],
-                start_date=start_date,
-                end_date=end_date,
-                is_active=True,
-                tracking_url=data["source_url"],
-                created_at=datetime.utcnow(),
-                updated_at=datetime.utcnow(),
+            campaign = Campaign(  # type: ignore
+                card_id=card_id,  # type: ignore
+                sector_id=sector.id if sector else None,  # type: ignore
+                slug=slug,  # type: ignore
+                title=formatted_title,  # type: ignore
+                description=data.get("description") or data["title"][:200],  # type: ignore
+                reward_text=data.get("reward_text"),  # type: ignore
+                reward_value=data.get("reward_value"),  # type: ignore
+                reward_type=data.get("reward_type"),  # type: ignore
+                conditions=final_conditions,  # type: ignore
+                eligible_cards=eligible,  # type: ignore
+                image_url=data["image_url"],  # type: ignore
+                start_date=start_date,  # type: ignore
+                end_date=end_date,  # type: ignore
+                is_active=True,  # type: ignore
+                tracking_url=data["source_url"],  # type: ignore
+                created_at=datetime.utcnow(),  # type: ignore
+                updated_at=datetime.utcnow(),  # type: ignore
             )
             if self.session is None: return None
             self.session.add(campaign)  # type: ignore # pyre-ignore[16]
@@ -488,7 +501,7 @@ class IsbankMaximumScraper:
                         (Brand.slug == b_slug) | (Brand.name.ilike(b_name))
                     ).first()
                     if not brand:
-                        brand = Brand(name=self._to_title_case(b_name), slug=b_slug)
+                        brand = Brand(name=self._to_title_case(b_name), slug=b_slug)  # type: ignore
                         self.session.add(brand)  # type: ignore # pyre-ignore[16]
                         self.session.commit()  # type: ignore # pyre-ignore[16]
                 except Exception as e:
@@ -567,13 +580,19 @@ class IsbankMaximumScraper:
                 print(f"\n[{i}/{len(urls)}]")
                 print(f"🔍 Processing: {url}")
                 
+                # Blocklist check
+                if is_url_blocked(self.session, url):
+                    print(f"   🚫 Skipped (Blocklisted): {url}")
+                    skipped = int(skipped or 0) + 1
+                    continue
+
                 # DB Cache query
                 existing = self.session.query(Campaign).filter(  # type: ignore # pyre-ignore[16]
                     Campaign.tracking_url == url,
                     Campaign.card_id == card_id
                 ).first()
                 if existing and not force:
-                    print(f"   ℹ️  Already exists in DB: [{existing.id}] {existing.title[:40]}")  # type: ignore # pyre-ignore[16,6]
+                    print(f"   ⏭️ Skipped (Already exists): [{existing.id}] {existing.title[:40]}")  # type: ignore # pyre-ignore[16,6]
                     skipped = int(skipped or 0) + 1
                     continue
                     
