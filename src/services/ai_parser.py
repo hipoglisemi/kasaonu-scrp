@@ -12,6 +12,9 @@ import signal
 from typing import Dict, Any, Optional, List
 from datetime import datetime, timedelta
 from dotenv import load_dotenv # type: ignore
+
+# Find project root
+_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from .text_cleaner import clean_campaign_text # type: ignore
 from .brand_normalizer import cleanup_brands # type: ignore
 

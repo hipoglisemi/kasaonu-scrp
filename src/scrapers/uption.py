@@ -236,17 +236,42 @@ class UptionScraper:
         title_el = soup.select_one('h1') or soup.select_one('h2')
         title = title_el.get_text(strip=True) if title_el else item['title']
         
-        # Content - Look for the rich text block
-        # Uption details are usually in a div with some descriptive classes
-        content_div = soup.select_one('.rich-text-v2') or soup.find('main')
-        if content_div:
-            # Clean HTML for AI
-            raw_content = content_div.get_text(separator='\n', strip=True)
+        # Content - Look for the rich text blocks (including the one with dates)
+        content_parts = []
+        h1_el = soup.select_one('h1.h1-landing-pages-2') or soup.select_one('h1')
+        if h1_el:
+            content_parts.append(f"TITLE: {h1_el.get_text(strip=True)}")
+            
+        # Uption often uses these cryptic Webflow classes
+        selectors = [
+            '.cms-content', 
+            '.rich-text-block-3', 
+            '.rich-text-v2', 
+            '._18p-left-13p-top-margin-block',
+            '.campaign-detail-content',
+            '.w-richtext'
+        ]
+        
+        for selector in selectors:
+            elements = soup.select(selector)
+            for el in elements:
+                txt = el.get_text(separator=' ', strip=True)
+                if len(txt) > 20: # Avoid tiny noise
+                    content_parts.append(txt)
+        
+        if not content_parts:
+            # Last resort
+            content_div = soup.select_one('main') or soup.select_one('article') or soup.find('body')
+            raw_content = content_div.get_text(separator=' ', strip=True) if content_div else title
         else:
-            raw_content = title
+            # Use dict.fromkeys to preserve order and remove potential duplicate blocks
+            raw_content = "\n\n".join(dict.fromkeys(content_parts))
 
         # Higher quality image from detail page?
-        detail_img_el = soup.select_one('img[src*="campaign"]') or soup.select_one('.campaign-header img')
+        detail_img_el = soup.select_one('img.campaign-detail-image') or \
+                        soup.select_one('img.image-46') or \
+                        soup.select_one('.w-richtext img')
+        
         image_url = detail_img_el.get('src') if detail_img_el else item['list_image']
         if image_url and not image_url.startswith('http'):
             image_url = urljoin(self.BASE_URL, image_url)
