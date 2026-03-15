@@ -459,7 +459,8 @@ class DenizbankScraper:
                 "reward_type": None
             }
 
-        slug = self._get_slug(ai_data.get('title') or title)
+        slug_base = self._get_slug(ai_data.get('title') or title)
+        slug = slug_base
         
         # Build conditions with participation info (like other scrapers)
         conditions_lines = []
@@ -555,26 +556,51 @@ class DenizbankScraper:
                     print(f"   ⏭️ Skipped (Already exists, preserving manual edits): {data['tracking_url']}")  # type: ignore # pyre-ignore[16,6]
                     return "skipped"  # type: ignore # pyre-ignore[7]
 
-                print(f"   ✨ Creating: {data['title']}")  # type: ignore # pyre-ignore[16,6]
-                result = conn.execute(
-                    text("""
-                        INSERT INTO campaigns (
-                            title, description, slug, image_url, tracking_url, is_active, 
-                            sector_id, card_id, start_date, end_date, conditions, 
-                            eligible_cards, reward_text, reward_value, reward_type, clean_text,
-                            created_at, updated_at
+                try:
+                    result = conn.execute(
+                        text("""
+                            INSERT INTO campaigns (
+                                title, description, slug, image_url, tracking_url, is_active, 
+                                sector_id, card_id, start_date, end_date, conditions, 
+                                eligible_cards, reward_text, reward_value, reward_type, clean_text,
+                                created_at, updated_at
+                            )
+                            VALUES (
+                                :title, :description, :slug, :image_url, :tracking_url, true, 
+                                :sector_id, :card_id, :start_date, :end_date, :conditions, 
+                                :eligible_cards, :reward_text, :reward_value, :reward_type, :clean_text,
+                                NOW(), NOW()
+                            )
+                            RETURNING id
+                        """), 
+                        {**data, "card_id": self.card_id}
+                    )
+                    campaign_id = result.fetchone()[0]
+                except Exception as e:
+                    if "unique constraint \"campaigns_slug_key\"" in str(e).lower():
+                        print(f"   ⚠️ Slug collision detected, retrying with bank suffix...")
+                        data['slug'] = f"{data['slug']}-denizbank"
+                        result = conn.execute(
+                            text("""
+                                INSERT INTO campaigns (
+                                    title, description, slug, image_url, tracking_url, is_active, 
+                                    sector_id, card_id, start_date, end_date, conditions, 
+                                    eligible_cards, reward_text, reward_value, reward_type, clean_text,
+                                    created_at, updated_at
+                                )
+                                VALUES (
+                                    :title, :description, :slug, :image_url, :tracking_url, true, 
+                                    :sector_id, :card_id, :start_date, :end_date, :conditions, 
+                                    :eligible_cards, :reward_text, :reward_value, :reward_type, :clean_text,
+                                    NOW(), NOW()
+                                )
+                                RETURNING id
+                            """), 
+                            {**data, "card_id": self.card_id}
                         )
-                        VALUES (
-                            :title, :description, :slug, :image_url, :tracking_url, true, 
-                            :sector_id, :card_id, :start_date, :end_date, :conditions, 
-                            :eligible_cards, :reward_text, :reward_value, :reward_type, :clean_text,
-                            NOW(), NOW()
-                        )
-                        RETURNING id
-                    """), 
-                    {**data, "card_id": self.card_id}
-                )
-                campaign_id = result.fetchone()[0]
+                        campaign_id = result.fetchone()[0]
+                    else:
+                        raise e
                 
                 # Save brands (like other scrapers)
                 if brands and campaign_id:
