@@ -123,13 +123,16 @@ class UptionScraper:
             self.setup_driver()
 
             if self.driver:
+                assert self.driver is not None
                 self.driver.get(self.CAMPAIGNS_URL)
                 time.sleep(3)
                 
                 # Uption has tabs, but "Tüm Kampanyalar" is active by default.
                 # If we need to click, we would do it here.
-
-                soup = BeautifulSoup(self.driver.page_source, 'html.parser')
+                
+                # Use a local variable to satisfy the linter
+                driver = self.driver
+                soup = BeautifulSoup(driver.page_source, 'html.parser')
                 cards = soup.select('a.helpfull-tab-card')
                 print(f"   🎯 Found {len(cards)} strategy cards.")
 
@@ -140,7 +143,7 @@ class UptionScraper:
                         url = urljoin(self.BASE_URL, href)
                         # Extract basic info from card
                         title_div = card.select_one('div')
-                        title = title_div.get_text(strip=True) if title_div else ""
+                        item_title = title_div.get_text(strip=True) if title_div else ""
                         
                         img_el = card.select_one('img')
                         list_image = img_el.get('src') if img_el else ""
@@ -149,11 +152,11 @@ class UptionScraper:
 
                         found_items.append({
                             'url': url,
-                            'title': title,
+                            'title': item_title,
                             'list_image': list_image
                         })
 
-                if limit:
+                if limit and isinstance(limit, int):
                     found_items = found_items[:limit]
 
                 success_count = 0
@@ -296,6 +299,7 @@ class UptionScraper:
     def _save_campaign(self, data: Dict, url: str, image_url: str):
         if not self.db: return
         
+        assert self.db is not None
         bank_id = self.bank_cache.id if self.bank_cache else None
         
         # Get or create card
