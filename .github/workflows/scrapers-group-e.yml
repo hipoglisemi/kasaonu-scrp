@@ -1,0 +1,82 @@
+name: "🍬 Scrapers – Grup E"
+# Şekerbank
+# TSİ 05:30 ve 17:30 → UTC 02:30 ve 14:30
+
+on:
+  schedule:
+    - cron: '30 3 * * *'   # TSİ 06:30 (UTC 03:30) — Group E, D'den 60dk sonra (Detaylı tarama için zamanlama)
+  workflow_dispatch: {}
+
+jobs:
+  scrape:
+    runs-on: ubuntu-22.04
+    strategy:
+      fail-fast: false
+      max-parallel: 1
+      matrix:
+        scraper:
+          - sekerbank
+
+    name: "🤖 ${{ matrix.scraper }}"
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.10'
+        cache: 'pip'
+
+    - name: Install System Dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y google-chrome-stable xvfb
+
+    - name: Install Python Dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        pip install selenium-stealth pyvirtualdisplay webdriver-manager
+
+    - name: Install Playwright Browsers
+      run: playwright install chromium --with-deps
+
+    - name: Run Scraper
+      env:
+        DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+        GEMINI_API_KEY_1: ${{ secrets.GEMINI_API_KEY_1 }}
+        GEMINI_API_KEY_2: ${{ secrets.GEMINI_API_KEY_2 }}
+        GEMINI_MODEL: "gemini-3.1-flash-lite-preview"
+        USE_VERTEX_AI: "False"
+        PYTHONPATH: ${{ github.workspace }}
+        PYTHONUNBUFFERED: '1'
+        DISPLAY: ':99'
+        CRON_SECRET: ${{ secrets.CRON_SECRET }}
+      run: |
+        Xvfb :99 -screen 0 1920x1080x24 &
+        sleep 2
+        python -u src/scrapers/${{ matrix.scraper }}.py
+
+    - name: Bildirim Gönder
+      if: always()
+      uses: dawidd6/action-send-mail@v3
+      with:
+        server_address: smtp.gmail.com
+        server_port: 465
+        secure: true
+        username: ${{ secrets.GMAIL_USER }}
+        password: ${{ secrets.GMAIL_APP_PASSWORD }}
+        to: ${{ secrets.GMAIL_USER }}
+        from: KartAvantaj CI <${{ secrets.GMAIL_USER }}>
+        subject: "${{ job.status == 'success' && '✅' || '❌' }} ${{ github.workflow }} — ${{ job.status }}"
+        body: |
+          Workflow: ${{ github.workflow }}
+          Durum: ${{ job.status }}
+          Repo: ${{ github.repository }}
+          Branch: ${{ github.ref_name }}
+          Tetikleyen: ${{ github.event_name }}
+          Çalışma: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          
+          Detaylar için yukarıdaki linke tıkla.

@@ -1,32 +1,41 @@
-import os
-import sys
-import json
+import os # type: ignore
+import sys # type: ignore
+import json # type: ignore
+import hashlib # type: ignore
 from datetime import datetime, timedelta
-from sqlalchemy import text
-from dotenv import load_dotenv
-from google.oauth2 import service_account
-from googleapiclient.discovery import build
+import sqlalchemy  # type: ignore
+from sqlalchemy import text # type: ignore
+from dotenv import sqlalchemy  # type: ignore # pyre-ignore[21]
+import dotenv  # type: ignore # pyre-ignore[21]
+import google.oauth2  # type: ignore # pyre-ignore[21]
+import googleapiclient.discovery  # type: ignore # pyre-ignore[21]
+from googleapiclient.discovery import build # type: ignore
+from google.oauth2 import service_account # pyre-ignore[21]
 
 # Add src to path
 sys.path.append(os.path.join(os.getcwd(), 'src'))
-from database import get_db_session
-from models import Campaign
+try:
+    from src.database import get_db_session # type: ignore # pyre-ignore[21]
+    from src.models import Campaign # type: ignore # pyre-ignore[21]
+except ImportError:
+    from database import get_db_session # type: ignore # pyre-ignore[21]
+    from models import Campaign # type: ignore # pyre-ignore[21]
 
-load_dotenv('.env')
+dotenv.load_dotenv('.env') # pyre-ignore[16]
 
 def notify_google_deleted(slugs: list[str]):
     """Silinen kampanyaları Google'a bildir."""
     key_raw = os.getenv("SEARCH_CONSOLE_KEY")
     if not key_raw:
         print("⚠️  SEARCH_CONSOLE_KEY bulunamadı, Google bildirimi atlandı.")
-        return
+        return False
     try:
         # JSON verisindeki olası ekstra tırnakları veya boşlukları temizle
-        key_raw = key_raw.strip()
+        key_raw = str(key_raw).strip()
         if key_raw.startswith("'") and key_raw.endswith("'"):
-            key_raw = key_raw[1:-1]
+            key_raw = key_raw[1:-1] # type: ignore
         if key_raw.startswith('"') and key_raw.endswith('"'):
-            key_raw = key_raw[1:-1]
+            key_raw = key_raw[1:-1] # type: ignore
             
         key_data = json.loads(key_raw)
         credentials = service_account.Credentials.from_service_account_info(
@@ -41,10 +50,13 @@ def notify_google_deleted(slugs: list[str]):
                     body={"url": url, "type": "URL_DELETED"}
                 ).execute()
                 print(f"🗑️  Google'a silindi bildirimi gönderildi: {url}")
+                return True
             except Exception as e:
                 print(f"  ❌  Google bildirim hatası ({url}): {e}")
+                return False
     except Exception as e:
         print(f"⚠️  Google servis hatası: {e}")
+        return False
 
 def cleanup_campaigns():
     """

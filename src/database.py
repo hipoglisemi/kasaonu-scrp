@@ -36,7 +36,8 @@ def _block_campaign_delete(execute_state):
     if execute_state.is_delete and getattr(execute_state.bind_mapper, 'class_', None):
         class_name = execute_state.bind_mapper.class_.__name__
         if class_name == 'Campaign':
-            if os.getenv("ALLOW_CAMPAIGN_DELETE") != "1":
+            allow_delete = os.getenv("ALLOW_CAMPAIGN_DELETE")
+            if str(allow_delete) != "1":
                 raise Exception("CRITICAL SAFETY LOCK: Deleting Campaigns via SQLAlchemy bulk operations is disabled to prevent accidental data loss. Use ALLOW_CAMPAIGN_DELETE=1 in your environment variables to override.")
 
 # Base class for all models

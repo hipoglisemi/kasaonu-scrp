@@ -181,7 +181,7 @@ class KuveytTurkScraper:
                         }
                     }''')
                     
-                    click_count += 1
+                    click_count += 1 # type: ignore
                     print(f"      👇 Clicked 'Daha Fazla Göster' ({click_count})...")
                     
                     await asyncio.sleep(3) # Wait for content to load
@@ -194,7 +194,7 @@ class KuveytTurkScraper:
                     }''')
                     
                     if new_count <= current_count:
-                        consecutive_no_growth += 1
+                        consecutive_no_growth += 1 # type: ignore
                         print(f"      ⚠️ No new campaigns after click (attempt {consecutive_no_growth}/3)...")
                         if consecutive_no_growth >= 3:
                             print(f"      ✅ Pagination done (no growth for 3 consecutive clicks).")
@@ -228,12 +228,12 @@ class KuveytTurkScraper:
                     continue
                 
                 # For Kuveyt Turk, we consider them active unless in /biten-kampanyalar (already filtered)
-                active_urls.add(full_url)  # type: ignore # pyre-ignore[16]
-                    
+                active_urls.add(full_url)
+            
+            return list(active_urls), list(expired_urls)
         except Exception as e:
             print(f"      ❌ List load failed: {e}")
-            
-        return list(active_urls), list(expired_urls)  # type: ignore # pyre-ignore[7]
+            return [], []
 
     async def _scrape_single_detail(self, context: Any, url: str, bank_id: Any, card_id: Any, stats: Any) -> bool:
         # Database Pre-check (Skip Logic)
@@ -243,9 +243,12 @@ class KuveytTurkScraper:
                 if existing:
                     print(f"   ⏭️ Skipped (Already exists): {url}")
                     stats["skipped"] = stats.get("skipped", 0) + 1
-                    return True  # type: ignore # pyre-ignore[7]
+                    return True
         except Exception as e:
             print(f"   ⚠️ DB Pre-check error: {e}")
+            # Continue anyway or return False? Better to return False if DB check fails critically
+            # but usually it's better to continue to scrape if possible. 
+            # However, for type safety, we need a guaranteed return.
 
         page = await context.new_page()
         try:
@@ -293,7 +296,7 @@ class KuveytTurkScraper:
             if not image_url and content_row:
                 img_el = content_row.select_one("img")
                 if img_el:
-                    image_url = urljoin(self.BASE_URL, img_el.get("src") or img_el.get("data-src"))
+                    image_url = urljoin(self.BASE_URL, img_el.get("src") or img_el.get("data-src")) # type: ignore # pyre-ignore[16]
 
             # Text for AI
             full_raw_text = f"BAŞLIK: {title}\n\n"
@@ -325,14 +328,13 @@ class KuveytTurkScraper:
                 else: stats['updated'] += 1  # type: ignore # pyre-ignore[58,16,6]
                 return True  # type: ignore # pyre-ignore[7]
             else:
-                stats['failed'] += 1  # type: ignore # pyre-ignore[58]
-                return False  # type: ignore # pyre-ignore[7]
-                
+                stats['failed'] += 1 # type: ignore
+                return False
         except Exception as e:
             print(f"      ❌ Detail error: {e}")
-            return False  # type: ignore # pyre-ignore[7]
+            return False
         finally:
-            await page.close()  # type: ignore # pyre-ignore[16]
+            await page.close()
 
     def _save_campaign(self, bank_id: int, card_id: int, parsed_data: Dict[str, Any], raw_data: Dict[str, Any]):  # type: ignore # pyre-ignore[16,6]
         title = raw_data["title"]
@@ -358,7 +360,8 @@ class KuveytTurkScraper:
         campaign.start_date = self._parse_date_string(parsed_data.get("start_date")) or datetime.now().date()
         campaign.end_date = self._parse_date_string(parsed_data.get("end_date"))
         
-        campaign.sector_id = self._get_sector_id(parsed_data.get("sector"))
+        sector_slug = str(parsed_data.get("sector") or "diger")
+        campaign.sector_id = self._get_sector_id(sector_slug)
         
         # eligible_cards: ai_parser'dan liste veya string gelebilir — her zaman string kaydet
         cards_raw = parsed_data.get("cards") or []

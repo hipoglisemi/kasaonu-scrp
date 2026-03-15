@@ -81,7 +81,8 @@ class DenizbankScraper:
             print("   🖥️ Starting Virtual Display (Xvfb)...")
             try:
                 self.display = Display(visible=0, size=(1920, 1080))
-                self.display.start()
+                if self.display:
+                    self.display.start() # type: ignore # pyre-ignore[16]
             except Exception as e:
                 print(f"   ⚠️ Failed to start virtual display: {e}")
 
@@ -123,26 +124,27 @@ class DenizbankScraper:
             )
             
             # ✅ WebDriver Detection'ı Kaldır (CDP ile)
-            self.driver.execute_cdp_cmd('Page.addScriptToEvaluateOnNewDocument', {
-                'source': '''
-                    Object.defineProperty(navigator, 'webdriver', {
-                        get: () => undefined
-                    });
-                    
-                    // Chrome flaglerini gizle
-                    window.chrome = {
-                        runtime: {}
-                    };
-                    
-                    // Permissions API'yi düzelt
-                    const originalQuery = window.navigator.permissions.query;
-                    window.navigator.permissions.query = (parameters) => (
-                        parameters.name === 'notifications' ?
-                        Promise.resolve({ state: Notification.permission }) :
-                        originalQuery(parameters)
-                    );
-                '''
-            })
+            if self.driver:
+                self.driver.execute_cdp_cmd('Page.addScriptToEvaluateOnNewDocument', { # type: ignore # pyre-ignore[16]
+                    'source': '''
+                        Object.defineProperty(navigator, 'webdriver', {
+                            get: () => undefined
+                        });
+                        
+                        // Chrome flaglerini gizle
+                        window.chrome = {
+                            runtime: {}
+                        };
+                        
+                        // Permissions API'yi düzelt
+                        const originalQuery = window.navigator.permissions.query;
+                        window.navigator.permissions.query = (parameters) => (
+                            parameters.name === 'notifications' ?
+                            Promise.resolve({ state: Notification.permission }) :
+                            originalQuery(parameters)
+                        );
+                    '''
+                })
             
             print("   ✅ Browser launched successfully with STEALTH MODE.")
         except Exception as e:
@@ -153,14 +155,14 @@ class DenizbankScraper:
         if self.driver:
             print("   🛑 Closing Browser...")
             try:
-                self.driver.quit()
+                self.driver.quit() # type: ignore # pyre-ignore[16]
             except:
                 pass
             self.driver = None
             
         if self.display:
             try:
-                self.display.stop()
+                self.display.stop() # type: ignore # pyre-ignore[16]
             except:
                 pass
             self.display = None
@@ -428,7 +430,7 @@ class DenizbankScraper:
                     continue
                 
                 if not skip_rest:
-                    filtered_lines.append(line)
+                    filtered_lines.append(str(line))  # type: ignore
             
             raw_text = '\n'.join(filtered_lines)
         else:
@@ -473,10 +475,12 @@ class DenizbankScraper:
         # Add eligible cards info
         eligible_cards_list = ai_data.get('cards', [])
         if eligible_cards_list:
-            conditions_lines.append(f"GEÇERLİ KARTLAR: {', '.join(eligible_cards_list)}")
+            conditions_lines.append(f"GEÇERLİ KARTLAR: {', '.join(eligible_cards_list)}") # type: ignore # pyre-ignore[6]
         
         # Add original conditions
-        conditions_lines.extend(ai_data.get('conditions', []))
+        ai_conditions = ai_data.get('conditions', [])
+        if isinstance(ai_conditions, list):
+            conditions_lines.extend([str(c) for c in ai_conditions])  # type: ignore # pyre-ignore[16]
         
         # Convert eligible_cards list to string (max 255 chars)
         eligible_cards_str = ", ".join(eligible_cards_list) if eligible_cards_list else None
@@ -493,12 +497,12 @@ class DenizbankScraper:
             "end_date": ai_data.get('end_date'),
             "is_active": True,
             "sector_id": self._resolve_sector_by_name(ai_data.get('sector')),
-            "conditions": "\n".join(conditions_lines),
+            "conditions": "\n".join(conditions_lines), # type: ignore
             "eligible_cards": eligible_cards_str,
             "reward_text": ai_data.get('reward_text'),
             "reward_value": ai_data.get('reward_value'),
             "reward_type": ai_data.get('reward_type'),
-            "clean_text": ai_data.get('marketing_text') or ai_data.get('description', '')[:500]
+            "clean_text": ai_data.get('marketing_text') or ai_data.get('description', '')[:500] # type: ignore # pyre-ignore[20]
         }
 
         return self._save_to_db(campaign_data, ai_data.get('brands', []))  # type: ignore # pyre-ignore[7]
@@ -554,8 +558,7 @@ class DenizbankScraper:
 
                 if existing:
                     print(f"   ⏭️ Skipped (Already exists, preserving manual edits): {data['tracking_url']}")  # type: ignore # pyre-ignore[16,6]
-                    return "skipped"  # type: ignore # pyre-ignore[7]
-
+                    return False
                 try:
                     result = conn.execute(
                         text("""
@@ -651,10 +654,10 @@ class DenizbankScraper:
                             )
                             print(f"      🔗 Linked Brand: {brand_name}")
                             
-            return "saved"  # type: ignore # pyre-ignore[7]
+            return True
         except Exception as e:
-            print(f"   ❌ DB Error: {e}")
-            return "error"  # type: ignore # pyre-ignore[7]
+            print(f"      ❌ Detail error: {e}")
+            return False
 
     def run(self, limit=20):
         print("🚀 Starting Denizbank Hybrid Scraper...")
@@ -696,7 +699,7 @@ class DenizbankScraper:
                 if not ZENROWS_API_KEY:
                     time.sleep(random.uniform(4, 8))  # Daha uzun ve rastgele
                     
-            print(f"✅ Özet: {len(urls)} bulundu, {success_count} eklendi, {skipped_count + failed_count} atlandı/hata aldı.")
+            print(f"✅ Özet: {len(urls)} bulundu, {success_count} eklendi, {str(skipped_count) + ' ' + str(failed_count)} atlandı/hata aldı.") # type: ignore
             
             status = "SUCCESS"
             if failed_count > 0:  # type: ignore # pyre-ignore[58]
