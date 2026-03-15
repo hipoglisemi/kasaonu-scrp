@@ -42,7 +42,7 @@ def generate_with_rotation(
     if not HAS_GENAI:
         raise ImportError("google-genai kütüphanesi yüklü değil.")
 
-    model_name = model or os.getenv("GEMINI_MODEL", "gemini-1.5-flash")
+    model_name = model or os.getenv("GEMINI_MODEL", "gemini-3.1-flash-lite-preview")
     
     # Wrap direct parameters into config object
     if "config" in kwargs:
