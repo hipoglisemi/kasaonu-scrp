@@ -49,7 +49,8 @@ class SekerbankScraper:
     SOURCES = [
         {
             "name": "Şekerbank Bonus",
-            "url": "https://www.sekerbank.com.tr/bireysel/kampanyalar/kart-kampanyalari"
+            "url": "https://www.sekerbank.com.tr/bireysel/kampanyalar/kart-kampanyalari",
+            "default_card": "Şekerbank Bonus"
         },
         {
             "name": "Şekerbank Diamond",
