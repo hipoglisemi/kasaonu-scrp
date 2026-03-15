@@ -18,6 +18,7 @@ from src.database import get_db_session  # type: ignore # pyre-ignore[21]
 from src.utils.slug_generator import generate_slug  # type: ignore # pyre-ignore[21]
 from src.services.ai_parser import parse_api_campaign  # type: ignore # pyre-ignore[21]
 from src.services.brand_normalizer import normalize_brand_name  # type: ignore # pyre-ignore[21]
+from src.utils.scraper_utils import should_skip_campaign  # type: ignore # pyre-ignore[21]
 from sqlalchemy.exc import IntegrityError  # type: ignore # pyre-ignore[21]
 
 class AkbankBaseScraper:
@@ -164,16 +165,11 @@ class AkbankBaseScraper:
             # Use specific title from AI if available, otherwise fallback
             final_title = ai_data.get('short_title') or ai_data.get('title') or title
             
-            # Check for existing campaign by source_url + card_id first
-            existing_url = db.query(Campaign).filter(  # type: ignore # pyre-ignore[16]
-                Campaign.tracking_url == source_url,
-                Campaign.card_id == self.card_id
-            ).first()
-            
-            if existing_url:
+            # Check for existing campaign by source_url + card_id and blocklist
+            if should_skip_campaign(db, source_url, card_id=self.card_id):
                 # This should usually be handled by _process_campaign's early check, 
                 # but we keep it here as a safety measure.
-                print(f"   ⏭️  Skipped (Safety Check: URL exists): {source_url}")
+                print(f"   ⏭️  Skipped (Safety Check: URL blocked or exists): {source_url}")
                 return "skipped"  # type: ignore # pyre-ignore[7]
 
             # Ensure slug is unique using the utility
@@ -306,14 +302,9 @@ class AkbankBaseScraper:
             try:
                 # --- Early DB Check (Moved here to handle sub-class overrides) ---
                 if not force:
-                    from src.models import Campaign  # type: ignore # pyre-ignore[21]
                     with get_db_session() as db:
-                        existing = db.query(Campaign).filter(  # type: ignore # pyre-ignore[16]
-                            Campaign.tracking_url == url,
-                            Campaign.card_id == self.card_id
-                        ).first()
-                        if existing:
-                            print(f"⏭️  Skipped (Already exists): {url}")
+                        if should_skip_campaign(db, url, card_id=self.card_id):
+                            print(f"⏭️  Skipped (Blocked or already exists): {url}")
                             total_skipped += 1  # type: ignore # pyre-ignore[58]
                             continue
 

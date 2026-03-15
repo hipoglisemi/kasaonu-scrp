@@ -25,6 +25,7 @@ from src.database import get_db_session  # type: ignore # pyre-ignore[21]
 from src.models import Bank, Card, Sector, Brand, Campaign, CampaignBrand  # type: ignore # pyre-ignore[21]
 from src.services.ai_parser import AIParser  # type: ignore # pyre-ignore[21]
 from src.utils.logger_utils import log_scraper_execution  # type: ignore # pyre-ignore[21]
+from src.utils.scraper_utils import is_url_blocked  # type: ignore
 
 class KuveytTurkScraper:
     """
@@ -97,13 +98,19 @@ class KuveytTurkScraper:
                     print(f"\n[{i}/{len(urls)}] Processing: {url}")  # type: ignore # pyre-ignore[16,6]
                     stats['total'] += 1  # type: ignore # pyre-ignore[58]
                     try:
-                        # Existing check
+                        # Existing and Blocklist check
+                        if is_url_blocked(self.db, url):
+                            print(f"   🚫 Skipping blocked campaign.")
+                            stats['skipped'] += 1  # type: ignore # pyre-ignore[58]
+                            continue
+
                         existing = self.db.query(Campaign).filter_by(tracking_url=url).first()  # type: ignore # pyre-ignore[16]
                         is_test_mode = os.environ.get('TEST_MODE') == '1'
                         
                         if existing and not is_test_mode:
                             if existing.updated_at and (datetime.utcnow() - existing.updated_at).days < 2:
                                 print(f"   ⏭️  Skipping recently updated campaign.")
+                                stats['skipped'] += 1  # type: ignore # pyre-ignore[58]
                                 continue
 
                         if await self._scrape_single_detail(context, url, bank_id, card_id, stats):

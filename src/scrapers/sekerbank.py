@@ -31,6 +31,7 @@ from src.database import get_db_session # type: ignore
 from src.models import Bank, Card, Sector, Brand, Campaign, CampaignBrand # type: ignore
 from src.services.ai_parser import AIParser # type: ignore
 from src.utils.logger_utils import log_scraper_execution # type: ignore
+from src.utils.scraper_utils import should_skip_campaign # type: ignore
 
 try:
     from pyvirtualdisplay import Display # type: ignore
@@ -322,9 +323,9 @@ class SekerbankScraper:
     def _scrape_detail(self, url: str, source: Dict, list_image: str = "", force: bool = False) -> str:
         """Scrape campaign details, images and use AI to parse metadata."""
         if not force and self.db:
-            existing = self.db.query(Campaign).filter(Campaign.tracking_url == url).first() # type: ignore # pyre-ignore[16]
-            if existing:
-                print(f"      ⏭️ Skipped (Already exists)")
+            # Check Blocklist and Campaigns table using unified utility
+            if should_skip_campaign(self.db, url):
+                print(f"      ⏭️ Skipped (Blocked or already exists)")
                 return "skipped"
 
         driver = self.driver

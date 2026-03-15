@@ -254,6 +254,22 @@ class MissingSearch(Base):
         Index("ix_missing_searches_query", "query"),
     )
 
+class CampaignBlocklist(Base):
+    """Blocklist for campaigns that should not be scraped or displayed"""
+    __tablename__ = "campaign_blocklist"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    url = Column(String, unique=True, nullable=False)
+    title = Column(String, nullable=True)
+    reason = Column(String, nullable=True)
+    campaign_id = Column(Integer, nullable=True)
+    created_at = Column(DateTime, default=func.now(), nullable=False)
+
+    # Indexes
+    __table_args__ = (
+        Index("ix_campaign_blocklist_url", "url"),
+    )
+
 class ScraperLog(Base):
     """Execution logs for scrapers"""
     __tablename__ = "scraper_logs"

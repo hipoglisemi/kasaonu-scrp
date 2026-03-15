@@ -21,6 +21,7 @@ from sqlalchemy.dialects.postgresql import JSONB  # type: ignore # pyre-ignore[2
 # AI
 from services.ai_parser import AIParser  # type: ignore # pyre-ignore[21]
 from services.brand_normalizer import cleanup_brands  # type: ignore # pyre-ignore[21]
+from utils.scraper_utils import is_url_blocked  # type: ignore
 
 # Browser
 from selenium import webdriver  # type: ignore # pyre-ignore[21]
@@ -557,8 +558,18 @@ class DenizbankScraper:
                 ).fetchone()
 
                 if existing:
-                    print(f"   ⏭️ Skipped (Already exists, preserving manual edits): {data['tracking_url']}")  # type: ignore # pyre-ignore[16,6]
-                    return False
+                    print(f"   ⏭️ Skipped (Already exists): {data['tracking_url']}")  # type: ignore # pyre-ignore[16,6]
+                    return "skipped"
+
+                # Check Blocklist using raw SQL since we are in a connection
+                blocked = conn.execute(
+                    text("SELECT id FROM campaign_blocklist WHERE url = :url"),
+                    {"url": data['tracking_url']}
+                ).fetchone()
+                
+                if blocked:
+                    print(f"   🚫 Skipped (Blocklisted): {data['tracking_url']}")
+                    return "skipped"
                 try:
                     result = conn.execute(
                         text("""
