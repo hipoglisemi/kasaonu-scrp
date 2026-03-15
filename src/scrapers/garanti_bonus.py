@@ -161,7 +161,7 @@ class GarantiBonusScraper:
                 existing = db.query(Campaign).filter(Campaign.tracking_url == url).first()  # type: ignore # pyre-ignore[16]
                 if existing:
                     print(f"   ⏭️ Skipped (Already exists): {url}")
-                    return True  # Treat as success to avoid counting as failed  # type: ignore # pyre-ignore[7]
+                    return "skipped"  # Treat as success to avoid counting as failed  # type: ignore # pyre-ignore[7]
         except Exception as e:
             print(f"   ⚠️ DB Pre-check error: {e}")
 
@@ -173,8 +173,8 @@ class GarantiBonusScraper:
             soup = BeautifulSoup(response.content, 'html.parser')
             
             # ✅ DIRECT HTML EXTRACTION (No AI needed)
-            # Title
-            title_elm = soup.select_one('.campaign-detail-title h1')
+            # Title - Try multiple common selectors
+            title_elm = soup.select_one('.campaign-detail-title h1, .campaign-detail__title h1, .campaign-detail h1')
             title = title_elm.get_text().strip() if title_elm else "Başlık Bulunamadı"
             
             # Image
@@ -185,8 +185,8 @@ class GarantiBonusScraper:
                 if image_url:
                     image_url = urljoin(self.BASE_URL, image_url)
             
-            # Dates
-            date_elm = soup.select_one('.campaign-date')
+            # Dates - Try multiple selectors as structure is changing
+            date_elm = soup.select_one('.campaign-date, .campaign-detail__date, .date-info')
             start_date = None
             end_date = None
             
@@ -301,8 +301,8 @@ class GarantiBonusScraper:
             return result  # type: ignore # pyre-ignore[7]
             
         except Exception as e:
-            print(f"   ❌ Error processing campaign: {e}")
-            return "error"  # type: ignore # pyre-ignore[7]
+            print(f"   ❌ Error processing campaign {url}: {e}")
+            return f"error: {str(e)}"  # type: ignore # pyre-ignore[7]
     
     def _save_campaign(self, title: str, details_text: str, image_url: Optional[str],  # type: ignore # pyre-ignore[16,6]
                        tracking_url: str, start_date, end_date, ai_data: Dict[str, Any]):  # type: ignore # pyre-ignore[16,6]

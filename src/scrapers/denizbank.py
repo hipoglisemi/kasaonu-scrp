@@ -659,7 +659,7 @@ class DenizbankScraper:
                         skipped_count += 1  # type: ignore # pyre-ignore[58]
                     else:
                         failed_count += 1  # type: ignore # pyre-ignore[58]
-                        error_details.append({"url": url, "error": "Save failed"})
+                        error_details.append({"url": url, "error": f"Process returned {res}"})
                 except Exception as e:
                     print(f"   ❌ Failed: {e}")
                     failed_count += 1  # type: ignore # pyre-ignore[58]
