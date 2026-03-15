@@ -39,3 +39,25 @@ jobs:
         USE_VERTEX_AI: "False"
       run: |
         xvfb-run --auto-servernum --server-args="-screen 0 1920x1080x24" python data_quality_autofix.py
+
+    - name: Bildirim Gönder
+      if: always()
+      uses: dawidd6/action-send-mail@v3
+      with:
+        server_address: smtp.gmail.com
+        server_port: 465
+        secure: true
+        username: ${{ secrets.GMAIL_USER }}
+        password: ${{ secrets.GMAIL_APP_PASSWORD }}
+        to: ${{ secrets.GMAIL_USER }}
+        from: KartAvantaj CI <${{ secrets.GMAIL_USER }}>
+        subject: "${{ job.status == 'success' && '✅' || '❌' }} ${{ github.workflow }} — ${{ job.status }}"
+        body: |
+          Workflow: ${{ github.workflow }}
+          Durum: ${{ job.status }}
+          Repo: ${{ github.repository }}
+          Branch: ${{ github.ref_name }}
+          Tetikleyen: ${{ github.event_name }}
+          Çalışma: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          
+          Detaylar için yukarıdaki linke tıkla.

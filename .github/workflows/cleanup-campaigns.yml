@@ -30,3 +30,25 @@ jobs:
         SEARCH_CONSOLE_KEY: ${{ secrets.SEARCH_CONSOLE_KEY }}
       run: |
         python cleanup_expired.py
+
+      - name: Bildirim Gönder
+        if: always()
+        uses: dawidd6/action-send-mail@v3
+        with:
+          server_address: smtp.gmail.com
+          server_port: 465
+          secure: true
+          username: ${{ secrets.GMAIL_USER }}
+          password: ${{ secrets.GMAIL_APP_PASSWORD }}
+          to: ${{ secrets.GMAIL_USER }}
+          from: KartAvantaj CI <${{ secrets.GMAIL_USER }}>
+          subject: "${{ job.status == 'success' && '✅' || '❌' }} ${{ github.workflow }} — ${{ job.status }}"
+          body: |
+            Workflow: ${{ github.workflow }}
+            Durum: ${{ job.status }}
+            Repo: ${{ github.repository }}
+            Branch: ${{ github.ref_name }}
+            Tetikleyen: ${{ github.event_name }}
+            Çalışma: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+            
+            Detaylar için yukarıdaki linke tıkla.
