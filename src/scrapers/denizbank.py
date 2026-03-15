@@ -496,7 +496,8 @@ class DenizbankScraper:
             "eligible_cards": eligible_cards_str,
             "reward_text": ai_data.get('reward_text'),
             "reward_value": ai_data.get('reward_value'),
-            "reward_type": ai_data.get('reward_type')
+            "reward_type": ai_data.get('reward_type'),
+            "clean_text": ai_data.get('marketing_text') or ai_data.get('description', '')[:500]
         }
 
         return self._save_to_db(campaign_data, ai_data.get('brands', []))  # type: ignore # pyre-ignore[7]
