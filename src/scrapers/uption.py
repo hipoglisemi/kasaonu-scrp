@@ -100,17 +100,19 @@ class UptionScraper:
             raise e
 
     def close_driver(self):
-        if self.driver:
+        driver = self.driver
+        if driver:
             print("   🛑 Closing Browser...")
             try:
-                self.driver.quit()
+                driver.quit()
             except:
                 pass
             self.driver = None
             
-        if self.display:
+        display = self.display
+        if display:
             try:
-                self.display.stop()
+                display.stop()
             except:
                 pass
             self.display = None
@@ -157,11 +159,11 @@ class UptionScraper:
                         })
 
                 if limit and isinstance(limit, int):
-                    found_items = list(found_items)[:limit]
+                    found_items = list(found_items)[:limit] # type: ignore
 
-                success_count: int = 0
-                skipped_count: int = 0
-                failed_count: int = 0
+                success_count = 0
+                skipped_count = 0
+                failed_count = 0
 
                 for i, item in enumerate(found_items, 1):
                     url = item['url']
@@ -170,11 +172,11 @@ class UptionScraper:
                     try:
                         res = self._process_campaign(item, force=force)
                         if res == "saved":
-                            success_count += 1
+                            success_count += 1 # type: ignore
                         elif res == "skipped":
-                            skipped_count += 1
+                            skipped_count += 1 # type: ignore
                         else:
-                            failed_count += 1
+                            failed_count += 1 # type: ignore
                     except Exception as e:
                         print(f"      ❌ Error: {e}")
                         failed_count += 1
@@ -197,43 +199,47 @@ class UptionScraper:
             traceback.print_exc()
         finally:
             self.close_driver()
-            if self.db:
-                self.db.close()
+            db = self.db
+            if db:
+                db.close()
 
     def _load_cache(self):
-        if not self.db: return
+        db = self.db
+        if not db: return
 
-        bank = self.db.query(Bank).filter(Bank.slug == "uption").first()
+        bank = db.query(Bank).filter(Bank.slug == "uption").first()
         if not bank:
             bank = Bank(name="Uption", slug="uption", is_active=True)
-            self.db.add(bank)
-            self.db.commit()
+            db.add(bank)
+            db.commit()
         self.bank_cache = bank
 
-        for c in self.db.query(Card).filter(Card.bank_id == bank.id).all():
+        for c in db.query(Card).filter(Card.bank_id == bank.id).all():
             self.card_cache[c.name.lower()] = c
             
-        for s in self.db.query(Sector).all():
+        for s in db.query(Sector).all():
             self.sector_cache[s.slug] = s
             self.sector_cache[s.name.lower()] = s
             
-        for b in self.db.query(Brand).all():
+        for b in db.query(Brand).all():
             self.brand_cache[b.name.lower()] = b
 
     def _process_campaign(self, item: Dict, force: bool = False) -> str:
         url = item['url']
+        db = self.db
+        driver = self.driver
         
-        if not force and self.db:
-            if should_skip_campaign(self.db, url):
+        if not force and db:
+            if should_skip_campaign(db, url):
                 print(f"      ⏭️  Skipped (Already exists or blocked)")
                 return "skipped"
 
-        if not self.driver: return "failed"
+        if not driver: return "failed"
         
-        self.driver.get(url)
+        driver.get(url)
         time.sleep(2)
         
-        soup = BeautifulSoup(self.driver.page_source, 'html.parser')
+        soup = BeautifulSoup(driver.page_source, 'html.parser')
         
         # Detail extraction
         title_el = soup.select_one('h1') or soup.select_one('h2')
@@ -297,18 +303,19 @@ class UptionScraper:
         return "saved"
 
     def _save_campaign(self, data: Dict, url: str, image_url: str):
-        if not self.db: return
+        db = self.db
+        if not db: return
         
-        assert self.db is not None
-        bank_id = self.bank_cache.id if self.bank_cache else None
+        bank_cache = self.bank_cache
+        bank_id = bank_cache.id if bank_cache else None
         
         # Get or create card
         card_name = self.CARD_NAME
         card = self.card_cache.get(card_name.lower())
         if not card:
             card = Card(bank_id=bank_id, name=card_name, slug="uption-kart", is_active=True)
-            self.db.add(card)
-            self.db.flush()
+            db.add(card)
+            db.flush()
             self.card_cache[card_name.lower()] = card
 
         # Sector
@@ -316,7 +323,7 @@ class UptionScraper:
         sector = self.sector_cache.get(sector_slug.lower()) or self.sector_cache.get("diger")
         
         # Slug
-        slug = get_unique_slug(data.get("title", "uption-kampanya"), self.db, Campaign)
+        slug = get_unique_slug(data.get("title", "uption-kampanya"), db, Campaign)
         
         # Brands
         brand_ids = []
@@ -324,8 +331,8 @@ class UptionScraper:
             brand = self.brand_cache.get(bname.lower())
             if not brand:
                 brand = Brand(name=bname, slug=re.sub(r'[^a-z0-9]', '-', bname.lower()), is_active=True)
-                self.db.add(brand)
-                self.db.flush()
+                db.add(brand)
+                db.flush()
                 self.brand_cache[bname.lower()] = brand
             brand_ids.append(brand.id)
 
@@ -357,17 +364,17 @@ class UptionScraper:
         )
         
         try:
-            self.db.add(campaign)
-            self.db.flush()
+            db.add(campaign)
+            db.flush()
             
             for bid in brand_ids:
                 cb = CampaignBrand(campaign_id=campaign.id, brand_id=bid)
-                self.db.add(cb)
+                db.add(cb)
                 
-            self.db.commit()
+            db.commit()
             print(f"   ✅ Saved: {campaign.title}")
         except Exception as e:
-            self.db.rollback()
+            db.rollback()
             print(f"   ❌ Save error: {e}")
 
 if __name__ == "__main__":
