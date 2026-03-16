@@ -235,12 +235,12 @@ SADECE makale HTML'ini döndür. Başka hiçbir şey yazma.
 """
 
     response = client.models.generate_content(
-        model=cast(str, os.getenv("GEMINI_MODEL", "gemini-2.0-flash")),
+        model=os.getenv("BLOG_MODEL", "gemini-2.5-flash"),
         contents=prompt,
-        config=cast(Any, types.GenerateContentConfig(
+        config=types.GenerateContentConfig(
             temperature=0.7,
             max_output_tokens=8000,
-        )),
+        ),
     )
     html = response.text.strip()
     # Markdown kod bloğu gelirse temizle
@@ -270,7 +270,7 @@ Kurallar:
 Konu: {topic_title}
 """
     response = client.models.generate_content(
-        model="gemini-2.5-flash",
+        model=os.getenv("BLOG_MODEL", "gemini-2.5-flash"),
         contents=prompt,
         config=types.GenerateContentConfig(
             temperature=0.3,

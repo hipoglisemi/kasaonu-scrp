@@ -87,7 +87,7 @@ def fetch_html(url: str) -> str:
         print(f"      ⚠️ Failed to fetch HTML for {url}: {e}")
         return ""
 
-def run_autofix(limit: int = 1000):
+def run_autofix(limit: int = 50):
     print(f"🚀 Starting Data Quality Auto-Fixer (Limit: {limit})...")
     
     try:

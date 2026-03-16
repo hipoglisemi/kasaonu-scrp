@@ -13,7 +13,7 @@ import re  # type: ignore # pyre-ignore[21]
 import uuid  # type: ignore # pyre-ignore[21]
 import traceback  # type: ignore # pyre-ignore[21]
 from datetime import datetime  # type: ignore # pyre-ignore[21]
-from typing import Optional, Dict, Any, List  # type: ignore # pyre-ignore[21]
+from typing import Optional, Dict, Any, List, cast  # type: ignore # pyre-ignore[21]
 from urllib.parse import urljoin  # type: ignore # pyre-ignore[21]
 from src.utils.scraper_utils import is_url_blocked  # type: ignore
 from bs4 import BeautifulSoup  # type: ignore # pyre-ignore[21]
@@ -126,57 +126,74 @@ class IsbankMaximilesScraper:
         is_ci = os.getenv("GITHUB_ACTIONS") == "true" or os.getenv("CI") == "true"
         connected = False
 
-        if not is_ci:
-            try:
-                print("   🔌 Attempting to connect to local Chrome debug instance at http://localhost:9222...")
-                self.browser = self.playwright.chromium.connect_over_cdp("http://localhost:9222")
-                connected = True
-                print("   ✅ Connected to local existing Chrome instance")
-                
-                # Use existing context if available
-                if len(self.browser.contexts) > 0:  # type: ignore # pyre-ignore[58]
-                    context = self.browser.contexts[0]
-                else:
-                    context = self.browser.new_context()
+        pw = self.playwright
+        if pw and pw.chromium:
+            if not is_ci:
+                try:
+                    print("   🔌 Attempting to connect to local Chrome debug instance at http://localhost:9222...")
+                    self.browser = pw.chromium.connect_over_cdp("http://localhost:9222")
+                    connected = True
+                    print("   ✅ Connected to local existing Chrome instance")
                     
-                self.page = context.new_page()
-                self.page.set_default_timeout(120000)
-                return
-            except Exception as e:
-                print(f"   ⚠️  Could not connect to debug Chrome, launching headless... ({e})")
-                
-        if not connected:
-            self.browser = self.playwright.chromium.launch(
-                headless=True,
-                args=["--no-sandbox", "--disable-setuid-sandbox",
-                      "--disable-dev-shm-usage", "--disable-gpu", "--window-size=1920,1080",
-                      "--disable-blink-features=AutomationControlled",
-                      "--disable-extensions", "--disable-web-security"]
-            )
-            context = self.browser.new_context(
-                viewport={"width": 1920, "height": 1080},
-                user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
-                locale="tr-TR",
-                timezone_id="Europe/Istanbul",
-                extra_http_headers={"Accept-Language": "tr-TR,tr;q=0.9,en;q=0.8"}
-            )
-            context.add_init_script("Object.defineProperty(navigator, 'webdriver', {get: () => undefined})")
-            self.page = context.new_page()
-            self.page.set_default_timeout(120000)
-            print("✅ Playwright browser started.")
+                    # Use existing context if available
+                    br = self.browser
+                    if br and len(br.contexts) > 0:
+                        context = br.contexts[0]
+                    else:
+                        context = br.new_context() if br else None
+                        
+                    if context:
+                        self.page = context.new_page()
+                    pg = self.page
+                    if pg:
+                        pg.set_default_timeout(180000)
+                    return
+                except Exception as e:
+                    print(f"   ⚠️  Could not connect to debug Chrome, launching headless... ({e})")
+                    
+            if not connected:
+                self.browser = pw.chromium.launch(
+                    headless=True,
+                    args=["--no-sandbox", "--disable-setuid-sandbox",
+                          "--disable-dev-shm-usage", "--disable-gpu", "--window-size=1920,1080",
+                          "--disable-blink-features=AutomationControlled",
+                          "--disable-extensions", "--disable-web-security"]
+                )
+                br = self.browser
+                if br:
+                    context = br.new_context(
+                        viewport={"width": 1920, "height": 1080},
+                        user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
+                        locale="tr-TR",
+                        timezone_id="Europe/Istanbul",
+                        extra_http_headers={"Accept-Language": "tr-TR,tr;q=0.9,en;q=0.8"}
+                    )
+                    context.add_init_script("Object.defineProperty(navigator, 'webdriver', {get: () => undefined})")
+                    self.page = context.new_page()
+                    pg = self.page
+                    if pg:
+                        pg.set_default_timeout(180000)
+                    print("✅ Playwright browser started.")
 
     def _stop_browser(self):
         try:
-            if hasattr(self, 'browser') and self.browser:
-                self.browser.close()  # type: ignore # pyre-ignore[16]
-            if hasattr(self, 'playwright') and self.playwright:
-                self.playwright.stop()
+            br = self.browser
+            if br:
+                br.close()  # type: ignore # pyre-ignore[16]
+            pw = self.playwright
+            if pw:
+                pw.stop()
         except Exception:
             pass
 
     def _fetch_campaign_urls(self, limit: Optional[int] = None) -> tuple[List[str], List[str]]:  # type: ignore # pyre-ignore[16,6]
+        pg = self.page
+        if not pg:
+            print("❌ No page object found.")
+            return [], []
+            
         print(f"📥 Fetching campaign list from {self.CAMPAIGNS_URL} ...")
-        self.page.goto(self.CAMPAIGNS_URL, wait_until="domcontentloaded", timeout=120000)
+        pg.goto(self.CAMPAIGNS_URL, wait_until="domcontentloaded", timeout=180000)
         time.sleep(5)
 
         EXPIRED_MARKERS = ["sona ermiştir", "bitmiştir", "sona erdi", "süresi doldu", "kampanya sona"]
@@ -184,7 +201,9 @@ class IsbankMaximilesScraper:
         prev_count = 0
         scroll_count = 0
         while scroll_count < 30:
-            soup = BeautifulSoup(self.page.content(), "html.parser")
+            pg = self.page
+            if not pg: break
+            soup = BeautifulSoup(pg.content(), "html.parser")
             valid = []
             for c in soup.select(".campaign-item, .col-xl-4, .card"):
                 valid.extend(c.find_all("a", href=True))
@@ -204,14 +223,14 @@ class IsbankMaximilesScraper:
                     recent = list(campaign_items)[-10:]  # type: ignore # pyre-ignore[16,6]
                     expired_count: int = 0
                     for a in recent:
-                         parent = a.find_parent("div", class_="campaign-item") or a.find_parent("div", class_="col-xl-4") or a.find_parent("div", class_="card") or a.parent
-                         parent_text = parent.get_text(separator=" ", strip=True).lower() if parent else ""
+                         a_tag: Any = cast(Any, a)
+                         parent: Any = a_tag.find_parent("div", class_="campaign-item") or a_tag.find_parent("div", class_="col-xl-4") or a_tag.find_parent("div", class_="card") or a_tag.parent
+                         parent_text: str = parent.get_text(separator=" ", strip=True).lower() if parent else ""
                          if any(m in parent_text for m in EXPIRED_MARKERS):
-                             expired_count = int(expired_count or 0) + 1
-                    
-                    if expired_count >= 3:
-                         print(f"   🛑 Reached expired campaigns section ({expired_count}/10 expired). Stopping scroll.")
-                         break
+                             expired_count = expired_count + 1
+                             if expired_count >= 3:
+                                 print(f"   🛑 Reached expired campaigns section ({expired_count}/10 expired). Stopping scroll.")
+                                 break
             except Exception as e:
                 pass
             # ─────────────────────────────────────────────────────────
@@ -232,10 +251,13 @@ class IsbankMaximilesScraper:
                 print(f"   ⏬ Clicked 'Load More' (round {scroll_count})...")
             else:
                 # Scroll fallback
-                if self.page:
-                    self.page.evaluate("window.scrollTo(0, document.body.scrollHeight)")
+                pg = self.page
+                if pg:
+                    pg.evaluate("window.scrollTo(0, document.body.scrollHeight)")
                 time.sleep(3)
-                new_soup = BeautifulSoup(self.page.content(), "html.parser")
+                pg = self.page
+                if not pg: break
+                new_soup = BeautifulSoup(pg.content(), "html.parser")
                 valid_new = []
                 for c in new_soup.select(".campaign-item, .col-xl-4, .card"):
                     valid_new.extend(c.find_all("a", href=True))
@@ -310,7 +332,11 @@ class IsbankMaximilesScraper:
         unique_urls = list(dict.fromkeys(all_links))
         unique_expired = list(dict.fromkeys(expired_links))
         if limit is not None:
-            unique_urls = list(unique_urls)[:int(limit)]  # type: ignore # pyre-ignore[16,6]
+            try:
+                limit_val = int(limit)
+                unique_urls = cast(List[str], unique_urls)[:limit_val]
+            except Exception:
+                pass
             
         print(f"✅ Found {len(unique_urls)} active campaigns, and {len(unique_expired)} expired campaigns")
         return unique_urls, unique_expired  # type: ignore # pyre-ignore[7]
@@ -501,7 +527,7 @@ class IsbankMaximilesScraper:
 
     def _to_title_case(self, text: Any) -> str:
         if not text: return ""
-        text_str = str(text)
+        text_str = str(text or "")
         replacements = {"I": "ı", "İ": "i"}
         lower_text = text_str
         for k, v in replacements.items(): lower_text = lower_text.replace(k, v)
@@ -606,6 +632,7 @@ class IsbankMaximilesScraper:
                 existing.reward_type = ai_data.get("reward_type")
                 existing.conditions = final_conditions
                 existing.eligible_cards = ", ".join(ai_data.get("cards", [])) or None
+                existing.clean_text = ai_data.get("_clean_text")
                 existing.image_url = data["image_url"]
                 existing.start_date = start_date
                 existing.end_date = end_date
@@ -624,6 +651,7 @@ class IsbankMaximilesScraper:
                     reward_type=ai_data.get("reward_type"),  # type: ignore
                     conditions=final_conditions,  # type: ignore
                     eligible_cards=", ".join(ai_data.get("cards", [])) or None,  # type: ignore
+                    clean_text=ai_data.get("_clean_text"),  # type: ignore
                     image_url=data["image_url"],  # type: ignore
                     start_date=start_date,  # type: ignore
                     end_date=end_date,  # type: ignore
@@ -637,10 +665,11 @@ class IsbankMaximilesScraper:
                 print(f"   ✅ Saved: {campaign.title[:50]}")  # type: ignore # pyre-ignore[16,6]
 
             # Brands
-            for b_name in ai_data.get("brands", []):  # type: ignore # pyre-ignore[16,6]
-                if len(b_name) < 2:
+            for b_name in ai_data.get("brands", []):
+                if not b_name or len(str(b_name)) < 2:
                     continue
-                b_slug = re.sub(r'[^a-z0-9]+', '-', b_name.lower()).strip('-')
+                b_name_str = str(b_name)
+                b_slug = re.sub(r'[^a-z0-9]+', '-', b_name_str.lower()).strip('-')
 
                 try:
                     brand = self.db.query(Brand).filter(  # type: ignore # pyre-ignore[16]
@@ -681,10 +710,10 @@ class IsbankMaximilesScraper:
             print("🚀 Starting İşbankası Maximiles Scraper (Playwright)...")
             self._start_browser()
             
-            # Close DB session to prevent idle connection timeout during long Playwright scroll
-            if self.db:
-                self.db.commit()  # type: ignore # pyre-ignore[16]
-                self.db.close()  # type: ignore # pyre-ignore[16]
+            # Keep DB session open, it's safer for small runs
+            # if self.db:
+            #     self.db.commit() 
+            #     self.db.close()
                 
             if urls:
                 print(f"🎯 Running specific URLs: {len(urls)}")

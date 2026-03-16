@@ -448,9 +448,9 @@ class AlbarakaScraper:
                         (Brand.slug == b_slug) | (Brand.name.ilike(b_name))
                     ).first()
                     if not brand:
-                    brand = Brand(name=self._to_title_case(b_name), slug=b_slug)  # type: ignore # pyre-ignore[20]
-                    self.session.add(brand)  # type: ignore # pyre-ignore[16]
-                    self.session.commit()  # type: ignore # pyre-ignore[16]
+                        brand = Brand(name=self._to_title_case(b_name), slug=b_slug)  # type: ignore # pyre-ignore[20]
+                        self.session.add(brand)  # type: ignore # pyre-ignore[16]
+                        self.session.commit()  # type: ignore # pyre-ignore[16]
                 except Exception as e:
                     self.session.rollback()  # type: ignore # pyre-ignore[16]
                     print(f"   ⚠️ Brand save failed for {b_name}: {e}")

@@ -362,6 +362,7 @@ class MasterpassScraper:
                 existing.reward_type = ai_data.get("reward_type")
                 existing.conditions = final_conditions
                 existing.eligible_cards = eligible_cards_str
+                existing.clean_text = ai_data.get("_clean_text")
                 if data["image_url"]:  # type: ignore # pyre-ignore[16,6]
                     existing.image_url = data["image_url"]
                 existing.start_date = start_date or existing.start_date
@@ -381,6 +382,7 @@ class MasterpassScraper:
                     reward_type=ai_data.get("reward_type"),  # type: ignore
                     conditions=final_conditions,  # type: ignore
                     eligible_cards=eligible_cards_str,  # type: ignore
+                    clean_text=ai_data.get("_clean_text"),  # type: ignore
                     image_url=data.get("image_url"),  # type: ignore
                     start_date=start_date,  # type: ignore
                     end_date=end_date,  # type: ignore

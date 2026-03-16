@@ -5,23 +5,21 @@ import hashlib # type: ignore
 from datetime import datetime, timedelta
 import sqlalchemy  # type: ignore
 from sqlalchemy import text # type: ignore
-from dotenv import sqlalchemy  # type: ignore # pyre-ignore[21]
-import dotenv  # type: ignore # pyre-ignore[21]
 import google.oauth2  # type: ignore # pyre-ignore[21]
 import googleapiclient.discovery  # type: ignore # pyre-ignore[21]
 from googleapiclient.discovery import build # type: ignore
 from google.oauth2 import service_account # pyre-ignore[21]
 
-# Add src to path
-sys.path.append(os.path.join(os.getcwd(), 'src'))
-try:
-    from src.database import get_db_session # type: ignore # pyre-ignore[21]
-    from src.models import Campaign # type: ignore # pyre-ignore[21]
-except ImportError:
-    from database import get_db_session # type: ignore # pyre-ignore[21]
-    from models import Campaign # type: ignore # pyre-ignore[21]
+# Setup path to include project root for src.* imports
+project_root = os.getcwd()
+if project_root not in sys.path:
+    sys.path.insert(0, project_root)
 
-dotenv.load_dotenv('.env') # pyre-ignore[16]
+from src.database import get_db_session # type: ignore # pyre-ignore[21]
+from src.models import Campaign # type: ignore # pyre-ignore[21]
+
+from dotenv import load_dotenv # type: ignore
+load_dotenv('.env') 
 
 def notify_google_deleted(slugs: list[str]):
     """Silinen kampanyaları Google'a bildir."""

@@ -9,7 +9,7 @@ import re  # type: ignore # pyre-ignore[21]
 import uuid  # type: ignore # pyre-ignore[21]
 import traceback  # type: ignore # pyre-ignore[21]
 from datetime import datetime  # type: ignore # pyre-ignore[21]
-from typing import Optional, Dict, Any, List  # type: ignore # pyre-ignore[21]
+from typing import Optional, Dict, Any, List, cast  # type: ignore # pyre-ignore[21]
 from bs4 import BeautifulSoup  # type: ignore # pyre-ignore[21]
 from urllib.parse import urljoin  # type: ignore # pyre-ignore[21]
 from src.utils.scraper_utils import is_url_blocked  # type: ignore
@@ -215,15 +215,16 @@ class IsbankMaximumScraper:
             if href in excluded_paths: continue
             if any(href.endswith(s) for s in excluded_suffixes): continue
             
-            full_url = urljoin(self.BASE_URL, href)
+            full_url = urljoin(self.BASE_URL, cast(str, href))
             if full_url in seen: continue
-            seen.add(full_url)  # type: ignore # pyre-ignore[16]
+            seen.add(full_url)
             
             # Check for expired status based on class or text
             parent_text = ""
             parent = None
-            if isinstance(a, BeautifulSoup) or hasattr(a, 'find_parent'):
-                parent = a.find_parent("div", class_="card") or a.find_parent("div", class_="campaign-card") or a.find_parent("div", class_="opportunity-result") or getattr(a, 'parent', None)
+            if hasattr(a, 'find_parent'):
+                a_tag = cast(Any, a)
+                parent = a_tag.find_parent("div", class_="card") or a_tag.find_parent("div", class_="campaign-card") or a_tag.find_parent("div", class_="opportunity-result") or getattr(a_tag, 'parent', None)
             
             if parent:
                 parent_text = parent.get_text(separator=" ", strip=True).lower()
@@ -235,7 +236,11 @@ class IsbankMaximumScraper:
                 unique_urls.append(full_url)
                 
         if limit is not None:
-            unique_urls = list(unique_urls)[:int(limit)]  # type: ignore # pyre-ignore[16,6]
+            try:
+                limit_val = int(limit)
+                unique_urls = cast(List[str], unique_urls)[:limit_val]
+            except Exception:
+                pass
 
         print(f"✅ Found {len(unique_urls)} active campaigns, and {len(unique_expired)} expired campaigns")
         return unique_urls, unique_expired  # type: ignore # pyre-ignore[7]
@@ -388,7 +393,7 @@ class IsbankMaximumScraper:
 
     def _to_title_case(self, text: Any) -> str:
         if not text: return ""
-        text_str = str(text)
+        text_str = str(text or "")
         replacements = {"I": "ı", "İ": "i"}
         lower_text = text_str
         for k, v in replacements.items(): lower_text = lower_text.replace(k, v)
@@ -412,7 +417,7 @@ class IsbankMaximumScraper:
         counter = 1
         while self.session.query(Campaign).filter(Campaign.slug == slug).first():  # type: ignore # pyre-ignore[16]
             slug = f"{base}-{counter}"
-            counter = int(counter or 0) + 1
+            counter += 1
         return slug  # type: ignore # pyre-ignore[7]
 
     def _save_campaign(self, data: Dict[str, Any], bank_id: int, card_id: int) -> Optional[int]:  # type: ignore # pyre-ignore[16,6]
@@ -478,6 +483,7 @@ class IsbankMaximumScraper:
                 reward_type=data.get("reward_type"),  # type: ignore
                 conditions=final_conditions,  # type: ignore
                 eligible_cards=eligible,  # type: ignore
+                clean_text=data.get("_clean_text"),  # type: ignore
                 image_url=data["image_url"],  # type: ignore
                 start_date=start_date,  # type: ignore
                 end_date=end_date,  # type: ignore
@@ -491,10 +497,11 @@ class IsbankMaximumScraper:
             self.session.commit()  # type: ignore # pyre-ignore[16]
 
             # Brands
-            for b_name in data.get("brands", []):  # type: ignore # pyre-ignore[16,6]
-                if len(b_name) < 2:
+            for b_name in data.get("brands", []):
+                if not b_name or len(str(b_name)) < 2:
                     continue
-                b_slug = re.sub(r'[^a-z0-9]+', '-', b_name.lower()).strip('-')
+                b_name_str = str(b_name)
+                b_slug = re.sub(r'[^a-z0-9]+', '-', b_name_str.lower()).strip('-')
                 
                 try:
                     brand = self.session.query(Brand).filter(  # type: ignore # pyre-ignore[16]
@@ -574,8 +581,13 @@ class IsbankMaximumScraper:
             error_details: List[Dict[str, Any]] = []  # type: ignore # pyre-ignore[16,6]
             
             for i, url in enumerate(urls, 1):
-                if limit is not None and i > int(limit):
-                    break
+                if limit is not None:
+                    try:
+                        limit_val = int(limit)
+                        if i > limit_val:
+                            break
+                    except Exception:
+                        pass
                     
                 print(f"\n[{i}/{len(urls)}]")
                 print(f"🔍 Processing: {url}")
