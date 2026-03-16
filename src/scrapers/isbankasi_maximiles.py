@@ -227,7 +227,7 @@ class IsbankMaximilesScraper:
                          parent: Any = a_tag.find_parent("div", class_="campaign-item") or a_tag.find_parent("div", class_="col-xl-4") or a_tag.find_parent("div", class_="card") or a_tag.parent
                          parent_text: str = parent.get_text(separator=" ", strip=True).lower() if parent else ""
                          if any(m in parent_text for m in EXPIRED_MARKERS):
-                             expired_count = expired_count + 1
+                             expired_count += 1  # type: ignore # pyre-ignore[58]
                              if expired_count >= 3:
                                  print(f"   🛑 Reached expired campaigns section ({expired_count}/10 expired). Stopping scroll.")
                                  break
@@ -240,7 +240,7 @@ class IsbankMaximilesScraper:
             # Try load more button
             btn = None
             if self.page:
-                btn = self.page.query_selector("button:has-text('Daha Fazla'), a.CampAllShow")
+                btn = self.page.query_selector("button:has-text('Daha Fazla'), a.CampAllShow")  # type: ignore
             
             if btn and btn.is_visible():
                 btn.scroll_into_view_if_needed()
@@ -268,7 +268,10 @@ class IsbankMaximilesScraper:
                 scroll_count += 1  # type: ignore # pyre-ignore[58]
                 print(f"   ⏬ Scrolled (round {scroll_count}) — {new_count} links found...")
 
-        soup = BeautifulSoup(self.page.content(), "html.parser")
+        pg = cast(Any, self.page)
+        if not pg:
+            return [], []
+        soup = BeautifulSoup(pg.content(), "html.parser")
         
         excluded_suffixes = [
             "-kampanyalari",
@@ -333,8 +336,8 @@ class IsbankMaximilesScraper:
         unique_expired = list(dict.fromkeys(expired_links))
         if limit is not None:
             try:
-                limit_val = int(limit)
-                unique_urls = cast(List[str], unique_urls)[:limit_val]
+                limit_val = int(limit) if limit is not None else 0
+                unique_urls = [unique_urls[i] for i in range(min(len(unique_urls), limit_val))]  # type: ignore
             except Exception:
                 pass
             
@@ -347,13 +350,14 @@ class IsbankMaximilesScraper:
             success = False
             for attempt in range(3):
                 try:
-                    if self.page:
-                        self.page.goto(url, wait_until="domcontentloaded", timeout=60000)
+                    pg = cast(Any, self.page)
+                    if pg:
+                        pg.goto(url, wait_until="domcontentloaded", timeout=60000)
                         success = True
                         break
                     else:
                         print("      ❌ self.page is None")
-                        return None  # type: ignore # pyre-ignore[7]
+                        return None
                 except Exception as e:
                     print(f"      ⚠️ Detail load attempt {attempt+1}/3 failed: {e}. Retrying...")
                     time.sleep(3 + attempt * 2)
@@ -363,8 +367,9 @@ class IsbankMaximilesScraper:
                 return None  # type: ignore # pyre-ignore[7]
                 
             # Scroll to bottom to trigger lazy loading of content
-            if self.page:
-                self.page.evaluate("""async () => {
+            pg = cast(Any, self.page)
+            if pg:
+                pg.evaluate("""async () => {
                     await new Promise((resolve) => {
                         let totalHeight = 0;
                         let distance = 300;
@@ -380,11 +385,12 @@ class IsbankMaximilesScraper:
                     });
                 }""")
                 time.sleep(2)
-            else:
+            pg = cast(Any, self.page)
+            if not pg:
                 print("      ❌ self.page is None, cannot extract content")
-                return None  # type: ignore # pyre-ignore[7]
+                return None
 
-            soup = BeautifulSoup(self.page.content(), "html.parser")
+            soup = BeautifulSoup(pg.content(), "html.parser")
             title_el = soup.select_one("h1")
             title = self._clean(title_el.text) if title_el else "Başlık Yok"
 
@@ -418,7 +424,7 @@ class IsbankMaximilesScraper:
                 if parent:
                     for sib in parent.next_siblings:
                         if hasattr(sib, 'name') and sib.name and sib.get_text(strip=True):
-                            date_text = self._clean(sib.get_text())
+                            date_text = self._clean(sib.get_text())  # type: ignore
                             break
             if not date_text:
                 for sel in [".campaign-date", ".date"]:  # type: ignore # pyre-ignore[16,6]
@@ -616,8 +622,8 @@ class IsbankMaximilesScraper:
                 else:
                     end_date = dt
 
-            conds = ai_data.get("conditions", [])
-            part = ai_data.get("participation")
+            conds = cast(List[str], ai_data.get("conditions", []))
+            part = cast(Optional[str], ai_data.get("participation"))
             if part and "Detayları İnceleyin" not in part:
                 conds.insert(0, f"KATILIM: {part}")
             final_conditions = "\n".join(conds)
@@ -665,7 +671,8 @@ class IsbankMaximilesScraper:
                 print(f"   ✅ Saved: {campaign.title[:50]}")  # type: ignore # pyre-ignore[16,6]
 
             # Brands
-            for b_name in ai_data.get("brands", []):
+            brands_list = cast(List[Any], ai_data.get("brands", []))  # type: ignore
+            for b_name in brands_list:
                 if not b_name or len(str(b_name)) < 2:
                     continue
                 b_name_str = str(b_name)
