@@ -18,6 +18,7 @@ jobs:
           - tami
           - uption
           - nays
+          - paycell
 
     name: "🤖 ${{ matrix.scraper }}"
 
