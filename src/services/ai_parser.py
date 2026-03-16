@@ -44,7 +44,7 @@ def call_with_timeout(func, args=(), kwargs=None, timeout_sec=60):
         signal.alarm(0)
         signal.signal(signal.SIGALRM, old_handler)
 
-load_dotenv(os.path.join(_root, ".env"))
+load_dotenv(os.path.join(_root, ".env"), override=True)
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
