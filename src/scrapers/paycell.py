@@ -220,18 +220,18 @@ class PaycellScraper:
                     status = self._save_campaign(title, str(image_url) if image_url else self.DEFAULT_IMAGE_URL, url, ai_data, raw_text, force=force)
                     if status == "saved":
                         ts = total_saved
-                        total_saved = ts + 1
+                        total_saved = ts + 1 # type: ignore
                     elif status == "skipped":
                         tsk = total_skipped
-                        total_skipped = tsk + 1
+                        total_skipped = tsk + 1 # type: ignore
                     else:
                         tf = total_failed
-                        total_failed = tf + 1
+                        total_failed = tf + 1 # type: ignore
 
                 except Exception as e:
                     print(f"   ❌ Error: {e}")
                     tf = total_failed
-                    total_failed = tf + 1
+                    total_failed = tf + 1 # type: ignore
                     error_details.append({"url": url, "error": str(e)})
 
                 time.sleep(random.uniform(1, 3))
@@ -248,8 +248,7 @@ class PaycellScraper:
                     total_skipped=total_skipped,
                     total_failed=total_failed,
                     error_details={"errors": error_details} if error_details else None
-                )
-# type: ignore
+                ) # type: ignore
 
         finally:
             dr = cast(Any, self.driver)
@@ -307,7 +306,7 @@ class PaycellScraper:
                         if full_url not in campaign_data:
                             campaign_data[full_url] = img_url
                             total_on_page_for_ide = found_on_page + 1
-                            found_on_page = total_on_page_for_ide
+                        found_on_page = total_on_page_for_ide # type: ignore
                             
                     limit_int = limit
                     if limit_int and len(campaign_data) >= limit_int:
@@ -332,7 +331,7 @@ class PaycellScraper:
                     next_btn[0].click()
                     
                     p_val = cast(int, page)
-                    page = p_val + 1
+                    page = p_val + 1 # type: ignore
                     time.sleep(5)  # Wait for AJAX/SPA transition
                     
                     # Verify we didn't just click the same page again (redundant but safe)
