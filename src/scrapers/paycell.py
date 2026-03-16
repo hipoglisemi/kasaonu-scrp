@@ -7,7 +7,7 @@ import random
 import traceback
 import hashlib
 from datetime import datetime
-from typing import Optional, List, Dict, Any
+from typing import Optional, List, Dict, Any, cast
 from urllib.parse import urljoin
 from bs4 import BeautifulSoup
 
@@ -116,7 +116,7 @@ class PaycellScraper:
         self.setup_driver()
         
         try:
-            campaign_list = self._collect_campaign_links()
+            campaign_list = self._collect_campaign_links(limit=limit)
             print(f"✅ Found {len(campaign_list)} unique candidate campaigns.")
             
             if limit:
@@ -146,17 +146,23 @@ class PaycellScraper:
                             continue
 
                     # 2. Fetch Detail
-                    self.driver.get(url)
-                    time.sleep(5)
-                    
-                    # Aggressive Scroll for hydration
-                    self.driver.execute_script("window.scrollTo(0, document.body.scrollHeight/3);")
-                    time.sleep(1)
-                    self.driver.execute_script("window.scrollTo(0, document.body.scrollHeight/1.5);")
-                    time.sleep(1)
-                    self.driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
-                    time.sleep(2)
+                    if self.driver:
+                        self.driver.get(url)
+                        time.sleep(5)
+                        # Aggressive Scroll for hydration
+                        self.driver.execute_script("window.scrollTo(0, document.body.scrollHeight/3);")
+                        time.sleep(1)
+                        self.driver.execute_script("window.scrollTo(0, document.body.scrollHeight/1.5);")
+                        time.sleep(1)
+                        self.driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
+                        time.sleep(2)
+                    else:
+                        print("   ❌ self.driver is None")
+                        continue
 
+                    if not self.driver:
+                        print("   ❌ self.driver is None")
+                        continue
                     soup = BeautifulSoup(self.driver.page_source, "html.parser")
 
                     # 3. Extract Data
@@ -237,69 +243,86 @@ class PaycellScraper:
             if self.driver:
                 self.driver.quit()
 
-    def _collect_campaign_links(self) -> List[Dict[str, str]]:
+    def _collect_campaign_links(self, limit: Optional[int] = None) -> List[Dict[str, str]]:
         campaign_data = {}
         page = 1
         
+        print(f"   📄 Accessing initial page: {self.LIST_PAGE_URL}")
+        self.driver.get(self.LIST_PAGE_URL)
+        time.sleep(8)  # Wait for initial Next.js hydration
+        
         while True:
-            url = f"{self.LIST_PAGE_URL}?paged={page}"
-            print(f"   📄 Scraping Page {page}: {url}")
-            self.driver.get(url)
-            time.sleep(8) # Wait for Next.js hydration
+            print(f"   📄 Scraping Page {page}...")
             
-            # Simple scroll to trigger lazy images
+            # Aggressive scroll to trigger lazy images
+            self.driver.execute_script("window.scrollTo(0, document.body.scrollHeight / 2);")
+            time.sleep(1)
             self.driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
             time.sleep(2)
             
             soup = BeautifulSoup(self.driver.page_source, "html.parser")
             
             # Find campaign cards
-            # Pattern: <a href="/kampanyalar/slug"> with <img class="card-img-top">
             found_on_page = 0
             cards = soup.select("#blogs .card") or soup.select(".card")
             
             if not cards:
-                print("      ⚠️ No cards found on this page. Stopping pagination.")
-                break
-                
-            for card in cards:
-                link_el = card.find("a", href=True)
-                if not link_el: continue
-                
-                href = link_el["href"]
-                if "/kampanyalar/" in href and href.strip("/") != "kampanyalar":
-                    full_url = urljoin(self.BASE_URL, href)
+                print("      ⚠️ No cards found on this page.")
+            else:
+                for card in cards:
+                    link_el = card.find("a", href=True)
+                    if not link_el: continue
                     
-                    img_el = card.select_one(".card-img-top") or card.find("img")
-                    img_url = None
-                    if img_el:
-                        # Check multiple attributes for the image URL
-                        img_src = img_el.get("src") or img_el.get("data-src") or img_el.get("srcset")
-                        if img_src:
-                            # If it's a srcset, take the first/largest URL
-                            if "," in img_src:
-                                img_src = img_src.split(",")[0].split(" ")[0]
-                            img_url = urljoin(self.BASE_URL, img_src)
+                    href = link_el["href"]
+                    if "/kampanyalar/" in href and href.strip("/") != "kampanyalar":
+                        full_url = urljoin(self.BASE_URL, href)
+                        
+                        img_el = card.select_one(".card-img-top") or card.find("img")
+                        img_url = None
+                        if img_el:
+                            img_src = cast(str, img_el.get("src") or img_el.get("data-src") or img_el.get("srcset"))
+                            if img_src:
+                                if "," in img_src:
+                                    img_src = img_src.split(",")[0].split(" ")[0]
+                                img_url = urljoin(self.BASE_URL, img_src)
+                                
+                        if full_url not in campaign_data:
+                            campaign_data[full_url] = img_url
+                            found_on_page += 1
                             
-                    if full_url not in campaign_data:
-                        campaign_data[full_url] = img_url
-                        found_on_page += 1
+                    if limit and len(campaign_data) >= limit:
+                        print(f"      🛑 Limit of {limit} campaigns reached. Stopping link collection.")
+                        return [{"url": url, "image_url": img} for url, img in campaign_data.items() if img is not None]
             
             print(f"      🔎 Found {found_on_page} new campaigns on page {page}.")
             
-            # Check for next page button or if no new campaigns found
-            next_btn = soup.select_one(".swiper-button-next:not(.swiper-button-disabled)")
-            # Or check if pagination numbers exist and we haven't reached the end
-            # Based on user screen, it has numbers [1, 2, 3... 7]
-            pagination_active = soup.select(".pagination") or soup.select(".swiper-pagination") or soup.select_one(".swiper-button-next")
-            
-            if found_on_page == 0 or page >= 10: # Safety break
+            # Check for Next Button
+            try:
+                # Based on observation, next button has class .page-link.next
+                next_btn_selector = ".pagination-container .page-link.next"
+                next_btn = self.driver.find_elements(By.CSS_SELECTOR, next_btn_selector) if self.driver else []
+                
+                if next_btn and next_btn[0].is_displayed():
+                    print(f"      ➡️ Clicking Next Page button...")
+                    # Scroll to button to ensure visibility
+                    if self.driver:
+                        self.driver.execute_script("arguments[0].scrollIntoView({block: 'center'});", next_btn[0])
+                        time.sleep(1)
+                    next_btn[0].click()
+                    
+                    page += 1
+                    time.sleep(5)  # Wait for AJAX/SPA transition
+                    
+                    # Verify we didn't just click the same page again (redundant but safe)
+                    continue
+                else:
+                    print("      🏁 No 'Next' button found or it's hidden. End of list.")
+                    break
+            except Exception as e:
+                print(f"      ⚠️ Pagination error: {e}. Stopping.")
                 break
                 
-            page += 1
-            time.sleep(2)
-            
-        return [{"url": url, "image_url": img} for url, img in campaign_data.items()]
+        return [{"url": url, "image_url": str(img) if img else self.DEFAULT_IMAGE_URL} for url, img in campaign_data.items()]
 
     def _save_campaign(self, original_title: str, image_url: str, tracking_url: str, ai_data: Dict[str, Any], raw_text: str, force: bool = False) -> str:
         with get_db_session() as db:
