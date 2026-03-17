@@ -141,9 +141,14 @@ def run_autofix(limit: int = 50):
                 if c.eligible_cards and corrupted_regex.search(c.eligible_cards): is_corrupted = True
                 if c.ai_marketing_text and corrupted_regex.search(c.ai_marketing_text): is_corrupted = True
                 
-                if is_corrupted:
+                mojibake_pattern = re.compile(r'[ÄÃÅ][\u0080-\u00bf]')
+                has_mojibake = False
+                if c.clean_text and mojibake_pattern.search(c.clean_text): has_mojibake = True
+                if c.description and mojibake_pattern.search(c.description): has_mojibake = True
+
+                if is_corrupted or has_mojibake:
                     is_defective = True
-                    reasons.append("Character-level Corruption")
+                    reasons.append("Character/Encoding Corruption")
 
                 if not c.description or len(c.description.strip()) < 15:
                     is_defective = True
@@ -203,9 +208,16 @@ def run_autofix(limit: int = 50):
                     reasons.append("Missing Brands")
 
                 if is_defective and c.tracking_url:
-                    # COOLDOWN LOGIC (Madde 2)
+                    # COOLDOWN & PERMANENT SKIP LOGIC
                     if c.auto_corrected:
-                        # Eğer daha önce düzeltilmişse, son güncellemeden sonra 48 saat geçmiş mi bak
+                        # If the campaign was already auto-corrected but still selected as defective,
+                        # ONLY retry it if it has severe text corruption (mojibake or letter spacing) or FORCE_ALL.
+                        # If it's just missing cards/participation, we permanently skip it.
+                        if not (is_corrupted or has_mojibake) and not FORCE_ALL:
+                            stats["skipped_cooldown"] += 1
+                            continue
+                            
+                        # If it IS corrupted, check if 48h have passed to retry
                         last_update = c.updated_at or c.created_at
                         if now - last_update < cooldown_period:
                             stats["skipped_cooldown"] += 1
@@ -219,7 +231,7 @@ def run_autofix(limit: int = 50):
                         print(f"   ⚠️ Reached limit of {limit} campaigns. Stopping search.")
                         break
             
-            print(f"   📊 Found defects: {stats['new']} new, {stats['retry']} retries. (Skipped by cooldown: {stats['skipped_cooldown']})")
+            print(f"   📊 Found defects: {stats['new']} new, {stats['retry']} retries. (Skipped permanently or by cooldown: {stats['skipped_cooldown']})")
 
             print(f"⚠️ Total campaigns to process in this run: {len(to_fix_ids)} (FORCE_ALL={FORCE_ALL})")
             
@@ -371,21 +383,6 @@ def run_autofix(limit: int = 50):
                         c.conditions = "\n".join(cond for cond in ai_data.get("conditions", []))
                         updated = True
 
-                # --- Participation and Eligible Cards skip logic bypass ---
-                is_cards_defective = not c.eligible_cards or c.eligible_cards.strip() == "" or "Kampanyaya Dahil Kartlar" in (c.eligible_cards or "")
-                is_participation_defective = not c.participation or c.participation.strip() == "" or any(p in (c.participation or "") for p in useless_participations)
-                
-                # Double check for corruption or generic placeholders
-                mojibake_pattern = re.compile(r'[ÄÃÅ][\u0080-\u00bf]')
-                has_mojibake = False
-                if c.clean_text and mojibake_pattern.search(c.clean_text): has_mojibake = True
-                if c.description and mojibake_pattern.search(c.description): has_mojibake = True
-
-                # If already auto_corrected, skip ONLY IF it has good data for cards and participation
-                # AND it doesn't have corruption/mojibake
-                if not FORCE_ALL and c.auto_corrected:
-                    if not is_cards_defective and not is_participation_defective and not is_corrupted and not has_mojibake:
-                        continue
 
                 # Clean and update Participation
                 is_curr_p_bad = not c.participation or c.participation.strip() == "" or any(p in (c.participation or "") for p in useless_participations) or corrupted_regex.search(c.participation)
