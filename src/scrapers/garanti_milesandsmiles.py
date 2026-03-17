@@ -339,27 +339,26 @@ class GarantiMilesAndSmilesScraper:
             db.add(campaign)  # type: ignore # pyre-ignore[16]
             db.flush()  # type: ignore # pyre-ignore[16]
             
-            # Brands
-            brand_names = ai_data.get('brands', [])
-            if brand_names:
-                for brand_name in brand_names:
-                    brand = db.query(Brand).filter(Brand.name == brand_name).first()  # type: ignore # pyre-ignore[16]
-                    if not brand:
-                        try:
-                            # Use nested transaction (SAVEPOINT) to safely attempt insert
-                            with db.begin_nested():
-                                brand = Brand(name=brand_name, slug=brand_name.lower().replace(' ', '-'), is_active=True)
-                                db.add(brand)  # type: ignore # pyre-ignore[16]
-                                db.flush()  # type: ignore # pyre-ignore[16]
-                        except IntegrityError:
-                            # Parallel insertion caused conflict, fetch the existing one
-                            brand = db.query(Brand).filter(Brand.name == brand_name).first()  # type: ignore # pyre-ignore[16]
-                    
-                    if brand:
-                        campaign_brand = CampaignBrand(campaign_id=campaign.id, brand_id=brand.id)  # type: ignore
-                        db.add(campaign_brand)  # type: ignore # pyre-ignore[16]
-            
-            db.commit()  # type: ignore # pyre-ignore[16]
+            # Brands via brand_matcher
+            from src.services.brand_matcher import get_or_create_brands_list
+            brand_ids = get_or_create_brands_list(
+                db_session=db,
+                brand_names=ai_data.get("brands", []),
+                brand_cache=getattr(self, 'brand_cache', {}),
+                sector_id=sector.id if sector else None
+            )
+            for bid in brand_ids:
+                try:
+                    link = db.query(CampaignBrand).filter(
+                        CampaignBrand.campaign_id == campaign.id,
+                        CampaignBrand.brand_id == bid
+                    ).first()
+                    if not link:
+                        db.add(CampaignBrand(campaign_id=campaign.id, brand_id=bid))
+                        db.commit()
+                except Exception as e:
+                    db.rollback()
+                    print(f"   ⚠️ CampaignBrand link failed: {e}")
             print(f"   ✅ Saved: {campaign.title[:50]}... (Reward: {campaign.reward_text})")  # type: ignore # pyre-ignore[16,6]
             return "saved"  # type: ignore # pyre-ignore[7]
 

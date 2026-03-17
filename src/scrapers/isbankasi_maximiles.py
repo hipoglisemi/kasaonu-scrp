@@ -17,6 +17,7 @@ from typing import Optional, Dict, Any, List, cast  # type: ignore # pyre-ignore
 from urllib.parse import urljoin  # type: ignore # pyre-ignore[21]
 from src.utils.scraper_utils import is_url_blocked  # type: ignore
 from bs4 import BeautifulSoup  # type: ignore # pyre-ignore[21]
+from src.services.brand_matcher import get_or_create_brands_list
 
 # Fix sys.path
 project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -670,40 +671,25 @@ class IsbankMaximilesScraper:
                 self.db.commit()  # type: ignore # pyre-ignore[16]
                 print(f"   ✅ Saved: {campaign.title[:50]}")  # type: ignore # pyre-ignore[16,6]
 
-            # Brands
-            brands_list = cast(List[Any], ai_data.get("brands", []))  # type: ignore
-            for b_name in brands_list:
-                if not b_name or len(str(b_name)) < 2:
-                    continue
-                b_name_str = str(b_name)
-                b_slug = re.sub(r'[^a-z0-9]+', '-', b_name_str.lower()).strip('-')
-
+            # Brands via brand_matcher
+            brand_ids = get_or_create_brands_list(
+                db_session=self.db,
+                brand_names=data.get("brands", []),
+                brand_cache=getattr(self, 'brand_cache', {}),
+                sector_id=sector.id if sector else None
+            )
+            for bid in brand_ids:
                 try:
-                    brand = self.db.query(Brand).filter(  # type: ignore # pyre-ignore[16]
-                        (Brand.slug == b_slug) | (Brand.name.ilike(b_name))
-                    ).first()
-                    if not brand:
-                        brand = Brand(name=self._to_title_case(b_name), slug=b_slug)  # type: ignore
-                        self.db.add(brand)  # type: ignore # pyre-ignore[16]
-                        self.db.commit()  # type: ignore # pyre-ignore[16]
-                except Exception as e:
-                    self.db.rollback()  # type: ignore # pyre-ignore[16]
-                    print(f"   ⚠️ Brand save failed for {b_name}: {e}")
-                    continue
-
-                try:
-                    link = self.db.query(CampaignBrand).filter(  # type: ignore # pyre-ignore[16]
-                        CampaignBrand.campaign_id == campaign.id,  # type: ignore # pyre-ignore[16]
-                        CampaignBrand.brand_id == brand.id  # type: ignore # pyre-ignore[16]
+                    link = self.db.query(CampaignBrand).filter(
+                        CampaignBrand.campaign_id == campaign.id,
+                        CampaignBrand.brand_id == bid
                     ).first()
                     if not link:
-                        self.db.add(CampaignBrand(campaign_id=campaign.id, brand_id=brand.id))  # type: ignore # pyre-ignore[16]
-                        self.db.commit()  # type: ignore # pyre-ignore[16]
+                        self.db.add(CampaignBrand(campaign_id=campaign.id, brand_id=bid))
+                        self.db.commit()
                 except Exception as e:
-                    self.db.rollback()  # type: ignore # pyre-ignore[16]
+                    self.db.rollback()
                     print(f"   ⚠️ CampaignBrand link failed: {e}")
-                    continue
-
             print(f"   ✅ Saved: {campaign.title[:50]}")  # type: ignore # pyre-ignore[16,6]
             return "saved"  # type: ignore # pyre-ignore[7]
         except Exception as e:

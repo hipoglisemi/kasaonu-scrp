@@ -247,10 +247,10 @@ class KuveytTurkScraper:
                     print(f"   ⏭️ Skipped (Already exists): {existing.title}")
                     stats["skipped"] = stats.get("skipped", 0) + 1
                     return True
-                return False
         except Exception as e:
             print(f"   ⚠️ DB Pre-check error: {e}")
-            return False
+            # Continue to scrape if DB check fails for some reason
+
 
         page = await context.new_page()
         try:
@@ -343,6 +343,7 @@ class KuveytTurkScraper:
             return False
         finally:
             await page.close()
+        return False
 
     def _save_campaign(self, bank_id: int, card_id: int, parsed_data: Dict[str, Any], raw_data: Dict[str, Any]):  # type: ignore # pyre-ignore[16,6]
         title = raw_data["title"]
@@ -437,11 +438,12 @@ class KuveytTurkScraper:
         self.card_cache[key] = card
         return card  # type: ignore # pyre-ignore[7]
 
-    def _get_or_create_brand(self, name: str) -> Brand:
+    def _get_or_create_brand(self, name: str) -> Brand: # type: ignore
         from src.services.brand_matcher import get_or_create_brand
         b = get_or_create_brand(self.db, name, self.brand_cache)
-        return b if b else Brand(name=name, slug=self._generate_slug(name))
-
+        if not b:
+            raise ValueError(f"Invalid brand name: {name}")
+        return b # type: ignore
     def _get_sector_id(self, slug: str) -> Optional[int]:  # type: ignore # pyre-ignore[16,6]
         if slug in self.sector_cache: return self.sector_cache[slug].id  # type: ignore # pyre-ignore[16,6]
         return self.sector_cache.get("diger", {}).get("id")  # type: ignore # pyre-ignore[7]

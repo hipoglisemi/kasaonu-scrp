@@ -13,6 +13,7 @@ from urllib.parse import urljoin  # type: ignore # pyre-ignore[21]
 from playwright.async_api import async_playwright, Page  # type: ignore # pyre-ignore[21]
 from bs4 import BeautifulSoup  # type: ignore # pyre-ignore[21]
 from sqlalchemy.orm import Session  # type: ignore # pyre-ignore[21]
+from src.services.brand_matcher import get_or_create_brands_list
 
 from src.database import get_db_session  # type: ignore # pyre-ignore[21]
 from src.models import Bank, Card, Sector, Brand, Campaign, CampaignBrand  # type: ignore # pyre-ignore[21]
@@ -111,7 +112,7 @@ class ParafScraper:
 
     async def _scrape_list(self, page: Page, start_url: str, base_url: str) -> List[str]:  # type: ignore # pyre-ignore[16,6]
         """Scroll and load more to get all links"""
-        self._log(f"   🌐 Loading {start_url}...")
+        print(f"   🌐 Loading {start_url}...")
         try:
             await page.goto(start_url, timeout=10000)
             
@@ -128,7 +129,7 @@ class ParafScraper:
                     if button and await button.is_visible():
                         text = await button.inner_text()
                         if "DAHA FAZLA" in text.upper():
-                            self._log(f"      👇 Clicked 'Load More' ({i+1})")
+                            print(f"      👇 Clicked 'Load More' ({i+1})")
                             await button.click()
                             await asyncio.sleep(2) # Wait for content
                         else:
@@ -138,7 +139,7 @@ class ParafScraper:
                 except:
                     break
         except Exception as e:
-            self._log(f"   ❌ List Load Error: {e}")
+            print(f"   ❌ List Load Error: {e}")
             return []  # type: ignore # pyre-ignore[7]
         
         # Extract Links
@@ -161,7 +162,7 @@ class ParafScraper:
         # Check if exists
         existing = self.db.query(Campaign).filter(Campaign.tracking_url == url).first()  # type: ignore # pyre-ignore[16]
         if existing:
-            self._log(f"      ⚠️ Skipping (Already exists)")
+            print(f"      ⚠️ Skipping (Already exists)")
             return False  # type: ignore # pyre-ignore[7]
 
         page = await context.new_page()
@@ -186,7 +187,7 @@ class ParafScraper:
             
             # Validations similar to generic scraper
             if len(raw_text) < 50:
-                self._log("      ❌ Content too short")
+                print("      ❌ Content too short")
                 return False  # type: ignore # pyre-ignore[7]
 
             # Image Extraction
@@ -205,14 +206,15 @@ class ParafScraper:
                 
             # Save
             self._save_campaign(ai_data, url, image_url, source['default_card'])
-            self._log(f"      ✅ Saved: {ai_data['title']}")  # type: ignore # pyre-ignore[16,6]
+            print(f"      ✅ Saved: {ai_data['title']}")  # type: ignore # pyre-ignore[16,6]
             return True  # type: ignore # pyre-ignore[7]
             
         except Exception as e:
-            self._log(f"      ❌ Page Error: {e}")
+            print(f"      ❌ Page Error: {e}")
             return False  # type: ignore # pyre-ignore[7]
         finally:
             await page.close()  # type: ignore # pyre-ignore[16]
+        return False
 
     async def _extract_image(self, page: Page, base_url: str) -> Optional[str]:  # type: ignore # pyre-ignore[16,6]
         """Extract CSS background image or img tag"""
@@ -242,7 +244,7 @@ class ParafScraper:
             return null;  # type: ignore # pyre-ignore[7]
         }}''')
 
-    def _save_campaign(self, data: Dict[str, Any], url: str, image_url: str, card_name: str):  # type: ignore # pyre-ignore[16,6]
+    def _save_campaign(self, data: Dict[str, Any], url: str, image_url: Optional[str], card_name: str):  # type: ignore # pyre-ignore[16,6]
         """Save to DB"""
         
         # Card
@@ -297,9 +299,9 @@ class ParafScraper:
 
             # full_text=f"{data.get('title')} {data.get('description')}", # REMOVED: Invalid field
             
-            clean_text=ai_data.get('_clean_text') if 'ai_data' in locals() else None,
+            clean_text=data.get('_clean_text') if data else None,
             tracking_url=url,
-            image_url=image_url or "https://www.paraf.com.tr/content/dam/parafcard/paraf-logos/paraf-logo-yeni.png",
+            image_url=image_url if image_url else "https://www.paraf.com.tr/content/dam/parafcard/paraf-logos/paraf-logo-yeni.png",
             is_active=True
         )
         
@@ -368,27 +370,15 @@ class ParafScraper:
         self.card_cache[key] = card
         return card  # type: ignore # pyre-ignore[7]
 
-    def _get_sector(self, name: str) -> Optional[Sector]:  # type: ignore # pyre-ignore[16,6]
+    def _get_sector(self, name: Optional[str]) -> Optional[Sector]:  # type: ignore # pyre-ignore[16,6]
         if not name: return None
         # Try exact match
         if name.lower() in self.sector_cache:
             return self.sector_cache[name.lower()]  # type: ignore # pyre-ignore[7]
         return self.sector_cache.get("diğer")  # type: ignore # pyre-ignore[7]
 
-    def _get_or_create_brands(self, names: List[str], sector_id: int) -> List[int]:  # type: ignore # pyre-ignore[16,6]
-        ids = []
-        for n in names:
-            key = n.lower()
-            if key in self.brand_cache:
-                ids.append(self.brand_cache[key].id)
-            else:
-                # sector_id removed from Brand
-                b = Brand(name=n, slug=key.replace(" ", "-"), is_active=True)
-                self.db.add(b)  # type: ignore # pyre-ignore[16]
-                self.db.commit()  # type: ignore # pyre-ignore[16]
-                self.brand_cache[key] = b
-                ids.append(b.id)
-        return ids  # type: ignore # pyre-ignore[7]
+    def _get_or_create_brands(self, names: List[str], sector_id: Optional[int]) -> List[int]:  # type: ignore # pyre-ignore[16,6]
+        return get_or_create_brands_list(self.db, names, getattr(self, 'brand_cache', {}), sector_id)
 
 if __name__ == "__main__":
     try:

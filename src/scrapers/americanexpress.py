@@ -103,34 +103,27 @@ class AmericanExpressScraper:
         return sector  # type: ignore # pyre-ignore[7]
 
     def _get_or_create_brands(self, brand_names: List[str]) -> List[Brand]:  # type: ignore # pyre-ignore[16,6]
-        brands = []
+        from src.services.brand_matcher import get_or_create_brands_list
+        
+        # Filter anti-hallucination out before passing
+        cleaned_names = []
         for name in brand_names:
             if not name or len(name.strip()) < 2:
                 continue
-                
-            brand_name = name.strip()
+            lower_name = name.strip().lower()
+            if any(forbidden in lower_name for forbidden in ["american", "express", "amex", "garanti", "bbva"]):
+                continue
+            cleaned_names.append(name.strip())
             
-            # Anti-hallucination check specific to this scraper
-            lower_name = brand_name.lower()
-            if any(forbidden in lower_name for forbidden in ["american", "express", "amex", "garanti", "bbva"]):  # type: ignore # pyre-ignore[16,6]
-                continue
-
-            slug = self._slugify(brand_name)
-            if not slug:
-                continue
-                
-            brand = self.db.query(Brand).filter_by(slug=slug).first()  # type: ignore # pyre-ignore[16]
-            if not brand:
-                try:
-                    brand = Brand(name=brand_name, slug=slug)  # type: ignore
-                    self.db.add(brand)  # type: ignore # pyre-ignore[16]
-                    self.db.commit()  # type: ignore # pyre-ignore[16]
-                except Exception as e:
-                    self.db.rollback()  # type: ignore # pyre-ignore[16]
-                    brand = self.db.query(Brand).filter_by(slug=slug).first()  # type: ignore # pyre-ignore[16]
+        uuid_list = get_or_create_brands_list(self.db, cleaned_names, getattr(self, 'brand_cache', {}))
+        
+        # Return Brand objects to match previous return type
+        brands = []
+        for bid in uuid_list:
+            brand = self.db.query(Brand).filter_by(id=bid).first()
             if brand:
                 brands.append(brand)
-        return brands  # type: ignore # pyre-ignore[7]
+        return brands
 
     def run(self, max_runs: Optional[int] = None):  # type: ignore # pyre-ignore[16,6]
         """Execute the scraping process using simple requests"""

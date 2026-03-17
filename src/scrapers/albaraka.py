@@ -436,38 +436,67 @@ class AlbarakaScraper:
             self.session.add(campaign)  # type: ignore # pyre-ignore[16]
             self.session.commit()  # type: ignore # pyre-ignore[16]
 
-            # Brands
-            for b_name in data.get("brands", []):  # type: ignore # pyre-ignore[16,6]
-                if len(b_name) < 2:
-                    continue
-                b_name_str = str(b_name)  # type: ignore
-                b_slug = re.sub(r'[^a-z0-9]+', '-', b_name_str.lower()).strip('-')
-                
-                try:
-                    brand = self.session.query(Brand).filter(  # type: ignore # pyre-ignore[16]
-                        (Brand.slug == b_slug) | (Brand.name.ilike(b_name))
-                    ).first()
-                    if not brand:
-                        brand = Brand(name=self._to_title_case(b_name), slug=b_slug)  # type: ignore # pyre-ignore[20]
-                        self.session.add(brand)  # type: ignore # pyre-ignore[16]
-                        self.session.commit()  # type: ignore # pyre-ignore[16]
-                except Exception as e:
-                    self.session.rollback()  # type: ignore # pyre-ignore[16]
-                    print(f"   ⚠️ Brand save failed for {b_name}: {e}")
-                    continue
 
-                try:    
-                    link = self.session.query(CampaignBrand).filter(  # type: ignore # pyre-ignore[16]
-                        CampaignBrand.campaign_id == campaign.id,  # type: ignore # pyre-ignore[16]
-                        CampaignBrand.brand_id == brand.id  # type: ignore # pyre-ignore[16]
+            # Brands via brand_matcher
+
+
+            from src.services.brand_matcher import get_or_create_brands_list
+
+
+            brand_ids = get_or_create_brands_list(
+
+
+                db_session=self.session,
+
+
+                brand_names=data.get("brands", []),
+
+
+                brand_cache=getattr(self, 'brand_cache', {}),
+
+
+                sector_id=sector.id if sector else None
+
+
+            )
+
+
+            for bid in brand_ids:
+
+
+                try:
+
+
+                    link = self.session.query(CampaignBrand).filter(
+
+
+                        CampaignBrand.campaign_id == campaign.id,
+
+
+                        CampaignBrand.brand_id == bid
+
+
                     ).first()
+
+
                     if not link:
-                        self.session.add(CampaignBrand(campaign_id=campaign.id, brand_id=brand.id))  # type: ignore # pyre-ignore[16,20]
-                        self.session.commit()  # type: ignore # pyre-ignore[16]
+
+
+                        self.session.add(CampaignBrand(campaign_id=campaign.id, brand_id=bid))
+
+
+                        self.session.commit()
+
+
                 except Exception as e:
-                    self.session.rollback()  # type: ignore # pyre-ignore[16]
+
+
+                    self.session.rollback()
+
+
                     print(f"   ⚠️ CampaignBrand link failed: {e}")
-                    continue
+
+
 
             print(f"   ✅ Saved: {campaign.title[:50]}")  # type: ignore # pyre-ignore[16,6]
             return campaign.id  # type: ignore # pyre-ignore[7]

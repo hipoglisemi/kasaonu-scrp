@@ -248,36 +248,26 @@ class AkbankBaseScraper:
             db.add(campaign)  # type: ignore # pyre-ignore[16]
             db.commit()  # type: ignore # pyre-ignore[16]
             
-            # --- Brands ---
-            # Using normalize_brand_name utility
-            if ai_data.get('brands'):
-                from src.models import Brand  # type: ignore # pyre-ignore[21]
-                for brand_name in ai_data['brands']:  # type: ignore # pyre-ignore[16,6]
-                    b_slug = generate_slug(brand_name)
-                    try:
-                        brand = db.query(Brand).filter(  # type: ignore # pyre-ignore[16]
-                            (Brand.slug == b_slug) | (Brand.name.ilike(brand_name))
-                        ).first()
-                        
-                        if not brand:
-                            brand = Brand(name=brand_name, slug=b_slug, is_active=True)  # type: ignore
-                            db.add(brand)  # type: ignore # pyre-ignore[16]
-                            db.commit()  # type: ignore # pyre-ignore[16]
-                            
-                        # Link brand to campaign
-                        cb = db.query(CampaignBrand).filter(  # type: ignore # pyre-ignore[16]
-                             CampaignBrand.campaign_id == campaign.id,  # type: ignore # pyre-ignore[16]
-                             CampaignBrand.brand_id == brand.id  # type: ignore # pyre-ignore[16]
-                        ).first()
-                        
-                        if not cb:
-                            cb = CampaignBrand(campaign_id=campaign.id, brand_id=brand.id)  # type: ignore # pyre-ignore[16]
-                            db.add(cb)  # type: ignore # pyre-ignore[16]
-                            db.commit()  # type: ignore # pyre-ignore[16]
-                    except Exception as e:
-                        db.rollback()  # type: ignore # pyre-ignore[16]
-                        print(f"   ⚠️ Could not link brand {brand_name}: {e}")
-
+            # Brands via brand_matcher
+            from src.services.brand_matcher import get_or_create_brands_list
+            brand_ids = get_or_create_brands_list(
+                db_session=db,
+                brand_names=ai_data.get("brands", []),
+                brand_cache=getattr(self, 'brand_cache', {}),
+                sector_id=sector.id if sector else None
+            )
+            for bid in brand_ids:
+                try:
+                    link = db.query(CampaignBrand).filter(
+                        CampaignBrand.campaign_id == campaign.id,
+                        CampaignBrand.brand_id == bid
+                    ).first()
+                    if not link:
+                        db.add(CampaignBrand(campaign_id=campaign.id, brand_id=bid))
+                        db.commit()
+                except Exception as e:
+                    db.rollback()
+                    print(f"   ⚠️ CampaignBrand link failed: {e}")
             print(f"   ✅ Saved: {campaign.title}")
             return "saved"  # type: ignore # pyre-ignore[7]
 

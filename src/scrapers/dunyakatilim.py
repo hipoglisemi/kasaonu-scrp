@@ -361,18 +361,8 @@ class DunyaKatilimScraper:
         return self.sector_cache.get(slug.lower()) or self.sector_cache.get("diğer")  # type: ignore # pyre-ignore[7]
 
     def _get_or_create_brands(self, names: List[str], sector_id: int) -> List[int]:  # type: ignore # pyre-ignore[16,6]
-        ids = []
-        for n in names:
-            key = n.lower()
-            if key in self.brand_cache:
-                ids.append(self.brand_cache[key].id)
-            else:
-                b = Brand(name=n, slug=key.replace(" ", "-"), is_active=True)
-                self.db.add(b)  # type: ignore # pyre-ignore[16]
-                self.db.commit()  # type: ignore # pyre-ignore[16]
-                self.brand_cache[key] = b
-                ids.append(b.id)
-        return ids  # type: ignore # pyre-ignore[7]
+        from src.services.brand_matcher import get_or_create_brands_list
+        return get_or_create_brands_list(self.db, names, getattr(self, 'brand_cache', {}), sector_id)
 
 if __name__ == "__main__":
     is_test = os.environ.get("TEST_MODE") == "1"

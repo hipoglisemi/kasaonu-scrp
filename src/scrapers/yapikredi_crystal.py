@@ -174,26 +174,26 @@ class YapikrediCrystalScraper:
                 db.commit()  # type: ignore # pyre-ignore[16]
                 print(f"   ✅ Saved: {campaign.title}")
 
-                # Process Brands
-                if ai_data.get('brands'):
-                    raw_brands = ai_data.get('brands')
-                    clean_brand_list = cleanup_brands(raw_brands)
-                    
-                    for brand_name in clean_brand_list:
-                        brand = db.query(Brand).filter(Brand.name == brand_name).first()  # type: ignore # pyre-ignore[16]
-                        if not brand:
-                            brand = Brand(name=brand_name, slug=get_unique_slug(brand_name, db, Brand), is_active=True)  # type: ignore
-                            db.add(brand)  # type: ignore # pyre-ignore[16]
-                            db.commit()  # type: ignore # pyre-ignore[16]
-                            print(f"      ✨ Created Brand: {brand.name}")
-                        
-                        link = db.query(CampaignBrand).filter(CampaignBrand.campaign_id == campaign.id, CampaignBrand.brand_id == brand.id).first()  # type: ignore # pyre-ignore[16]
+                # Brands via brand_matcher
+                from src.services.brand_matcher import get_or_create_brands_list
+                brand_ids = get_or_create_brands_list(
+                    db_session=db,
+                    brand_names=ai_data.get("brands", []),
+                    brand_cache=getattr(self, 'brand_cache', {}),
+                    sector_id=sector.id if sector else None
+                )
+                for bid in brand_ids:
+                    try:
+                        link = db.query(CampaignBrand).filter(
+                            CampaignBrand.campaign_id == campaign.id,
+                            CampaignBrand.brand_id == bid
+                        ).first()
                         if not link:
-                            link = CampaignBrand(campaign_id=campaign.id, brand_id=brand.id)  # type: ignore # pyre-ignore[16]
-                            db.add(link)  # type: ignore # pyre-ignore[16]
-                            db.commit()  # type: ignore # pyre-ignore[16]
-                            print(f"      🔗 Linked Brand: {brand.name}")
-            
+                            db.add(CampaignBrand(campaign_id=campaign.id, brand_id=bid))
+                            db.commit()
+                    except Exception as e:
+                        db.rollback()
+                        print(f"   ⚠️ CampaignBrand link failed: {e}")
             return "saved"  # type: ignore # pyre-ignore[7]
         except Exception as e:
             print(f"   ❌ Error saving: {e}")

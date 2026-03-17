@@ -325,52 +325,26 @@ class UptionScraper:
         # Slug
         slug = get_unique_slug(data.get("title", "uption-kampanya"), db, Campaign)
         
-        # Brands
-        brand_ids = []
-        for bname in data.get("brands", []):
-            brand = self.brand_cache.get(bname.lower())
-            if not brand:
-                brand = Brand(name=bname, slug=re.sub(r'[^a-z0-9]', '-', bname.lower()), is_active=True)
-                db.add(brand)
-                db.flush()
-                self.brand_cache[bname.lower()] = brand
-            brand_ids.append(brand.id)
-
-        # Reward Type mapping
-        reward_type = data.get("reward_type", "discount").lower()
-        if reward_type not in ["cashback", "points", "discount", "installment"]:
-            reward_type = "discount"
-
-        campaign = Campaign(
-            card_id=card.id,
-            sector_id=sector.id if sector else None,
-            title=data.get("title") or data.get("short_title") or "Uption Kampanya",
-            slug=slug,
-            description=data.get("description") or data.get("ai_marketing_text") or "Uption Kampanya Detayı",
-            conditions="\n".join(data.get("conditions", [])) if isinstance(data.get("conditions"), list) else data.get("conditions", ""),
-            start_date=data.get("start_date"),
-            end_date=data.get("end_date"),
-            reward_type=reward_type,
-            reward_value=data.get("reward_value"),
-            reward_text=data.get("reward_text"),
-            ai_marketing_text=data.get("ai_marketing_text") or data.get("description") or "Uption Kampanya Özeti",
-            participation=data.get("participation"),
-            eligible_cards=", ".join(data.get("cards", [])) if data.get("cards") else self.CARD_NAME,
-            category=data.get("category"),
-            tracking_url=url,
-            image_url=image_url,
-            is_active=True,
-            affiliate_network="uption"
+        # Brands via brand_matcher
+        from src.services.brand_matcher import get_or_create_brands_list
+        brand_ids = get_or_create_brands_list(
+            db_session=db,
+            brand_names=data.get("brands", []),
+            brand_cache=getattr(self, 'brand_cache', {}),
+            sector_id=sector.id if sector else None
         )
-        
-        try:
-            db.add(campaign)
-            db.flush()
-            
-            for bid in brand_ids:
-                cb = CampaignBrand(campaign_id=campaign.id, brand_id=bid)
-                db.add(cb)
-                
+        for bid in brand_ids:
+            try:
+                link = db.query(CampaignBrand).filter(
+                    CampaignBrand.campaign_id == campaign.id,
+                    CampaignBrand.brand_id == bid
+                ).first()
+                if not link:
+                    db.add(CampaignBrand(campaign_id=campaign.id, brand_id=bid))
+                    db.commit()
+            except Exception as e:
+                db.rollback()
+                print(f"   ⚠️ CampaignBrand link failed: {e}")
             db.commit()
             print(f"   ✅ Saved: {campaign.title}")
         except Exception as e:

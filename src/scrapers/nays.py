@@ -336,31 +336,26 @@ class NaysScraper:
                 db.commit()
                 db.refresh(campaign)
 
-                # Brands (Only for new or if forced)
-                if is_new or force:
-                    # Clear old brands if forced
-                    if not is_new:
-                        db.query(CampaignBrand).filter(CampaignBrand.campaign_id == campaign.id).delete()
-                    
-                    brands = ai_data.get("brands", [])
-                    if isinstance(brands, str):
-                        brands = [b.strip() for b in brands.split(",") if b.strip()]
-                    
-                    for b_name in brands:
-                        if not b_name: continue
-                        b_slug = re.sub(r'[^a-z0-9]+', '-', b_name.lower()).strip('-')
-                        brand = db.query(Brand).filter((Brand.slug == b_slug) | (Brand.name.ilike(b_name))).first()
-                        if not brand:
-                            brand = Brand(name=b_name, slug=b_slug, is_active=True)
-                            db.add(brand)
+                # Brands via brand_matcher
+                from src.services.brand_matcher import get_or_create_brands_list
+                brand_ids = get_or_create_brands_list(
+                    db_session=db,
+                    brand_names=data.get("brands", []),
+                    brand_cache=getattr(self, 'brand_cache', {}),
+                    sector_id=sector.id if sector else None
+                )
+                for bid in brand_ids:
+                    try:
+                        link = db.query(CampaignBrand).filter(
+                            CampaignBrand.campaign_id == campaign.id,
+                            CampaignBrand.brand_id == bid
+                        ).first()
+                        if not link:
+                            db.add(CampaignBrand(campaign_id=campaign.id, brand_id=bid))
                             db.commit()
-                            db.refresh(brand)
-                        
-                        cb = CampaignBrand(campaign_id=campaign.id, brand_id=brand.id)
-                        db.add(cb)
-                    db.commit()
-                
-                print(f"   ✅ {'Saved' if is_new else 'Updated'}: {campaign.title[:50]}")
+                    except Exception as e:
+                        db.rollback()
+                        print(f"   ⚠️ CampaignBrand link failed: {e}")
                 return "saved"
             except Exception as e:
                 db.rollback()
