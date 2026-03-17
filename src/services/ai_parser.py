@@ -378,6 +378,19 @@ BANK_RULES = {
 - ELIGIBLE CARDS: Common values: "Tüm Turkcell Müşterileri", "Paycell Kart Sahipleri", "Turkcell Pasaj Müşterileri".
 - BRAND: Identify the partner brand (e.g., Obilet, Sigortam.net, Uber) clearly.
 """,
+    'paycell': """
+🚨 PAYCELL SPECIFIC RULES:
+- TERMINOLOGY: "Nakit İade" (Direct cash back to Paycell balance).
+- ELIGIBLE CARDS: "Paycell Kart".
+- PARTICIPATION: 
+    - 🚨 CRITICAL: Look for "Kampanyaya Katıl" buttons or specific instructions in the "Kampanya Koşulları" list.
+    - If it says "Kampanyaya katılarak abonelik bedelinizin yarısını geri almanın keyfini çıkarın", look for a "Hemen Katıl" action.
+    - If the campaign says "Sadece tvplus.com.tr üzerinden yapılan paket alımlarında geçerlidir", the participation might be "tvplus.com.tr üzerinden harcama yaparak".
+    - 🚨 FALLBACK: If NO specific button/SMS is found, and it's a usage-based campaign (e.g. "X harcamasına Y iade"), use "Paycell Kartınızla kampanya kapsamındaki harcamalarınızı yaparak otomatik olarak faydalanabilirsiniz."
+- BRANDS & SECTOR:
+    - 🚨 CRITICAL: Paycell often has many digital/streaming partners. Extract brands like 'TV+', 'HBO Max', 'Exxen', 'A101', 'Şok', 'Trendyol'.
+    - Sector: Match correctly (TV+, HBO Max -> 'dijital-platform').
+""",
     'sekerbank': """
 🚨 SEKERBANK SPECIFIC RULES:
 - TERMINOLOGY: 

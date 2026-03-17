@@ -9,7 +9,7 @@ import hashlib
 from datetime import datetime
 from typing import Optional, List, Dict, Any, cast
 from urllib.parse import urljoin
-from bs4 import BeautifulSoup
+from bs4 import BeautifulSoup # type: ignore
 
 from selenium import webdriver # type: ignore
 from selenium.webdriver.chrome.service import Service # type: ignore
@@ -26,7 +26,7 @@ if project_root not in sys.path:
     sys.path.insert(0, project_root)
 
 try:
-    from dotenv import load_dotenv
+    from dotenv import load_dotenv # type: ignore
     load_dotenv(os.path.join(project_root, '.env'), override=True)
 except Exception:
     pass
