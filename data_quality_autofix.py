@@ -456,14 +456,13 @@ def run_autofix(limit: int = 50):
 
                 # ALWAYS mark as auto_corrected so we don't try again forever (even if Gemini failed to find missing data)
                 c.auto_corrected = True
-                updated = True
-
+                db.commit()
+                fixed_count += 1
+                
                 if updated:
-                    db.commit()
-                    fixed_count += 1
                     print(f"   ✅ Campaign successfully repaired and saved! (Marked as auto_corrected)")
                 else:
-                    print(f"   ⚠️ AI didn't find the missing data. No changes made.")
+                    print(f"   ⚠️ AI didn't find the missing data. Marked as auto_corrected to prevent loop. No new changes made.")
 
             # Be gentle to the API limits
             time.sleep(3)

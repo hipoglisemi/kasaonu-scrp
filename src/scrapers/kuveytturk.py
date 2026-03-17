@@ -438,15 +438,9 @@ class KuveytTurkScraper:
         return card  # type: ignore # pyre-ignore[7]
 
     def _get_or_create_brand(self, name: str) -> Brand:
-        slug = self._generate_slug(name)
-        if slug in self.brand_cache: return self.brand_cache[slug]  # type: ignore # pyre-ignore[16,6]
-        brand = self.db.query(Brand).filter((Brand.slug == slug) | (Brand.name == name)).first()  # type: ignore # pyre-ignore[16]
-        if not brand:
-            brand = Brand(name=name, slug=slug, is_active=True)
-            self.db.add(brand)  # type: ignore # pyre-ignore[16]
-            self.db.flush()  # type: ignore # pyre-ignore[16]
-        self.brand_cache[slug] = brand
-        return brand  # type: ignore # pyre-ignore[7]
+        from src.services.brand_matcher import get_or_create_brand
+        b = get_or_create_brand(self.db, name, self.brand_cache)
+        return b if b else Brand(name=name, slug=self._generate_slug(name))
 
     def _get_sector_id(self, slug: str) -> Optional[int]:  # type: ignore # pyre-ignore[16,6]
         if slug in self.sector_cache: return self.sector_cache[slug].id  # type: ignore # pyre-ignore[16,6]

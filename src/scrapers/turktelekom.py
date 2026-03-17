@@ -316,21 +316,8 @@ class TurkTelekomScraper:
         return self.sector_cache.get(slug.lower()) or self.sector_cache.get("diğer")  # type: ignore # pyre-ignore[7]
 
     def _get_or_create_brands(self, names: List[str], sector_id: Optional[int]) -> List[uuid.UUID]:  # type: ignore # pyre-ignore[16,6]
-        ids = []
-        for n in names:
-            if not n: continue
-            key = n.lower().strip()
-            if key in self.brand_cache:
-                ids.append(self.brand_cache[key].id)
-            else:
-                brand = self.db.query(Brand).filter(Brand.name.ilike(n)).first()  # type: ignore # pyre-ignore[16]
-                if not brand:
-                    brand = Brand(name=n, slug=key.replace(" ", "-")[:50], is_active=True)  # type: ignore # pyre-ignore[16,6]
-                    self.db.add(brand)  # type: ignore # pyre-ignore[16]
-                    self.db.flush()  # type: ignore # pyre-ignore[16]
-                self.brand_cache[key] = brand
-                ids.append(brand.id)
-        return list(set(ids))  # type: ignore # pyre-ignore[7]
+        from src.services.brand_matcher import get_or_create_brands_list
+        return get_or_create_brands_list(self.db, names, self.brand_cache, sector_id)
 
 if __name__ == "__main__":
     scraper = TurkTelekomScraper(max_campaigns=999)

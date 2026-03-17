@@ -512,54 +512,11 @@ class SekerbankScraper:
         return self.sector_cache.get(slug.lower()) or self.sector_cache.get("diger")
 
     def _get_or_create_brands(self, names: List[str], sector_id: Optional[int]) -> List[Any]:
-        """Normalize and match/create brands found in text."""
-        import uuid
-        
-        ids = []
+        """Normalize and match/create brands found in text using shared matcher."""
+        from src.services.brand_matcher import get_or_create_brands_list
         if not self.db:
-            return ids
-
-        for n in names:
-            key = n.lower().strip()
-            if not key: continue
-            
-            slug_val = re.sub(r'[^a-z0-9-]', '-', key).strip('-')
-            
-            if key in self.brand_cache:
-                ids.append(self.brand_cache[key].id)
-            elif self.db:
-                db = self.db
-                existing = db.query(Brand).filter(Brand.slug == slug_val).first() # type: ignore # pyre-ignore[16]
-                if existing:
-                    self.brand_cache[key] = existing
-                    ids.append(existing.id)
-                    continue
-                    
-                # Create NEW brand if not found
-                b = Brand(  # type: ignore
-                    id=uuid.uuid4(),  # type: ignore
-                    name=n,  # type: ignore
-                    slug=slug_val,  # type: ignore
-                    is_active=True  # type: ignore
-                )
-                if self.db:
-                    db_op = self.db
-                    db_op.add(b) # type: ignore # pyre-ignore[16]
-                    try:
-                        if self.db:
-                            self.db.commit() # type: ignore # pyre-ignore[16]
-                        self.brand_cache[key] = b
-                        ids.append(b.id)
-                    except IntegrityError:
-                        db_final = self.db
-                        if db_final:
-                            db_final.rollback()
-                            # Re-fetch in case of concurrent creation
-                            existing = db_final.query(Brand).filter(Brand.slug == slug_val).first() # type: ignore # pyre-ignore[16]
-                            if existing:
-                                self.brand_cache[key] = existing
-                                ids.append(existing.id)
-        return ids
+            return []
+        return get_or_create_brands_list(self.db, names, self.brand_cache, sector_id)
 
     def _extract_best_image(self, img_el) -> str:
         """Extract higher quality or non-placeholder image from srcset or data attributes."""

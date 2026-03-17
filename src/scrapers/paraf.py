@@ -400,34 +400,9 @@ class ParafScraper:
             return None  # type: ignore # pyre-ignore[7]
         return self.sector_cache.get(slug.lower()) or self.sector_cache.get("diğer")  # type: ignore # pyre-ignore[7]
 
-    def _get_or_create_brands(self, names: List[str], sector_id: int) -> List[int]:  # type: ignore # pyre-ignore[16,6]
-        from sqlalchemy.exc import IntegrityError  # type: ignore # pyre-ignore[21]
-        ids = []
-        for n in names:
-            key = n.lower()
-            slug_val = key.replace(" ", "-")
-            if key in self.brand_cache:
-                ids.append(self.brand_cache[key].id)
-            else:
-                existing = self.db.query(Brand).filter(Brand.slug == slug_val).first()  # type: ignore # pyre-ignore[16]
-                if existing:
-                    self.brand_cache[key] = existing
-                    ids.append(existing.id)
-                    continue
-                    
-                b = Brand(name=n, slug=slug_val, is_active=True)
-                self.db.add(b)  # type: ignore # pyre-ignore[16]
-                try:
-                    self.db.commit()  # type: ignore # pyre-ignore[16]
-                    self.brand_cache[key] = b
-                    ids.append(b.id)
-                except IntegrityError:
-                    self.db.rollback()  # type: ignore # pyre-ignore[16]
-                    existing = self.db.query(Brand).filter(Brand.slug == slug_val).first()  # type: ignore # pyre-ignore[16]
-                    if existing:
-                        self.brand_cache[key] = existing
-                        ids.append(existing.id)
-        return ids  # type: ignore # pyre-ignore[7]
+    def _get_or_create_brands(self, names: List[str], sector_id: int) -> List[int]:
+        from src.services.brand_matcher import get_or_create_brands_list
+        return get_or_create_brands_list(self.db, names, self.brand_cache, sector_id)
 if __name__ == "__main__":
     try:
         import argparse  # type: ignore # pyre-ignore[21]

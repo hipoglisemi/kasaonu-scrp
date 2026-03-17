@@ -424,28 +424,8 @@ class PaycellScraper:
                 return "error"
 
     def _get_or_create_brands(self, db, names: List[str], sector_id: Optional[int]) -> List[Any]:
-        import uuid
-        ids = []
-        if not names: return ids
-
-        for n in names:
-            key = n.strip()
-            if not key or key.lower() == self.BANK_NAME.lower(): continue
-            
-            slug_val = re.sub(r'[^a-z0-9-]', '-', key.lower()).strip('-')
-            brand = db.query(Brand).filter(Brand.slug == slug_val).first()
-            
-            if not brand:
-                brand = Brand(
-                    id=uuid.uuid4(),
-                    name=key,
-                    slug=slug_val,
-                    is_active=True
-                )
-                db.add(brand)
-                db.flush()
-            ids.append(brand.id)
-        return ids
+        from src.services.brand_matcher import get_or_create_brands_list
+        return get_or_create_brands_list(db, names, {}, sector_id)
 
 if __name__ == "__main__":
     import argparse
