@@ -408,13 +408,10 @@ class IsbankMaximumScraper:
         return " ".join(capitalized_words)  # type: ignore # pyre-ignore[7]
 
     def _get_or_create_slug(self, title: str) -> str:
-        base = re.sub(r'[^a-z0-9]+', '-', re.sub(
-            r'[şğüöçıŞĞÜÖÇİ]',
-            lambda m: 'sgupcisgupci'['şğüöçıŞĞÜÖÇİ'.index(m.group())],  # type: ignore # pyre-ignore[16,6]
-            title.lower()
-        )).strip('-')
+        from src.utils.slug_generator import generate_slug  # type: ignore # pyre-ignore[21]
+        base = generate_slug(title)
         slug = base
-        counter = 1
+        counter = 2
         while self.session.query(Campaign).filter(Campaign.slug == slug).first():  # type: ignore # pyre-ignore[16]
             slug = f"{base}-{counter}"
             counter += 1

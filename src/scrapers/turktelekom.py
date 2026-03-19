@@ -225,17 +225,11 @@ class TurkTelekomScraper:
         # Brands
         brand_ids = self._get_or_create_brands(data.get("brands", []), sector.id if sector else None)  # type: ignore # pyre-ignore[16]
         
-        # Slug
-        slug = data.get("slug")
-        if not slug:
-            clean_title = data.get("title", "").lower()
-            # Basic TR char normalize
-            tr_map = str.maketrans("ığüşöç", "iguso-")
-            clean_title = clean_title.translate(tr_map)
-            slug = re.sub(r'[^a-z0-9-]', '-', clean_title)
-            slug = re.sub(r'-+', '-', slug).strip('-')
-            url_hash = uuid.uuid5(uuid.NAMESPACE_URL, url).hex[:8]  # type: ignore # pyre-ignore[16,6]
-            slug = f"{slug}-{url_hash}"
+        # Slug - always use generate_slug for consistency
+        from src.utils.slug_generator import generate_slug  # type: ignore # pyre-ignore[21]
+        url_hash = uuid.uuid5(uuid.NAMESPACE_URL, url).hex[:8]  # type: ignore # pyre-ignore[16,6]
+        base_slug = generate_slug(data.get("title", ""))
+        slug = f"{base_slug}-{url_hash}"
         
         # Format for CampaignDetailClient.tsx
         participation = data.get("participation", "")
