@@ -455,10 +455,10 @@ BANK_RULES = {
     - Map brands to Turkish sector slugs accurately.
 """,
     'hsbc': """
-🚨 HSBC ADVANTAGE SPECIFIC RULES:
+🚨 HSBC PREMIER SPECIFIC RULES:
 - TERMINOLOGY: "NakitPuan". 1 NakitPuan = 1 TL.
 - ELIGIBLE CARDS: 
-    - 🚨 STRICT: "HSBC Advantage", "Advantage Classic", "Advantage Gold", "Advantage Platinum", "Advantage Business".
+    - 🚨 STRICT: "HSBC Premier" (Do NOT use Advantage terminology, map all to "HSBC Premier" or "Premier").
     - "HSBC Bankamatik Kartı" = ["Bankamatik Kartı"].
 - PARTICIPATION:
     - 🚨 PRIORITY: SMS to **4477**. Look for keywords (e.g. "GEYIK yazıp 4477'ye").

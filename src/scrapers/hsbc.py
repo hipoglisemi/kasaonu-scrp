@@ -23,7 +23,7 @@ from src.services.brand_matcher import get_or_create_brands_list
 from src.utils.scraper_utils import is_url_blocked
 
 class HSBCScraper:
-    """HSBC Advantage Scraper - Playwright based"""
+    """HSBC Premier Scraper - Playwright based"""
 
     BASE_URL = "https://www.hsbc.com.tr"
     LIST_URL = "https://www.hsbc.com.tr/kartlar-ve-krediler/kampanyalar/guncel-kampanyalar"
@@ -57,10 +57,10 @@ class HSBCScraper:
             self.db.add(bank)
             self.db.commit()
         
-        card = self.db.query(Card).filter(Card.slug == 'hsbc-advantage', Card.bank_id == bank.id).first()
+        card = self.db.query(Card).filter(Card.slug == 'premier', Card.bank_id == bank.id).first()
         if not card:
-            print("⚠️ HSBC Advantage card not found, creating...")
-            card = Card(bank_id=bank.id, name='Advantage', slug='hsbc-advantage', is_active=True)
+            print("⚠️ HSBC Premier card not found, creating...")
+            card = Card(bank_id=bank.id, name='Premier', slug='premier', is_active=True)
             self.db.add(card)
             self.db.commit()
         
