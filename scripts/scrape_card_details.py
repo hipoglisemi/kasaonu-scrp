@@ -112,24 +112,49 @@ async def scrape_hangikredi(page, card_name, bank_name):
         page.on("response", handle_response)
         
         await page.goto(url, wait_until="networkidle", timeout=20000)
+        
+        # Sayfanın yüklenmesini bekle
         await page.wait_for_timeout(2000)
+
+        # Aşağı kaydır — lazy load tetikle
+        await page.evaluate("window.scrollTo(0, document.body.scrollHeight / 2)")
+        await page.wait_for_timeout(1000)
+        await page.evaluate("window.scrollTo(0, document.body.scrollHeight)")
+        await page.wait_for_timeout(1500)
         
         # DOM'dan kart verilerini çek
         card_data = await page.evaluate("""
-            (cardName) => {
-                const cards = document.querySelectorAll(
-                    '[class*="card"], [class*="product"], article, [data-testid]'
-                )
-                const results = []
-                for (const card of cards) {
-                    const text = card.innerText
-                    if (text && text.toLowerCase().includes(cardName.toLowerCase())) {
-                        results.push(text.slice(0, 500))
+            () => {
+                // Sayfadaki tüm metin bloklarını al
+                const selectors = [
+                    'article', 
+                    '[class*="product"]',
+                    '[class*="item"]', 
+                    '[class*="result"]',
+                    'li',
+                    'section'
+                ]
+                
+                let results = []
+                for (const sel of selectors) {
+                    const els = document.querySelectorAll(sel)
+                    for (const el of els) {
+                        const text = el.innerText?.trim()
+                        if (text && text.length > 100 && text.length < 2000) {
+                            results.push(text)
+                        }
                     }
+                    if (results.length >= 3) break
                 }
-                return results
+                
+                // Hiçbir şey bulunamazsa tüm body metnini al
+                if (results.length === 0) {
+                    results.push(document.body.innerText.slice(0, 3000))
+                }
+                
+                return results.slice(0, 3)
             }
-        """, card_name)
+        """)
         
         # API verilerini de kontrol et
         for api in api_data:
@@ -145,6 +170,31 @@ async def scrape_hangikredi(page, card_name, bank_name):
         print(f"    ⚠️  Scrape hatası: {e}")
         return None
 
+async def scrape_hesapkurdu(page, card_name, bank_name):
+    try:
+        search_query = f"{bank_name} {card_name} kredi kartı"
+        url = f"https://www.hesapkurdu.com/kredi-karti?q={search_query.replace(' ', '+')}"
+        
+        await page.goto(url, wait_until="networkidle", timeout=20000)
+        await page.wait_for_timeout(2000)
+        await page.evaluate("window.scrollTo(0, document.body.scrollHeight / 2)")
+        await page.wait_for_timeout(1000)
+        
+        card_data = await page.evaluate("""
+            () => {
+                const body = document.body.innerText
+                return [body.slice(0, 3000)]
+            }
+        """)
+        
+        return {
+            "dom_data": card_data,
+            "source_url": url
+        }
+    except Exception as e:
+        print(f"    ⚠️  HesapKurdu hatası: {e}")
+        return None
+
 async def parse_with_gemini(raw_data, card_name, bank_name):
     """Gemini ile ham veriyi yapısal formata dönüştür."""
     from google import genai
@@ -157,28 +207,36 @@ async def parse_with_gemini(raw_data, card_name, bank_name):
         return None
     
     prompt = f"""
-{bank_name} bankasının {card_name} kredi kartı hakkında aşağıdaki veri var.
-Bu veriden kart özelliklerini çıkar ve SADECE JSON döndür:
+Aşağıdaki metin {bank_name} bankasının {card_name} 
+kredi kartı hakkında bir web sayfasından alındı.
+
+Bu metinden kart özelliklerini çıkar.
+Bilgi yoksa veya emin değilsen null yaz.
+SADECE aşağıdaki JSON formatını döndür, başka hiçbir şey yazma:
 
 {{
-  "annual_fee": "yıllık ücret (örn: Ücretsiz veya 500 TL/yıl)",
-  "annual_fee_note": "ek not varsa (örn: ilk yıl ücretsiz)",
-  "card_type": "Visa/Mastercard/Troy/Amex",
-  "min_limit": "minimum limit (örn: 3.000 TL)",
-  "max_limit": "maksimum limit (örn: 150.000 TL)",
-  "interest_rate": "aylık faiz oranı (örn: %4,99)",
+  "annual_fee": "yıllık ücret (Ücretsiz veya TL cinsinden)",
+  "annual_fee_note": "ek not (ilk yıl ücretsiz gibi)",
+  "card_type": "Visa veya Mastercard veya Troy veya Amex",
+  "min_limit": "minimum limit TL cinsinden",
+  "max_limit": "maximum limit TL cinsinden",  
+  "interest_rate": "aylık faiz oranı yüzde olarak",
   "installment_max": 12,
-  "rewards_type": "puan sistemi (örn: Chip-Para, Bonus, Mil)",
-  "rewards_rate": "kazanım oranı (örn: 100 TL = 1 Chip-Para)",
-  "cashback_rate": "nakit iade oranı varsa",
-  "features": ["özellik1", "özellik2", "özellik3"],
-  "pros": ["avantaj1", "avantaj2"],
-  "who_is_it_for": "kime uygun (1-2 cümle)"
+  "rewards_type": "puan sistemi adı (Chip-Para, Bonus, Mil, World Puan vs)",
+  "rewards_rate": "kazanım oranı açıklaması",
+  "cashback_rate": "nakit iade varsa yüzdesi",
+  "features": ["en önemli 3-5 özellik"],
+  "pros": ["en önemli 2-3 avantaj"],
+  "who_is_it_for": "kime uygun, 1 cümle"
 }}
 
-Bilgi yoksa null yaz. SADECE JSON döndür.
+ÖNEMLİ: 
+- Markdown kullanma
+- Açıklama ekleme  
+- Sadece JSON döndür
+- Emin olmadığın değerler için null yaz
 
-VERİ:
+METİN:
 {content}
 """
     
@@ -192,14 +250,26 @@ VERİ:
     )
     
     text = response.text.strip()
-    if text.startswith("```"):
-        text = re.sub(r"```[a-z]*\n?", "", text).strip()
+    
+    # Markdown temizle
+    text = re.sub(r'```[a-z]*\n?', '', text).strip()
+    text = re.sub(r'```', '', text).strip()
+    
+    # JSON bloğunu bul
+    json_match = re.search(r'\{[\s\S]*\}', text)
+    if json_match:
+        text = json_match.group()
     
     try:
         return json.loads(text)
-    except:
-        print(f"    ⚠️  JSON parse hatası: {text[:100]}")
-        return None
+    except json.JSONDecodeError:
+        # Tek tırnak varsa çift tırnağa çevir
+        text = text.replace("'", '"')
+        try:
+            return json.loads(text)
+        except:
+            print(f"    ⚠️  JSON parse hatası")
+            return None
 
 async def main():
     print("🚀  Kart Bilgisi Scraper başlatıldı")
@@ -225,8 +295,13 @@ async def main():
         for i, (card_id, card_name, slug, bank_name) in enumerate(cards, 1):
             print(f"[{i}/{len(cards)}] {bank_name} — {card_name}")
             
-            # HangiKredi'den çek
+            # Önce HangiKredi dene
             raw = await scrape_hangikredi(page, card_name, bank_name)
+            
+            # Veri gelmezse HesapKurdu dene
+            if not raw or not raw.get("dom_data"):
+                print(f"  ↩️  HesapKurdu deneniyor...")
+                raw = await scrape_hesapkurdu(page, card_name, bank_name)
             
             if raw and raw.get("dom_data"):
                 # Gemini ile parse et
