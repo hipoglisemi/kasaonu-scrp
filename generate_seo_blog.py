@@ -114,34 +114,6 @@ def get_top_campaigns(bank_id=None, sector_id=None, limit=5):
         conn.close()
 
 
-def get_cards(bank_id=None):
-    """Belirli bir bankanın veya tüm bankaların kredi kartı bilgilerini çek."""
-    conn = get_connection()
-    try:
-        cur = conn.cursor()
-        query = """
-            SELECT 
-              c.id, c.name, c.slug, c.annual_fee,
-              c.application_url, c.card_type,
-              c.logo_url, b.name as bank_name
-            FROM cards c
-            LEFT JOIN banks b ON b.id = c.bank_id
-            WHERE c.is_active = TRUE
-        """
-        params = []
-        if bank_id:
-            query += " AND c.bank_id = %s"
-            params.append(bank_id)
-        query += " ORDER BY b.name, c.name"
-        cur.execute(query, params)
-        return cur.fetchall()
-    except Exception as e:
-        print(f"⚠️  Kartlar çekilemedi: {e}")
-        return []
-    finally:
-        conn.close()
-
-
 def save_to_database(title, slug, content_html, excerpt, meta_description, image_url):
     """
     Blogu veritabanına kaydet.
@@ -215,34 +187,20 @@ def generate_topics(banks: List[Any], sectors: List[Any], existing_titles: Set[s
 # ── Gemini çağrıları ─────────────────────────────────────────────────────────
 
 def build_campaign_context(bank: Optional[Any], sector: Optional[Any]) -> str:
-    """Kampanya ve kart verilerini prompt'a eklenecek metin bloğuna dönüştür."""
-    lines = []
-    
-    # 1. Kart Bilgilerini Ekle
-    cards = get_cards(bank_id=bank[0] if bank else None)
-    if cards:
-        lines.append("AYRICA YAZIDA BAHSEDEBİLECEĞİN KREDİ KARTLARI:")
-        for card in cards:
-            c_id, c_name, c_slug, c_annual_fee, c_app_url, c_type, c_logo, c_bank_name = card
-            fee_str = f"{c_annual_fee} TL" if c_annual_fee else "Ücretsiz"
-            url_str = c_app_url if c_app_url else f"https://kartavantaj.com/kredi-karti/{c_slug}"
-            lines.append(f"• {c_bank_name or ''} {c_name} — Aidat: {fee_str} | Tür: {c_type or ''} | Başvuru/İnceleme Linki: {url_str}")
-        lines.append("\n")
-
-    # 2. Kampanya Bilgilerini Ekle
+    """Kampanya verilerini prompt'a eklenecek metin bloğuna dönüştür."""
     campaigns = get_top_campaigns(
         bank_id=bank[0] if bank else None,
         sector_id=sector[0] if sector else None,
     )
-    if campaigns:
-        lines.append("Aşağıdaki gerçek kampanyalar bu yazıda referans olarak kullanılabilir:\n")
-        for c in campaigns:
-            # campaigns explicitly typed or checked
-            c_title, c_reward, c_end_date, c_bank_name, c_sector_name, c_slug = c
-            end_str = c_end_date.strftime("%d.%m.%Y") if c_end_date else "Süresiz"
-            url = f"https://kartavantaj.com/kampanya/{c_slug}" if c_slug else ""
-            lines.append(f"• {c_bank_name or ''} — {c_title}: {c_reward or ''} (Son: {end_str}) | Link: {url}")
-            
+    if not campaigns:
+        return ""
+    lines = ["Aşağıdaki gerçek kampanyalar bu yazıda referans olarak kullanılabilir:\n"]
+    for c in campaigns:
+        # campaigns explicitly typed or checked
+        c_title, c_reward, c_end_date, c_bank_name, c_sector_name, c_slug = c
+        end_str = c_end_date.strftime("%d.%m.%Y") if c_end_date else "Süresiz"
+        url = f"https://kartavantaj.com/kampanya/{c_slug}" if c_slug else ""
+        lines.append(f"• {c_bank_name or ''} — {c_title}: {c_reward or ''} (Son: {end_str}) | Link: {url}")
     return "\n".join(lines)
 
 
@@ -269,7 +227,7 @@ YAZIM KURALLARI:
    <h1> KULLANMA. Markdown KULLANMA.
 5. SEO ve Linkleme: Konu başlığındaki anahtar kelimeleri doğal biçimde ilk paragrafta,
    h2 başlıklarında ve sonuç bölümünde kullan.
-   ÖNEMLİ: Listelenen her kampanya ve bahsi geçen kredi kartı için verilen başvuru/inceleme linklerini <a href="..."> etiketi kullanarak metin içine doğal bir şekilde ekle! Kart tanıtımlarını teşvik edici (örneğin 'Hemen Başvur', 'Detayları İncele') bağlantılara dönüştür.
+   ÖNEMLİ: Listelenen her kampanya için verilen kampanya linkini (URL) <a href="..."> etiketi kullanarak metin içine doğal bir şekilde ekle!
 6. Değer: Soyut bilgi verme. Somut rakamlar, gerçek kampanya örnekleri,
    pratik ipuçları içersin. Okuyucu makaleyi okuyunca ne yapacağını bilsin.
 7. CTA: Son paragrafta "KartAvantaj'da tüm kampanyaları karşılaştır" 

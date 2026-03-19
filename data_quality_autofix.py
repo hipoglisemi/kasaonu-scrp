@@ -431,26 +431,24 @@ def run_autofix(limit: int = 50):
 
                 # --- Marka tamiri ---
                 if not c.brands and ai_data.get("brands"):
+                    from src.services.brand_matcher import get_or_create_brand
+                    brand_cache = {} # Local cache for this campaign
                     for b_name in ai_data["brands"]:
                         if not isinstance(b_name, str) or len(b_name) < 2:
                             continue
-                        b_slug = re.sub(r'[^a-z0-9]+', '-', b_name.lower()).strip('-')  # type: ignore
+                        
                         try:
-                            brand = db.query(Brand).filter(
-                                (Brand.slug == b_slug) | (Brand.name.ilike(b_name))
-                            ).first()
-                            if not brand:
-                                brand = Brand(name=b_name, slug=b_slug)
-                                db.add(brand)
-                                db.flush()
-                            link = db.query(CampaignBrand).filter(
-                                CampaignBrand.campaign_id == c.id,
-                                CampaignBrand.brand_id == brand.id
-                            ).first()
-                            if not link:
-                                db.add(CampaignBrand(campaign_id=c.id, brand_id=brand.id))
-                                print(f"   ✨ Added Brand: {b_name}")
-                                updated = True
+                            brand = get_or_create_brand(db, b_name, brand_cache)
+                            if brand:
+                                # Ensure link
+                                link = db.query(CampaignBrand).filter(
+                                    CampaignBrand.campaign_id == c.id,
+                                    CampaignBrand.brand_id == brand.id
+                                ).first()
+                                if not link:
+                                    db.add(CampaignBrand(campaign_id=c.id, brand_id=brand.id))
+                                    print(f"   ✨ Added Brand: {brand.name}")
+                                    updated = True
                         except Exception as be:
                             db.rollback()
                             print(f"   ⚠️ Brand fix failed for {b_name}: {be}")
@@ -469,6 +467,18 @@ def run_autofix(limit: int = 50):
             time.sleep(3)
             
         print(f"\n🏁 Auto-fixer complete. Successfully repaired {fixed_count}/{len(to_fix_ids)} campaigns.")
+
+        # --- Integrated Brand Maintenance ---
+        print("\n🧹 Starting Integrated Brand Maintenance...")
+        try:
+            from scripts.normalize_brand_names import run_normalization
+            from scripts.auto_brand_merge import run_auto_merge
+            
+            run_normalization()
+            run_auto_merge(dry_run=False)
+            print("✅ Brand maintenance (Normalization & Merging) completed successfully.")
+        except Exception as be:
+            print(f"⚠️ Brand maintenance failed: {be}")
             
     except Exception as e:
         print(f"\n📛 CRITICAL ERROR during auto-fix: {e}")
