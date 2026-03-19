@@ -39,10 +39,10 @@ def save_card_detail(card_id, detail):
                 card_id, annual_fee, annual_fee_note, card_type,
                 min_limit, max_limit, interest_rate, installment_max,
                 rewards_type, rewards_rate, cashback_rate,
-                features, pros, who_is_it_for, source_url, last_verified
+                features, pros, who_is_it_for, source_url, last_verified, updated_at
             ) VALUES (
                 %s, %s, %s, %s, %s, %s, %s, %s,
-                %s, %s, %s, %s, %s, %s, %s, %s
+                %s, %s, %s, %s, %s, %s, %s, %s, NOW()
             )
             ON CONFLICT (card_id) DO UPDATE SET
                 annual_fee = EXCLUDED.annual_fee,
