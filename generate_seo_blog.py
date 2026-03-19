@@ -88,7 +88,7 @@ def get_top_campaigns(bank_id=None, sector_id=None, limit=5):
     try:
         cur = conn.cursor()
         query = """
-            SELECT c.title, c.reward_text, c.end_date, b.name AS bank_name, s.name AS sector_name
+            SELECT c.title, c.reward_text, c.end_date, b.name AS bank_name, s.name AS sector_name, c.slug
             FROM campaigns c
             LEFT JOIN banks b ON b.id = (
                 SELECT bank_id FROM cards WHERE id = c.card_id LIMIT 1
@@ -197,9 +197,10 @@ def build_campaign_context(bank: Optional[Any], sector: Optional[Any]) -> str:
     lines = ["Aşağıdaki gerçek kampanyalar bu yazıda referans olarak kullanılabilir:\n"]
     for c in campaigns:
         # campaigns explicitly typed or checked
-        c_title, c_reward, c_end_date, c_bank_name, c_sector_name = c
+        c_title, c_reward, c_end_date, c_bank_name, c_sector_name, c_slug = c
         end_str = c_end_date.strftime("%d.%m.%Y") if c_end_date else "Süresiz"
-        lines.append(f"• {c_bank_name or ''} — {c_title}: {c_reward or ''} (Son: {end_str})")
+        url = f"https://kartavantaj.com/kampanya/{c_slug}" if c_slug else ""
+        lines.append(f"• {c_bank_name or ''} — {c_title}: {c_reward or ''} (Son: {end_str}) | Link: {url}")
     return "\n".join(lines)
 
 
@@ -222,10 +223,11 @@ YAZIM KURALLARI:
 2. Dil: Kusursuz Türkçe. Samimi ama profesyonel ton.
    Okuyucuya "siz" diye hitap et.
 3. Yapı: Giriş → 3-4 ana bölüm (h2) → Alt başlıklar (h3) → Sonuç ve CTA
-4. Format: Sadece HTML. <p>, <h2>, <h3>, <ul>, <li>, <strong>, <em> kullan.
+4. Format: Sadece HTML. <p>, <h2>, <h3>, <ul>, <li>, <strong>, <em>, <a> kullan.
    <h1> KULLANMA. Markdown KULLANMA.
-5. SEO: Konu başlığındaki anahtar kelimeleri doğal biçimde ilk paragrafta,
+5. SEO ve Linkleme: Konu başlığındaki anahtar kelimeleri doğal biçimde ilk paragrafta,
    h2 başlıklarında ve sonuç bölümünde kullan.
+   ÖNEMLİ: Listelenen her kampanya için verilen kampanya linkini (URL) <a href="..."> etiketi kullanarak metin içine doğal bir şekilde ekle!
 6. Değer: Soyut bilgi verme. Somut rakamlar, gerçek kampanya örnekleri,
    pratik ipuçları içersin. Okuyucu makaleyi okuyunca ne yapacağını bilsin.
 7. CTA: Son paragrafta "KartAvantaj'da tüm kampanyaları karşılaştır" 
