@@ -33,6 +33,7 @@ from src.services.ai_parser import parse_api_campaign # type: ignore
 from src.utils.logger_utils import log_scraper_execution # type: ignore
 from src.utils.scraper_utils import should_skip_campaign # type: ignore
 from src.utils.slug_generator import get_unique_slug # type: ignore
+from src.services.brand_matcher import get_or_create_brands_list # type: ignore
 
 try:
     from pyvirtualdisplay import Display # type: ignore
@@ -124,16 +125,14 @@ class UptionScraper:
             self._load_cache()
             self.setup_driver()
 
-            if self.driver:
-                assert self.driver is not None
-                self.driver.get(self.CAMPAIGNS_URL)
+            driver = self.driver
+            if driver:
+                driver.get(self.CAMPAIGNS_URL)
                 time.sleep(3)
                 
                 # Uption has tabs, but "Tüm Kampanyalar" is active by default.
                 # If we need to click, we would do it here.
                 
-                # Use a local variable to satisfy the linter
-                driver = self.driver
                 soup = BeautifulSoup(driver.page_source, 'html.parser')
                 cards = soup.select('a.helpfull-tab-card')
                 print(f"   🎯 Found {len(cards)} strategy cards.")
@@ -343,7 +342,6 @@ class UptionScraper:
             db.flush() # Get campaign.id
 
             # Brands via brand_matcher
-            from src.services.brand_matcher import get_or_create_brands_list
             brand_ids = get_or_create_brands_list(
                 db_session=db,
                 brand_names=data.get("brands", []),
