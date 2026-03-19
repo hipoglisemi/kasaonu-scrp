@@ -210,7 +210,7 @@ class IsbankMaximumScraper:
         seen = set()
 
         for a in all_campaign_links:
-            href = a["href"]
+            href = str(a["href"])  # type: ignore # pyre-ignore[16,6]
             
             if href in excluded_paths: continue
             if any(href.endswith(s) for s in excluded_suffixes): continue
@@ -237,8 +237,8 @@ class IsbankMaximumScraper:
                 
         if limit is not None:
             try:
-                limit_val = int(limit)
-                unique_urls = cast(List[str], unique_urls)[:limit_val]
+                limit_val = int(limit)  # type: ignore # pyre-ignore[6]
+                unique_urls = cast(List[str], unique_urls)[:limit_val]  # type: ignore # pyre-ignore[16]
             except Exception:
                 pass
 
@@ -497,7 +497,7 @@ class IsbankMaximumScraper:
             # Brands via brand_matcher
 
 
-            from src.services.brand_matcher import get_or_create_brands_list
+            from src.services.brand_matcher import get_or_create_brands_list  # type: ignore # pyre-ignore[21]
 
 
             brand_ids = get_or_create_brands_list(
@@ -609,7 +609,7 @@ class IsbankMaximumScraper:
             for i, url in enumerate(urls, 1):
                 if limit is not None:
                     try:
-                        limit_val = int(limit)
+                        limit_val = int(limit)  # type: ignore # pyre-ignore[6]
                         if i > limit_val:
                             break
                     except Exception:
@@ -621,7 +621,7 @@ class IsbankMaximumScraper:
                 # Blocklist check
                 if is_url_blocked(self.session, url):
                     print(f"   🚫 Skipped (Blocklisted): {url}")
-                    skipped = int(skipped or 0) + 1
+                    skipped += 1  # type: ignore # pyre-ignore[58]
                     continue
 
                 # DB Cache query
@@ -631,7 +631,7 @@ class IsbankMaximumScraper:
                 ).first()
                 if existing and not force:
                     print(f"   ⏭️ Skipped (Already exists): [{existing.id}] {existing.title[:40]}")  # type: ignore # pyre-ignore[16,6]
-                    skipped = int(skipped or 0) + 1
+                    skipped += 1  # type: ignore # pyre-ignore[58]
                     continue
                     
                 try:

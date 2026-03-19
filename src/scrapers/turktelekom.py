@@ -220,7 +220,7 @@ class TurkTelekomScraper:
         card = self._get_or_create_card("Türk Telekom")
         
         # Sector
-        sector = self._get_sector(data.get("sector"))
+        sector = self._get_sector(data.get("sector") or "")
         
         # Brands
         brand_ids = self._get_or_create_brands(data.get("brands", []), sector.id if sector else None)  # type: ignore # pyre-ignore[16]
@@ -247,7 +247,7 @@ class TurkTelekomScraper:
             title=data.get("title"),
             slug=slug,
             description=data.get("description"),
-            conditions=data.get("conditions") if not isinstance(data.get("conditions"), list) else "\n".join(data.get("conditions")),
+            conditions=data.get("conditions") if not isinstance(data.get("conditions"), list) else "\n".join(data.get("conditions") or []),  # type: ignore # pyre-ignore[16,6]
             reward_text=data.get("reward_text"),
             reward_value=data.get("reward_value"),
             reward_type=data.get("reward_type"),
