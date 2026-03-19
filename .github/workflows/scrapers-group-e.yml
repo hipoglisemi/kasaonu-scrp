@@ -19,6 +19,7 @@ jobs:
           - uption
           - nays
           - paycell
+          - hsbc
 
     name: "🤖 ${{ matrix.scraper }}"
 
