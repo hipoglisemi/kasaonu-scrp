@@ -114,13 +114,13 @@ async def scrape_hangikredi(page, card_name, bank_name):
         await page.goto(url, wait_until="networkidle", timeout=20000)
         
         # Sayfanın yüklenmesini bekle
-        await page.wait_for_timeout(2000)
+        await page.wait_for_timeout(1500)
 
         # Aşağı kaydır — lazy load tetikle
         await page.evaluate("window.scrollTo(0, document.body.scrollHeight / 2)")
         await page.wait_for_timeout(1000)
         await page.evaluate("window.scrollTo(0, document.body.scrollHeight)")
-        await page.wait_for_timeout(1500)
+        await page.wait_for_timeout(1000)
         
         # DOM'dan kart verilerini çek
         card_data = await page.evaluate("""
@@ -176,7 +176,7 @@ async def scrape_hesapkurdu(page, card_name, bank_name):
         url = f"https://www.hesapkurdu.com/kredi-karti?q={search_query.replace(' ', '+')}"
         
         await page.goto(url, wait_until="networkidle", timeout=20000)
-        await page.wait_for_timeout(2000)
+        await page.wait_for_timeout(1500)
         await page.evaluate("window.scrollTo(0, document.body.scrollHeight / 2)")
         await page.wait_for_timeout(1000)
         
@@ -241,7 +241,7 @@ METİN:
 """
     
     response = client.models.generate_content(
-        model="gemini-2.5-flash",
+        model="gemini-3.1-flash-lite-preview",
         contents=prompt,
         config=types.GenerateContentConfig(
             temperature=0.1,
@@ -319,7 +319,7 @@ async def main():
                 failed += 1
             
             # Rate limiting
-            await page.wait_for_timeout(2000)
+            await page.wait_for_timeout(1000)
         
         await browser.close()
     
