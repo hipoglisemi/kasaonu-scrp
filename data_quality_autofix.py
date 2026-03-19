@@ -253,9 +253,9 @@ def run_autofix(limit: int = 50):
                 print(f"\n🛠️ Fixing: [{c.id}] {c.title[:40]}... (Reasons: {summary_reasons})")
                 print(f"   🔗 URL: {c.tracking_url}")
                 
-                # Use optimized clean_text from DB if available
+                # Use optimized clean_text from DB if available, unless it has mojibake
                 text_to_parse = ""
-                if c.clean_text and len(c.clean_text) > 50:
+                if c.clean_text and len(c.clean_text) > 50 and not mojibake_pattern.search(c.clean_text):
                     print(f"   ⚡ Using pre-cleaned text from DB ({len(c.clean_text)} chars)")
                     text_to_parse = c.clean_text
                 else:
@@ -399,7 +399,8 @@ def run_autofix(limit: int = 50):
                     updated = True
 
                 # --- Clean Text Update ---
-                if not c.clean_text or len(c.clean_text.strip()) < 50:
+                # Update if missing, too short, or has mojibake
+                if not c.clean_text or len(c.clean_text.strip()) < 50 or mojibake_pattern.search(c.clean_text or ""):
                     if text_to_parse:
                         c.clean_text = text_to_parse
                         updated = True
