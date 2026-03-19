@@ -322,34 +322,45 @@ class UptionScraper:
         sector_slug = data.get("sector", "diger")
         sector = self.sector_cache.get(sector_slug.lower()) or self.sector_cache.get("diger")
         
-        # Slug
-        slug = get_unique_slug(data.get("title", "uption-kampanya"), db, Campaign)
-        
-        # Brands via brand_matcher
-        from src.services.brand_matcher import get_or_create_brands_list
-        brand_ids = get_or_create_brands_list(
-            db_session=db,
-            brand_names=data.get("brands", []),
-            brand_cache=getattr(self, 'brand_cache', {}),
-            sector_id=sector.id if sector else None
-        )
-        for bid in brand_ids:
-            try:
-                link = db.query(CampaignBrand).filter(
-                    CampaignBrand.campaign_id == campaign.id,
-                    CampaignBrand.brand_id == bid
-                ).first()
-                if not link:
-                    db.add(CampaignBrand(campaign_id=campaign.id, brand_id=bid))
-                    db.commit()
-            except Exception as e:
-                db.rollback()
-                print(f"   ⚠️ CampaignBrand link failed: {e}")
+        # Create Campaign
+        try:
+            slug = get_unique_slug(data.get("title", "uption-kampanya"), db, Campaign)
+            
+            campaign = Campaign(
+                bank_id=bank_id,
+                card_id=card.id if card else None,
+                sector_id=sector.id if sector else None,
+                title=data.get("title", "Uption Kampanya"),
+                content=data.get("content", ""),
+                image_url=image_url,
+                tracking_url=url,
+                slug=slug,
+                start_date=data.get("start_date"),
+                end_date=data.get("end_date"),
+                is_active=True
+            )
+            db.add(campaign)
+            db.flush() # Get campaign.id
+
+            # Brands via brand_matcher
+            from src.services.brand_matcher import get_or_create_brands_list
+            brand_ids = get_or_create_brands_list(
+                db_session=db,
+                brand_names=data.get("brands", []),
+                brand_cache=getattr(self, 'brand_cache', {}),
+                sector_id=sector.id if sector else None
+            )
+            
+            for bid in brand_ids:
+                link = CampaignBrand(campaign_id=campaign.id, brand_id=bid)
+                db.add(link)
+            
             db.commit()
-            print(f"   ✅ Saved: {campaign.title}")
+            print(f"      ✅ Saved: {campaign.title}")
+            
         except Exception as e:
-            db.rollback()
-            print(f"   ❌ Save error: {e}")
+            if db: db.rollback()
+            print(f"      ❌ Save error: {e}")
 
 if __name__ == "__main__":
     import argparse
