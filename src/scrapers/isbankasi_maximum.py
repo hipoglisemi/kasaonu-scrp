@@ -405,7 +405,7 @@ class IsbankMaximumScraper:
             if word[0] == 'i': capitalized_words.append('İ' + word[1:])  # type: ignore # pyre-ignore[16,6]
             elif word[0] == 'ı': capitalized_words.append('I' + word[1:])  # type: ignore # pyre-ignore[16,6]
             else: capitalized_words.append(word.capitalize())
-        return "join".join(capitalized_words)  # type: ignore # pyre-ignore[7]
+        return " ".join(capitalized_words)  # type: ignore # pyre-ignore[7]
 
     def _get_or_create_slug(self, title: str) -> str:
         base = re.sub(r'[^a-z0-9]+', '-', re.sub(

@@ -453,6 +453,20 @@ BANK_RULES = {
         * 'RIA', 'Para Transferi', 'Hesaba Al' -> 'finans-yatirim'
         * 'Bilet.com', 'Yolcu360', 'Enuygun' -> 'turizm-konaklama'
     - Map brands to Turkish sector slugs accurately.
+""",
+    'hsbc': """
+🚨 HSBC ADVANTAGE SPECIFIC RULES:
+- TERMINOLOGY: "NakitPuan". 1 NakitPuan = 1 TL.
+- ELIGIBLE CARDS: 
+    - 🚨 STRICT: "HSBC Advantage", "Advantage Classic", "Advantage Gold", "Advantage Platinum", "Advantage Business".
+    - "HSBC Bankamatik Kartı" = ["Bankamatik Kartı"].
+- PARTICIPATION:
+    - 🚨 PRIORITY: SMS to **4477**. Look for keywords (e.g. "GEYIK yazıp 4477'ye").
+    - App: "HSBC Mobil".
+    - Automatic: If "katılım gerektirmez" or "otomatik".
+- CONDITIONS:
+    - 🚨 FORMAT: 3-5 concise bullets.
+    - Include: Min spend, max NakitPuan, valid dates.
 """
 }
 
