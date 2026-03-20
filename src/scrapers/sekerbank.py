@@ -293,17 +293,6 @@ class SekerbankScraper:
                                 break;
                             }
                         }
-                        // Background-image fallback
-                        if (!imgUrl) {
-                            var els = card.querySelectorAll('*');
-                            for (var j = 0; j < els.length; j++) {
-                                var bg = window.getComputedStyle(els[j]).backgroundImage;
-                                if (bg && bg.includes('url(') && !bg.includes('data:')) {
-                                    var m = bg.match(/url\\(['"]?([^'"\\)]+)['"]?\\)/);
-                                    if (m && m[1]) { imgUrl = m[1]; break; }
-                                }
-                            }
-                        }
                     }
                     results[href] = imgUrl || '';
                 });
