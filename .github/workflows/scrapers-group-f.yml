@@ -16,6 +16,7 @@ jobs:
         scraper:
           - opet
           - petrolofisi
+          - shell
 
     name: "🤖 ${{ matrix.scraper }}"
 
