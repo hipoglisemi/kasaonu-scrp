@@ -245,82 +245,101 @@ class SekerbankScraper:
 
         print(f"   🎯 Found {len(link_elements)} active campaign cards to process.")
 
-        for idx, link_el in enumerate(link_elements):
-            try:
-                # Find the parent card (Bonus ve Diamond sayfalarında farklı class olabilir)
-                card = driver.execute_script("""
-                    var el = arguments[0];
-                    var selectors = ['.col-xs-12', '.col-md-4', '.col-sm-6', '.col-md-3',
-                                     '[class*="kampanya"]', '[class*="campaign"]', '[class*="card-item"]',
-                                     'li', 'article'];
-                    for (var i = 0; i < selectors.length; i++) {
-                        var found = el.closest(selectors[i]);
-                        if (found) return found;
-                    }
-                    // Fallback: 5 seviye yukarı çık
-                    var p = el;
-                    for (var j = 0; j < 5; j++) {
-                        if (p.parentElement) p = p.parentElement;
-                        if (p.querySelector('img')) return p;
-                    }
-                    return el;
-                """, link_el)
-                if not card:
-                    card = link_el
-                
-                # Scroll into view to trigger lazy loading — 2 saniye bekle
-                driver.execute_script("arguments[0].scrollIntoView({behavior: 'smooth', block: 'center'});", card)
-                time.sleep(2)
-                
-                # Re-check expired text via Selenium
-                card_text = card.text.lower()
-                if "sona ermiştir" in card_text or "kampanya süresi dolmuştur" in card_text:
-                    continue
+        # Tüm sayfayı scroll et — lazy-load görseller için
+        print("   📸 Lazy loading görseller için tam sayfa scroll ediliyor...")
+        try:
+            scroll_height = driver.execute_script("return document.body.scrollHeight")
+            for pos in range(0, int(scroll_height), 400):
+                driver.execute_script(f"window.scrollTo(0, {pos})")
+                time.sleep(0.05)
+            driver.execute_script(f"window.scrollTo(0, {scroll_height})")
+            time.sleep(2.5)  # Görsellerin yüklenmesi için bekle
+            driver.execute_script("window.scrollTo(0, 0)")
+        except Exception:
+            pass
 
-                # Extract image URL live from the DOM — daha agresif JS tabanlı çekme
-                img_url = ""
-                img_elements = card.find_elements(By.TAG_NAME, "img")
-                if img_elements:
-                    img_url = self._extract_best_image_selenium(img_elements[0])
-                
-                # Fallback: JS ile tüm img src'leri ve background-image'leri dene
-                if not img_url:
-                    try:
-                        js_img = driver.execute_script("""
-                            var el = arguments[0];
-                            // Tüm img elementlerini tara
-                            var imgs = el.querySelectorAll('img');
-                            for (var i = 0; i < imgs.length; i++) {
-                                var src = imgs[i].dataset.src || imgs[i].dataset.original || imgs[i].getAttribute('data-lazy') || imgs[i].src;
-                                if (src && !src.startsWith('data:') && src.indexOf('logo') === -1 && src.indexOf('banka-ill') === -1) return src;
+        # TEK JS çağrısıyla href → imgUrl haritası çek
+        img_map: Dict[str, str] = {}
+        try:
+            js_result = driver.execute_script("""
+                var results = {};
+                var links = document.querySelectorAll('a.btn--link');
+                links.forEach(function(link) {
+                    var href = link.getAttribute('href');
+                    if (!href) return;
+                    // Kart container'ı bul
+                    var card = link.closest('.col-xs-12, .col-sm-6, .col-md-4, .col-md-3, [class*="col-"]')
+                               || link.parentElement || link;
+                    var imgUrl = '';
+                    if (card) {
+                        // Tüm img elementleri dene
+                        var imgs = card.querySelectorAll('img');
+                        for (var i = 0; i < imgs.length; i++) {
+                            var src = imgs[i].dataset.src
+                                   || imgs[i].dataset.original
+                                   || imgs[i].getAttribute('data-echo')
+                                   || imgs[i].getAttribute('data-lazy')
+                                   || imgs[i].src;
+                            if (src && !src.startsWith('data:')
+                                && src.indexOf('logo') === -1) {
+                                imgUrl = src;
+                                break;
                             }
-                            // Background-image deneme
-                            var allEls = el.querySelectorAll('*');
-                            for (var j = 0; j < allEls.length; j++) {
-                                var bg = window.getComputedStyle(allEls[j]).backgroundImage;
-                                if (bg && bg !== 'none' && bg.indexOf('url') === 0) {
-                                    return bg.replace(/url\(['"]?/, '').replace(/['"]?\)$/, '');
+                        }
+                        // Background-image fallback
+                        if (!imgUrl) {
+                            var els = card.querySelectorAll('*');
+                            for (var j = 0; j < els.length; j++) {
+                                var bg = window.getComputedStyle(els[j]).backgroundImage;
+                                if (bg && bg.includes('url(') && !bg.includes('data:')) {
+                                    var m = bg.match(/url\\(['"]?([^'"\\)]+)['"]?\\)/);
+                                    if (m && m[1]) { imgUrl = m[1]; break; }
                                 }
                             }
-                            return '';
-                        """, card)
-                        if js_img and not js_img.startswith('data:'):
-                            img_url = urljoin(self.BASE_URL, js_img) if not js_img.startswith('http') else js_img
-                    except Exception:
-                        pass
-                
-                href = link_el.get_attribute('href')
-                if href:
-                    url = urljoin(self.BASE_URL, href)
-                    # Avoid duplicates
-                    if not any(item['url'] == url for item in found_items):
-                        print(f"         🖼️ [{idx+1}] img_url: {repr(img_url[:80]) if img_url else 'BOŞ'}")
-                        found_items.append({
-                            'url': url,
-                            'list_image': img_url
-                        })
-                        if (len(found_items)) % 5 == 0:
-                            print(f"      📸 Hydrated {len(found_items)} images...")
+                        }
+                    }
+                    results[href] = imgUrl || '';
+                });
+                return results;
+            """)
+            if js_result and isinstance(js_result, dict):
+                img_map = js_result
+                non_empty = sum(1 for v in img_map.values() if v)
+                print(f"   🖼️  JS img_map: {len(img_map)} kart, {non_empty} görsel bulundu")
+        except Exception as e:
+            print(f"   ⚠️ JS img_map hatası: {e}")
+
+        for idx, link_el in enumerate(link_elements):
+            try:
+                href = link_el.get_attribute('href') or ''
+                if not href:
+                    continue
+                url = urljoin(self.BASE_URL, href)
+
+                # Süresi dolmuş kontrolü (kısa yol, Selenium element text)
+                try:
+                    card_text = driver.execute_script(
+                        "return (arguments[0].closest('.col-xs-12,.col-sm-6,.col-md-4,[class*=\"col-\"]') || arguments[0].parentElement || arguments[0]).textContent.toLowerCase();",
+                        link_el
+                    ) or ""
+                    if "sona ermiştir" in card_text or "kampanya süresi dolmuştur" in card_text:
+                        continue
+                except Exception:
+                    pass
+
+                # Haritadan görsel al
+                img_url = img_map.get(href, '') or ''
+                if img_url and not img_url.startswith('http'):
+                    img_url = urljoin(self.BASE_URL, img_url)
+
+                # Avoid duplicates
+                if not any(item['url'] == url for item in found_items):
+                    found_items.append({
+                        'url': url,
+                        'list_image': img_url
+                    })
+                    if len(found_items) % 5 == 0:
+                        print(f"      📸 Collected {len(found_items)} campaigns...")
             except Exception:
                 continue
 
