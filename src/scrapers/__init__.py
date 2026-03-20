@@ -37,6 +37,18 @@ try:
     from .turktelekom import TurkTelekomScraper  # type: ignore # pyre-ignore[21]
 except ImportError: TurkTelekomScraper = None
 
+try:
+    from .opet import OpetScraper  # type: ignore # pyre-ignore[21]
+except ImportError: OpetScraper = None
+
+try:
+    from .ziraat import ZiraatScraper # type: ignore # pyre-ignore[21]
+except ImportError: ZiraatScraper = None
+
+try:
+    from .petrolofisi import PetrolOfisiScraper # type: ignore # pyre-ignore[21]
+except ImportError: PetrolOfisiScraper = None
+
 __all__ = [
     'GarantiBonusScraper',
     'GarantiMilesAndSmilesScraper',
@@ -46,5 +58,8 @@ __all__ = [
     'AkbankFreeScraper',
     'AkbankBusinessScraper',
     'EnparaScraper',
-    'TurkTelekomScraper'
+    'TurkTelekomScraper',
+    'OpetScraper',
+    "ZiraatScraper",
+    "PetrolOfisiScraper"
 ]
