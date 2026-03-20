@@ -337,11 +337,12 @@ class GarantiShopAndFlyScraper:
             db.flush()  # type: ignore # pyre-ignore[16]
             
             # Brands via brand_matcher
+            _sector_obj = db.query(Sector).filter(Sector.slug == ai_data.get('sector', 'diger')).first() if ai_data.get('sector') else None
             brand_ids = get_or_create_brands_list(
-                db_session=db,
-                brand_names=ai_data.get("brands", []),
-                brand_cache=getattr(self, 'brand_cache', {}),
-                sector_id=sector.id if sector else None
+                db,
+                ai_data.get("brands", []),
+                getattr(self, 'brand_cache', {}),
+                _sector_obj.id if _sector_obj else None
             )
             for bid in brand_ids:
                 try:

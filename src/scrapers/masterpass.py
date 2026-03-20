@@ -396,27 +396,12 @@ class MasterpassScraper:
             print(f"      ✅ Saved")
 
 
-            # Brands via brand_matcher
-
-
             from src.services.brand_matcher import get_or_create_brands_list
-
-
             brand_ids = get_or_create_brands_list(
-
-
-                db_session=self.db,
-
-
-                brand_names=ai_data.get("brands", []),
-
-
-                brand_cache=getattr(self, 'brand_cache', {}),
-
-
-                sector_id=sector.id if sector else None
-
-
+                self.db,
+                ai_data.get("brands", []),
+                getattr(self, 'brand_cache', {}),
+                sector.id if sector else None
             )
 
 

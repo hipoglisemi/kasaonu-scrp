@@ -305,6 +305,7 @@ class ChippinScraper:
                                 :eligible_cards, :reward_text, :reward_value, :reward_type,
                                 :clean_text, NOW(), NOW()
                             )
+                            ON CONFLICT (slug) DO NOTHING
                             RETURNING id
                         """), campaign_data)
                         campaign_id = result.fetchone()[0]

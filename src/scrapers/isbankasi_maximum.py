@@ -494,27 +494,12 @@ class IsbankMaximumScraper:
             self.session.commit()  # type: ignore # pyre-ignore[16]
 
 
-            # Brands via brand_matcher
-
-
             from src.services.brand_matcher import get_or_create_brands_list  # type: ignore # pyre-ignore[21]
-
-
             brand_ids = get_or_create_brands_list(
-
-
-                db_session=self.session,
-
-
-                brand_names=data.get("brands", []),
-
-
-                brand_cache=getattr(self, 'brand_cache', {}),
-
-
-                sector_id=sector.id if sector else None
-
-
+                self.session,
+                data.get("brands", []),
+                getattr(self, 'brand_cache', {}),
+                sector.id if sector else None
             )
 
 
