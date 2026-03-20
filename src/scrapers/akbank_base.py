@@ -238,7 +238,6 @@ class AkbankBaseScraper:
                 image_url=image_url,  # type: ignore
                 start_date=start_date,  # type: ignore
                 end_date=end_date,  # type: ignore
-                clean_text=ai_data.get('_clean_text'),  # type: ignore
                 is_active=True,  # type: ignore
                 created_at=datetime.utcnow(),  # type: ignore
                 updated_at=datetime.utcnow(),  # type: ignore
@@ -251,10 +250,10 @@ class AkbankBaseScraper:
             # Brands via brand_matcher
             from src.services.brand_matcher import get_or_create_brands_list
             brand_ids = get_or_create_brands_list(
-                db_session=db,
-                brand_names=ai_data.get("brands", []),
-                brand_cache=getattr(self, 'brand_cache', {}),
-                sector_id=sector.id if sector else None
+                db,
+                ai_data.get("brands", []),
+                getattr(self, 'brand_cache', {}),
+                sector.id if sector else None
             )
             for bid in brand_ids:
                 try:

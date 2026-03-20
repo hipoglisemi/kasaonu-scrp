@@ -522,7 +522,6 @@ class DenizbankScraper:
             "reward_text": ai_data.get('reward_text'),
             "reward_value": ai_data.get('reward_value'),
             "reward_type": ai_data.get('reward_type'),
-            "clean_text": ai_data.get('marketing_text') or ai_data.get('description', '')[:500] # type: ignore # pyre-ignore[20]
         }
 
         return self._save_to_db(campaign_data, ai_data.get('brands', []))  # type: ignore # pyre-ignore[7]
@@ -595,13 +594,13 @@ class DenizbankScraper:
                             INSERT INTO campaigns (
                                 title, description, slug, image_url, tracking_url, is_active, 
                                 sector_id, card_id, start_date, end_date, conditions, 
-                                eligible_cards, reward_text, reward_value, reward_type, clean_text,
+                                eligible_cards, reward_text, reward_value, reward_type,
                                 created_at, updated_at
                             )
                             VALUES (
                                 :title, :description, :slug, :image_url, :tracking_url, true, 
                                 :sector_id, :card_id, :start_date, :end_date, :conditions, 
-                                :eligible_cards, :reward_text, :reward_value, :reward_type, :clean_text,
+                                :eligible_cards, :reward_text, :reward_value, :reward_type,
                                 NOW(), NOW()
                             )
                             RETURNING id
@@ -618,13 +617,13 @@ class DenizbankScraper:
                                 INSERT INTO campaigns (
                                     title, description, slug, image_url, tracking_url, is_active, 
                                     sector_id, card_id, start_date, end_date, conditions, 
-                                    eligible_cards, reward_text, reward_value, reward_type, clean_text,
+                                    eligible_cards, reward_text, reward_value, reward_type,
                                     created_at, updated_at
                                 )
                                 VALUES (
                                     :title, :description, :slug, :image_url, :tracking_url, true, 
                                     :sector_id, :card_id, :start_date, :end_date, :conditions, 
-                                    :eligible_cards, :reward_text, :reward_value, :reward_type, :clean_text,
+                                    :eligible_cards, :reward_text, :reward_value, :reward_type,
                                     NOW(), NOW()
                                 )
                                 RETURNING id

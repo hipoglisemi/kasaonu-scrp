@@ -288,7 +288,6 @@ class ChippinScraper:
                             "reward_text": ai_data.get("reward_text"),
                             "reward_value": reward_val,
                             "reward_type": ai_data.get("reward_type"),
-                            "clean_text": ai_data.get("_clean_text")
                         }
 
                         print(f"      ✨ Creating...")
@@ -297,13 +296,13 @@ class ChippinScraper:
                                 title, description, slug, image_url, tracking_url, is_active,
                                 sector_id, card_id, start_date, end_date, conditions,
                                 eligible_cards, reward_text, reward_value, reward_type,
-                                clean_text, created_at, updated_at
+                                created_at, updated_at
                             )
                             VALUES (
                                 :title, :description, :slug, :image_url, :tracking_url, true,
                                 :sector_id, :card_id, :start_date, :end_date, :conditions,
                                 :eligible_cards, :reward_text, :reward_value, :reward_type,
-                                :clean_text, NOW(), NOW()
+                                NOW(), NOW()
                             )
                             ON CONFLICT (slug) DO NOTHING
                             RETURNING id
