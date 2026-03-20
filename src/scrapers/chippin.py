@@ -347,10 +347,11 @@ class ChippinScraper:
                                 :eligible_cards, :reward_text, :reward_value, :reward_type,
                                 NOW(), NOW()
                             )
-                            ON CONFLICT (slug) DO NOTHING
+                            ON CONFLICT (slug) DO UPDATE SET updated_at = NOW()
                             RETURNING id
                         """), campaign_data)
-                        campaign_id = result.fetchone()[0]
+                        row = result.fetchone()
+                        campaign_id = row[0] if row else None
                         success_count += 1  # type: ignore # pyre-ignore[58]
 
                         # Brands
@@ -386,11 +387,11 @@ class ChippinScraper:
 
         try:
              from src.utils.logger_utils import log_scraper_execution  # type: ignore # pyre-ignore[21]
-             from sqlalchemy.orm import sessionmaker  # type: ignore # pyre-ignore[21]
-             Session = sessionmaker(bind=self.engine)
-             with Session() as session:
+             from sqlalchemy.orm import sessionmaker as _sessionmaker  # type: ignore # pyre-ignore[21]
+             LogSession = _sessionmaker(bind=self.engine)
+             with LogSession() as log_session:
                   log_scraper_execution(
-                      db=session,
+                      db=log_session,
                       scraper_name="chippin",
                       status=status,
                       total_found=len(campaigns_to_process),
