@@ -1,11 +1,9 @@
 import os
-import time
 import psycopg2  # type: ignore
 from typing import List, Tuple, Set, Dict, Optional, Any, cast
 from dotenv import load_dotenv  # type: ignore
 from slugify import slugify  # type: ignore
-from google import genai  # type: ignore
-from google.genai import types  # type: ignore
+from src.utils.gemini_client import generate_with_rotation  # type: ignore
 
 load_dotenv()
 
@@ -14,12 +12,8 @@ DB_URL = os.getenv("DATABASE_URL")
 if not DB_URL:
     raise ValueError("DATABASE_URL must be set in .env")
 
-# ── Gemini 2.5 Flash ─────────────────────────────────────────────────────────
-GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
-if not GEMINI_API_KEY:
-    raise ValueError("GEMINI_API_KEY must be set in .env")
-
-client = genai.Client(api_key=GEMINI_API_KEY)
+# ── Gemini modeli (3'lü key rotation kullanılır) ─────────────────────────────
+BLOG_MODEL = os.getenv("BLOG_MODEL", "gemini-2.5-flash")
 
 # ── Unsplash görselleri ──────────────────────────────────────────────────────
 COVER_IMAGES = [
@@ -236,15 +230,12 @@ YAZIM KURALLARI:
 SADECE makale HTML'ini döndür. Başka hiçbir şey yazma.
 """
 
-    response = client.models.generate_content(
-        model=os.getenv("BLOG_MODEL", "gemini-2.5-flash"),
-        contents=prompt,
-        config=types.GenerateContentConfig(
-            temperature=0.7,
-            max_output_tokens=8000,
-        ),
+    html = generate_with_rotation(
+        prompt=prompt,
+        model=BLOG_MODEL,
+        temperature=0.7,
+        max_output_tokens=8000,
     )
-    html = response.text.strip()
     # Markdown kod bloğu gelirse temizle
     if html.startswith("```html"):
         html = html[7:]
@@ -271,15 +262,12 @@ Kurallar:
 
 Konu: {topic_title}
 """
-    response = client.models.generate_content(
-        model=os.getenv("BLOG_MODEL", "gemini-2.5-flash"),
-        contents=prompt,
-        config=types.GenerateContentConfig(
-            temperature=0.3,
-            max_output_tokens=200,
-        ),
+    return generate_with_rotation(
+        prompt=prompt,
+        model=BLOG_MODEL,
+        temperature=0.3,
+        max_output_tokens=200,
     )
-    return response.text.strip()
 
 
 def generate_excerpt(meta_description):
