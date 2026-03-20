@@ -283,13 +283,12 @@ class SekerbankScraper:
                         // Tüm img elementleri dene
                         var imgs = card.querySelectorAll('img');
                         for (var i = 0; i < imgs.length; i++) {
-                            var src = imgs[i].dataset.src
-                                   || imgs[i].dataset.original
-                                   || imgs[i].getAttribute('data-echo')
-                                   || imgs[i].getAttribute('data-lazy')
-                                   || imgs[i].src;
-                            if (src && !src.startsWith('data:')
-                                && src.indexOf('logo') === -1) {
+                            var imgInfo = imgs[i];
+                            var src = imgInfo.getAttribute('src') 
+                                   || imgInfo.src 
+                                   || imgInfo.dataset.src
+                                   || imgInfo.getAttribute('data-lazy');
+                            if (src && !src.startsWith('data:') && src.indexOf('logo') === -1) {
                                 imgUrl = src;
                                 break;
                             }
