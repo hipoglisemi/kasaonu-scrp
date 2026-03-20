@@ -247,8 +247,24 @@ class SekerbankScraper:
 
         for idx, link_el in enumerate(link_elements):
             try:
-                # Find the parent card to scroll to it
-                card = driver.execute_script("return arguments[0].closest('.col-xs-12');", link_el)
+                # Find the parent card (Bonus ve Diamond sayfalarında farklı class olabilir)
+                card = driver.execute_script("""
+                    var el = arguments[0];
+                    var selectors = ['.col-xs-12', '.col-md-4', '.col-sm-6', '.col-md-3',
+                                     '[class*="kampanya"]', '[class*="campaign"]', '[class*="card-item"]',
+                                     'li', 'article'];
+                    for (var i = 0; i < selectors.length; i++) {
+                        var found = el.closest(selectors[i]);
+                        if (found) return found;
+                    }
+                    // Fallback: 5 seviye yukarı çık
+                    var p = el;
+                    for (var j = 0; j < 5; j++) {
+                        if (p.parentElement) p = p.parentElement;
+                        if (p.querySelector('img')) return p;
+                    }
+                    return el;
+                """, link_el)
                 if not card:
                     card = link_el
                 
