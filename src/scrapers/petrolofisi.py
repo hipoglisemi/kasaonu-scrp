@@ -61,11 +61,15 @@ class PetrolOfisiScraper:
         options.add_argument('--disable-gpu')
         options.add_argument("--window-size=1920,1080")
         options.add_argument("user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36")
+        options.add_argument("--remote-debugging-port=9222") # Better stability in some headless environments
         
         if os.getenv("DOCKER_MODE") == "true" or os.environ.get("HEADLESS") == "1":
             options.add_argument('--headless=new')
 
+        # Add a small delay before starting driver to ensure Xvfb is ready
+        time.sleep(1)
         self.driver = webdriver.Chrome(options=options)
+        self.driver.set_page_load_timeout(60) # Prevent indefinite hangs
         
         stealth(self.driver,
                 languages=["tr-TR", "tr"],
@@ -134,11 +138,14 @@ class PetrolOfisiScraper:
                 raise Exception("Failed to initialize driver")
 
             self.driver.get(self.TARGET_URL)
-            time.sleep(3)
+            time.sleep(5) # Give more time for heavy JS
 
             # Accept cookies if any overlay appears
             try:
-                cookie_btn = self.driver.find_element(By.CSS_SELECTOR, "#CybotCookiebotDialogBodyLevelButtonLevelOptinAllowAll, .cookie-accept, .btn-accept")
+                # Specific "ANLADIM" button observed in browser test
+                cookie_btn = WebDriverWait(self.driver, 5).until(
+                    EC.element_to_be_clickable((By.CSS_SELECTOR, ".btn-accept, #CybotCookiebotDialogBodyLevelButtonLevelOptinAllowAll, .btn.btn-primary:has-text('ANLADIM')"))
+                )
                 cookie_btn.click()
                 time.sleep(1)
             except:
@@ -150,25 +157,33 @@ class PetrolOfisiScraper:
             while click_count < 10: # Safety break
                 try:
                     # Selector for Petrol Ofisi 'Daha fazla göster' button
-                    btn = WebDriverWait(self.driver, 3).until(
-                        EC.element_to_be_clickable((By.CSS_SELECTOR, "button.show-more, .btn.btn-primary.show-more"))
+                    btn = WebDriverWait(self.driver, 5).until(
+                        EC.presence_of_element_located((By.CSS_SELECTOR, "button.show-more, .btn.btn-primary.show-more"))
                     )
                     
+                    if not btn.is_displayed():
+                        break
+                        
                     # Scroll to button
                     self.driver.execute_script("arguments[0].scrollIntoView({block: 'center'});", btn)
                     time.sleep(1)
-                    btn.click()
+                    
+                    try:
+                        btn.click()
+                    except:
+                        self.driver.execute_script("arguments[0].click();", btn)
+                        
                     click_count += 1
                     print(f"   🖱️ Clicked 'Show More' {click_count} times.")
-                    time.sleep(2)
+                    time.sleep(3) # Give more time for PO list to expand
                 except:
                     # Button no longer exists or not clickable
                     break
 
             # Collect cards
             soup = BeautifulSoup(self.driver.page_source, "html.parser")
-            # Petrol Ofisi cards are usually in a grid
-            cards = soup.select(".card")
+            # Petrol Ofisi cards verified selector: .card-campaign
+            cards = soup.select(".card-campaign")
             print(f"   🎯 Found {len(cards)} potential campaign cards.")
 
             bank = self._get_or_create_bank(self.db)

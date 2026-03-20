@@ -321,5 +321,4 @@ if __name__ == "__main__":
     args = parser.parse_args()
     
     scraper = ShellScraper()
-    limit_val = args.limit if args.limit is not None else 20
-    scraper.scrape(limit=limit_val)
+    scraper.scrape(limit=args.limit)

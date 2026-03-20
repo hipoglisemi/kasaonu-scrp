@@ -128,15 +128,18 @@ def get_or_create_brand(db, name: str, brand_cache: dict, sector_id=None) -> Opt
     slug_val = re.sub(r'-+', '-', slug_val).strip('-')
 
     brand = Brand(name=normalized, slug=slug_val, is_active=True)
-    db.add(brand)
+    
+    # Use a subtransaction (savepoint) so that an IntegrityError here 
+    # doesn't roll back the entire campaign transaction.
     try:
-        db.flush()
+        with db.begin_nested():
+            db.add(brand)
+            db.flush()
         brand_cache[normalized.lower()] = brand
         print(f"   ➕ New brand: '{normalized}'")
         return brand
     except IntegrityError:
-        db.rollback()
-        # Another worker created it, fetch it
+        # Another worker created it, or it was already in DB but missed by cache
         existing = db.query(Brand).filter(Brand.slug == slug_val).first()
         if existing:
             brand_cache[existing.name.lower()] = existing

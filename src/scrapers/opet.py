@@ -148,30 +148,37 @@ class OpetScraper:
             # Handling "Daha Fazla Göster"
             print("   ⏳ Loading all campaigns (Clicking 'Daha Fazla Göster')...")
             click_count = 0
-            while click_count < 10: # Safety break
+            while click_count < 20: # Increased limit for Opet (user says 37 total)
                 try:
-                    # Specific selector from analysis
-                    btn = WebDriverWait(self.driver, 3).until(
-                        EC.element_to_be_clickable((By.CSS_SELECTOR, "a.btn.btn-primary.mx-auto"))
+                    # Specific selector from verification
+                    btn = WebDriverWait(self.driver, 5).until(
+                        EC.presence_of_element_located((By.CSS_SELECTOR, "a.btn.btn-primary.mx-auto"))
                     )
-                    # Check if button has "Daha Fazla Göster" text
-                    if "DAHA FAZLA GÖSTER" in btn.text.upper():
-                        # Scroll to button
-                        self.driver.execute_script("arguments[0].scrollIntoView({block: 'center'});", btn)
-                        time.sleep(1)
-                        btn.click()
-                        click_count += 1
-                        print(f"   🖱️ Clicked 'Show More' {click_count} times.")
-                        time.sleep(2)
-                    else:
+                    
+                    # Check if button is visible and contains correct text
+                    if not btn.is_displayed() or "DAHA FAZLA" not in btn.text.upper():
                         break
+                        
+                    # Scroll to button
+                    self.driver.execute_script("arguments[0].scrollIntoView({block: 'center'});", btn)
+                    time.sleep(1)
+                    
+                    # Use JS click for reliability if normal click fails
+                    try:
+                        btn.click()
+                    except:
+                        self.driver.execute_script("arguments[0].click();", btn)
+                        
+                    click_count += 1
+                    print(f"   🖱️ Clicked 'Show More' {click_count} times.")
+                    time.sleep(2)
                 except:
                     # Button no longer exists or not clickable
                     break
 
             # Collect cards
             soup = BeautifulSoup(self.driver.page_source, "html.parser")
-            cards = soup.select("div.col-12.col-md-6.col-lg-3")
+            cards = soup.select(".campaign-item")
             print(f"   🎯 Found {len(cards)} potential campaign cards.")
 
             bank = self._get_or_create_bank(self.db)
