@@ -334,14 +334,30 @@ class IsbankMaximumScraper:
             else:
                 full_text = self._clean(soup.get_text())[:2000]  # type: ignore # pyre-ignore[16,6]
 
-            # Image
+            # Image — multiple fallback strategies
             image_url = None
-            img_el = soup.select_one("img[id$='CampaignImage']") or soup.select_one('.campaign-detail img')
+            img_el = (
+                soup.select_one("img[id$='CampaignImage']")
+                or soup.select_one(".campaign-detail img")
+                or soup.select_one(".campaign-banner img")
+                or soup.select_one(".opportunity-image img")
+                or soup.select_one("section.banner img")
+                or soup.select_one("section img")
+            )
             if img_el:
                 src = img_el.get("data-original") or img_el.get("data-src") or img_el.get("src")
-                if src and not src.startswith("data:"):
+                if src and not src.startswith("data:") and "logo" not in src.lower():
                     if isinstance(src, str):
                         image_url = urljoin(self.BASE_URL, src)
+            # 2. Background-image in style attribute
+            if not image_url:
+                for sel in ["section.banner", "div.banner", ".campaign-banner", ".campaign-detail"]:
+                    banner = soup.select_one(sel)
+                    if banner and "style" in banner.attrs:
+                        match = re.search(r"url\(['\"]?(.*?)['\"]?\)", banner["style"])
+                        if match and "logo" not in match.group(1).lower():
+                            image_url = urljoin(self.BASE_URL, match.group(1))
+                            break
 
             return {  # type: ignore # pyre-ignore[7]
                 "title": title, "image_url": image_url,

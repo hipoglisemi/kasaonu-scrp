@@ -67,7 +67,7 @@ class IsbankMaximumGencScraper:
     CAMPAIGNS_URL = "https://www.maximumgenc.com.tr/kampanyalar"
     BANK_NAME = "İşbankası"
     CARD_SLUG = "maximum-genc"
-    DEFAULT_IMAGE_URL = "https://www.maximumgenc.com.tr/_assets/images/logo.png"
+    DEFAULT_IMAGE_URL = None  # Logo fallback kaldırıldı — placeholder görünmesine yol açıyordu
 
     def __init__(self):
         if not DATABASE_URL:
@@ -312,21 +312,41 @@ class IsbankMaximumGencScraper:
                       print(f"   🚫 Skipped (Blocklisted): {url}")
                       return None
 
-            # Image
+            # Image — multiple fallback strategies
             image_url = None
-            img_el = soup.select_one(".detail-img img") or soup.select_one("section img")
+            # 1. Dedicated campaign image containers
+            img_el = (
+                soup.select_one(".detail-img img")
+                or soup.select_one(".campaign-banner img")
+                or soup.select_one(".campaign-detail img")
+                or soup.select_one(".opportunity-image img")
+                or soup.select_one("section.banner img")
+                or soup.select_one("section img")
+            )
             if img_el:
                 src = img_el.get("data-original") or img_el.get("data-src") or img_el.get("src")
-                if src and not src.startswith("data:"):
+                if src and not src.startswith("data:") and "logo" not in src.lower():
                     image_url = urljoin(self.BASE_URL, src)
+            # 2. Background-image in style attribute
             if not image_url:
-                banner = soup.select_one("section.banner, div.banner")
-                if banner and "style" in banner.attrs:
-                    match = re.search(r"url\(['\"]?(.*?)['\"]?\)", banner["style"])
-                    if match:
-                        image_url = urljoin(self.BASE_URL, match.group(1))
+                for sel in ["section.banner", "div.banner", ".campaign-banner", "section.opportunity", ".detail-img"]:
+                    banner = soup.select_one(sel)
+                    if banner and "style" in banner.attrs:
+                        match = re.search(r"url\(['\"]?(.*?)['\"]?\)", banner["style"])
+                        if match and "logo" not in match.group(1).lower():
+                            image_url = urljoin(self.BASE_URL, match.group(1))
+                            break
+            # 3. Any img on page that looks like a campaign image (not a logo/icon)
             if not image_url:
-                image_url = self.DEFAULT_IMAGE_URL
+                for img in soup.find_all("img"):
+                    src = img.get("data-src") or img.get("src") or ""
+                    if src and not src.startswith("data:") and "logo" not in src.lower() and "icon" not in src.lower():
+                        candidate = urljoin(self.BASE_URL, src)
+                        # Prefer campaign/opportunity images
+                        if any(k in src.lower() for k in ["kampanya", "campaign", "opportunity", "firsatlar", "firsat", "uploa"]):
+                            image_url = candidate
+                            break
+            # No fallback to logo — leave None if no real image found
 
             # Date
             date_text = ""

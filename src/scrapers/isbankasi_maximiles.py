@@ -405,17 +405,28 @@ class IsbankMaximilesScraper:
                       print(f"   🚫 Skipped (Blocklisted): {url}")
                       return None
 
-            # Image (try background-image style first)
+            # Image — multiple fallback strategies
             image_url = None
-            banner = soup.select_one("section.campaign-banner")
-            if banner and "style" in banner.attrs:
-                match = re.search(r"url\(['\"]?(.*?)['\"]?\)", banner["style"])
-                if match:
-                    image_url = urljoin(self.BASE_URL, match.group(1))
+            # 1. Background-image in style attribute (common in Maximiles)
+            for sel in ["section.campaign-banner", "div.campaign-banner", ".campaign-detail-header", "section.banner", "div.banner"]:
+                banner = soup.select_one(sel)
+                if banner and "style" in banner.attrs:
+                    match = re.search(r"url\(['\"]?(.*?)['\"]?\)", banner["style"])
+                    if match and "logo" not in match.group(1).lower():
+                        image_url = urljoin(self.BASE_URL, match.group(1))
+                        break
+            # 2. Img tag fallbacks
             if not image_url:
-                img_el = soup.select_one(".campaign-detail-header img, section img")
-                if img_el and img_el.get("src") and "logo" not in img_el.get("src", ""):
-                    image_url = urljoin(self.BASE_URL, img_el["src"])
+                img_el = (
+                    soup.select_one(".campaign-detail-header img")
+                    or soup.select_one(".campaign-banner img")
+                    or soup.select_one(".campaign-detail img")
+                    or soup.select_one("section img")
+                )
+                if img_el:
+                    src = img_el.get("data-src") or img_el.get("data-original") or img_el.get("src") or ""
+                    if src and not src.startswith("data:") and "logo" not in src.lower():
+                        image_url = urljoin(self.BASE_URL, src)
 
             # Date
             date_text = ""
@@ -673,10 +684,10 @@ class IsbankMaximilesScraper:
 
             # Brands via brand_matcher
             brand_ids = get_or_create_brands_list(
-                db_session=self.db,
-                brand_names=data.get("brands", []),
-                brand_cache=getattr(self, 'brand_cache', {}),
-                sector_id=sector.id if sector else None
+                self.db,
+                ai_data.get("brands", []),
+                getattr(self, 'brand_cache', {}),
+                sector.id if sector else None
             )
             for bid in brand_ids:
                 try:

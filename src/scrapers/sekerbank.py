@@ -545,19 +545,24 @@ class SekerbankScraper:
             
         # Filter and prioritize
         for candidate in candidates:
+            if not candidate or candidate.startswith('data:'):
+                continue
             # Skip if common placeholder or tiny icon
             lower_c = candidate.lower()
-            is_generic = any(x in lower_c for x in ["placeholder", "default", "logo", "bank-bg", "banka-ill", "loading"])
+            is_generic = any(x in lower_c for x in ["placeholder", "default.png", "bank-bg", "banka-ill", "loading"])
             if is_generic and len(candidates) > 1:
                 continue
                 
             full_url = urljoin(self.BASE_URL, candidate)
-            # Basic validation
-            if "cdn.sekerbank.com.tr" in full_url:
+            # Accept any image from sekerbank domain or an absolute https URL
+            if "sekerbank.com.tr" in full_url or full_url.startswith("https://"):
                 return full_url
                 
         # Default back to the first available non-empty candidate if nothing ideal found
-        return urljoin(self.BASE_URL, candidates[0]) if candidates else ""
+        if candidates:
+            first = next((c for c in candidates if c and not c.startswith('data:')), None)
+            return urljoin(self.BASE_URL, first) if first else ""
+        return ""
 
     def _extract_best_image_selenium(self, img_el) -> str:
         """Selenium version: Extract higher quality or non-placeholder image from srcset or data attributes."""
@@ -585,18 +590,23 @@ class SekerbankScraper:
             
         # Filter and prioritize
         for candidate in candidates:
+            if not candidate or candidate.startswith('data:'):
+                continue
             # Skip common placeholders
             lower_c = candidate.lower()
-            is_generic = any(x in lower_c for x in ["placeholder", "default", "logo", "bank-bg", "banka-ill", "loading", "base64"])
+            is_generic = any(x in lower_c for x in ["placeholder", "default.png", "bank-bg", "banka-ill", "loading", "base64"])
             if is_generic and len(candidates) > 1:
                 continue
                 
             full_url = urljoin(self.BASE_URL, candidate)
-            # Basic validation
-            if "cdn.sekerbank.com.tr" in full_url:
+            # Accept any image from sekerbank domain or absolute https URL
+            if "sekerbank.com.tr" in full_url or full_url.startswith("https://"):
                 return full_url
                 
-        return urljoin(self.BASE_URL, candidates[0]) if candidates else ""
+        if candidates:
+            first = next((c for c in candidates if c and not c.startswith('data:')), None)
+            return urljoin(self.BASE_URL, first) if first else ""
+        return ""
 
 if __name__ == "__main__":
     import argparse

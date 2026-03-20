@@ -197,9 +197,52 @@ class ChippinScraper:
                 
                 print(f"[{idx+1}/{len(campaigns_to_process)}] {title[:50]}...")  # type: ignore # pyre-ignore[16,6]
                 
-                # Image Handling (Vector Placeholders)
-                placeholder_idx = random.randint(1, 9)
-                image_url = f"/placeholders/cp-{placeholder_idx:02d}.png"
+                # Image Handling — gerçek görseli JSON'dan çek
+                CHIPPIN_CDN = "https://cdn.chippin.com.tr"
+                CHIPPIN_BASE = "https://www.chippin.com.tr"
+                image_url = None
+                
+                # 1. JSON alanlarını dene (olası key isimleri)
+                for img_key in ["imageUrl", "image", "webImage", "campaignImage", "photo", "coverImage", "imgUrl", "img", "bannerImage", "banner"]:
+                    raw_img = c.get(img_key)
+                    if raw_img and isinstance(raw_img, str) and not raw_img.startswith("data:") and "logo" not in raw_img.lower():
+                        if raw_img.startswith("http"):
+                            image_url = raw_img
+                        elif raw_img.startswith("/"):
+                            image_url = f"{CHIPPIN_BASE}{raw_img}"
+                        else:
+                            image_url = f"{CHIPPIN_CDN}/{raw_img}"
+                        break
+                
+                # 2. Detay sayfasından çek (JSON'da yoksa)
+                if not image_url:
+                    cid_for_img = c.get("id")
+                    if cid_for_img:
+                        detail_url = f"https://www.chippin.com.tr/kampanyalar/{cid_for_img}"
+                        try:
+                            det_r = requests.get(detail_url, headers=headers, verify=False, timeout=10)
+                            if det_r.status_code == 200:
+                                det_soup = BeautifulSoup(det_r.text, "html.parser")
+                                # __NEXT_DATA__ içinde detay verisi
+                                det_script = det_soup.find("script", {"id": "__NEXT_DATA__"})
+                                if det_script:
+                                    det_data = json.loads(det_script.string)
+                                    campaign_detail = det_data.get("props", {}).get("pageProps", {}).get("campaign", {})
+                                    for img_key in ["imageUrl", "image", "webImage", "campaignImage", "photo", "coverImage"]:
+                                        raw_img = campaign_detail.get(img_key)
+                                        if raw_img and isinstance(raw_img, str) and "logo" not in raw_img.lower():
+                                            image_url = raw_img if raw_img.startswith("http") else f"{CHIPPIN_BASE}{raw_img}"
+                                            break
+                                if not image_url:
+                                    # img tag'larını tara
+                                    for img in det_soup.find_all("img"):
+                                        src = img.get("data-src") or img.get("src") or ""
+                                        if src and not src.startswith("data:") and "logo" not in src.lower() and "icon" not in src.lower():
+                                            image_url = src if src.startswith("http") else f"{CHIPPIN_BASE}{src}"
+                                            break
+                        except Exception as img_err:
+                            print(f"      ⚠️ Görsel detay fetch hatası: {img_err}")
+
                 
                 # Slug & URL Handling
                 cid = c.get("id")
