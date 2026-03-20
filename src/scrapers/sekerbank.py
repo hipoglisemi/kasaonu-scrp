@@ -261,11 +261,37 @@ class SekerbankScraper:
                 if "sona ermiştir" in card_text or "kampanya süresi dolmuştur" in card_text:
                     continue
 
-                # Extract image URL live from the DOM
+                # Extract image URL live from the DOM — daha agresif JS tabanlı çekme
                 img_url = ""
                 img_elements = card.find_elements(By.TAG_NAME, "img")
                 if img_elements:
                     img_url = self._extract_best_image_selenium(img_elements[0])
+                
+                # Fallback: JS ile tüm img src'leri ve background-image'leri dene
+                if not img_url:
+                    try:
+                        js_img = driver.execute_script("""
+                            var el = arguments[0];
+                            // Tüm img elementlerini tara
+                            var imgs = el.querySelectorAll('img');
+                            for (var i = 0; i < imgs.length; i++) {
+                                var src = imgs[i].dataset.src || imgs[i].dataset.original || imgs[i].getAttribute('data-lazy') || imgs[i].src;
+                                if (src && !src.startsWith('data:') && src.indexOf('logo') === -1 && src.indexOf('banka-ill') === -1) return src;
+                            }
+                            // Background-image deneme
+                            var allEls = el.querySelectorAll('*');
+                            for (var j = 0; j < allEls.length; j++) {
+                                var bg = window.getComputedStyle(allEls[j]).backgroundImage;
+                                if (bg && bg !== 'none' && bg.indexOf('url') === 0) {
+                                    return bg.replace(/url\(['"]?/, '').replace(/['"]?\)$/, '');
+                                }
+                            }
+                            return '';
+                        """, card)
+                        if js_img and not js_img.startswith('data:'):
+                            img_url = urljoin(self.BASE_URL, js_img) if not js_img.startswith('http') else js_img
+                    except Exception:
+                        pass
                 
                 href = link_el.get_attribute('href')
                 if href:
@@ -335,6 +361,7 @@ class SekerbankScraper:
                 existing_img = existing.image_url  # type: ignore
                 is_placeholder = (
                     not existing_img
+                    or existing_img.strip() == ''
                     or existing_img.startswith("/placeholders/")
                     or "logo" in existing_img.lower()
                     or "kartavantaj" in existing_img.lower()
@@ -342,7 +369,7 @@ class SekerbankScraper:
                 if not is_placeholder:
                     print(f"      ⏭️ Skipped (Already exists): {existing.title}")  # type: ignore
                     return "skipped"
-                print(f"      🔄 Görsel eksik, güncelleniyor: {existing.title}")
+                print(f"      🔄 Görsel eksik/geçersiz, güncelleniyor: {existing.title}")
 
         driver = self.driver
         if not driver:

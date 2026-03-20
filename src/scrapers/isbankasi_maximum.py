@@ -634,9 +634,11 @@ class IsbankMaximumScraper:
                     existing_img = existing.image_url  # type: ignore # pyre-ignore[16]
                     is_placeholder = (
                         not existing_img
+                        or existing_img.strip() == ''
                         or existing_img.startswith("/placeholders/")
                         or "logo" in existing_img.lower()
                         or "kartavantaj" in existing_img.lower()
+                        or "/contentmanagement/publishingimages/" in existing_img.lower()
                     )
                     if is_placeholder:
                         # Görsel güncelleme: sadece detay sayfasından görsel çek
