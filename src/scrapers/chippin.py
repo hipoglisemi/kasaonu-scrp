@@ -232,6 +232,7 @@ class ChippinScraper:
                                         raw_img = campaign_detail.get(img_key)
                                         if raw_img and isinstance(raw_img, str) and "logo" not in raw_img.lower():
                                             image_url = raw_img if raw_img.startswith("http") else f"{CHIPPIN_BASE}{raw_img}"
+                                            print(f"      🖼️  [Detay __NEXT_DATA__] image_url: {image_url}")
                                             break
                                 if not image_url:
                                     # img tag'larını tara
@@ -239,9 +240,18 @@ class ChippinScraper:
                                         src = img.get("data-src") or img.get("src") or ""
                                         if src and not src.startswith("data:") and "logo" not in src.lower() and "icon" not in src.lower():
                                             image_url = src if src.startswith("http") else f"{CHIPPIN_BASE}{src}"
+                                            print(f"      🖼️  [Detay img tag] image_url: {image_url}")
                                             break
+                            else:
+                                print(f"      ⚠️ Detay sayfası HTTP {det_r.status_code}")
                         except Exception as img_err:
                             print(f"      ⚠️ Görsel detay fetch hatası: {img_err}")
+
+                # Görsel durumu log
+                if image_url:
+                    print(f"      🖼️  image_url: {image_url[:80]}")
+                else:
+                    print(f"      ⚠️  JSON keys: {list(c.keys())} → görsel bulunamadı")
 
                 
                 # Slug & URL Handling
