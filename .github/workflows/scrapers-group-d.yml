@@ -1,5 +1,5 @@
 name: "🆗 Scrapers – Grup D"
-# Kuveytürk, TEB, TürkiyeFinans, Vakıfbank, YapıKredi (Adios + Crystal + Play + World), Ziraat
+# Kuveytürk, TEB, TürkiyeFinans, Vakıfbank, YapıKredi (Adios + Crystal + Play + World), Ziraat, Türktelekom, Vodafone
 # TSİ 04:30 → UTC 01:30
 on:
   schedule:
@@ -68,24 +68,31 @@ jobs:
         sleep 2
         python -u src/scrapers/${{ matrix.scraper }}.py
 
-    - name: Bildirim Gönder
-      if: always()
-      uses: dawidd6/action-send-mail@v3
-      with:
-        server_address: smtp.gmail.com
-        server_port: 465
-        secure: true
-        username: ${{ secrets.GMAIL_USER }}
-        password: ${{ secrets.GMAIL_APP_PASSWORD }}
-        to: ${{ secrets.GMAIL_USER }}
-        from: KartAvantaj CI <${{ secrets.GMAIL_USER }}>
-        subject: "${{ job.status == 'success' && '✅' || '❌' }} ${{ github.workflow }} — ${{ job.status }}"
-        body: |
-          Workflow: ${{ github.workflow }}
-          Durum: ${{ job.status }}
-          Repo: ${{ github.repository }}
-          Branch: ${{ github.ref_name }}
-          Tetikleyen: ${{ github.event_name }}
-          Çalışma: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
-          
-          Detaylar için yukarıdaki linke tıkla.
+  notify:
+    name: "📧 Hata Bildirimi"
+    runs-on: ubuntu-22.04
+    needs: [scrape]
+    if: failure()
+    steps:
+      - name: Hata Maili Gönder
+        uses: dawidd6/action-send-mail@v3
+        with:
+          server_address: smtp.gmail.com
+          server_port: 465
+          secure: true
+          username: ${{ secrets.GMAIL_USER }}
+          password: ${{ secrets.GMAIL_APP_PASSWORD }}
+          to: ${{ secrets.GMAIL_USER }}
+          from: KartAvantaj CI <${{ secrets.GMAIL_USER }}>
+          subject: "❌ Grup D — Hata Var!"
+          body: |
+            🆗 Scrapers – Grup D çalışmasında hata(lar) oluştu.
+
+            Repo: ${{ github.repository }}
+            Branch: ${{ github.ref_name }}
+            Tetikleyen: ${{ github.event_name }}
+
+            🔗 Detaylar için tıklayın:
+            ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+
+            Hata alan scraper(lar) için job loglarını inceleyiniz.
