@@ -61,15 +61,16 @@ class PetrolOfisiScraper:
         options.add_argument('--disable-gpu')
         options.add_argument("--window-size=1920,1080")
         options.add_argument("user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36")
-        options.add_argument("--remote-debugging-port=9222") # Better stability in some headless environments
         
         if os.getenv("DOCKER_MODE") == "true" or os.environ.get("HEADLESS") == "1":
             options.add_argument('--headless=new')
+            options.add_argument('--disable-gpu')
+            options.add_argument('--disable-software-rasterizer')
 
         # Add a small delay before starting driver to ensure Xvfb is ready
-        time.sleep(1)
+        time.sleep(2)
         self.driver = webdriver.Chrome(options=options)
-        self.driver.set_page_load_timeout(60) # Prevent indefinite hangs
+        self.driver.set_page_load_timeout(90) # Increase timeout for slow CI loads
         
         stealth(self.driver,
                 languages=["tr-TR", "tr"],
