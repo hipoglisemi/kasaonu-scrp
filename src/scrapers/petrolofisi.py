@@ -181,9 +181,20 @@ class PetrolOfisiScraper:
                     break
 
             # Collect cards
+            time.sleep(5) # Final wait for everything to render
             soup = BeautifulSoup(self.driver.page_source, "html.parser")
-            # Petrol Ofisi cards verified selector: .card-campaign
             cards = soup.select(".card-campaign")
+            
+            if not cards:
+                print("   ⚠️ No cards found with '.card-campaign'. Diagnostic info:")
+                unique_classes = sorted(list(set([cls for el in soup.find_all(True) for cls in el.get("class", [])])))
+                print(f"   📂 Found {len(unique_classes)} unique classes in DOM.")
+                print(f"   📑 First 1000 chars of source: {self.driver.page_source[:1000]}")
+                # Try fallback selector
+                cards = soup.select(".card")
+                if cards:
+                    print(f"   💡 Fallback selector '.card' found {len(cards)} cards.")
+
             print(f"   🎯 Found {len(cards)} potential campaign cards.")
 
             bank = self._get_or_create_bank(self.db)

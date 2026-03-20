@@ -177,8 +177,20 @@ class OpetScraper:
                     break
 
             # Collect cards
+            time.sleep(5) # Final wait for everything to render
             soup = BeautifulSoup(self.driver.page_source, "html.parser")
             cards = soup.select(".campaign-item")
+            
+            if not cards:
+                print("   ⚠️ No cards found with '.campaign-item'. Diagnostic info:")
+                unique_classes = sorted(list(set([cls for el in soup.find_all(True) for cls in el.get("class", [])])))
+                print(f"   📂 Found {len(unique_classes)} unique classes in DOM.")
+                print(f"   📑 First 1000 chars of source: {self.driver.page_source[:1000]}")
+                # Try fallback selector from previous version
+                cards = soup.select("div.col-12.col-md-6.col-lg-3")
+                if cards:
+                    print(f"   💡 Fallback selector 'div.col-12.col-md-6.col-lg-3' found {len(cards)} cards.")
+
             print(f"   🎯 Found {len(cards)} potential campaign cards.")
 
             bank = self._get_or_create_bank(self.db)
