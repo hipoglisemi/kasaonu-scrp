@@ -267,9 +267,9 @@ class SekerbankScraper:
                 links.forEach(function(link) {
                     var href = link.getAttribute('href');
                     if (!href) return;
-                    // Kart container'ı bul
-                    var card = link.closest('.col-xs-12, .col-sm-6, .col-md-4, .col-md-3, [class*="col-"]')
-                               || link.parentElement || link;
+                    // Kart container'ı bul (yeni NextJS class'ları dahil)
+                    var card = link.closest('[class*="cardlistitem_campaign"], .col-xs-12, .col-sm-6, .col-md-4, .col-md-3, [class*="col-"]')
+                               || link.parentElement.parentElement || link.parentElement || link;
                     var imgUrl = '';
                     if (card) {
                         // Tüm img elementleri dene
