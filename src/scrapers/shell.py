@@ -184,6 +184,40 @@ class ShellScraper:
                     time.sleep(2)
                     
                     detail_soup = BeautifulSoup(self.driver.page_source, "html.parser")
+                    
+                    # Try to get high-res image from detail page
+                    # Selector found via research: .page-header img, but also common AEM structures
+                    detail_img_tag = detail_soup.select_one(".page-header img, .page-header__image img, .hero-image img, .main-image img, .cmp-image__image")
+                    
+                    # If not found yet, try searching for any image that looks like a hero (large or in main)
+                    if not detail_img_tag:
+                        detail_img_tag = detail_soup.select_one("main img")
+                        
+                    if detail_img_tag:
+                        detail_img_url = detail_img_tag.get("src") or detail_img_tag.get("data-src") or detail_img_tag.get("srcset")
+                        if detail_img_url:
+                            # If it's a srcset, take the last one (usually highest res)
+                            if "," in detail_img_url:
+                                detail_img_url = detail_img_url.split(",")[-1].strip().split(" ")[0]
+                                
+                            # Normalize URL
+                            full_detail_img_url = urljoin(self.BASE_URL, detail_img_url)
+                            
+                            # If it's a Shell CDN URL, ensure high resolution
+                            # Patterns: imwidth=..., .img.960. ..., .shellimg.960. ...
+                            if "imwidth" in full_detail_img_url:
+                                full_detail_img_url = re.sub(r"imwidth=\d+", "imwidth=1200", full_detail_img_url)
+                                full_detail_img_url = re.sub(r"imdensity=\d+", "imdensity=1", full_detail_img_url) # Reset density as imwidth 1200 is absolute enough
+                            
+                            if ".img." in full_detail_img_url:
+                                full_detail_img_url = re.sub(r"\.img\.\d+\.", ".img.1200.", full_detail_img_url)
+                            
+                            if ".shellimg." in full_detail_img_url:
+                                full_detail_img_url = re.sub(r"\.shellimg\.\D*\d+\.", ".shellimg.1200.", full_detail_img_url)
+                            
+                            img_url = full_detail_img_url
+                            print(f"      🖼️ Found high-res image: {img_url[:60]}...")
+
                     content_area = detail_soup.select_one("main, .main-content, .campaign-detail-content")
                     raw_html = str(content_area) if content_area else self.driver.page_source
 
