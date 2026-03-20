@@ -31,10 +31,10 @@ from src.utils.slug_generator import get_unique_slug # type: ignore
 
 load_dotenv()
 
-class OpetScraper:
-    BASE_URL = "https://www.opet.com.tr"
-    TARGET_URL = "https://www.opet.com.tr/kampanyalar"
-    SOURCE_NAME = "Opet"
+class ShellScraper:
+    BASE_URL = "https://www.shell.com.tr"
+    TARGET_URL = "https://www.shell.com.tr/suruculer/shellden-avantajli-kampanyalar.html"
+    SOURCE_NAME = "Shell"
     
     def __init__(self):
         self.driver: Optional[WebDriver] = None
@@ -80,12 +80,12 @@ class OpetScraper:
         if self.bank_cache:
             return self.bank_cache
             
-        bank = db.query(Bank).filter(Bank.slug == "opet").first()
+        bank = db.query(Bank).filter(Bank.slug == "shell").first()
         if not bank:
             bank = Bank(
-                name="Opet",
-                slug="opet",
-                logo_url="https://www.opet.com.tr/Assets/img/opet-logo.png",
+                name="Shell",
+                slug="shell",
+                logo_url="https://www.shell.com.tr/favicon.ico",
                 is_active=True
             )
             db.add(bank)
@@ -95,7 +95,7 @@ class OpetScraper:
         return bank
 
     def _get_or_create_card(self, db: Session, bank_id: int) -> Card:
-        slug = "opet-kart"
+        slug = "shell-clubsmart"
         if slug in self.card_cache:
             return self.card_cache[slug]
             
@@ -103,7 +103,7 @@ class OpetScraper:
         if not card:
             card = Card(
                 bank_id=bank_id,
-                name="Opet Kart",
+                name="Shell ClubSmart",
                 slug=slug,
                 is_active=True
             )
@@ -136,43 +136,18 @@ class OpetScraper:
             self.driver.get(self.TARGET_URL)
             time.sleep(3)
 
-            # Accept cookies if any overlay appears
+            # Accept cookies
             try:
-                # Common selectors for Opet cookies
-                cookie_btn = self.driver.find_element(By.CSS_SELECTOR, "#kabul-et, .cookie-accept, .btn-accept")
+                cookie_btn = self.driver.find_element(By.CSS_SELECTOR, ".cookie-accept-all, #accept-all-cookies")
                 cookie_btn.click()
                 time.sleep(1)
             except:
                 pass
 
-            # Handling "Daha Fazla Göster"
-            print("   ⏳ Loading all campaigns (Clicking 'Daha Fazla Göster')...")
-            click_count = 0
-            while click_count < 10: # Safety break
-                try:
-                    # Specific selector from analysis
-                    btn = WebDriverWait(self.driver, 3).until(
-                        EC.element_to_be_clickable((By.CSS_SELECTOR, "a.btn.btn-primary.mx-auto"))
-                    )
-                    # Check if button has "Daha Fazla Göster" text
-                    if "DAHA FAZLA GÖSTER" in btn.text.upper():
-                        # Scroll to button
-                        self.driver.execute_script("arguments[0].scrollIntoView({block: 'center'});", btn)
-                        time.sleep(1)
-                        btn.click()
-                        click_count += 1
-                        print(f"   🖱️ Clicked 'Show More' {click_count} times.")
-                        time.sleep(2)
-                    else:
-                        break
-                except:
-                    # Button no longer exists or not clickable
-                    break
-
-            # Collect cards
+            # Collect cards - Shell uses .pal-brand1-subtle for current campaigns
             soup = BeautifulSoup(self.driver.page_source, "html.parser")
-            cards = soup.select("div.col-12.col-md-6.col-lg-3")
-            print(f"   🎯 Found {len(cards)} potential campaign cards.")
+            cards = soup.select("a.pal-brand1-subtle")
+            print(f"   🎯 Found {len(cards)} current campaign cards.")
 
             bank = self._get_or_create_bank(self.db)
             card = self._get_or_create_card(self.db, bank.id)
@@ -183,18 +158,16 @@ class OpetScraper:
                     break
 
                 try:
-                    # Link & Title
-                    link_tag = card_soup.select_one("a[href*='/kampanyalar/']:not(.h-100)")
-                    if not link_tag:
-                        # Try the image link as fallback
-                        link_tag = card_soup.select_one("a.position-relative.h-100")
-                    
-                    if not link_tag:
+                    # Link
+                    relative_url = card_soup.get("href")
+                    if not relative_url:
                         continue
-                        
-                    relative_url = link_tag.get("href")
+                    
                     detail_url = urljoin(self.BASE_URL, relative_url)
-                    title = link_tag.get_text(strip=True) or "Opet Kampanyası"
+                    
+                    # Title
+                    title_tag = card_soup.select_one("h3 p, h3 span, h3")
+                    title = title_tag.get_text(strip=True) if title_tag else "Shell Kampanyası"
                     
                     # Image
                     img_tag = card_soup.select_one("img")
@@ -211,15 +184,14 @@ class OpetScraper:
                     time.sleep(2)
                     
                     detail_soup = BeautifulSoup(self.driver.page_source, "html.parser")
-                    # Main content area - Opet details are usually in .bg-light or .detail-content
-                    content_area = detail_soup.select_one("main, .container, .detail-content")
+                    content_area = detail_soup.select_one("main, .main-content, .campaign-detail-content")
                     raw_html = str(content_area) if content_area else self.driver.page_source
 
                     # AI Parsing
                     ai_data = self.parser.parse_campaign_data(
                         raw_text=raw_html,
                         title=title,
-                        bank_name="Opet",
+                        bank_name="Shell",
                         tracking_url=detail_url
                     )
 
@@ -252,12 +224,12 @@ class OpetScraper:
                     )
 
                     self.db.add(new_campaign)
-                    self.db.flush() # Get ID
+                    self.db.flush()
 
                     # Brand Matching
                     brand_names = ai_data.get("brands", [])
-                    if "Opet" not in brand_names:
-                        brand_names.append("Opet")
+                    if "Shell" not in brand_names:
+                        brand_names.append("Shell")
                         
                     brand_ids = get_or_create_brands_list(
                         self.db,
@@ -290,7 +262,6 @@ class OpetScraper:
             if self.db:
                 self.db.close()
             
-        # Log Result
         log_scraper_execution(
             db=self.db,
             scraper_name=self.SOURCE_NAME,
@@ -304,10 +275,8 @@ class OpetScraper:
         print(f"🏁 Finished {self.SOURCE_NAME}. Saved: {stats['total_saved']}, Skipped: {stats['total_skipped']}, Failed: {stats['total_failed']}")
 
     def _get_sector_id(self, sector_slug: str) -> Optional[int]:
-        """Maps AI sector slug to DB sector ID."""
         sector = self.db.query(Sector).filter(Sector.slug == sector_slug).first()
         if not sector:
-            # Fallback to Akaryakıt (ID: 1) or Diğer
             sector = self.db.query(Sector).filter(Sector.slug == "akaryakit").first()
         return sector.id if sector else None
 
@@ -317,5 +286,6 @@ if __name__ == "__main__":
     parser.add_argument("--limit", type=int, help="Limit campaigns to process")
     args = parser.parse_args()
     
-    scraper = OpetScraper()
-    scraper.scrape(limit=args.limit)
+    scraper = ShellScraper()
+    limit_val = args.limit if args.limit is not None else 20
+    scraper.scrape(limit=limit_val)

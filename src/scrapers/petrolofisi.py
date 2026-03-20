@@ -113,10 +113,12 @@ class PetrolOfisiScraper:
         self.card_cache[slug] = card
         return card
 
-    def scrape(self, limit: int = 20):
-        """Main scrape entry point."""
+    def scrape(self, limit: Optional[int] = None):
+        """Main scrape entry point. If limit is None, fetches all."""
         print(f"🚀 Starting {self.SOURCE_NAME} Scraper...")
         self.db = get_db_session()
+        
+        limit = limit or 999 # Safe high default for 'all'
         
         stats = {
             "total_found": 0,
@@ -320,5 +322,4 @@ if __name__ == "__main__":
     args = parser.parse_args()
     
     scraper = PetrolOfisiScraper()
-    limit_val = args.limit if args.limit is not None else 5
-    scraper.scrape(limit=limit_val)
+    scraper.scrape(limit=args.limit)
