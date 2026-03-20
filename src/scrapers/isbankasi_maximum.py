@@ -631,7 +631,26 @@ class IsbankMaximumScraper:
                     Campaign.card_id == card_id
                 ).first()
                 if existing and not force:
-                    print(f"   ⏭️ Skipped (Already exists): [{existing.id}] {existing.title[:40]}")  # type: ignore # pyre-ignore[16,6]
+                    existing_img = existing.image_url  # type: ignore # pyre-ignore[16]
+                    is_placeholder = (
+                        not existing_img
+                        or existing_img.startswith("/placeholders/")
+                        or "logo" in existing_img.lower()
+                        or "kartavantaj" in existing_img.lower()
+                    )
+                    if is_placeholder:
+                        # Görsel güncelleme: sadece detay sayfasından görsel çek
+                        print(f"   🔄 Görsel eksik, güncelleniyor: {existing.title[:40]}")  # type: ignore # pyre-ignore[16,6]
+                        res_data = self._extract_campaign_data(url)
+                        if res_data and res_data.get("image_url"):
+                            existing.image_url = res_data["image_url"]  # type: ignore # pyre-ignore[16]
+                            existing.updated_at = datetime.utcnow()  # type: ignore # pyre-ignore[16]
+                            self.session.commit()  # type: ignore # pyre-ignore[16]
+                            print(f"   ✅ Görsel güncellendi: {res_data['image_url'][:60]}")
+                        else:
+                            print(f"   ⚠️ Görsel bulunamadı, atlandı")
+                    else:
+                        print(f"   ⏭️ Skipped (Already exists): [{existing.id}] {existing.title[:40]}")  # type: ignore # pyre-ignore[16,6]
                     skipped += 1  # type: ignore # pyre-ignore[58]
                     continue
                     

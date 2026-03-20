@@ -323,13 +323,26 @@ class SekerbankScraper:
     def _scrape_detail(self, url: str, source: Dict, list_image: str = "", force: bool = False) -> str:
         """Scrape campaign details, images and use AI to parse metadata."""
         if not force and self.db:
-            # Check Blocklist and Campaigns table using unified utility
-            if should_skip_campaign(self.db, url):
-                # Optionally fetch existing to show title
-                existing = self.db.query(Campaign).filter(Campaign.tracking_url == url).first()  # type: ignore
-                title_log = existing.title if existing else url  # type: ignore
-                print(f"      ⏭️ Skipped (Blocked or already exists): {title_log}")
+            # Blocklist check
+            from src.utils.scraper_utils import is_url_blocked  # type: ignore
+            if is_url_blocked(self.db, url):
+                print(f"      🚫 Skipped (Blocklisted): {url}")
                 return "skipped"
+
+            # Existing campaign check — görsel eksikse güncelle
+            existing = self.db.query(Campaign).filter(Campaign.tracking_url == url).first()  # type: ignore
+            if existing:
+                existing_img = existing.image_url  # type: ignore
+                is_placeholder = (
+                    not existing_img
+                    or existing_img.startswith("/placeholders/")
+                    or "logo" in existing_img.lower()
+                    or "kartavantaj" in existing_img.lower()
+                )
+                if not is_placeholder:
+                    print(f"      ⏭️ Skipped (Already exists): {existing.title}")  # type: ignore
+                    return "skipped"
+                print(f"      🔄 Görsel eksik, güncelleniyor: {existing.title}")
 
         driver = self.driver
         if not driver:
@@ -357,6 +370,16 @@ class SekerbankScraper:
         is_placeholder = not image_url or any(x in image_url.lower() for x in ["placeholder", "default", "logo", "bank-bg", "banka-ill"])
         if is_placeholder:
             image_url = list_image
+
+        # Eğer mevcut kampanyada sadece görsel güncelleme yapıyorsak (is_placeholder path'i) — AI parse gereksiz
+        if not force and self.db:
+            upd_existing = self.db.query(Campaign).filter(Campaign.tracking_url == url).first()  # type: ignore
+            if upd_existing and image_url:
+                upd_existing.image_url = image_url  # type: ignore
+                upd_existing.updated_at = datetime.utcnow()  # type: ignore
+                self.db.commit()  # type: ignore
+                print(f"      ✅ Görsel güncellendi: {image_url[:60]}")
+                return "skipped"
 
         # Content/Details - Extract from MAIN as Next.js doesn't use stable classes for detail blocks
         content_el = soup.find('main')
