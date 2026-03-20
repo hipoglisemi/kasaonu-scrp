@@ -265,7 +265,7 @@ class SekerbankScraper:
                 var results = {};
                 var links = document.querySelectorAll('a.btn--link');
                 links.forEach(function(link) {
-                    var href = link.getAttribute('href');
+                    var href = link.href || link.getAttribute('href');
                     if (!href) return;
                     // Kart container'ı bul (NextJS ve Bootstrap uyumlu iteratif parent araması)
                     var card = link;
