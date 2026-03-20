@@ -268,9 +268,9 @@ class SekerbankScraper:
                 if not card:
                     card = link_el
                 
-                # Scroll into view to trigger lazy loading
+                # Scroll into view to trigger lazy loading — 2 saniye bekle
                 driver.execute_script("arguments[0].scrollIntoView({behavior: 'smooth', block: 'center'});", card)
-                time.sleep(1) # Wait for hydration
+                time.sleep(2)
                 
                 # Re-check expired text via Selenium
                 card_text = card.text.lower()
@@ -314,6 +314,7 @@ class SekerbankScraper:
                     url = urljoin(self.BASE_URL, href)
                     # Avoid duplicates
                     if not any(item['url'] == url for item in found_items):
+                        print(f"         🖼️ [{idx+1}] img_url: {repr(img_url[:80]) if img_url else 'BOŞ'}")
                         found_items.append({
                             'url': url,
                             'list_image': img_url
