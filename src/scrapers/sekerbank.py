@@ -267,9 +267,17 @@ class SekerbankScraper:
                 links.forEach(function(link) {
                     var href = link.getAttribute('href');
                     if (!href) return;
-                    // Kart container'ı bul (yeni NextJS class'ları dahil)
-                    var card = link.closest('[class*="cardlistitem_campaign"], .col-xs-12, .col-sm-6, .col-md-4, .col-md-3, [class*="col-"]')
-                               || link.parentElement.parentElement || link.parentElement || link;
+                    // Kart container'ı bul (NextJS ve Bootstrap uyumlu iteratif parent araması)
+                    var card = link;
+                    var foundCard = null;
+                    for (var k = 0; k < 5; k++) {
+                        if (card.parentElement) card = card.parentElement;
+                        if (card && card.querySelector('img')) {
+                            foundCard = card;
+                            break;
+                        }
+                    }
+                    card = foundCard || card;
                     var imgUrl = '';
                     if (card) {
                         // Tüm img elementleri dene
