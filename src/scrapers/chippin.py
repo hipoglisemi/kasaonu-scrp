@@ -223,7 +223,6 @@ class ChippinScraper:
                             det_r = requests.get(detail_url, headers=headers, verify=False, timeout=10)
                             if det_r.status_code == 200:
                                 det_soup = BeautifulSoup(det_r.text, "html.parser")
-                                # __NEXT_DATA__ içinde detay verisi
                                 det_script = det_soup.find("script", {"id": "__NEXT_DATA__"})
                                 if det_script:
                                     det_data = json.loads(det_script.string)
@@ -232,28 +231,17 @@ class ChippinScraper:
                                         raw_img = campaign_detail.get(img_key)
                                         if raw_img and isinstance(raw_img, str) and "logo" not in raw_img.lower():
                                             image_url = raw_img if raw_img.startswith("http") else f"{CHIPPIN_BASE}{raw_img}"
-                                            print(f"      🖼️  [Detay __NEXT_DATA__] image_url: {image_url}")
                                             break
                                 if not image_url:
-                                    # img tag'larını tara
                                     for img in det_soup.find_all("img"):
                                         src = img.get("data-src") or img.get("src") or ""
                                         if src and not src.startswith("data:") and "logo" not in src.lower() and "icon" not in src.lower():
                                             image_url = src if src.startswith("http") else f"{CHIPPIN_BASE}{src}"
-                                            print(f"      🖼️  [Detay img tag] image_url: {image_url}")
                                             break
-                            else:
-                                print(f"      ⚠️ Detay sayfası HTTP {det_r.status_code}")
                         except Exception as img_err:
                             print(f"      ⚠️ Görsel detay fetch hatası: {img_err}")
 
-                # Görsel durumu log
-                if image_url:
-                    print(f"      🖼️  image_url: {image_url[:80]}")
-                else:
-                    print(f"      ⚠️  JSON keys: {list(c.keys())} → görsel bulunamadı")
 
-                
                 # Slug & URL Handling
                 cid = c.get("id")
                 if not cid: continue
@@ -268,10 +256,25 @@ class ChippinScraper:
                              continue
 
                         with self.engine.begin() as conn:
-                            existing = conn.execute(text("SELECT id FROM campaigns WHERE tracking_url = :url"), {"url": tracking_url}).fetchone()
+                            existing = conn.execute(text("SELECT id, image_url FROM campaigns WHERE tracking_url = :url"), {"url": tracking_url}).fetchone()
                             if existing:
-                                print(f"   ⏭️ Skipped (Already exists): {title}")
-                                skipped_count += 1  # type: ignore # pyre-ignore[58]
+                                existing_id, existing_img = existing[0], existing[1]
+                                # Görsel placeholder veya boşsa güncelle
+                                is_placeholder = (
+                                    not existing_img
+                                    or existing_img.startswith("/placeholders/")
+                                    or "logo" in existing_img.lower()
+                                )
+                                if is_placeholder and image_url:
+                                    conn.execute(
+                                        text("UPDATE campaigns SET image_url = :img, updated_at = NOW() WHERE id = :id"),
+                                        {"img": image_url, "id": existing_id}
+                                    )
+                                    print(f"   🔄 Görsel güncellendi: {title[:40]}")
+                                    skipped_count += 1  # type: ignore # pyre-ignore[58]
+                                else:
+                                    print(f"   ⏭️ Skipped (Already exists): {title[:40]}")
+                                    skipped_count += 1  # type: ignore # pyre-ignore[58]
                                 continue
                 except Exception as e:
                     print(f"   ❌ DB Pre-check Error: {e}")
