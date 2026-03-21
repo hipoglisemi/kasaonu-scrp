@@ -467,6 +467,19 @@ BANK_RULES = {
 - CONDITIONS:
     - 🚨 FORMAT: 3-5 concise bullets.
     - Include: Min spend, max NakitPuan, valid dates.
+""",
+    'burgan': """
+🚨 BURGAN BANK / ON DIGITAL SPECIFIC RULES:
+- TERMINOLOGY: "İade" or "Nakit İade". 
+- ELIGIBLE CARDS: "ON Kredi Kartı", "ON Banka Kartı", "Burgan Vadeli Hesap".
+- PARTICIPATION (participation):
+    - Primary method is the "ON Mobil" app. Look for "Hemen Katıl" button instructions.
+    - 🚨 CRITICAL: Burgan often puts participation steps as the first bullet point in "Kampanya Koşulları". 
+    - 🚨 EXTRACTION: Extract the EXACT participation instruction (e.g., "ON Mobil'den Hemen Katıl butonuna tıklayın") and put it ONLY in the 'participation' field.
+- 🚨 REDUNDANCY ALERT (ULTRA CRITICAL): 
+    - DO NOT repeat participation steps in the 'conditions' list.
+    - DO NOT repeat dates or eligible cards in the 'conditions' list.
+    - 'conditions' should ONLY contain rule-based constraints (e.g., "Maksimum 500 TL iade", "İptal/İadenin yansıması").
 """
 }
 
@@ -1096,6 +1109,13 @@ Bugünün tarihi: {current_date} (Yıl: {today.year})
 {sector_hint}
 
 VALID SECTORS (BİRİNİ SEÇ — SADECE bu listeden, PARANTEZ İÇİNDEKİLERİ YAZMA):
+- Fatura & Telekomünikasyon
+- Anne, Bebek & Oyuncak
+- Kitap, Kırtasiye & Ofis
+- Evcil Hayvan & Petshop
+- Hizmet & Bireysel Gelişim
+- Finans & Yatırım
+- Mücevherat, Optik & Saat
 - Market & Gıda
 - Akaryakıt
 - Giyim & Aksesuar
@@ -1112,7 +1132,6 @@ VALID SECTORS (BİRİNİ SEÇ — SADECE bu listeden, PARANTEZ İÇİNDEKİLERİ
 - Otomotiv
 - Vergi & Kamu
 - Turizm & Konaklama
-- Kuyum, Optik ve Saat
 - Diğer
 
 ⚠️ ÖNEMLİ: Sektör ismini AYNEN yukarıdaki listeden seç. Parantez içindeki açıklamaları YAZMA!
@@ -1131,9 +1150,15 @@ KURALLAR:
 5. reward_text: Kısa ve çarpıcı. "75 TL Worldpuan", "%20 İndirim", "300 TL'ye Varan Puan"
 6. sector: VALID SECTORS listesinden seç.
 7. brands: Metinde geçen marka isimlerini çıkar. Yoksa boş liste.
-8. conditions: Koşulları kısa maddeler halinde özetle (max 5 madde). ⚠️ ÖNEMLİ: "Geçerli Kartlar" bilgisini buraya YAZMA, çünkü ayrı bir alanda (cards) tutuyoruz.
+8. conditions: Koşulları kısa maddeler halinde özetle (max 5 madde). 
+   🚨 🚨 **ULTRA KRİTİK - YASAK**: Aşağıdaki bilgileri 'conditions' içine yazmak KESİNLİKLE YASAKTIR:
+   - **Participation (Katılım)**: "Hemen Katıl butonuna tıklayın", "SMS gönderin" gibi katılım adımlarını ASLA burada tekrarlama. Bunlar sadece `participation` alanında olmalı.
+   - **Cards (Kartlar)**: Dahil/geçerli kart isimlerini burada tekrarlama. Sadece `cards` alanında olmalı.
+   - **Dates (Tarihler)**: "Şu tarihler arasında" gibi bilgileri tekrarlama. Sadece `start_date` ve `end_date` alanlarında olmalı.
+   - ✅ SADECE teknik kuralları yaz: "Harcama alt sınırı", "Maksimum ödül limitleri", "İade/iptal durumları" vb.
 9. cards: Hangi kartlarla geçerli? Metinde belirtilen kartları listele.
-10. participation: 🚨 KRİTİK — Detay İçerik'te "SMS", "4454", "Mobil", "Katıl", "Jüzdan", "World Mobil" gibi ifadeleri ARA.
+10. participation: 🚨 KRİTİK — Detay İçerik'te "SMS", "4454", "Mobil", "Katıl", "Jüzdan", "World Mobil", "ON Mobil" gibi ifadeleri ARA.
+   - Katılım adımlarını buraya açık ve net yaz. Örn: "ON Mobil üzerinden Hemen Katıl butonuna tıklayarak katılın."
    - SMS varsa: "KEYWORD yazıp NUMARA'ya SMS gönderin" formatında yaz.
    - Mobil uygulama varsa: "World Mobil uygulamasından Kampanyalar bölümünde Katıl butonuna tıklayın" yaz.
    - Her ikisi de varsa: "World Mobil'den Katıl butonuna tıklayın veya KEYWORD yazıp NUMARA'ya SMS gönderin" yaz.

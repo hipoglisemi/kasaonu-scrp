@@ -137,16 +137,29 @@ class ONDigitalScraper:
             
             # Extract card data
             soup = BeautifulSoup(driver.page_source, 'html.parser')
-            cards = soup.select('div.col-md-4')
+            
+            # Updated selector based on recent research: .campaign-card
+            cards = soup.select('.campaign-card') or soup.select('div.col-md-4') or soup.select('.card')
+            
+            print(f"   DEBUG: Found {len(cards)} potential card elements in the DOM")
             
             for card in cards:
-                link_elm = card.select_one('a.stretched-link')
-                img_elm = card.select_one('img')
+                link_elm = card.select_one('a.stretched-link') or card.select_one('a[href*="-kampanyasi"]')
+                img_elm = card.select_one('img.card-img-top') or card.select_one('img')
                 
                 if link_elm and link_elm.get('href'):
                     title = link_elm.get('title') or link_elm.get_text().strip()
-                    href = link_elm.get('href')
+                    # If title is still empty, try h2 or other headers
+                    if not title:
+                        title_elm = card.select_one('h2, h3, h4, .card-title')
+                        title = title_elm.get_text().strip() if title_elm else "İsimsiz Kampanya"
+                        
+                    href = str(link_elm.get('href'))
                     image_url = img_elm.get('src') if img_elm else None
+                    
+                    # Extract sector/category badges
+                    badges = card.select('.badge') or card.select('.tag')
+                    sector_hint = ", ".join([b.get_text(strip=True) for b in badges])
                     
                     if image_url and not image_url.startswith('http'):
                         image_url = urljoin(self.BASE_URL, image_url)
@@ -154,19 +167,23 @@ class ONDigitalScraper:
                     campaigns.append({
                         'title': title,
                         'url': urljoin(self.BASE_URL, href),
-                        'initial_image': image_url
+                        'initial_image': image_url,
+                        'sector_hint': sector_hint
                     })
             
-            print(f"✅ Found {len(campaigns)} campaign cards")
+            # Filter matches to ensure they look like actual campaigns
+            campaigns = [c for c in campaigns if c['url'] and c['title'] and c['title'] != 'İsimsiz Kampanya']
+            print(f"✅ Found {len(campaigns)} verified campaign cards")
             
         except Exception as e:
             print(f"❌ Selenium Error: {e}")
         finally:
-            if self.driver:
-                self.driver.quit()
+            driver = self.driver
+            if driver:
+                try:
+                    driver.quit()
+                except: pass
                 self.driver = None
-                
-        return campaigns
                 
         return campaigns
 
@@ -189,10 +206,26 @@ class ONDigitalScraper:
             print(f"   ⚠️ DB Check error: {e}")
 
         try:
-            print(f"   Processing: {title}")
-            response = self.session.get(url, headers=self.HEADERS, timeout=15)
-            response.raise_for_status()
-            soup = BeautifulSoup(response.content, 'html.parser')
+            print(f"   🔎 Processing: {title}")
+            
+            # Using Selenium for detail page to handle dynamic content & lazy loaded sections
+            self.setup_driver()
+            driver = self.driver
+            if not driver:
+                raise Exception("Driver not initialized")
+                
+            driver.get(url)
+            time.sleep(3)
+            
+            # Scroll to ensure all content sections are rendered
+            driver.execute_script("window.scrollTo(0, document.body.scrollHeight / 3);")
+            time.sleep(1)
+            driver.execute_script("window.scrollTo(0, document.body.scrollHeight / 1.5);")
+            time.sleep(1)
+            driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
+            time.sleep(2)
+            
+            soup = BeautifulSoup(driver.page_source, 'html.parser')
             
             # Use card image as primary (user request)
             image_url = list_image
@@ -200,17 +233,26 @@ class ONDigitalScraper:
             # Extraction logic for detail page
             content_sections = []
             
-            # Look for main content area
+            # Look for main content area - using updated selectors
             main_content = soup.select_one('.kampanya-detay-icerik') or \
                            soup.select_one('article') or \
+                           soup.select_one('.detail-content') or \
                            soup.select_one('.content')
                            
             if main_content:
                 content_sections.append(main_content.get_text(separator="\n", strip=True))
             
+            # Look for all text content if specific container not found
+            if not content_sections:
+                all_text = soup.select_one('main') or soup.find('body')
+                if all_text:
+                    content_sections.append(all_text.get_text(separator="\n", strip=True))
+
             # Look for conditions specifically
             conditions_elm = soup.select_one('#kampanya-kosullari') or \
-                             soup.select_one('.conditions')
+                             soup.select_one('.conditions') or \
+                             soup.select_one('.tab-pane') # Sometimes in tabs
+            
             if conditions_elm:
                 sep = '\n'
                 content_sections.append(f"KAMPANYA KOŞULLARI:\n{conditions_elm.get_text(separator=sep, strip=True)}") # type: ignore
@@ -222,7 +264,9 @@ class ONDigitalScraper:
                 title=title,
                 short_description=title,
                 content_html=raw_content,
-                bank_name=self.BANK_NAME
+                bank_name=self.BANK_NAME,
+                scraper_sector=campaign_data.get('sector_hint'),
+                tracking_url=url
             )
             
             # Save to DB
@@ -237,6 +281,9 @@ class ONDigitalScraper:
         except Exception as e:
             print(f"   ❌ Error processing {url}: {e}")
             return "error"
+        finally:
+            # We don't quit the driver here to reuse it in the loop
+            pass
 
     def _save_campaign(self, title: str, image_url: Optional[str], 
                        tracking_url: str, ai_data: Dict[str, Any], 
@@ -321,6 +368,10 @@ class ONDigitalScraper:
             
         print(f"\n✅ Summary: {stats['saved']} saved, {stats['skipped']} skipped, {stats['error']} errors.")
         
+        if self.driver:
+            self.driver.quit()
+            self.driver = None
+            
         if stats['saved'] > 0:
             clear_cache('campaigns:*')
 
