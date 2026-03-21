@@ -61,11 +61,13 @@ class ShellScraper:
         options.add_argument('--disable-gpu')
         options.add_argument("--window-size=1920,1080")
         options.add_argument("user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36")
+        options.page_load_strategy = 'eager'
         
         if os.getenv("DOCKER_MODE") == "true" or os.environ.get("HEADLESS") == "1":
             options.add_argument('--headless=new')
 
         self.driver = webdriver.Chrome(options=options)
+        self.driver.set_page_load_timeout(90)
         
         stealth(self.driver,
                 languages=["tr-TR", "tr"],
@@ -237,6 +239,20 @@ class ShellScraper:
                     # Create Campaign & Slug
                     campaign_slug = get_unique_slug(title, self.db, Campaign)
                     
+                    # Convert dates safely
+                    s_date = ai_data.get('start_date')
+                    e_date = ai_data.get('end_date')
+                    
+                    try:
+                        start_dt = datetime.strptime(s_date, "%Y-%m-%d").date() if s_date else None
+                    except:
+                        start_dt = None
+                        
+                    try:
+                        end_dt = datetime.strptime(e_date, "%Y-%m-%d").date() if e_date else None
+                    except:
+                        end_dt = None
+
                     new_campaign = Campaign(
                         card_id=card.id,
                         slug=campaign_slug,
@@ -245,16 +261,18 @@ class ShellScraper:
                         reward_value=ai_data.get("reward_value"),
                         reward_type=ai_data.get("reward_type"),
                         description=ai_data.get("description"),
+                        ai_marketing_text=ai_data.get("description"),
                         conditions="\n".join(ai_data.get("conditions", [])),
                         image_url=img_url or ai_data.get("image_url"),
                         participation=ai_data.get("participation"),
                         eligible_cards=", ".join(ai_data.get("cards", [])),
-                        start_date=datetime.strptime(ai_data["start_date"], "%Y-%m-%d").date() if ai_data.get("start_date") else None,
-                        end_date=datetime.strptime(ai_data["end_date"], "%Y-%m-%d").date() if ai_data.get("end_date") else None,
+                        start_date=start_dt,
+                        end_date=end_dt,
                         tracking_url=detail_url,
                         is_active=True,
                         clean_text=ai_data.get("_clean_text"),
-                        sector_id=self._get_sector_id(ai_data.get("sector", "akaryakit"))
+                        sector_id=self._get_sector_id(ai_data.get("sector", "akaryakit")),
+                        category=ai_data.get("sector", "akaryakit")
                     )
 
                     self.db.add(new_campaign)

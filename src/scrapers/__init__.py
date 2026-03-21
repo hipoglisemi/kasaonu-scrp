@@ -53,6 +53,7 @@ try:
     from .shell import ShellScraper # type: ignore # pyre-ignore[21]
 except ImportError: ShellScraper = None
 
+
 __all__ = [
     'GarantiBonusScraper',
     'GarantiMilesAndSmilesScraper',

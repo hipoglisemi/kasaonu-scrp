@@ -142,8 +142,9 @@ class PetrolOfisiScraper:
             if not self.driver:
                 raise Exception("Failed to initialize driver")
 
-            self.driver.get(self.TARGET_URL)
-            time.sleep(5) # Give more time for heavy JS
+            driver = self.driver
+            driver.get(self.TARGET_URL)
+            time.sleep(5)
 
             # Accept cookies if any overlay appears
             try:
@@ -176,25 +177,26 @@ class PetrolOfisiScraper:
                     try:
                         btn.click()
                     except:
-                        self.driver.execute_script("arguments[0].click();", btn)
+                        driver.execute_script("arguments[0].click();", btn)
                         
                     click_count += 1
                     print(f"   🖱️ Clicked 'Show More' {click_count} times.")
-                    time.sleep(3) # Give more time for PO list to expand
+                    time.sleep(3)
                 except:
                     # Button no longer exists or not clickable
                     break
 
             # Collect cards
-            time.sleep(5) # Final wait for everything to render
-            soup = BeautifulSoup(self.driver.page_source, "html.parser")
+            time.sleep(5)
+            source = driver.page_source
+            soup = BeautifulSoup(source, "html.parser")
             cards = soup.select(".card-campaign")
             
             if not cards:
                 print("   ⚠️ No cards found with '.card-campaign'. Diagnostic info:")
                 unique_classes = sorted(list(set([cls for el in soup.find_all(True) for cls in el.get("class", [])])))
                 print(f"   📂 Found {len(unique_classes)} unique classes in DOM.")
-                print(f"   📑 First 1000 chars of source: {self.driver.page_source[:1000]}")
+                print(f"   📑 First 1000 chars of source: {source[:1000]}")
                 # Try fallback selector
                 cards = soup.select(".card")
                 if cards:
@@ -267,6 +269,20 @@ class PetrolOfisiScraper:
                     # Create Campaign & Slug
                     campaign_slug = get_unique_slug(title, self.db, Campaign)
                     
+                    # Convert dates safely
+                    s_date = ai_data.get('start_date')
+                    e_date = ai_data.get('end_date')
+                    
+                    try:
+                        start_dt = datetime.strptime(s_date, "%Y-%m-%d").date() if s_date else None
+                    except:
+                        start_dt = None
+                        
+                    try:
+                        end_dt = datetime.strptime(e_date, "%Y-%m-%d").date() if e_date else None
+                    except:
+                        end_dt = None
+
                     new_campaign = Campaign(
                         card_id=card.id,
                         slug=campaign_slug,
@@ -275,16 +291,18 @@ class PetrolOfisiScraper:
                         reward_value=ai_data.get("reward_value"),
                         reward_type=ai_data.get("reward_type"),
                         description=ai_data.get("description"),
+                        ai_marketing_text=ai_data.get("description"),
                         conditions="\n".join(ai_data.get("conditions", [])),
                         image_url=img_url or ai_data.get("image_url"),
                         participation=ai_data.get("participation"),
                         eligible_cards=", ".join(ai_data.get("cards", [])),
-                        start_date=datetime.strptime(ai_data["start_date"], "%Y-%m-%d").date() if ai_data.get("start_date") else None,
-                        end_date=datetime.strptime(ai_data["end_date"], "%Y-%m-%d").date() if ai_data.get("end_date") else None,
+                        start_date=start_dt,
+                        end_date=end_dt,
                         tracking_url=detail_url,
                         is_active=True,
                         clean_text=ai_data.get("_clean_text"),
-                        sector_id=self._get_sector_id(ai_data.get("sector", "akaryakit"))
+                        sector_id=self._get_sector_id(ai_data.get("sector", "akaryakit")),
+                        category=ai_data.get("sector", "akaryakit")
                     )
 
                     self.db.add(new_campaign)
