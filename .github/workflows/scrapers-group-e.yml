@@ -20,6 +20,7 @@ jobs:
           - nays
           - paycell
           - hsbc
+          - on_digital
 
     name: "🤖 ${{ matrix.scraper }}"
 
