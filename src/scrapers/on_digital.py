@@ -1,4 +1,4 @@
-
+import os
 import time
 import requests
 from datetime import datetime
@@ -6,7 +6,10 @@ from typing import Dict, Any, List, Optional
 from bs4 import BeautifulSoup
 from urllib.parse import urljoin
 from sqlalchemy.orm import Session
-from playwright.sync_api import sync_playwright
+from selenium import webdriver
+from selenium.webdriver.chrome.webdriver import WebDriver
+from selenium_stealth import stealth
+from selenium.webdriver.common.by import By
 
 from src.database import get_db_session
 from src.models import Campaign, Bank, Card, Sector, Brand, CampaignBrand
@@ -18,7 +21,7 @@ from src.utils.cache_manager import clear_cache
 class ONDigitalScraper:
     """
     Scraper for ON Digital (Burgan Bank) campaigns.
-    Uses Playwright for lazy-loading navigation and BeautifulSoup for extraction.
+    Uses Selenium with Stealth mode for navigation and BeautifulSoup for extraction.
     """
     
     BASE_URL = 'https://on.com.tr'
@@ -36,7 +39,37 @@ class ONDigitalScraper:
         self.db: Session = get_db_session()
         self.bank = self._get_or_create_bank()
         self.card = self._get_or_create_card()
+        self.driver: Optional[WebDriver] = None
         
+    def setup_driver(self):
+        """Initialize Selenium with Stealth Mode."""
+        if self.driver:
+            return
+
+        options = webdriver.ChromeOptions()
+        options.add_argument('--disable-blink-features=AutomationControlled')
+        options.add_experimental_option("excludeSwitches", ["enable-automation"])
+        options.add_experimental_option('useAutomationExtension', False)
+        options.add_argument('--no-sandbox')
+        options.add_argument('--disable-dev-shm-usage')
+        options.add_argument("--window-size=1920,1080")
+        options.add_argument(f"user-agent={self.HEADERS['User-Agent']}")
+        
+        if os.getenv("DOCKER_MODE") == "true" or os.environ.get("HEADLESS") == "1" or os.environ.get("TEST_MODE") == "1":
+            options.add_argument('--headless=new')
+            options.add_argument('--disable-gpu')
+
+        self.driver = webdriver.Chrome(options=options)
+        
+        stealth(self.driver,
+                languages=["tr-TR", "tr"],
+                vendor="Google Inc.",
+                platform="Win32",
+                webgl_vendor="Intel Inc.",
+                renderer="Intel Iris OpenGL Engine",
+                fix_hairline=True,
+                )
+
     def _get_or_create_bank(self) -> Bank:
         bank_slug = "burgan-bank"
         bank = self.db.query(Bank).filter(Bank.slug == bank_slug).first()
@@ -71,66 +104,67 @@ class ONDigitalScraper:
         return card
 
     def _fetch_campaign_data(self) -> List[Dict[str, Any]]:
-        """Use Playwright to handle lazy loading and extract initial card data."""
-        print(f"📥 Fetching campaign list from {self.LIST_URL} (Playwright)")
+        """Use Selenium to handle lazy loading and extract initial card data."""
+        print(f"📥 Fetching campaign list from {self.LIST_URL} (Selenium)")
         campaigns = []
         
-        with sync_playwright() as p:
-            browser = p.chromium.launch(headless=True)
-            context = browser.new_context(user_agent=self.HEADERS['User-Agent'])
-            page = context.new_page()
+        try:
+            self.setup_driver()
+            if not self.driver:
+                return []
+
+            self.driver.get(self.LIST_URL)
+            time.sleep(5) # Allow dynamic content to start loading
             
+            # Handle cookie banner if present
             try:
-                page.goto(self.LIST_URL, wait_until="networkidle", timeout=60000)
+                cookie_btn = self.driver.find_element(By.XPATH, "//button[contains(text(), 'Kabul Et')] | //*[contains(@class, 'cookie-accept')]")
+                cookie_btn.click()
+                time.sleep(1)
+            except: pass
+            
+            # Scroll to load all campaigns (Lazy Loading)
+            last_height = self.driver.execute_script("return document.body.scrollHeight")
+            for _ in range(15): # Limit scrolls
+                self.driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
+                time.sleep(2)
+                new_height = self.driver.execute_script("return document.body.scrollHeight")
+                if new_height == last_height:
+                    break
+                last_height = new_height
+            
+            # Extract card data
+            soup = BeautifulSoup(self.driver.page_source, 'html.parser')
+            cards = soup.select('div.col-md-4')
+            
+            for card in cards:
+                link_elm = card.select_one('a.stretched-link')
+                img_elm = card.select_one('img')
                 
-                # Handle cookie banner if present
-                try:
-                    cookie_btn = page.locator('button:has-text("Kabul Et"), .cookie-accept, #gdpr-accept').first
-                    if cookie_btn.is_visible():
-                        cookie_btn.click()
-                        time.sleep(1)
-                except: pass
-                
-                # Scroll to load all campaigns (Lazy Loading)
-                last_height = page.evaluate("document.body.scrollHeight")
-                while True:
-                    page.evaluate("window.scrollTo(0, document.body.scrollHeight)")
-                    time.sleep(2)
-                    new_height = page.evaluate("document.body.scrollHeight")
-                    if new_height == last_height:
-                        break
-                    last_height = new_height
-                
-                # Extract card data
-                content = page.content()
-                soup = BeautifulSoup(content, 'html.parser')
-                
-                # Selector found in research: div.col-md-4
-                cards = soup.select('div.col-md-4')
-                for card in cards:
-                    link_elm = card.select_one('a.stretched-link')
-                    img_elm = card.select_one('img')
+                if link_elm and link_elm.get('href'):
+                    title = link_elm.get('title') or link_elm.get_text().strip()
+                    href = link_elm.get('href')
+                    image_url = img_elm.get('src') if img_elm else None
                     
-                    if link_elm and link_elm.get('href'):
-                        title = link_elm.get('title') or link_elm.get_text().strip()
-                        href = link_elm.get('href')
-                        image_url = img_elm.get('src') if img_elm else None
+                    if image_url and not image_url.startswith('http'):
+                        image_url = urljoin(self.BASE_URL, image_url)
                         
-                        if image_url and not image_url.startswith('http'):
-                            image_url = urljoin(self.BASE_URL, image_url)
-                            
-                        campaigns.append({
-                            'title': title,
-                            'url': urljoin(self.BASE_URL, href),
-                            'initial_image': image_url
-                        })
+                    campaigns.append({
+                        'title': title,
+                        'url': urljoin(self.BASE_URL, href),
+                        'initial_image': image_url
+                    })
+            
+            print(f"✅ Found {len(campaigns)} campaign cards")
+            
+        except Exception as e:
+            print(f"❌ Selenium Error: {e}")
+        finally:
+            if self.driver:
+                self.driver.quit()
+                self.driver = None
                 
-                print(f"✅ Found {len(campaigns)} campaign cards")
-                
-            except Exception as e:
-                print(f"❌ Playwright Error: {e}")
-            finally:
-                browser.close()
+        return campaigns
                 
         return campaigns
 
