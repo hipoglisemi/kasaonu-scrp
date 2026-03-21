@@ -1,386 +1,424 @@
 import os
+import sys
 import time
-import requests
+import random
+from typing import List, Dict, Any, Optional
 from datetime import datetime
-from typing import Dict, Any, List, Optional
-from bs4 import BeautifulSoup
 from urllib.parse import urljoin
+
 from sqlalchemy.orm import Session
+from sqlalchemy.exc import IntegrityError
+from bs4 import BeautifulSoup
 from selenium import webdriver
 from selenium.webdriver.chrome.webdriver import WebDriver
+from selenium.webdriver.chrome.service import Service
 from selenium_stealth import stealth
 from selenium.webdriver.common.by import By
+
+try:
+    from webdriver_manager.chrome import ChromeDriverManager
+    HAS_WDM = True
+except ImportError:
+    HAS_WDM = False
 
 from src.database import get_db_session
 from src.models import Campaign, Bank, Card, Sector, Brand, CampaignBrand
 from src.services.ai_parser import parse_api_campaign
 from src.utils.slug_generator import get_unique_slug
-from src.utils.scraper_utils import is_url_blocked
+from src.utils.scraper_utils import should_skip_campaign
 from src.utils.cache_manager import clear_cache
+
 
 class ONDigitalScraper:
     """
     Scraper for ON Digital (Burgan Bank) campaigns.
-    Uses Selenium with Stealth mode for navigation and BeautifulSoup for extraction.
+    Uses a single Selenium driver for the full run (list + details).
     """
-    
+
     BASE_URL = 'https://on.com.tr'
     LIST_URL = 'https://on.com.tr/kampanyalar'
     BANK_NAME = 'Burgan Bank'
-    BRAND_NAME = 'ON Digital'
     CARD_NAME = 'ON Kredi Kartı'
-    
-    HEADERS = {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-    }
-    
+
     def __init__(self):
-        self.session = requests.Session()
-        self.db: Session = get_db_session()
-        self.bank = self._get_or_create_bank()
-        self.card = self._get_or_create_card()
         self.driver: Optional[WebDriver] = None
-        
+        self.db: Optional[Session] = None
+        self.bank: Optional[Bank] = None
+        self.card: Optional[Card] = None
+        self.sector_cache: Dict[str, Sector] = {}
+
+    # ── DRIVER ────────────────────────────────────────────────────────────────
+
     def setup_driver(self):
-        """Initialize Selenium with Stealth Mode."""
+        """Initialize a single Selenium driver for the entire scrape."""
         if self.driver:
             return
 
+        print("   🔌 Initializing Browser Driver (Chrome + Stealth)...")
         options = webdriver.ChromeOptions()
+        options.add_argument('--no-sandbox')
+        options.add_argument('--disable-dev-shm-usage')
+        options.add_argument('--disable-gpu')
         options.add_argument('--disable-blink-features=AutomationControlled')
         options.add_experimental_option("excludeSwitches", ["enable-automation"])
         options.add_experimental_option('useAutomationExtension', False)
-        options.add_argument('--no-sandbox')
-        options.add_argument('--disable-dev-shm-usage')
         options.add_argument("--window-size=1920,1080")
-        options.add_argument(f"user-agent={self.HEADERS['User-Agent']}")
-        
-        if os.getenv("DOCKER_MODE") == "true" or os.environ.get("HEADLESS") == "1" or os.environ.get("TEST_MODE") == "1":
-            options.add_argument('--headless=new')
-            options.add_argument('--disable-gpu')
+        options.add_argument("user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36")
 
-        self.driver = webdriver.Chrome(options=options)
-        
-        stealth(self.driver,
+        # Headless in CI/Docker
+        if os.getenv("DOCKER_MODE") == "true" or os.getenv("HEADLESS") == "1" or os.getenv("TEST_MODE") == "1":
+            options.add_argument('--headless=new')
+
+        try:
+            if HAS_WDM:
+                self.driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=options)
+            else:
+                self.driver = webdriver.Chrome(options=options)
+
+            stealth(
+                self.driver,
                 languages=["tr-TR", "tr"],
                 vendor="Google Inc.",
                 platform="Win32",
                 webgl_vendor="Intel Inc.",
                 renderer="Intel Iris OpenGL Engine",
                 fix_hairline=True,
-                )
-
-    def _get_or_create_bank(self) -> Bank:
-        bank_slug = "burgan-bank"
-        bank = self.db.query(Bank).filter(Bank.slug == bank_slug).first()
-        if not bank:
-            print(f"✨ Creating bank: {self.BANK_NAME}")
-            bank = Bank(
-                name=self.BANK_NAME, 
-                slug=bank_slug, 
-                is_active=True,
-                logo_url="/logos/cards/burgan.png"
             )
-            self.db.add(bank)
-            self.db.commit()
-            self.db.refresh(bank)
-        return bank
+            print("   ✅ Browser launched successfully.")
+        except Exception as e:
+            print(f"   ❌ Failed to launch browser: {e}")
+            raise
 
-    def _get_or_create_card(self) -> Card:
-        card_slug = "on-kredi-karti"
-        card = self.db.query(Card).filter(Card.slug == card_slug).first()
-        if not card:
-            print(f"💳 Creating card: {self.CARD_NAME}")
-            card = Card(
-                name=self.CARD_NAME,
-                bank_id=self.bank.id,
-                slug=card_slug,
-                card_type="credit",
-                is_active=True
-            )
-            self.db.add(card)
-            self.db.commit()
-            self.db.refresh(card)
-        return card
-
-    def _fetch_campaign_data(self) -> List[Dict[str, Any]]:
-        """Use Selenium to handle lazy loading and extract initial card data."""
-        print(f"📥 Fetching campaign list from {self.LIST_URL} (Selenium)")
-        campaigns = []
-        
-        try:
-            self.setup_driver()
-            driver = self.driver
-            if not driver:
-                return []
-
-            driver.get(self.LIST_URL)
-            time.sleep(5) # Allow dynamic content to start loading
-            
-            # Handle cookie banner if present
+    def close_driver(self):
+        if self.driver:
             try:
-                # Using a more robust selector for the cookie button
-                cookie_btn = driver.find_element(By.XPATH, "//button[contains(text(), 'Kabul Et')] | //*[contains(@class, 'cookie-accept')] | //*[contains(@id, 'gdpr-accept')]")
-                cookie_btn.click()
-                time.sleep(1)
-            except: pass
-            
-            # Scroll to load all campaigns (Lazy Loading)
-            last_height = driver.execute_script("return document.body.scrollHeight")
-            for _ in range(15): # Limit scrolls
-                driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
-                time.sleep(2)
-                new_height = driver.execute_script("return document.body.scrollHeight")
-                if new_height == last_height:
-                    break
-                last_height = new_height
-            
-            # Extract card data
-            soup = BeautifulSoup(driver.page_source, 'html.parser')
-            
-            # Updated selector based on recent research: .campaign-card
-            cards = soup.select('.campaign-card') or soup.select('div.col-md-4') or soup.select('.card')
-            
-            print(f"   DEBUG: Found {len(cards)} potential card elements in the DOM")
-            
-            for card in cards:
-                link_elm = card.select_one('a.stretched-link') or card.select_one('a[href*="-kampanyasi"]')
-                img_elm = card.select_one('img.card-img-top') or card.select_one('img')
-                
-                if link_elm and link_elm.get('href'):
-                    title = link_elm.get('title') or link_elm.get_text().strip()
-                    # If title is still empty, try h2 or other headers
-                    if not title:
-                        title_elm = card.select_one('h2, h3, h4, .card-title')
-                        title = title_elm.get_text().strip() if title_elm else "İsimsiz Kampanya"
-                        
-                    href = str(link_elm.get('href'))
-                    image_url = img_elm.get('src') if img_elm else None
-                    
-                    # Extract sector/category badges
-                    badges = card.select('.badge') or card.select('.tag')
-                    sector_hint = ", ".join([b.get_text(strip=True) for b in badges])
-                    
-                    if image_url and not image_url.startswith('http'):
-                        image_url = urljoin(self.BASE_URL, image_url)
-                        
-                    campaigns.append({
-                        'title': title,
-                        'url': urljoin(self.BASE_URL, href),
-                        'initial_image': image_url,
-                        'sector_hint': sector_hint
-                    })
-            
-            # Filter matches to ensure they look like actual campaigns
-            campaigns = [c for c in campaigns if c['url'] and c['title'] and c['title'] != 'İsimsiz Kampanya']
-            print(f"✅ Found {len(campaigns)} verified campaign cards")
-            
-        except Exception as e:
-            print(f"❌ Selenium Error: {e}")
-        finally:
-            driver = self.driver
-            if driver:
-                try:
-                    driver.quit()
-                except: pass
-                self.driver = None
-                
-        return campaigns
+                self.driver.quit()
+            except Exception:
+                pass
+            self.driver = None
 
-    def _process_campaign(self, campaign_data: Dict[str, str]):
-        url = campaign_data['url']
-        title = campaign_data['title']
-        list_image = campaign_data['initial_image']
-        
-        # Database Pre-check
+    # ── CACHE / DB HELPERS ────────────────────────────────────────────────────
+
+    def _load_cache(self):
+        db = self.db
+        if not db:
+            return
+
+        # Bank
+        bank = db.query(Bank).filter(Bank.slug == "burgan-bank").first()
+        if not bank:
+            bank = Bank(name=self.BANK_NAME, slug="burgan-bank", is_active=True, logo_url="/logos/cards/burgan.png")
+            db.add(bank)
+            db.commit()
+        self.bank = bank
+
+        # Card
+        card = db.query(Card).filter(Card.slug == "on-kredi-karti").first()
+        if not card:
+            card = Card(name=self.CARD_NAME, bank_id=bank.id, slug="on-kredi-karti", card_type="credit", is_active=True)
+            db.add(card)
+            db.commit()
+        self.card = card
+
+        # Sectors
+        for s in db.query(Sector).all():
+            self.sector_cache[s.slug] = s
+            self.sector_cache[s.name.lower()] = s
+
+    # ── SCRAPING ──────────────────────────────────────────────────────────────
+
+    def _fetch_campaign_list(self) -> List[Dict[str, Any]]:
+        """Scroll the campaign list page and collect card-level information."""
+        print(f"📥 Fetching campaign list from {self.LIST_URL}")
+        campaigns = []
+        driver = self.driver
+        if not driver:
+            return campaigns
+
+        driver.get(self.LIST_URL)
+        time.sleep(5)
+
+        # Dismiss cookie banner
         try:
-            if is_url_blocked(self.db, url):
-                print(f"   🚫 Skipped (Blocklisted): {url}")
-                return "skipped"
-
-            existing = self.db.query(Campaign).filter(Campaign.tracking_url == url).first()
-            if existing:
-                print(f"   ⏭️ Skipped (Exists): {title}")
-                return "skipped"
-        except Exception as e:
-            print(f"   ⚠️ DB Check error: {e}")
-
-        try:
-            print(f"   🔎 Processing: {title}")
-            
-            # Using Selenium for detail page to handle dynamic content & lazy loaded sections
-            self.setup_driver()
-            driver = self.driver
-            if not driver:
-                raise Exception("Driver not initialized")
-                
-            driver.get(url)
-            time.sleep(3)
-            
-            # Scroll to ensure all content sections are rendered
-            driver.execute_script("window.scrollTo(0, document.body.scrollHeight / 3);")
+            btn = driver.find_element(By.XPATH, "//button[contains(text(),'Kabul') or contains(text(),'kabul')]")
+            btn.click()
             time.sleep(1)
-            driver.execute_script("window.scrollTo(0, document.body.scrollHeight / 1.5);")
-            time.sleep(1)
-            driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
-            time.sleep(2)
-            
-            soup = BeautifulSoup(driver.page_source, 'html.parser')
-            
-            # Use card image as primary (user request)
-            image_url = list_image
-            
-            # Extraction logic for detail page
-            content_sections = []
-            
-            # Look for main content area - using updated selectors
-            main_content = soup.select_one('.box-content .raw-data') or \
-                           soup.select_one('.raw-data') or \
-                           soup.select_one('.kampanya-detay-icerik') or \
-                           soup.select_one('article') or \
-                           soup.select_one('.detail-content')
-                           
-            if main_content:
-                content_sections.append(main_content.get_text(separator="\n", strip=True))
-            
-            # Look for all text content if specific container not found
-            if not content_sections:
-                all_text = soup.select_one('main') or soup.find('body')
-                if all_text:
-                    content_sections.append(all_text.get_text(separator="\n", strip=True))
-
-            # Look for conditions specifically
-            conditions_elm = soup.select_one('#kampanya-kosullari') or \
-                             soup.select_one('.conditions') or \
-                             soup.select_one('.tab-pane') # Sometimes in tabs
-            
-            if conditions_elm:
-                sep = '\n'
-                content_sections.append(f"KAMPANYA KOŞULLARI:\n{conditions_elm.get_text(separator=sep, strip=True)}") # type: ignore
-            
-            raw_content = "\n\n".join(content_sections)
-            
-            # AI enrichment
-            ai_data = parse_api_campaign(
-                title=title,
-                short_description=title,
-                content_html=raw_content,
-                bank_name=self.BANK_NAME,
-                scraper_sector=campaign_data.get('sector_hint'),
-                tracking_url=url
-            )
-            
-            # Save to DB
-            return self._save_campaign(
-                title=ai_data.get('short_title') or title,
-                image_url=image_url,
-                tracking_url=url,
-                ai_data=ai_data,
-                raw_description=raw_content
-            )
-            
-        except Exception as e:
-            print(f"   ❌ Error processing {url}: {e}")
-            return "error"
-        finally:
-            # We don't quit the driver here to reuse it in the loop
+        except Exception:
             pass
 
-    def _save_campaign(self, title: str, image_url: Optional[str], 
-                       tracking_url: str, ai_data: Dict[str, Any], 
-                       raw_description: str):
+        # Scroll to load lazy content
+        last_height = driver.execute_script("return document.body.scrollHeight")
+        for _ in range(15):
+            driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
+            time.sleep(2)
+            new_height = driver.execute_script("return document.body.scrollHeight")
+            if new_height == last_height:
+                break
+            last_height = new_height
+
+        soup = BeautifulSoup(driver.page_source, 'html.parser')
+        cards = soup.select('.campaign-card') or soup.select('div.col-md-4') or soup.select('.card')
+        print(f"   DEBUG: Found {len(cards)} potential card elements")
+
+        for card in cards:
+            link_elm = card.select_one('a.stretched-link') or card.select_one('a[href]')
+            img_elm = card.select_one('img.card-img-top') or card.select_one('img')
+
+            if not link_elm or not link_elm.get('href'):
+                continue
+
+            title = (
+                link_elm.get('title')
+                or (card.select_one('h2, h3, h4, .card-title') or link_elm).get_text(strip=True)
+                or ""
+            )
+            if not title:
+                continue
+
+            href = str(link_elm.get('href', ''))
+            image_url = img_elm.get('src') if img_elm else None
+            if image_url and not image_url.startswith('http'):
+                image_url = urljoin(self.BASE_URL, image_url)
+
+            badges = card.select('.badge') or card.select('.tag')
+            sector_hint = ", ".join(b.get_text(strip=True) for b in badges)
+
+            campaigns.append({
+                'title': title,
+                'url': urljoin(self.BASE_URL, href),
+                'list_image': image_url,
+                'sector_hint': sector_hint,
+            })
+
+        # Deduplicate by URL
+        seen = set()
+        unique = []
+        for c in campaigns:
+            if c['url'] not in seen:
+                seen.add(c['url'])
+                unique.append(c)
+
+        print(f"✅ Found {len(unique)} unique campaign cards")
+        return unique
+
+    def _fetch_detail(self, url: str) -> str:
+        """Load a detail page with scrolling and extract text content."""
+        driver = self.driver
+        if not driver:
+            return ""
+
+        driver.get(url)
+        time.sleep(3)
+
+        # Scroll through the page to trigger lazy content
+        for frac in [0.33, 0.66, 1.0]:
+            driver.execute_script(f"window.scrollTo(0, document.body.scrollHeight * {frac});")
+            time.sleep(1)
+
+        soup = BeautifulSoup(driver.page_source, 'html.parser')
+
+        # ON Digital's campaign detail lives in .box-content > .raw-data
+        content_parts = []
+
+        # Try specific containers first
+        selectors = [
+            '.box-content .raw-data',
+            '.raw-data',
+            '.kampanya-detay-icerik',
+            'article',
+            '.detail-content',
+        ]
+        for sel in selectors:
+            el = soup.select_one(sel)
+            if el:
+                content_parts.append(el.get_text(separator='\n', strip=True))
+                break  # Found a match, stop
+
+        # Also grab any tab panels (conditions, etc.)
+        for tab_sel in ['#kampanya-kosullari', '.tab-pane', '.conditions']:
+            tab_el = soup.select_one(tab_sel)
+            if tab_el:
+                content_parts.append(f"KAMPANYA KOŞULLARI:\n{tab_el.get_text(separator=chr(10), strip=True)}")
+
+        if not content_parts:
+            # Last resort: entire main/body
+            fallback = soup.select_one('main') or soup.find('body')
+            if fallback:
+                content_parts.append(fallback.get_text(separator='\n', strip=True))
+
+        return "\n\n".join(content_parts)
+
+    # ── PROCESSING ────────────────────────────────────────────────────────────
+
+    def _process_campaign(self, item: Dict[str, Any], force: bool = False) -> str:
+        url = item['url']
+        db = self.db
+        if not db:
+            return "error"
+
+        # Skip check
+        if not force and should_skip_campaign(db, url):
+            print(f"      ⏭️  Skipped (already exists or blocked): {url}")
+            return "skipped"
+
+        print(f"   🔎 Processing: {item['title']}")
+
+        # Detail page
+        raw_content = self._fetch_detail(url)
+        if not raw_content:
+            print(f"      ⚠️ Could not extract detail content for {url}")
+            raw_content = item['title']
+
+        # AI parse
+        ai_data = parse_api_campaign(
+            title=item['title'],
+            short_description=item['title'],
+            content_html=raw_content,
+            bank_name=self.BANK_NAME,
+            scraper_sector=item.get('sector_hint'),
+            tracking_url=url,
+            force=force,
+        )
+
+        if not ai_data:
+            print("      ❌ AI parsing failed.")
+            return "error"
+
+        return self._save_campaign(ai_data, url, item.get('list_image'))
+
+    def _save_campaign(self, data: Dict[str, Any], url: str, image_url: Optional[str]) -> str:
+        db = self.db
+        if not db:
+            return "error"
+
         try:
-            # Slug
-            slug = get_unique_slug(title, self.db, Campaign)
+            title = data.get('short_title') or data.get('title') or "ON Digital Kampanya"
+            slug = get_unique_slug(title, db, Campaign)
 
             # Dates
             start_date = None
             end_date = None
-            if ai_data.get('start_date'):
-                try: start_date = datetime.strptime(ai_data['start_date'], "%Y-%m-%d")
-                except: pass
-            if ai_data.get('end_date'):
-                try: end_date = datetime.strptime(ai_data['end_date'], "%Y-%m-%d")
-                except: pass
+            if data.get('start_date'):
+                try:
+                    start_date = datetime.strptime(data['start_date'], "%Y-%m-%d")
+                except Exception:
+                    pass
+            if data.get('end_date'):
+                try:
+                    end_date = datetime.strptime(data['end_date'], "%Y-%m-%d")
+                except Exception:
+                    pass
 
-            # Sector mapping
-            sector_name = ai_data.get('sector', 'Diğer')
-            sector = self.db.query(Sector).filter((Sector.slug == sector_name) | (Sector.name.ilike(sector_name))).first()
-            if not sector:
-                sector = self.db.query(Sector).filter(Sector.slug == 'diger').first()
+            # Sector
+            sector_slug = data.get('sector', 'diger')
+            sector = self.sector_cache.get(str(sector_slug).lower()) or self.sector_cache.get('diger')
+
+            # Conditions
+            conditions_raw = data.get('conditions', [])
+            if isinstance(conditions_raw, list):
+                conditions_text = '\n'.join(conditions_raw)
+            else:
+                conditions_text = str(conditions_raw)
 
             campaign = Campaign(
                 slug=slug,
                 title=title,
-                card_id=self.card.id,
+                bank_id=self.bank.id if self.bank else None,
+                card_id=self.card.id if self.card else None,
                 sector_id=sector.id if sector else None,
-                reward_value=ai_data.get('reward_value'),
-                reward_type=ai_data.get('reward_type'),
-                reward_text=ai_data.get('reward_text', 'Detayları İnceleyin'),
-                description=str(ai_data.get('description') or raw_description)[:500],
-                conditions='\n'.join(ai_data.get('conditions', [])),
+                reward_value=data.get('reward_value'),
+                reward_type=data.get('reward_type'),
+                reward_text=data.get('reward_text') or 'Detayları İnceleyin',
+                description=str(data.get('description') or '')[:500],
+                conditions=conditions_text,
+                participation=data.get('participation') or '',
                 start_date=start_date,
                 end_date=end_date,
                 image_url=image_url,
-                tracking_url=tracking_url,
+                tracking_url=url,
                 is_active=True,
                 created_at=datetime.utcnow(),
-                updated_at=datetime.utcnow()
+                updated_at=datetime.utcnow(),
             )
-            
-            self.db.add(campaign)
-            self.db.commit()
-            print(f"   ✅ Saved: {campaign.title}")
+
+            db.add(campaign)
+            db.flush()
 
             # Brands
-            for b_name in ai_data.get('brands', []):
-                brand = self.db.query(Brand).filter(Brand.name == b_name).first()
+            for b_name in data.get('brands', []):
+                if not b_name:
+                    continue
+                brand = db.query(Brand).filter(Brand.name == b_name).first()
                 if not brand:
-                    brand = Brand(name=b_name, slug=get_unique_slug(b_name, self.db, Brand), is_active=True)
-                    self.db.add(brand)
-                    self.db.flush()
-                
-                self.db.add(CampaignBrand(campaign_id=campaign.id, brand_id=brand.id))
-            
-            self.db.commit()
+                    brand = Brand(name=b_name, slug=get_unique_slug(b_name, db, Brand), is_active=True)
+                    db.add(brand)
+                    db.flush()
+                db.add(CampaignBrand(campaign_id=campaign.id, brand_id=brand.id))
+
+            db.commit()
+            print(f"      ✅ Saved: {campaign.title}")
             return "saved"
 
+        except IntegrityError:
+            db.rollback()
+            print(f"      ⚠️ Duplicate, skipped.")
+            return "skipped"
         except Exception as e:
-            self.db.rollback()
-            print(f"   ❌ Save Error: {e}")
+            db.rollback()
+            print(f"      ❌ Save error: {e}")
             return "error"
 
-    def run(self, limit: Optional[int] = None):
-        print(f"🚀 Starting {self.BRAND_NAME} Scraper...")
-        campaigns = self._fetch_campaign_data()
-        
-        # Using list() to ensure it's sliceable even if type hint is confusing
-        campaigns_list = list(campaigns)
-        campaigns_to_process = campaigns_list[:limit] if limit else campaigns_list
-        if limit:
-            print(f"   Using limit: {limit}")
-            
-        stats = {"saved": 0, "skipped": 0, "error": 0}
-        
-        for item in campaigns_to_process:
-            res = self._process_campaign(item)
-            stats[res if res in stats else "error"] += 1
-            time.sleep(1)
-            
-        print(f"\n✅ Summary: {stats['saved']} saved, {stats['skipped']} skipped, {stats['error']} errors.")
-        
-        if self.driver:
-            self.driver.quit()
-            self.driver = None
-            
-        if stats['saved'] > 0:
-            clear_cache('campaigns:*')
+    # ── ENTRY POINT ───────────────────────────────────────────────────────────
+
+    def run(self, limit: Optional[int] = None, force: bool = False):
+        print(f"🚀 Starting ON Digital (Burgan Bank) Scraper...")
+        try:
+            self.db = get_db_session()
+            self._load_cache()
+            self.setup_driver()  # single driver for full run
+
+            items = self._fetch_campaign_list()
+            if limit:
+                items = items[:limit]
+                print(f"   Using limit: {limit}")
+
+            saved = skipped = errors = 0
+            for i, item in enumerate(items, 1):
+                print(f"   [{i}/{len(items)}] {item['url']}")
+                try:
+                    res = self._process_campaign(item, force=force)
+                    if res == "saved":
+                        saved += 1
+                    elif res == "skipped":
+                        skipped += 1
+                    else:
+                        errors += 1
+                except Exception as e:
+                    print(f"      ❌ Error: {e}")
+                    errors += 1
+                time.sleep(random.uniform(1, 2))
+
+            print(f"\n✅ Summary: {saved} saved, {skipped} skipped, {errors} errors.")
+
+            if saved > 0:
+                clear_cache('campaigns:*')
+
+        except Exception as e:
+            print(f"❌ Fatal error: {e}")
+            import traceback
+            traceback.print_exc()
+        finally:
+            self.close_driver()
+            if self.db:
+                self.db.close()
+
 
 if __name__ == "__main__":
     import argparse
     parser = argparse.ArgumentParser()
     parser.add_argument('--limit', type=int, help='Limit number of campaigns')
+    parser.add_argument('--force', action='store_true', help='Force re-parse even if exists')
     args = parser.parse_args()
-    
+
     scraper = ONDigitalScraper()
-    scraper.run(limit=args.limit)
+    scraper.run(limit=args.limit, force=args.force)
