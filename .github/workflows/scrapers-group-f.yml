@@ -17,6 +17,7 @@ jobs:
           - opet
           - petrolofisi
           - shell
+          - totalenergies
 
     name: "🤖 ${{ matrix.scraper }}"
 
