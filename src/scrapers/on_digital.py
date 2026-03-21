@@ -234,10 +234,11 @@ class ONDigitalScraper:
             content_sections = []
             
             # Look for main content area - using updated selectors
-            main_content = soup.select_one('.kampanya-detay-icerik') or \
+            main_content = soup.select_one('.box-content .raw-data') or \
+                           soup.select_one('.raw-data') or \
+                           soup.select_one('.kampanya-detay-icerik') or \
                            soup.select_one('article') or \
-                           soup.select_one('.detail-content') or \
-                           soup.select_one('.content')
+                           soup.select_one('.detail-content')
                            
             if main_content:
                 content_sections.append(main_content.get_text(separator="\n", strip=True))

@@ -473,11 +473,12 @@ BANK_RULES = {
 - TERMINOLOGY: "İade" or "Nakit İade". 
 - ELIGIBLE CARDS: "ON Kredi Kartı", "ON Banka Kartı", "Burgan Vadeli Hesap".
 - PARTICIPATION (participation):
-    - Primary method is the "ON Mobil" app. Look for "Hemen Katıl" button instructions.
-    - 🚨 CRITICAL: Burgan often puts participation steps as the first bullet point in "Kampanya Koşulları". 
-    - 🚨 EXTRACTION: Extract the EXACT participation instruction (e.g., "ON Mobil'den Hemen Katıl butonuna tıklayın") and put it ONLY in the 'participation' field.
-- 🚨 REDUNDANCY ALERT (ULTRA CRITICAL): 
-    - DO NOT repeat participation steps in the 'conditions' list.
+    - 🚨 MANDATORY: Primary method is the "ON Mobil" app.
+    - 🚨 EXTRACTION: Search the campaign details/bullets for phrases like "ON Mobil'den 'Hemen Katıl' butonuna tıklayarak", "kampanyaya kaydolması gerekmektedir", or "Hemen Katıl butonuna basın".
+    - 🚨 MOVE vs REPEAT: If you find this in the list of conditions, MOVE it to the 'participation' field and DELETE it from the 'conditions' list.
+    - ❌ FORBIDDEN: Do NOT use generic text like "Mobil uygulama üzerinden veya banka kanallarından talimatları izleyin". Use the EXACT sentence from the page if found, otherwise use "ON Mobil uygulamasında 'Kampanyalar' bölümünden 'Hemen Katıl' butonuna tıklayarak katılabilirsiniz."
+- 🚨 REDUNDANCY ALERT: 
+    - Ensure participation steps are ONLY in 'participation', never in 'conditions'.
     - DO NOT repeat dates or eligible cards in the 'conditions' list.
     - 'conditions' should ONLY contain rule-based constraints (e.g., "Maksimum 500 TL iade", "İptal/İadenin yansıması").
 """
