@@ -54,6 +54,7 @@ on:
           - yapikredi_play
           - yapikredi_world
           - ziraat
+          - totalenergies
       limit:
         description: 'Çekilecek max kampanya sayısı (Sadece İşbankası için desteklenir, boş bırakılırsa limitsiz)'
         required: false
@@ -68,7 +69,7 @@ jobs:
     steps:
       - id: set-matrix
         run: |
-          ALL='["akbank_axess","akbank_business","akbank_free","akbank_wings","albaraka","americanexpress","chippin","denizbank","dunyakatilim","enpara","garanti_bonus","garanti_milesandsmiles","garanti_shopandfly","hsbc","isbankasi_genc","isbankasi_maximiles","isbankasi_maximum","kuveytturk","masterpass","nays","paycell","paraf","paraf_genc","param","qnb","sekerbank","tami","teb","uption","turkcell","turktelekom","turkiyefinans","vakifbank","vodafone","yapikredi_adios","yapikredi_crystal","yapikredi_play","yapikredi_world","ziraat","opet","petrolofisi","shell"]'
+          ALL='["akbank_axess","akbank_business","akbank_free","akbank_wings","albaraka","americanexpress","chippin","denizbank","dunyakatilim","enpara","garanti_bonus","garanti_milesandsmiles","garanti_shopandfly","hsbc","isbankasi_genc","isbankasi_maximiles","isbankasi_maximum","kuveytturk","masterpass","nays","paycell","paraf","paraf_genc","param","qnb","sekerbank","tami","teb","uption","turkcell","turktelekom","turkiyefinans","vakifbank","vodafone","yapikredi_adios","yapikredi_crystal","yapikredi_play","yapikredi_world","ziraat","opet","petrolofisi","shell","totalenergies"]'
           INPUT="${{ github.event.inputs.scraper }}"
           if [ -z "$INPUT" ] || [ "$INPUT" = "all" ]; then
             echo "scrapers=$ALL" >> $GITHUB_OUTPUT
@@ -132,7 +133,7 @@ jobs:
           LIMIT_ARG="--limit ${{ github.event.inputs.limit }}"
         fi
         
-        if [[ "${{ matrix.scraper }}" == isbankasi_* || "${{ matrix.scraper }}" == opet || "${{ matrix.scraper }}" == petrolofisi || "${{ matrix.scraper }}" == shell ]] && [ -n "$LIMIT_ARG" ]; then
+        if [[ "${{ matrix.scraper }}" == isbankasi_* || "${{ matrix.scraper }}" == opet || "${{ matrix.scraper }}" == petrolofisi || "${{ matrix.scraper }}" == shell || "${{ matrix.scraper }}" == totalenergies ]] && [ -n "$LIMIT_ARG" ]; then
           python -u src/scrapers/${{ matrix.scraper }}.py $LIMIT_ARG
         else
           python -u src/scrapers/${{ matrix.scraper }}.py

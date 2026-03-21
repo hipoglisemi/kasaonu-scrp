@@ -53,6 +53,10 @@ try:
     from .shell import ShellScraper # type: ignore # pyre-ignore[21]
 except ImportError: ShellScraper = None
 
+try:
+    from .totalenergies import TotalEnergiesScraper # type: ignore # pyre-ignore[21]
+except ImportError: TotalEnergiesScraper = None
+
 
 __all__ = [
     'GarantiBonusScraper',
@@ -67,5 +71,6 @@ __all__ = [
     'OpetScraper',
     "ZiraatScraper",
     "PetrolOfisiScraper",
-    "ShellScraper"
+    "ShellScraper",
+    "TotalEnergiesScraper"
 ]

@@ -73,7 +73,8 @@ class TotalEnergiesScraper:
 
         time.sleep(2)
         self.driver = webdriver.Chrome(options=options)
-        self.driver.set_page_load_timeout(90)
+        if self.driver:
+            self.driver.set_page_load_timeout(90)
         
         stealth(self.driver,
                 languages=["tr-TR", "tr"],
@@ -103,7 +104,7 @@ class TotalEnergiesScraper:
         return bank
 
     def _get_or_create_card(self, db: Session, bank_id: int) -> Card:
-        slug = "totalenergies-club"
+        slug = "clubtotalenergies"
         if slug in self.card_cache:
             return self.card_cache[slug]
             
@@ -128,13 +129,14 @@ class TotalEnergiesScraper:
         self.setup_driver()
         self.db = get_db_session()
         
-        results = {"SAVED": 0, "SKIPPED": 0, "FAILED": 0, "LOGS": []}
+        results: Dict[str, Any] = {"SAVED": 0, "SKIPPED": 0, "FAILED": 0, "LOGS": []}
         
         try:
             driver = self.driver
             if not driver:
                 raise Exception("Failed to initialize driver")
-                
+            
+            assert driver is not None
             driver.get(self.TARGET_URL)
             time.sleep(3)
             
@@ -152,11 +154,6 @@ class TotalEnergiesScraper:
             card_elements = soup.select(".showcase__card--container")
             
             if not card_elements:
-                print("   ⚠️ No cards found with .showcase__card--container. Diagnostic info:")
-                unique_classes = set()
-                for tag in soup.find_all(class_=True):
-                    unique_classes.update(tag.get('class'))
-                print(f"   Classes found: {sorted(list(unique_classes))[:20]}...")
                 # Try fallback
                 card_elements = soup.select("[class*='showcase__card']")
             
@@ -164,29 +161,49 @@ class TotalEnergiesScraper:
 
             processed_count = 0
             for card_soup in card_elements:
-                if limit and processed_count >= limit:
+                if limit is not None and processed_count >= limit:
                     break
                 
                 try:
                     # Distinguish Active vs Expired
-                    # Subagent found that expired campaigns have class 'True' and active ones have class 'False'
+                    # 1. Check for 'play_gray.svg' in the detail button icon
+                    # 2. Check for grayscale filter in style
+                    # 3. Check for specific classes
+                    
+                    is_expired = False
+                    
+                    # Check icons
+                    detail_btn = card_soup.select_one(".showcase__card-detail--button")
+                    if detail_btn:
+                        icon_img = detail_btn.select_one("img")
+                        if icon_img and "play_gray.svg" in icon_img.get("src", ""):
+                            is_expired = True
+                    
+                    # Check classes & style
                     classes = card_soup.get("class", [])
-                    is_expired = "True" in classes
+                    style = card_soup.get("style", "")
+                    
+                    if "True" in classes or "grayscale" in style.lower():
+                        is_expired = True
                     
                     if is_expired:
-                        # print(f"   ⏩ Skipping expired campaign (True class detected).")
-                        # results["SKIPPED"] += 1
+                        print(f"   ⏩ Skipping expired campaign: {card_soup.select_one('.showcase__card-detail--slogan').text.strip() if card_soup.select_one('.showcase__card-detail--slogan') else 'Unknown'}")
+                        results["SKIPPED"] += 1
                         continue
 
                     title_tag = card_soup.select_one(".showcase__card-detail--slogan")
                     if not title_tag:
-                        # print("      ⚠️ No title found in card")
                         continue
                     
                     title = title_tag.text.strip()
-                    detail_btn = card_soup.select_one(".showcase__card-detail--button")
+                    
+                    # Extract Image URL from Listing Page
+                    image_tag = card_soup.select_one(".showcase__card--image img") or card_soup.select_one("img")
+                    listing_image_url = None
+                    if image_tag:
+                        listing_image_url = urljoin(self.BASE_URL, image_tag.get("src", ""))
+
                     if not detail_btn:
-                        # print(f"      ⚠️ No detail button found for: {title}")
                         continue
                         
                     onclick = detail_btn.get("onclick", "")
@@ -269,7 +286,7 @@ class TotalEnergiesScraper:
                         participation=campaign_data.get('participation'),
                         eligible_cards=", ".join(campaign_data.get('cards', [])),
                         category=campaign_data.get('sector', 'akaryakit'),
-                        image_url=campaign_data.get('image_url'),
+                        image_url=listing_image_url or campaign_data.get('image_url'),
                         tracking_url=detail_url,
                         start_date=start_dt,
                         end_date=end_dt,
@@ -303,12 +320,19 @@ class TotalEnergiesScraper:
 
         except Exception as e:
             print(f"   ❌ Scraper Crashed: {str(e)}")
-            results["LOGS"].append(str(e))
+            if isinstance(results["LOGS"], list):
+                results["LOGS"].append(str(e))
         finally:
             if self.driver:
-                self.driver.quit()
+                try:
+                    self.driver.quit()
+                except:
+                    pass
             if self.db:
-                self.db.close()
+                try:
+                    self.db.close()
+                except:
+                    pass
                 
         print(f"🏁 Finished {self.SOURCE_NAME}. Saved: {results['SAVED']}, Skipped: {results['SKIPPED']}, Failed: {results['FAILED']}")
         log_scraper_execution(
