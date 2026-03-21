@@ -110,31 +110,33 @@ class ONDigitalScraper:
         
         try:
             self.setup_driver()
-            if not self.driver:
+            driver = self.driver
+            if not driver:
                 return []
 
-            self.driver.get(self.LIST_URL)
+            driver.get(self.LIST_URL)
             time.sleep(5) # Allow dynamic content to start loading
             
             # Handle cookie banner if present
             try:
-                cookie_btn = self.driver.find_element(By.XPATH, "//button[contains(text(), 'Kabul Et')] | //*[contains(@class, 'cookie-accept')]")
+                # Using a more robust selector for the cookie button
+                cookie_btn = driver.find_element(By.XPATH, "//button[contains(text(), 'Kabul Et')] | //*[contains(@class, 'cookie-accept')] | //*[contains(@id, 'gdpr-accept')]")
                 cookie_btn.click()
                 time.sleep(1)
             except: pass
             
             # Scroll to load all campaigns (Lazy Loading)
-            last_height = self.driver.execute_script("return document.body.scrollHeight")
+            last_height = driver.execute_script("return document.body.scrollHeight")
             for _ in range(15): # Limit scrolls
-                self.driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
+                driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
                 time.sleep(2)
-                new_height = self.driver.execute_script("return document.body.scrollHeight")
+                new_height = driver.execute_script("return document.body.scrollHeight")
                 if new_height == last_height:
                     break
                 last_height = new_height
             
             # Extract card data
-            soup = BeautifulSoup(self.driver.page_source, 'html.parser')
+            soup = BeautifulSoup(driver.page_source, 'html.parser')
             cards = soup.select('div.col-md-4')
             
             for card in cards:
