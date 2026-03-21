@@ -6,6 +6,9 @@ from typing import List, Dict, Any, Optional
 from datetime import datetime
 from urllib.parse import urljoin
 
+# Ensure src is in path so CLI execution works
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
 from bs4 import BeautifulSoup
@@ -217,27 +220,29 @@ class ONDigitalScraper:
 
         soup = BeautifulSoup(driver.page_source, 'html.parser')
 
-        # ON Digital's campaign detail lives in .box-content > .raw-data
+        # ON Digital's campaign detail lives in .box-content or .raw-data
         content_parts = []
 
-        # Try specific containers first
-        selectors = [
-            '.box-content .raw-data',
-            '.raw-data',
-            '.kampanya-detay-icerik',
-            'article',
-            '.detail-content',
-        ]
-        for sel in selectors:
-            el = soup.select_one(sel)
-            if el:
-                content_parts.append(el.get_text(separator='\n', strip=True))
-                break  # Found a match, stop
+        # Find all .box-content blocks first
+        box_contents = soup.select('.box-content')
+        if box_contents:
+            for box in box_contents:
+                content_parts.append(box.get_text(separator='\n', strip=True))
+        else:
+            # Fallback to all .raw-data blocks
+            raw_datas = soup.select('.raw-data')
+            if raw_datas:
+                for raw in raw_datas:
+                    content_parts.append(raw.get_text(separator='\n', strip=True))
+            else:
+                fallback = soup.select_one('.kampanya-detay-icerik') or soup.select_one('article') or soup.select_one('.detail-content')
+                if fallback:
+                    content_parts.append(fallback.get_text(separator='\n', strip=True))
 
-        # Also grab any tab panels (conditions, etc.)
+        # Also grab any tab panels (conditions, etc.) if they exist separately
         for tab_sel in ['#kampanya-kosullari', '.tab-pane', '.conditions']:
-            tab_el = soup.select_one(tab_sel)
-            if tab_el:
+            tab_els = soup.select(tab_sel)
+            for tab_el in tab_els:
                 content_parts.append(f"KAMPANYA KOŞULLARI:\n{tab_el.get_text(separator=chr(10), strip=True)}")
 
         if not content_parts:
@@ -323,7 +328,6 @@ class ONDigitalScraper:
             campaign = Campaign(
                 slug=slug,
                 title=title,
-                bank_id=self.bank.id if self.bank else None,
                 card_id=self.card.id if self.card else None,
                 sector_id=sector.id if sector else None,
                 reward_value=data.get('reward_value'),
