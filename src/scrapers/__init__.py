@@ -1,6 +1,4 @@
 
-
-
 try:
     from .garanti_bonus import GarantiBonusScraper  # type: ignore # pyre-ignore[21]
 except ImportError: GarantiBonusScraper = None
@@ -57,6 +55,10 @@ try:
     from .totalenergies import TotalEnergiesScraper # type: ignore # pyre-ignore[21]
 except ImportError: TotalEnergiesScraper = None
 
+try:
+    from .on_digital import ONDigitalScraper # type: ignore # pyre-ignore[21]
+except ImportError: ONDigitalScraper = None
+
 
 __all__ = [
     'GarantiBonusScraper',
@@ -72,5 +74,6 @@ __all__ = [
     "ZiraatScraper",
     "PetrolOfisiScraper",
     "ShellScraper",
-    "TotalEnergiesScraper"
+    "TotalEnergiesScraper",
+    "ONDigitalScraper"
 ]

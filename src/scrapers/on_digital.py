@@ -1,0 +1,298 @@
+
+import time
+import requests
+from datetime import datetime
+from typing import Dict, Any, List, Optional
+from bs4 import BeautifulSoup
+from urllib.parse import urljoin
+from sqlalchemy.orm import Session
+from playwright.sync_api import sync_playwright
+
+from src.database import get_db_session
+from src.models import Campaign, Bank, Card, Sector, Brand, CampaignBrand
+from src.services.ai_parser import parse_api_campaign
+from src.utils.slug_generator import get_unique_slug
+from src.utils.scraper_utils import is_url_blocked
+from src.utils.cache_manager import clear_cache
+
+class ONDigitalScraper:
+    """
+    Scraper for ON Digital (Burgan Bank) campaigns.
+    Uses Playwright for lazy-loading navigation and BeautifulSoup for extraction.
+    """
+    
+    BASE_URL = 'https://on.com.tr'
+    LIST_URL = 'https://on.com.tr/kampanyalar'
+    BANK_NAME = 'Burgan Bank'
+    BRAND_NAME = 'ON Digital'
+    CARD_NAME = 'ON Kredi Kartı'
+    
+    HEADERS = {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+    }
+    
+    def __init__(self):
+        self.session = requests.Session()
+        self.db: Session = get_db_session()
+        self.bank = self._get_or_create_bank()
+        self.card = self._get_or_create_card()
+        
+    def _get_or_create_bank(self) -> Bank:
+        bank_slug = "burgan-bank"
+        bank = self.db.query(Bank).filter(Bank.slug == bank_slug).first()
+        if not bank:
+            print(f"✨ Creating bank: {self.BANK_NAME}")
+            bank = Bank(
+                name=self.BANK_NAME, 
+                slug=bank_slug, 
+                is_active=True,
+                logo_url="/logos/cards/burgan.png"
+            )
+            self.db.add(bank)
+            self.db.commit()
+            self.db.refresh(bank)
+        return bank
+
+    def _get_or_create_card(self) -> Card:
+        card_slug = "on-kredi-karti"
+        card = self.db.query(Card).filter(Card.slug == card_slug).first()
+        if not card:
+            print(f"💳 Creating card: {self.CARD_NAME}")
+            card = Card(
+                name=self.CARD_NAME,
+                bank_id=self.bank.id,
+                slug=card_slug,
+                card_type="credit",
+                is_active=True
+            )
+            self.db.add(card)
+            self.db.commit()
+            self.db.refresh(card)
+        return card
+
+    def _fetch_campaign_data(self) -> List[Dict[str, Any]]:
+        """Use Playwright to handle lazy loading and extract initial card data."""
+        print(f"📥 Fetching campaign list from {self.LIST_URL} (Playwright)")
+        campaigns = []
+        
+        with sync_playwright() as p:
+            browser = p.chromium.launch(headless=True)
+            context = browser.new_context(user_agent=self.HEADERS['User-Agent'])
+            page = context.new_page()
+            
+            try:
+                page.goto(self.LIST_URL, wait_until="networkidle", timeout=60000)
+                
+                # Handle cookie banner if present
+                try:
+                    cookie_btn = page.locator('button:has-text("Kabul Et"), .cookie-accept, #gdpr-accept').first
+                    if cookie_btn.is_visible():
+                        cookie_btn.click()
+                        time.sleep(1)
+                except: pass
+                
+                # Scroll to load all campaigns (Lazy Loading)
+                last_height = page.evaluate("document.body.scrollHeight")
+                while True:
+                    page.evaluate("window.scrollTo(0, document.body.scrollHeight)")
+                    time.sleep(2)
+                    new_height = page.evaluate("document.body.scrollHeight")
+                    if new_height == last_height:
+                        break
+                    last_height = new_height
+                
+                # Extract card data
+                content = page.content()
+                soup = BeautifulSoup(content, 'html.parser')
+                
+                # Selector found in research: div.col-md-4
+                cards = soup.select('div.col-md-4')
+                for card in cards:
+                    link_elm = card.select_one('a.stretched-link')
+                    img_elm = card.select_one('img')
+                    
+                    if link_elm and link_elm.get('href'):
+                        title = link_elm.get('title') or link_elm.get_text().strip()
+                        href = link_elm.get('href')
+                        image_url = img_elm.get('src') if img_elm else None
+                        
+                        if image_url and not image_url.startswith('http'):
+                            image_url = urljoin(self.BASE_URL, image_url)
+                            
+                        campaigns.append({
+                            'title': title,
+                            'url': urljoin(self.BASE_URL, href),
+                            'initial_image': image_url
+                        })
+                
+                print(f"✅ Found {len(campaigns)} campaign cards")
+                
+            except Exception as e:
+                print(f"❌ Playwright Error: {e}")
+            finally:
+                browser.close()
+                
+        return campaigns
+
+    def _process_campaign(self, campaign_data: Dict[str, str]):
+        url = campaign_data['url']
+        title = campaign_data['title']
+        list_image = campaign_data['initial_image']
+        
+        # Database Pre-check
+        try:
+            if is_url_blocked(self.db, url):
+                print(f"   🚫 Skipped (Blocklisted): {url}")
+                return "skipped"
+
+            existing = self.db.query(Campaign).filter(Campaign.tracking_url == url).first()
+            if existing:
+                print(f"   ⏭️ Skipped (Exists): {title}")
+                return "skipped"
+        except Exception as e:
+            print(f"   ⚠️ DB Check error: {e}")
+
+        try:
+            print(f"   Processing: {title}")
+            response = self.session.get(url, headers=self.HEADERS, timeout=15)
+            response.raise_for_status()
+            soup = BeautifulSoup(response.content, 'html.parser')
+            
+            # Use card image as primary (user request)
+            image_url = list_image
+            
+            # Extraction logic for detail page
+            content_sections = []
+            
+            # Look for main content area
+            main_content = soup.select_one('.kampanya-detay-icerik') or \
+                           soup.select_one('article') or \
+                           soup.select_one('.content')
+                           
+            if main_content:
+                content_sections.append(main_content.get_text(separator="\n", strip=True))
+            
+            # Look for conditions specifically
+            conditions_elm = soup.select_one('#kampanya-kosullari') or \
+                             soup.select_one('.conditions')
+            if conditions_elm:
+                sep = '\n'
+                content_sections.append(f"KAMPANYA KOŞULLARI:\n{conditions_elm.get_text(separator=sep, strip=True)}") # type: ignore
+            
+            raw_content = "\n\n".join(content_sections)
+            
+            # AI enrichment
+            ai_data = parse_api_campaign(
+                title=title,
+                short_description=title,
+                content_html=raw_content,
+                bank_name=self.BANK_NAME
+            )
+            
+            # Save to DB
+            return self._save_campaign(
+                title=ai_data.get('short_title') or title,
+                image_url=image_url,
+                tracking_url=url,
+                ai_data=ai_data,
+                raw_description=raw_content
+            )
+            
+        except Exception as e:
+            print(f"   ❌ Error processing {url}: {e}")
+            return "error"
+
+    def _save_campaign(self, title: str, image_url: Optional[str], 
+                       tracking_url: str, ai_data: Dict[str, Any], 
+                       raw_description: str):
+        try:
+            # Slug
+            slug = get_unique_slug(title, self.db, Campaign)
+
+            # Dates
+            start_date = None
+            end_date = None
+            if ai_data.get('start_date'):
+                try: start_date = datetime.strptime(ai_data['start_date'], "%Y-%m-%d")
+                except: pass
+            if ai_data.get('end_date'):
+                try: end_date = datetime.strptime(ai_data['end_date'], "%Y-%m-%d")
+                except: pass
+
+            # Sector mapping
+            sector_name = ai_data.get('sector', 'Diğer')
+            sector = self.db.query(Sector).filter((Sector.slug == sector_name) | (Sector.name.ilike(sector_name))).first()
+            if not sector:
+                sector = self.db.query(Sector).filter(Sector.slug == 'diger').first()
+
+            campaign = Campaign(
+                slug=slug,
+                title=title,
+                card_id=self.card.id,
+                sector_id=sector.id if sector else None,
+                reward_value=ai_data.get('reward_value'),
+                reward_type=ai_data.get('reward_type'),
+                reward_text=ai_data.get('reward_text', 'Detayları İnceleyin'),
+                description=str(ai_data.get('description') or raw_description)[:500],
+                conditions='\n'.join(ai_data.get('conditions', [])),
+                start_date=start_date,
+                end_date=end_date,
+                image_url=image_url,
+                tracking_url=tracking_url,
+                is_active=True,
+                created_at=datetime.utcnow(),
+                updated_at=datetime.utcnow()
+            )
+            
+            self.db.add(campaign)
+            self.db.commit()
+            print(f"   ✅ Saved: {campaign.title}")
+
+            # Brands
+            for b_name in ai_data.get('brands', []):
+                brand = self.db.query(Brand).filter(Brand.name == b_name).first()
+                if not brand:
+                    brand = Brand(name=b_name, slug=get_unique_slug(b_name, self.db, Brand), is_active=True)
+                    self.db.add(brand)
+                    self.db.flush()
+                
+                self.db.add(CampaignBrand(campaign_id=campaign.id, brand_id=brand.id))
+            
+            self.db.commit()
+            return "saved"
+
+        except Exception as e:
+            self.db.rollback()
+            print(f"   ❌ Save Error: {e}")
+            return "error"
+
+    def run(self, limit: Optional[int] = None):
+        print(f"🚀 Starting {self.BRAND_NAME} Scraper...")
+        campaigns = self._fetch_campaign_data()
+        
+        # Using list() to ensure it's sliceable even if type hint is confusing
+        campaigns_list = list(campaigns)
+        campaigns_to_process = campaigns_list[:limit] if limit else campaigns_list
+        if limit:
+            print(f"   Using limit: {limit}")
+            
+        stats = {"saved": 0, "skipped": 0, "error": 0}
+        
+        for item in campaigns_to_process:
+            res = self._process_campaign(item)
+            stats[res if res in stats else "error"] += 1
+            time.sleep(1)
+            
+        print(f"\n✅ Summary: {stats['saved']} saved, {stats['skipped']} skipped, {stats['error']} errors.")
+        
+        if stats['saved'] > 0:
+            clear_cache('campaigns:*')
+
+if __name__ == "__main__":
+    import argparse
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--limit', type=int, help='Limit number of campaigns')
+    args = parser.parse_args()
+    
+    scraper = ONDigitalScraper()
+    scraper.run(limit=args.limit)
