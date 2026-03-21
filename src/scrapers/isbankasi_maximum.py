@@ -638,8 +638,19 @@ class IsbankMaximumScraper:
                         or existing_img.startswith("/placeholders/")
                         or "logo" in existing_img.lower()
                         or "kartavantaj" in existing_img.lower()
-                        or "/contentmanagement/publishingimages/" in existing_img.lower()
                     )
+                    
+                    # If it's not a placeholder, check if it's actually broken (404/401)
+                    if not is_placeholder:
+                        try:
+                            import requests
+                            img_resp = requests.head(existing_img, timeout=5, verify=False)
+                            if img_resp.status_code in [404, 401, 403]:
+                                print(f"   ⚠️ Image is broken ({img_resp.status_code}): {existing_img}")
+                                is_placeholder = True
+                        except Exception:
+                            pass
+
                     if is_placeholder:
                         # Görsel güncelleme: sadece detay sayfasından görsel çek
                         print(f"   🔄 Görsel eksik, güncelleniyor: {existing.title[:40]}")  # type: ignore # pyre-ignore[16,6]

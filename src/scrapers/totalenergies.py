@@ -213,6 +213,10 @@ class TotalEnergiesScraper:
                         
                     relative_url = match.group(1)
                     detail_url = urljoin(self.BASE_URL, relative_url)
+                    
+                    # Normalize URL (remove -2, -3 etc. from the end of the slug)
+                    # example: .../kampanya-adi-3/ -> .../kampanya-adi/
+                    detail_url = re.sub(r'-\d+/?$', '/', detail_url)
 
                     # Skip if already exists
                     if should_skip_campaign(self.db, detail_url):
@@ -225,6 +229,12 @@ class TotalEnergiesScraper:
                     # Navigate to detail page
                     driver.get(detail_url)
                     time.sleep(3)
+                    
+                    # Check for 404/expired page
+                    if "404" in driver.title or "Sayfa Bulunamadı" in driver.page_source:
+                        print(f"   ⏭️ Skipping (404/Not Found): {detail_url}")
+                        results["SKIPPED"] += 1
+                        continue
                     
                     # Scroll for AI parsing
                     driver.execute_script("window.scrollTo(0, document.body.scrollHeight/2);")
