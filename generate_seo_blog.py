@@ -221,7 +221,8 @@ YAZIM KURALLARI:
    <h1> KULLANMA. Markdown KULLANMA.
 5. SEO ve Linkleme: Konu başlığındaki anahtar kelimeleri doğal biçimde ilk paragrafta,
    h2 başlıklarında ve sonuç bölümünde kullan.
-   ÖNEMLİ: Listelenen her kampanya için verilen kampanya linkini (URL) <a href="..."> etiketi kullanarak metin içine doğal bir şekilde ekle!
+   ÖNEMLİ VE KRİTİK KURAL: Listelenen "GERÇEK KAMPANYALAR" için, eğer o kampanya satırında "Link: https://kartavantaj.com/kampanya/..." şeklinde bir öge verilmişse, metin içinde o kampanyadan bahsederken YALNIZCA o URL'yi <a href="..."> etiketiyle eklemelisin.
+   EĞER bir kampanya için Link verilmemişse veya kendi kendine örnek bir kampanyadan bahsediyorsan, KESİNLİKLE hiçbir link / URL / 'a href' ETİKETİ EKLEMEYECEKSİN. Tüm uydurma linkler (örneğin 'https://yapikredi.com.tr/kampanyalar' gibi dış banka linkleri dahil) KESİNLİKLE YASAKTIR. SADECE sana yukarıdaki metin bloğunda açıkça verilen 'https://kartavantaj.com/kampanya/...' bağlantılarını kullanma yetkin var.
 6. Değer: Soyut bilgi verme. Somut rakamlar, gerçek kampanya örnekleri,
    pratik ipuçları içersin. Okuyucu makaleyi okuyunca ne yapacağını bilsin.
 7. CTA: Son paragrafta "KartAvantaj'da tüm kampanyaları karşılaştır" 
