@@ -11,3 +11,4 @@ groq>=0.13.0
 python-slugify==8.0.4
 google-auth
 google-api-python-client
+thefuzz==0.20.0
