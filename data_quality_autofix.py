@@ -206,6 +206,24 @@ def run_autofix(limit: int = 50):
                 if not c.brands:
                     is_defective = True
                     reasons.append("Missing Brands")
+                else:
+                    wrong_bank_brands = [
+                        "Garanti BBVA", "Garanti", "Garanti Bankası", "Bonus", "Akbank", "Axess",
+                        "İş Bankası", "Türkiye İş Bankası", "Maximum", "Maximiles", "Yapı Kredi", "World", 
+                        "Halkbank", "Paraf", "VakıfBank", "Kuveyt Türk", "Ziraat", "Ziraat Bankası", 
+                        "Bankkart", "Enpara", "QNB", "Finansbank", "QNB Finansbank", "TEB", "DenizBank", "CEPTETEB"
+                    ]
+                    for b in c.brands:
+                        b_name = b.name if hasattr(b, 'name') else str(b)
+                        b_name_strip = b_name.strip()
+                        if b_name_strip in wrong_bank_brands:
+                            is_defective = True
+                            reasons.append(f"Invalid Bank Brand: {b_name_strip}")
+                            break
+                        if b_name_strip.lower() == "genel":
+                            is_defective = True
+                            reasons.append("Review 'Genel' Brand")
+                            break
 
                 if is_defective and c.tracking_url:
                     # COOLDOWN & PERMANENT SKIP LOGIC
@@ -430,9 +448,25 @@ def run_autofix(limit: int = 50):
                         updated = True
 
                 # --- Marka tamiri ---
-                if not c.brands and ai_data.get("brands"):
+                needs_brand_fix = False
+                if not c.brands:
+                    needs_brand_fix = True
+                elif reasons_list:
+                    for r in reasons_list:
+                        if "Invalid Bank Brand" in r or "Review 'Genel' Brand" in r:
+                            needs_brand_fix = True
+                            break
+
+                if needs_brand_fix and ai_data.get("brands"):
                     from src.services.brand_matcher import get_or_create_brand
                     brand_cache = {} # Local cache for this campaign
+                    
+                    # Hatalı markaları temizle (eğer sıfırdan eklenmiyorsa)
+                    if c.brands:
+                        db.query(CampaignBrand).filter(CampaignBrand.campaign_id == c.id).delete()
+                        c.brands = []  # locally clear connection
+                        db.flush()
+
                     for b_name in ai_data["brands"]:
                         if not isinstance(b_name, str) or len(b_name) < 2:
                             continue
@@ -447,7 +481,7 @@ def run_autofix(limit: int = 50):
                                 ).first()
                                 if not link:
                                     db.add(CampaignBrand(campaign_id=c.id, brand_id=brand.id))
-                                    print(f"   ✨ Added Brand: {brand.name}")
+                                    print(f"   ✨ Replaced/Added Brand: {brand.name}")
                                     updated = True
                         except Exception as be:
                             db.rollback()

@@ -792,6 +792,7 @@ VALID- SECTOR (CRITICAL):
     - 🚨 ÖNEMLİ YASAK: Asla kampanya sahibi bankayı (İş Bankası, Akbank, Garanti vb.) veya kart programını (Maximum, Axess, Bonus, World, Wings vb.) MARKA olarak ekleme. Sadece ortak markayı (ör. Trendyol, Migros, THY) ekle.
     - 🚨 FORMAT KURALI: Marka veya kart isimlerini asla "P, a, r, a, f" veya "A, x, e, s, s" gibi her harfi virgülle ayrılmış şekilde yazma. Sadece tam ve okunabilir ismi yaz ("Paraf", "Axess").
     - Bilinmeyen marka varsa UYDURMA, metindeki ismini kullan.
+    - 🚨 GENEL KAMPANYALAR KURALI (ŞART!): Eğer kampanya kredi başvurusu, nakit avans, limit artırımı, ek taksit gibi SADECE bankanın kendi genel kampanyasıysa ve ortada dışarıdan başka bir ortak marka (Trendyol, Migros, THY vb.) YOKSA, markayı KESİNLİKLE "Genel" olarak yaz. Garanti BBVA gibi banka adlarını yazma! Sadece ["Genel"] yaz!
 3. **SECTOR**: Yukarıdaki VALID SECTORS listesinden EN UYGUN olanı seç. Asla bu liste dışına çıkma.
 4. **MARKETING**: 'description' alanı MUTLAKA 2 cümle olmalı. Samimi ve kullanıcıyı teşvik edici olmalı.
     - 🚨 KESİN YASAK: 'description' alanına tarih, kart veya katılım bilgisi ASLA EKLEME.
@@ -820,6 +821,7 @@ VALID- SECTOR (CRITICAL):
       * Kampanya ayı < Bugünün ayı → Yıl: {datetime.now().year + 1}
       * Kampanya ayı >= Bugünün ayı → Yıl: {datetime.now().year}
     - Sadece bitiş tarihi varsa, başlangıç tarihi olarak bugünü ({current_date}) al.
+    - 🚨 BULUNAMAYAN TARİH KURALI: Eğer metinde başlangıç veya bitiş tarihi AÇIKÇA BELİRTİLMEMİŞSE (veya süresiz vb. ise), o alanı KESİNLİKLE null olarak bırak. Asla bugünün tarihini tahmini olarak yazma. Uydurma tarih üretmek veya mevcut günün tarihini ezbere eklemek YASAKTIR.
 
 8. **KATILIM (PARTICIPATION)**: 
     - 🚨 KRİTİK: SMS, Mobil, Uygulama, Katıl, Gönder gibi teknik katılım mekanizmalarını ara.
@@ -1150,7 +1152,7 @@ KURALLAR:
 4. reward_type: "puan", "indirim", "taksit", veya "mil"
 5. reward_text: Kısa ve çarpıcı. "75 TL Worldpuan", "%20 İndirim", "300 TL'ye Varan Puan"
 6. sector: VALID SECTORS listesinden seç.
-7. brands: Metinde geçen marka isimlerini çıkar. Yoksa boş liste.
+7. brands: Metinde geçen dış marka isimlerini çıkar (ör. Trendyol, Migros). Asla Garanti BBVA, İş Bankası gibi banka adlarını yazma! Eğer ortada harici bir marka yoksa (kredi, nakit avans, otomatik fatura, ek taksit gibi bankanın genel bir kampanyasıysa) SADECE ["Genel"] yaz.
 8. conditions: Koşulları kısa maddeler halinde özetle (max 5 madde). 
    🚨 🚨 **ULTRA KRİTİK - YASAK**: Aşağıdaki bilgileri 'conditions' içine yazmak KESİNLİKLE YASAKTIR:
    - **Participation (Katılım)**: "Hemen Katıl butonuna tıklayın", "SMS gönderin" gibi katılım adımlarını ASLA burada tekrarlama. Bunlar sadece `participation` alanında olmalı.
@@ -1164,7 +1166,7 @@ KURALLAR:
    - Mobil uygulama varsa: "World Mobil uygulamasından Kampanyalar bölümünde Katıl butonuna tıklayın" yaz.
    - Her ikisi de varsa: "World Mobil'den Katıl butonuna tıklayın veya KEYWORD yazıp NUMARA'ya SMS gönderin" yaz.
    - Hiçbiri yoksa: "Otomatik katılım" yaz.
-10. dates: Metinde geçen başlangıç ve bitiş tarihlerini bul. Format: "YYYY-MM-DD". Bulamazsan null yap.
+10. dates: Metinde geçen başlangıç ve bitiş tarihlerini bul. Format: "YYYY-MM-DD". Bulamazsan null yap. 🚨 EĞER TARİHLER AÇIKÇA YOKSA ASLA BUGÜNÜN TARİHİNİ (<current_date>) KULLANMA. UYDURMA YASAKTIR. KESİNLİKLE `null` OLARAK BIRAK.
 
 KAMPANYA BİLGİLERİ:
 Başlık: "{title}"

@@ -199,11 +199,20 @@ class IsbankMaximumScraper:
             "/kampanyalar/maximum-pati-kart",
             "/kampanyalar/arac-kiralama",
             "/kampanyalar/bankamatik",
+            "/kampanyalar/bireysel",
+            "/kampanyalar/ticari",
+            "/kampanyalar/ozel-bankacilik",
             "bireysel", "ticari", "diger-kampanyalar",
             "movenpick", "arsivi", "ozel-bankacilik",
             "/kampanyalar/arsiv",
             "/kampanyalar/yurtdisi"
         ]
+
+        # Known slugs that look like campaigns but redirect to category pages
+        excluded_slug_keywords = [
+            "solariste-gunes-gozlugu",
+        ]
+
 
         unique_urls = []
         unique_expired = []
@@ -214,6 +223,8 @@ class IsbankMaximumScraper:
             
             if href in excluded_paths: continue
             if any(href.endswith(s) for s in excluded_suffixes): continue
+            if any(kw in href for kw in excluded_slug_keywords): continue
+
             
             full_url = urljoin(self.BASE_URL, cast(str, href))
             if full_url in seen: continue
@@ -280,6 +291,17 @@ class IsbankMaximumScraper:
 
             if "gecmis" in url or "geçmiş" in title.lower():
                 return None  # type: ignore # pyre-ignore[7]
+
+            # Kategori/index sayfası tuzağı: eğer sayfada kampanya görseli (CampaignImage) yoksa
+            # bu URL bireysel gibi bir kategori sayfasına yönlendirilmiştir, atla.
+            campaign_img_el = soup.select_one("img[id$='CampaignImage']")
+            if not campaign_img_el:
+                # kategori başlıkları içeriyorsa kesinlikle atla
+                category_titles = ["Bireysel Kart Kampanyaları", "Ticari Kart Kampanyaları", "Tüm Kampanyalar"]
+                if any(ct.lower() in title.lower() for ct in category_titles):
+                    print(f"   ⏭️ Skipped (Category redirect page): {title}")
+                    return None  # type: ignore # pyre-ignore[7]
+
 
             # Blocklist check
             from src.database import get_db_session  # type: ignore
