@@ -56,13 +56,14 @@ BANK_RULES = {
 🚨 AKBANK SPECIFIC RULES:
 - TERMINOLOGY: 
     - For Axess/Free/Akbank Kart: Uses "chip-para" instead of "puan". 1 chip-para = 1 TL.
-    - For Wings: Uses "Mil" or "Mil Puan". 1 Mil = 0.01 TL (unless specified as '1 TL değerinde').
+    - For Wings: Uses "Mil" or "Mil Puan". 🚨 100 Mil Puan = 1 TL (domestic) / 2 TL (int).
 - PARTICIPATION: Primary method is "Jüzdan" app. Always look for "Jüzdan'dan Hemen Katıl" button. If not found, look for "Akbank Axess POS" instructions.
 - SMS: Usually 4566. SMS keyword is usually a single word (e.g., "A101", "TEKNOSA").
 - REWARD: If it says "8 aya varan taksit", it's an installment campaign. Earning: "Taksit İmkanı". 🚨 ASLA "Detayları İnceleyin" yazma.
 - ELIGIBLE CARDS:
     - 🚨 TITLE TRAP: Even if title says "Axess'e Özel", check footer for "Axess, Wings, Free... dahildir".
     - ❌ KESİN YASAK: Asla "Kampanyaya Dahil Kartlar" yazma. Eğer kart listesi bulamazsan alanı BOŞ BIRAK.
+    - Wings Variants: ["Wings Classic", "Wings Black", "Wings Black Plus"].
     - "Ticari kartlar" / "Business" / "KOBİ" = ["Axess Business", "Wings Business"].
     - "Bank’O Card Axess" = ["Bank’O Card Axess"].
     - "Akbank Kart" / "Bankamatik" = ["Akbank Kart"].
@@ -74,6 +75,22 @@ BANK_RULES = {
     - Koşullar SADECE teknik kurallar içermeli (örn: "POS terminali zorunluluğu", "İndirim limiti").
 - PARTICIPATION (REDUNDANCY):
     - 🚨 YASAK: "Juzdan uygulama üzerinden katılabilirsiniz." gibi jenerik metinleri tek başına yazma. Eğer butonda "Hemen Katıl" yazıyorsa "Juzdan'dan Hemen Katıl butonuna tıklayın" gibi somutlaştır.
+""",
+    'albaraka': """
+🚨 ALBARAKA SPECIFIC RULES:
+- TERMINOLOGY: Uses "Worldpuan". 1 Worldpuan = 0.01 TL (if value is given in TL, use "TL Worldpuan").
+- 🚨 APP CONSTRAINT (CRITICAL): Primary and ONLY app is **"Albaraka Mobil"**. 
+    - ⛔ HALÜSİNASYON YASAĞI: Asla "World Mobil" veya "Yapı Kredi Mobil" yazma. Albaraka kampanya metinlerinde "World" geçse bile uygulama adı Albaraka Mobil'dir.
+- PARTICIPATION (katilim_sekli):
+    - Look for "Albaraka Mobil > Kampanyalar > Katıl/Kod Al".
+    - Extract as: "Albaraka Mobil uygulamasındaki Kampanyalar menüsünden katılabilirsiniz."
+- ELIGIBLE CARDS:
+    - "Albaraka Worldcard", "Albaraka Banka Kartı".
+    - Variants: "Trend Bankacılık" (Genç), "Özel Bankacılık" (Elite), "Eflatun Bankacılık".
+    - ❌ KESİN YASAK: Sanal kartlar, Ek kartlar ve Business (Ticari) kartlar aksi belirtilmedikçe dahil değildir.
+- CONDITIONS: 
+    - "Kod Al" gereken kampanyalarda bu şartı belirt.
+    - Harcama limitlerini ve müşteri segmenti (örn: "Yeni görüntülü görüşme ile müşteri olanlar") detaylarını ekle.
 """,
     'yapı kredi': """
 🚨 YAPI KREDI (WORLD) SPECIFIC RULES:
@@ -360,8 +377,8 @@ BANK_RULES = {
 - ELIGIBLE CARDS:
     - Often "Dünya Katılım Kartı", "DKart Debit" or "Dünya Katılım Ticari Kart". Extract the exact card name mentioned.
 - DATES:
-    - If the campaign doesn't explicitly mention an end date, or says something like "Süresiz", MUST return null for `end_date`. Do NOT invent 9999-12-31.
-    - If `end_date` is given or the campaign is clearly active but `start_date` is not mentioned, use `{current_date}` for `start_date`.
+    - If the campaign doesn't explicitly mention dates, return null. The system will automatically assign defaults (current month).
+    - 🚨 DO NOT invent 9999-12-31. Use null for missing dates.
 - PARTICIPATION:
     - 🚨 CRITICAL: Look very carefully for SMS instructions (e.g., "TROY boşluk ... yazarak 2345'e SMS gönderilmesi"). If present, extract the exact SMS text.
     - If Mobile/Internet app check-in is required, mention it.
@@ -1194,20 +1211,24 @@ JSON olarak cevap ver:
         result_text = parser._call_ai(prompt, timeout_sec=65)
         json_data = parser._extract_json(result_text)
         
-        return {
-            "short_title": json_data.get("short_title") or title,
-            "description": json_data.get("description") or short_description,
-            "reward_value": parser._safe_decimal(json_data.get("reward_value")),
-            "reward_type": json_data.get("reward_type"),
-            "reward_text": json_data.get("reward_text") or "Detayları İnceleyin",
-            "sector": json_data.get("sector") or "Diğer",
-            "brands": json_data.get("brands") or [],
-            "conditions": json_data.get("conditions") or [],
-            "cards": json_data.get("cards") or [],
-            "participation": json_data.get("participation") or "Detayları İnceleyin",
-            "start_date": parser._safe_date(json_data.get("start_date")),
-            "end_date": parser._safe_date(json_data.get("end_date"))
-        }
+        # Map fields for normalization
+        if "short_title" in json_data and not json_data.get("title"):
+            json_data["title"] = json_data["short_title"]
+        
+        # If AI didn't return a description, use the one passed to the function
+        if not json_data.get("description"):
+            json_data["description"] = short_description
+
+        # Use the central normalization logic (Safe Dates, Fallbacks, etc.)
+        normalized = parser._normalize_data(json_data)
+        
+        # Ensure 'short_title' is available for consumers of this specific function
+        if "short_title" in json_data:
+            normalized["short_title"] = json_data["short_title"]
+        elif "title" in normalized:
+            normalized["short_title"] = normalized["title"]
+            
+        return normalized
     except Exception as e:
         print(f"API Parser Error: {e}")
         return {
