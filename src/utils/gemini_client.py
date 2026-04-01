@@ -53,18 +53,18 @@ def _load_keys() -> List[str]:
     return keys
 
 
-# ─── Single generate call with Patient Sequential System ────────────────────────
+# ─── Single generate call with Linear Loop System ────────────────────────
 def generate_with_rotation(
     prompt: str,
     model: Optional[str] = None,
-    retry_delay: float = 5.0, # Reduced from 20.0 to 5.0s
+    retry_delay: float = 5.0, # Linear delay between keys
     **kwargs: Any
 ) -> str:
     """
-    Sends prompt to Gemini API with the Patient Sequential System.
-    1. Tries keys in fixed order (Key 0 -> Key 7).
-    2. Waits 20s between keys if Rate Limited (429/503).
-    3. If all keys fail, waits 60s and tries again (up to 5 global attempts).
+    Sends prompt to Gemini API with a simple Linear Loop.
+    1. Tries keys 0 to N in fixed order.
+    2. Waits 5s between keys if Rate Limited (429/503).
+    3. Gives up if all keys are exhausted in one round.
     """
     if not HAS_GENAI:
         raise ImportError("google-genai kütüphanesi yüklü değil.")
@@ -77,55 +77,44 @@ def generate_with_rotation(
         config = _types.GenerateContentConfig(**kwargs) if kwargs else None
 
     keys = _load_keys()
-    max_global_attempts = 5
+    last_error: Optional[Exception] = None
     
-    for g_attempt in range(max_global_attempts):
-        last_error: Optional[Exception] = None
-        
-        for idx, key in enumerate(keys):
-            try:
-                client = _sdk.Client(api_key=key)
-                response = client.models.generate_content(
-                    model=model_name,
-                    contents=prompt,
-                    config=config
-                )
-                
-                # Success Log
-                if g_attempt > 0 or idx > 0:
-                    print(f"[KeySequencer] ✨ Success (Key #{idx + 1}, Global attempt {g_attempt + 1})")
-                return response.text.strip()
+    for idx, key in enumerate(keys):
+        try:
+            client = _sdk.Client(api_key=key)
+            response = client.models.generate_content(
+                model=model_name,
+                contents=prompt,
+                config=config
+            )
+            
+            # Success Log
+            if idx > 0:
+                print(f"[KeyLoop] ✨ Success with Key #{idx + 1} (Total keys: {len(keys)})")
+            return response.text.strip()
 
-            except Exception as e:
-                err_str = str(e).lower()
-                is_retriable = any(
-                    token in err_str
-                    for token in ["429", "resourceexhausted", "quota", "rate_limit", "500", "502", "503", "504", "deadline_exceeded"]
-                )
-                
-                if is_retriable:
-                    msg = f"[KeySequencer] ⚠️  Key #{idx + 1} failed ({type(e).__name__})."
-                    if idx + 1 < len(keys):
-                        print(f"{msg} Trying next key... ({idx + 2}/{len(keys)}) | Waiting {retry_delay}s...")
-                        time.sleep(retry_delay)
-                    else:
-                        print(f"{msg} All {len(keys)} keys exhausted for this round.")
-                    last_error = e
-                    continue # Try next key
+        except Exception as e:
+            err_str = str(e).lower()
+            is_retriable = any(
+                token in err_str
+                for token in ["429", "resourceexhausted", "quota", "rate_limit", "500", "502", "503", "504", "deadline_exceeded"]
+            )
+            
+            if is_retriable:
+                msg = f"[KeyLoop] ⚠️  Key #{idx + 1} failed ({type(e).__name__})."
+                if idx + 1 < len(keys):
+                    print(f"{msg} Trying next key... ({idx + 2}/{len(keys)}) | Waiting {retry_delay}s...")
+                    time.sleep(retry_delay)
                 else:
-                    # Fatal error
-                    print(f"[KeySequencer] ❌ Fatal Error with Key #{idx + 1}: {e}")
-                    raise
+                    print(f"{msg} All {len(keys)} keys exhausted.")
+                last_error = e
+                continue # Try next key
+            else:
+                # Fatal error
+                print(f"[KeyLoop] ❌ Fatal Error with Key #{idx + 1}: {e}")
+                raise
 
-        # If all keys exhausted in this round
-        if g_attempt + 1 < max_global_attempts:
-            wait_time = 60.0
-            print(f"[KeySequencer] 🚨 All {len(keys)} keys exhausted. Global cooling for {wait_time}s... (Attempt {g_attempt + 1}/{max_global_attempts})")
-            time.sleep(wait_time)
-        else:
-            raise RuntimeError(f"Tüm Gemini API anahtarları ({len(keys)} adet) {max_global_attempts} tur denendi fakat başarısız oldu. Son hata: {last_error}")
-
-    return "" # Should not reach here
+    raise RuntimeError(f"Tüm Gemini API anahtarları ({len(keys)} adet) denendi fakat başarısız oldu. Son hata: {last_error}")
 
 
 # ─── API Studio Client Helper ────────────────────────────────────
