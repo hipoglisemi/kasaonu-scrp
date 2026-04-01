@@ -23,14 +23,15 @@ except ImportError:
 # ─── Key listesini ortam değişkenlerinden oku ───────────────────────────────
 def _load_keys() -> List[str]:
     keys = []
-    for name in ["GEMINI_API_KEY", "GEMINI_API_KEY_1", "GEMINI_API_KEY_2"]:
+    # GEMINI_API_KEY_3 ve GEMINI_API_KEY_4 eklendi. Toplam 5 potansiyel (0,1,2,3,4) değişken kontrol ediliyor.
+    for name in ["GEMINI_API_KEY", "GEMINI_API_KEY_1", "GEMINI_API_KEY_2", "GEMINI_API_KEY_3", "GEMINI_API_KEY_4"]:
         k = os.getenv(name, "").strip()
         if k:
             keys.append(k)
     if not keys:
         raise ValueError(
             "Hiç Gemini API anahtarı bulunamadı. "
-            "GEMINI_API_KEY, GEMINI_API_KEY_1 veya GEMINI_API_KEY_2 env değişkenlerinden "
+            "GEMINI_API_KEY (1,2,3,4) env değişkenlerinden "
             "en az birini tanımlayın."
         )
     return keys
