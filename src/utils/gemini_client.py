@@ -57,7 +57,7 @@ def _load_keys() -> List[str]:
 def generate_with_rotation(
     prompt: str,
     model: Optional[str] = None,
-    retry_delay: float = 20.0, # Increased from 3.0 to 20s
+    retry_delay: float = 5.0, # Reduced from 20.0 to 5.0s
     **kwargs: Any
 ) -> str:
     """
