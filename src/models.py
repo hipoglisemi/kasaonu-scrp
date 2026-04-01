@@ -146,6 +146,7 @@ class Campaign(Base):
     # Quality Control
     quality_score = Column(Integer, nullable=True)
     auto_corrected = Column(Boolean, default=False, nullable=False)
+    is_approved = Column(Boolean, default=False, nullable=False)
 
     # Dates
     start_date = Column(Date, nullable=True)
