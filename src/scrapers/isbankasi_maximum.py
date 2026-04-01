@@ -12,17 +12,12 @@ from datetime import datetime  # type: ignore # pyre-ignore[21]
 from typing import Optional, Dict, Any, List, cast  # type: ignore # pyre-ignore[21]
 from bs4 import BeautifulSoup  # type: ignore # pyre-ignore[21]
 from urllib.parse import urljoin  # type: ignore # pyre-ignore[21]
-from src.utils.scraper_utils import is_url_blocked  # type: ignore
-
 # Path setup
 project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 if project_root not in sys.path:
     sys.path.insert(0, project_root)
 
-print(f"[DEBUG] project_root: {project_root}")  # type: ignore # pyre-ignore[16,6]
-if isinstance(sys.path, list):
-    print(f"[DEBUG] sys.path[:3]: {sys.path[:3]}")  # type: ignore # pyre-ignore[16,6]
-
+from src.utils.scraper_utils import is_url_blocked  # type: ignore
 from src.utils.logger_utils import log_scraper_execution  # type: ignore # pyre-ignore[21]
 
 # Load Env - same pattern as ziraat.py
@@ -219,7 +214,7 @@ class IsbankMaximumScraper:
         seen = set()
 
         for a in all_campaign_links:
-            href = str(a["href"])  # type: ignore # pyre-ignore[16,6]
+            href = str(a["href"]).strip()  # type: ignore # pyre-ignore[16,6]
             
             if href in excluded_paths: continue
             if any(href.endswith(s) for s in excluded_suffixes): continue
@@ -289,7 +284,8 @@ class IsbankMaximumScraper:
             title_el = soup.select_one("h1.gradient-title-text") or soup.find("h1")
             title = self._clean(title_el.text) if title_el else "Başlık Yok"
 
-            if "gecmis" in url or "geçmiş" in title.lower():
+            if "gecmis" in url or "geçmiş" in title.lower() or "bulunamadı" in title.lower() or "bulunamadı" in title.lower():
+                print(f"   ⏭️ Skipped (Broken/Expired title): {title}")
                 return None  # type: ignore # pyre-ignore[7]
 
             # Kategori/index sayfası tuzağı: eğer sayfada kampanya görseli (CampaignImage) yoksa
@@ -316,6 +312,9 @@ class IsbankMaximumScraper:
                 "Üzgünüz, aradığınız sayfayı bulamadık",
                 "404",
                 "Sayfa Bulunamadı",
+                "Kampanya Bulunamadı",
+                "Kampanya bulunamadı",
+                "Sayfaya ulaşılamıyor",
                 "Bu kampanya sona ermiştir",
             ]):
                 print(f"   ⏭️  Skipped (404/expired page): {url}")
@@ -534,10 +533,10 @@ class IsbankMaximumScraper:
 
             from src.services.brand_matcher import get_or_create_brands_list  # type: ignore # pyre-ignore[21]
             brand_ids = get_or_create_brands_list(
-                self.session,
-                data.get("brands", []),
-                getattr(self, 'brand_cache', {}),
-                sector.id if sector else None
+                db=self.session,
+                names=data.get("brands", []),
+                brand_cache=getattr(self, 'brand_cache', {}),
+                sector_id=sector.id if sector else None
             )
 
 

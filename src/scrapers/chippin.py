@@ -306,7 +306,12 @@ class ChippinScraper:
                 if participation: conditions_lines.append(f"KATILIM: {participation}")
                     
                 eligible_cards = ai_data.get("cards")
-                eligible_str = ", ".join(eligible_cards) if eligible_cards else "Chippin"
+                if eligible_cards:
+                    eligible_str = ", ".join(eligible_cards)
+                else:
+                    # Kullanıcı İsteği: Chippin için kart listesi yoksa 'Tüm Kartlar' yazılsın.
+                    eligible_str = "Tüm Kartlar"
+
                 if eligible_str and len(eligible_str) > 255: 
                     eligible_str = eligible_str[:255]  # type: ignore # pyre-ignore[16,6]
                     

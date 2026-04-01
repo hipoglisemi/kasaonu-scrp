@@ -225,7 +225,7 @@ class ParamScraper:
                     let timer = setInterval(() => {
                         let scrollHeight = document.body.scrollHeight;
                         window.scrollBy(0, distance);
-                        totalHeight += distance;  # type: ignore # pyre-ignore[58]
+                        totalHeight += distance; // JS syntax fix
                         if(totalHeight >= scrollHeight){
                             clearInterval(timer);
                             resolve();
@@ -244,8 +244,16 @@ class ParamScraper:
             # Image
             image_url = None
             img_el = soup.select_one("img.img-fluid, .avantaj-resim img, img.hero-image")
-            if img_el and img_el.get("src"):
-                image_url = urljoin(self.BASE_URL, img_el["src"])
+            if img_el:
+                # Param uses various data attributes for lazy loading
+                src = (
+                    img_el.get("data-original") or 
+                    img_el.get("data-src") or 
+                    img_el.get("data-lazy-src") or
+                    img_el.get("src")
+                )
+                if src and not src.startswith("data:") and "logo" not in src.lower():
+                    image_url = urljoin(self.BASE_URL, src)
             
             # Date extract from full text later if needed, but sometimes it is in specific fields
             
@@ -455,20 +463,10 @@ class ParamScraper:
 
 
             brand_ids = get_or_create_brands_list(
-
-
-                db_session=self.db,
-
-
-                brand_names=ai_data.get("brands", []),
-
-
+                db=self.db,
+                names=ai_data.get("brands", []),
                 brand_cache=getattr(self, 'brand_cache', {}),
-
-
                 sector_id=sector.id if sector else None
-
-
             )
 
 

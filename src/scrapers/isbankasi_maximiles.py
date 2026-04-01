@@ -15,14 +15,14 @@ import traceback  # type: ignore # pyre-ignore[21]
 from datetime import datetime  # type: ignore # pyre-ignore[21]
 from typing import Optional, Dict, Any, List, cast  # type: ignore # pyre-ignore[21]
 from urllib.parse import urljoin  # type: ignore # pyre-ignore[21]
-from src.utils.scraper_utils import is_url_blocked  # type: ignore
-from bs4 import BeautifulSoup  # type: ignore # pyre-ignore[21]
-from src.services.brand_matcher import get_or_create_brands_list
-
 # Fix sys.path
 project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 if project_root not in sys.path:
     sys.path.insert(0, project_root)
+
+from src.utils.scraper_utils import is_url_blocked  # type: ignore
+from src.services.brand_matcher import get_or_create_brands_list
+from bs4 import BeautifulSoup  # type: ignore # pyre-ignore[21]
 
 from dotenv import load_dotenv  # type: ignore # pyre-ignore[21]
 load_dotenv(os.path.join(project_root, '.env'))
@@ -323,7 +323,7 @@ class IsbankMaximilesScraper:
                 is_common_page = "ozellikler" in href or "basvuru" in href or href.endswith("/kampanyalar")
                 
                 if not is_exact_category and not is_category_suffix and not is_common_page and len(href) > 25:
-                    full_url = urljoin(self.BASE_URL, a["href"])
+                    full_url = urljoin(self.BASE_URL, a["href"].strip())
                     
                     parent = a.find_parent("div", class_="campaign-item") or a.find_parent("div", class_="col-xl-4") or a.find_parent("div", class_="card") or a.parent
                     parent_text = parent.get_text(separator=" ", strip=True).lower() if parent else ""
@@ -377,7 +377,7 @@ class IsbankMaximilesScraper:
                         let timer = setInterval(() => {
                             let scrollHeight = document.body.scrollHeight;
                             window.scrollBy(0, distance);
-                            totalHeight += distance;  # type: ignore # pyre-ignore[58]
+                            totalHeight += distance; // JS syntax fix
                             if(totalHeight >= scrollHeight){
                                 clearInterval(timer);
                                 resolve();
@@ -395,7 +395,8 @@ class IsbankMaximilesScraper:
             title_el = soup.select_one("h1")
             title = self._clean(title_el.text) if title_el else "Başlık Yok"
 
-            if "gecmis" in url or "geçmiş" in title.lower():
+            if "gecmis" in url or "geçmiş" in title.lower() or "bulunamadı" in title.lower():
+                print(f"   ⏭️ Skipped (Broken/Expired title): {title}")
                 return None  # type: ignore # pyre-ignore[7]
 
             # Blocklist check
@@ -456,8 +457,8 @@ class IsbankMaximilesScraper:
                 containers = soup.select(sel)
                 for container in containers:
                     text = container.get_text(separator="\n", strip=True)
-                    if "Üzgünüz, aradığınız sayfayı bulamadık." in text or "Aradığınız sayfa sitemizden kaldırılmış" in text:
-                        print(f"      ⚠️ 404 Page Detected (Üzgünüz): {url}")
+                    if any(phrase in text for phrase in ["Üzgünüz, aradığınız sayfayı bulamadık.", "Aradığınız sayfa sitemizden kaldırılmış", "Kampanya Bulunamadı", "Kampanya bulunamadı"]):
+                        print(f"      ⚠️ 404 Page Detected (Üzgünüz/Bulunamadı): {url}")
                         return None  # type: ignore # pyre-ignore[7]
                         
                     if len(text) > 150 and "Ana Sayfa" not in text[:80] and "Maximum Mobil" not in text[:50]:  # type: ignore # pyre-ignore[16,6]
@@ -684,10 +685,10 @@ class IsbankMaximilesScraper:
 
             # Brands via brand_matcher
             brand_ids = get_or_create_brands_list(
-                self.db,
-                ai_data.get("brands", []),
-                getattr(self, 'brand_cache', {}),
-                sector.id if sector else None
+                db=self.db,
+                names=ai_data.get("brands", []),
+                brand_cache=getattr(self, 'brand_cache', {}),
+                sector_id=sector.id if sector else None
             )
             for bid in brand_ids:
                 try:

@@ -99,11 +99,18 @@ def find_existing_brand(db, name: str, brand_cache: dict) -> Optional[object]:
     return None
 
 
-def get_or_create_brand(db, name: str, brand_cache: dict, sector_id=None) -> Optional[object]:
+def get_or_create_brand(db=None, name: str = "", brand_cache: dict = {}, sector_id=None, **kwargs) -> Optional[object]:
     """
     Main entry point for scrapers. Returns a Brand object for the given name,
     matching an existing one if possible, or creating a new one.
     """
+    # Handle db_session alias
+    if db is None:
+        db = kwargs.get('db_session')
+    
+    if db is None:
+        raise ValueError("Database session (db or db_session) must be provided")
+
     from src.models import Brand  # type: ignore
     from sqlalchemy.exc import IntegrityError  # type: ignore
 
@@ -146,11 +153,21 @@ def get_or_create_brand(db, name: str, brand_cache: dict, sector_id=None) -> Opt
         return existing
 
 
-def get_or_create_brands_list(db, names: list, brand_cache: dict, sector_id=None) -> list:
+def get_or_create_brands_list(db=None, names: list = [], brand_cache: dict = {}, sector_id=None, **kwargs) -> list:
     """
     Process a list of brand name strings and return a list of Brand IDs.
     Merges duplicates and skips None results.
     """
+    # Handle db_session alias and brand_names alias
+    if db is None:
+        db = kwargs.get('db_session')
+    
+    if not names:
+        names = kwargs.get('brand_names', [])
+
+    if db is None:
+        raise ValueError("Database session (db or db_session) must be provided")
+
     ids = []
     seen_ids = set()
     for name in names:

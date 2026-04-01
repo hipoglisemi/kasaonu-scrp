@@ -532,20 +532,10 @@ class IsbankMaximumGencScraper:
 
 
             brand_ids = get_or_create_brands_list(
-
-
-                db_session=self.db,
-
-
-                brand_names=ai_data.get("brands", []),
-
-
+                db=self.db,
+                names=ai_data.get("brands", []),
                 brand_cache=getattr(self, 'brand_cache', {}),
-
-
                 sector_id=sector.id if sector else None
-
-
             )
 
 

@@ -103,12 +103,12 @@ BANK_RULES = {
 - 🚨 REDUNDANCY ALERT: DO NOT repeat card names or dates in 'conditions'.
 """,
     'garanti': """
-🚨 GARANTI BBVA / BONUS / MILES&SMILES SPECIFIC RULES:
+🚨 GARANTI BBVA / BONUS / MILES&SMILES / SHOP&FLY SPECIFIC RULES:
 - TERMINOLOGY: "Bonus" (Bonus/Flexi), "Mil" (Miles&Smiles/Shop&Fly).
 - ELIGIBLE CARDS (cards):
     - 🚨 STRICT EXTRACTION: Metindeki kart isimlerini TAM olarak çıkar.
     - Miles&Smiles: "Miles & Smiles Garanti BBVA", "Miles & Smiles Garanti BBVA Business".
-    - Shop&Fly: "Shop&Fly", "Shop&Fly Business".
+    - Shop&Fly: "Shop & Fly", "Shop & Fly Gold", "Shop & Fly Business", "Shop & Fly Platinum".
     - Bonus: "Bonus", "Bonus Gold", "Bonus Platinum", "Bonus American Express", "Bonus Business", "Bonus Genç", "Bonus Flexi", "Paracard Bonus".
     - ❌ YASAK: "Kampanyaya Dahil Kartlar" gibi başlıkları ASLA kart listesine yazma. Sadece kartın kendi ismini yaz.
 - PARTICIPATION: "BonusFlaş" app is primary. Look for "HEMEN KATIL" instructions.
@@ -798,6 +798,13 @@ VALID- SECTOR (CRITICAL):
     - 🚨 GENEL KAMPANYALAR KURALI (ŞART!): Eğer kampanya kredi başvurusu, nakit avans, limit artırımı, ek taksit gibi SADECE bankanın kendi genel kampanyasıysa ve ortada dışarıdan başka bir ortak marka (Trendyol, Migros, THY vb.) YOKSA, markayı KESİNLİKLE "Genel" olarak yaz. Garanti BBVA gibi banka adlarını yazma! Sadece ["Genel"] yaz!
 3. **SECTOR**: Yukarıdaki VALID SECTORS listesinden EN UYGUN olanı seç. Asla bu liste dışına çıkma.
 4. **MARKETING**: 'description' alanı MUTLAKA 2 cümle olmalı. Samimi ve kullanıcıyı teşvik edici olmalı.
+5. **PARTICIPATION (katilim_sekli)**:
+    - 🚨 ASLA ATLATMA: SMS anahtar kelimeleri (örn: SUBAT1000, KATIL) ve kısa numaralar (örn: 4566, 4757) kampanya için kritik hayati veridir. Bunları mutlaka 'katilim_sekli' alanına formatlı şekilde yaz.
+    - Örn: "4757'ye SUBAT1000 yazıp SMS göndererek katılabilirsiniz."
+6. **CARDS (cards)**:
+    - 🚨 ASLA ATLATMA: Metinde geçen tüm geçerli kartları (Axess, Wings, Free, Paraf, Parafly vb.) tam isimleriyle listele.
+    - Eğer "Chippin" gibi bir cüzdan kampanyasıysa ve metinde kart kısıtı yoksa, "Tüm Kartlar" ibaresini kullanabilirsin.
+
     - 🚨 KESİN YASAK: 'description' alanına tarih, kart veya katılım bilgisi ASLA EKLEME.
 5. **REWARD TEXT (PUNCHY)**: 
     - 'reward_text' kısmına en kısa ve çarpıcı ödülü yaz.
