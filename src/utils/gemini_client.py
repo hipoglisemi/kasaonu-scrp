@@ -20,94 +20,112 @@ except ImportError:
     HAS_GENAI = False
 
 
-# ─── Load keys dynamically from environment ───────────────────────────────
+# ─── Load keys dynamically from environment (Sorted Order) ─────────────────
 def _load_keys() -> List[str]:
     """
-    Finds all environment variables starting with GEMINI_API_KEY.
-    Returns a unique list of non-empty API keys.
+    Finds all GEMINI_API_KEY environment variables and returns them in a fixed order.
+    Original GEMINI_API_KEY comes first, then _1, _2, etc.
     """
+    all_env_keys = [k for k in os.environ.keys() if k.startswith("GEMINI_API_KEY")]
+    
+    # Sort keys to ensure stable order: GEMINI_API_KEY, then GEMINI_API_KEY_1, _2, etc.
+    def sort_key(k):
+        if k == "GEMINI_API_KEY": return 0
+        try: return int(k.split("_")[-1])
+        except: return 999
+
+    sorted_env_keys = sorted(all_env_keys, key=sort_key)
+    
     keys = []
-    # Identify all possible keys in the environment (GEMINI_API_KEY, GEMINI_API_KEY_1, ..., GEMINI_API_KEY_N)
-    for env_key, value in os.environ.items():
-        if env_key.startswith("GEMINI_API_KEY"):
-            k = value.strip()
-            # Clean possible quotes
-            if k.startswith('"') and k.endswith('"'): k = k[1:-1]
-            if k.startswith("'") and k.endswith("'"): k = k[1:-1]
-            if k and k not in keys:
-                keys.append(k)
+    for env_key in sorted_env_keys:
+        value = os.environ.get(env_key, "").strip()
+        if not value: continue
+        
+        # Clean possible quotes
+        if value.startswith('"') and value.endswith('"'): value = value[1:-1]
+        if value.startswith("'") and value.endswith("'"): value = value[1:-1]
+        
+        if value and value not in keys:
+            keys.append(value)
     
     if not keys:
-        raise ValueError(
-            "Hiç Gemini API anahtarı bulunamadı. "
-            "Lütfen .env dosyasında GEMINI_API_KEY_... değişkenlerini tanımlayın."
-        )
+        raise ValueError("Hiç Gemini API anahtarı bulunamadı.")
     return keys
 
 
-# ─── Single generate call with Shuffle Rotation ──────────────────────────────
+# ─── Single generate call with Patient Sequential System ────────────────────────
 def generate_with_rotation(
     prompt: str,
     model: Optional[str] = None,
-    retry_delay: float = 3.0,
+    retry_delay: float = 20.0, # Increased from 3.0 to 20s
     **kwargs: Any
 ) -> str:
     """
-    Sends prompt to Gemini API with automatic key rotation and randomization.
-    Distributes load across all available keys by shuffling at each request.
+    Sends prompt to Gemini API with the Patient Sequential System.
+    1. Tries keys in fixed order (Key 0 -> Key 7).
+    2. Waits 20s between keys if Rate Limited (429/503).
+    3. If all keys fail, waits 60s and tries again (up to 5 global attempts).
     """
     if not HAS_GENAI:
         raise ImportError("google-genai kütüphanesi yüklü değil.")
 
     model_name = model or os.getenv("GEMINI_MODEL", "gemini-3.1-flash-lite-preview")
     
-    # Extract config if present
     if "config" in kwargs:
         config = kwargs.pop("config")
     else:
         config = _types.GenerateContentConfig(**kwargs) if kwargs else None
 
-    # Load and SHUFFLE keys to distribute weight
     keys = _load_keys()
-    random.shuffle(keys)
+    max_global_attempts = 5
     
-    last_error: Optional[Exception] = None
-
-    for idx, key in enumerate(keys):
-        try:
-            client = _sdk.Client(api_key=key)
-            response = client.models.generate_content(
-                model=model_name,
-                contents=prompt,
-                config=config
-            )
-            # Log successful rotation if it wasn't the first try
-            if idx > 0:
-                print(f"[KeyRotation] ✨ Success with Key #{idx + 1} (Total available keys: {len(keys)})")
-            return response.text.strip()
-
-        except Exception as e:
-            err_str = str(e).lower()
-            # Catch Rate Limits and Server Errors (Retriable)
-            is_retriable = any(
-                token in err_str
-                for token in ["429", "resourceexhausted", "quota", "rate_limit", "500", "502", "503", "504", "deadline_exceeded"]
-            )
-            
-            if is_retriable:
-                print(
-                    f"[KeyRotation] ⚠️  Key #{idx + 1} failed ({type(e).__name__}). "
-                    + (f"Trying next key... ({idx + 2}/{len(keys)})" if idx + 1 < len(keys) else "No more keys!")
+    for g_attempt in range(max_global_attempts):
+        last_error: Optional[Exception] = None
+        
+        for idx, key in enumerate(keys):
+            try:
+                client = _sdk.Client(api_key=key)
+                response = client.models.generate_content(
+                    model=model_name,
+                    contents=prompt,
+                    config=config
                 )
-                last_error = e
-                time.sleep(retry_delay)
-                continue  # Try next key
-            else:
-                # Fatal errors (400 Invalid Argument, etc.) should not be retried with other keys
-                print(f"[KeyRotation] ❌ Fatal Error with Key #{idx + 1}: {e}")
-                raise
-    
-    raise RuntimeError(f"Tüm Gemini API anahtarları ({len(keys)} adet) denendi fakat başarısız oldu. Son hata: {last_error}")
+                
+                # Success Log
+                if g_attempt > 0 or idx > 0:
+                    print(f"[KeySequencer] ✨ Success (Key #{idx + 1}, Global attempt {g_attempt + 1})")
+                return response.text.strip()
+
+            except Exception as e:
+                err_str = str(e).lower()
+                is_retriable = any(
+                    token in err_str
+                    for token in ["429", "resourceexhausted", "quota", "rate_limit", "500", "502", "503", "504", "deadline_exceeded"]
+                )
+                
+                if is_retriable:
+                    msg = f"[KeySequencer] ⚠️  Key #{idx + 1} failed ({type(e).__name__})."
+                    if idx + 1 < len(keys):
+                        print(f"{msg} Trying next key... ({idx + 2}/{len(keys)}) | Waiting {retry_delay}s...")
+                        time.sleep(retry_delay)
+                    else:
+                        print(f"{msg} All {len(keys)} keys exhausted for this round.")
+                    last_error = e
+                    continue # Try next key
+                else:
+                    # Fatal error
+                    print(f"[KeySequencer] ❌ Fatal Error with Key #{idx + 1}: {e}")
+                    raise
+
+        # If all keys exhausted in this round
+        if g_attempt + 1 < max_global_attempts:
+            wait_time = 60.0
+            print(f"[KeySequencer] 🚨 All {len(keys)} keys exhausted. Global cooling for {wait_time}s... (Attempt {g_attempt + 1}/{max_global_attempts})")
+            time.sleep(wait_time)
+        else:
+            raise RuntimeError(f"Tüm Gemini API anahtarları ({len(keys)} adet) {max_global_attempts} tur denendi fakat başarısız oldu. Son hata: {last_error}")
+
+    return "" # Should not reach here
 
 
 # ─── API Studio Client Helper ────────────────────────────────────

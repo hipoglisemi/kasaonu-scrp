@@ -593,45 +593,31 @@ class AIParser:
         # Build prompt
         prompt = self._build_prompt(clean_text, datetime.now().strftime("%Y-%m-%d"), bank_name, title)
         
-        max_retries = 5
-        for attempt in range(max_retries):
-            try:
-                result_text = self._call_ai(prompt, timeout_sec=65)
+        # --- 3. AI Call ---
+        # Resilience is now handled at the gemini_client level (sequential retries + global cooling)
+        try:
+            result_text = self._call_ai(prompt, timeout_sec=120)
 
-                if not result_text:
-                    print("   ⚠️ Empty response text.")
-                    result_text = "{}"
+            if not result_text:
+                print("   ⚠️ Empty response text.")
+                result_text = "{}"
 
-                # Extract JSON from response
-                json_data = self._extract_json(result_text)
+            # Extract JSON from response
+            json_data = self._extract_json(result_text)
 
-                # Validate and normalize
-                normalized = self._normalize_data(json_data)
-                
-                # INJECT cleaned text into the result dictionary for scrapers to save to DB
-                normalized["_clean_text"] = clean_text
+            # Validate and normalize
+            normalized = self._normalize_data(json_data)
+            
+            # INJECT cleaned text into the result dictionary for scrapers to save to DB
+            normalized["_clean_text"] = clean_text
 
-                return normalized
+            return normalized
 
-            except Exception as e:
-                error_str = str(e)
-                if "429" in error_str or "Resource exhausted" in error_str or "rate_limit" in error_str.lower() or "503" in error_str:
-                    # Key rotation is natively handled by gemini_client. If we drop here, ALL keys failed.
-                    wait_time = (attempt + 1) * 3 
-                    print(f"   ⚠️ API limit across all keys or 503 error. Waiting {wait_time}s... (Attempt {attempt+1}/{max_retries}) | {str(error_str)[:100]}") # type: ignore
-                    import time
-                    time.sleep(wait_time)
-                    continue
-
-                logger.error(f"AI Parser Error: {e}")
-                fallback = self._get_fallback_data(str(title) if title else "Kampanya") # type: ignore
-                fallback["_clean_text"] = clean_text
-                return fallback
-
-        print("   ❌ Max retries reached for AI Parser.")
-        fallback = self._get_fallback_data(str(title or "Kampanya")) # type: ignore
-        fallback["_clean_text"] = clean_text  # Inject to save even if AI fails
-        return fallback
+        except Exception as e:
+            logger.error(f"AI Parser Final Failure: {e}")
+            fallback = self._get_fallback_data(str(title) if title else "Kampanya") # type: ignore
+            fallback["_clean_text"] = clean_text
+            return fallback
 
     def _check_db_cache(self, tracking_url: str) -> Optional[Dict[str, Any]]:
         """Check database if this URL was already parsed successfully."""
