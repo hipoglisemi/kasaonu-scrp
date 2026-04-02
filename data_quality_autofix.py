@@ -542,6 +542,7 @@ def run_autofix(limit: int = 50):
 
                 # ALWAYS mark as auto_corrected so we don't try again forever (even if Gemini failed to find missing data)
                 c.auto_corrected = True
+                c.repair_count = (c.repair_count or 0) + 1
                 db.commit()
                 fixed_count += 1
                 
