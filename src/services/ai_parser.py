@@ -566,7 +566,8 @@ class AIParser:
         bank_name: Optional[str] = None,
         card_name: Optional[str] = None,
         tracking_url: Optional[str] = None,
-        force: bool = False
+        force: bool = False,
+        campaign_id: Optional[int] = None
     ) -> Dict[str, Any]:
         """
         Parse campaign data using Gemini AI

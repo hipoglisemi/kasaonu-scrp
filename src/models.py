@@ -306,7 +306,7 @@ class PointBlankRule(Base):
     sector_slug = Column(String, nullable=True)
     is_verified = Column(Boolean, default=False, nullable=False)
     match_count = Column(Integer, default=0, nullable=False)
-    sample_campaign_id = Column(Integer, ForeignKey("campaigns.id"), nullable=True)
+    sample_campaign_id = Column(Integer, ForeignKey("test_campaigns.id" if os.environ.get("TEST_MODE") == "1" else "campaigns.id"), nullable=True)
     created_at = Column(DateTime, default=func.now(), nullable=False)
     updated_at = Column(DateTime, default=func.now(), onupdate=func.now(), nullable=False)
 

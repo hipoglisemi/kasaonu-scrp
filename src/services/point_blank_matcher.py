@@ -86,6 +86,11 @@ class PointBlankMatcher:
                 self.db.add(new_rule)
                 self.db.commit()
                 logger.info(f"🆕 New Point-Blank Candidate reported: {keyword} -> {brand_name}")
+            elif existing.sample_campaign_id is None and campaign_id is not None:
+                # Update source if it was missing
+                existing.sample_campaign_id = campaign_id
+                self.db.commit()
+                logger.info(f"🔗 Updated source for existing Point-Blank Rule: {keyword} -> Campaign {campaign_id}")
         except Exception as e:
             self.db.rollback()
             logger.error(f"❌ Error reporting candidate: {e}")

@@ -10,6 +10,7 @@ passes it back through the Gemini AI parser to repair the missing fields.
 import os
 import sys
 import time
+from typing import Optional
 import requests # type: ignore
 from bs4 import BeautifulSoup # type: ignore
 
@@ -26,7 +27,7 @@ logging.getLogger("google_genai.models").setLevel(logging.WARNING)
 
 from src.models import Campaign, Sector, Brand, CampaignBrand # type: ignore
 from src.database import get_db_session # type: ignore
-from src.services.ai_parser import parse_campaign_data, AIParser # type: ignore
+from src.services.ai_parser import parse_campaign, AIParser # type: ignore
 from sqlalchemy.orm import joinedload # type: ignore
 
 # Shared cleaner — same preprocessing scrapers use (filters boilerplate, dedup, 6K limit)
@@ -87,7 +88,7 @@ def fetch_html(url: str) -> str:
         print(f"      ⚠️ Failed to fetch HTML for {url}: {e}")
         return ""
 
-def run_autofix(limit: int = 50):
+def run_autofix(limit: int = 50, campaign_id: Optional[int] = None, force_all: bool = False):
     print(f"🚀 Starting Data Quality Auto-Fixer (Limit: {limit})...")
     
     try:
@@ -99,20 +100,27 @@ def run_autofix(limit: int = 50):
             print("\n🔍 Scanning for defective campaigns...")
 
             # Find active campaigns
-            defective_campaigns = db.query(Campaign).options(
+            query = db.query(Campaign).options(
                 joinedload(Campaign.sector),
                 joinedload(Campaign.brands)
             ).filter(
                 Campaign.is_active == True
-            ).all()
+            )
+            
+            if campaign_id:
+                query = query.filter(Campaign.id == campaign_id)
+            
+            defective_campaigns = query.all()
             print(f"   📊 Checking {len(defective_campaigns)} active campaigns for defects.")
             
-            FORCE_ALL = False # If True, will fix all active campaigns regardless of status
+            FORCE_ALL = force_all
             to_fix_ids = []
             stats = {"new": 0, "retry": 0, "skipped_cooldown": 0}
 
             for c in defective_campaigns:
                 is_defective = False
+                updated = False
+                wrong_bank_brands = set()
                 reasons = []
                 
                 # New detection pattern: character-level corruption (e.g., 'P, a, r, a, f')
@@ -336,7 +344,7 @@ def run_autofix(limit: int = 50):
                             continue
 
                 print(f"   🤖 Sending {len(text_to_parse)} characters to AI for re-parsing...")
-                ai_data = parse_campaign_data(
+                ai_data = parse_campaign(
                     raw_text=text_to_parse,
                     title=c.title,
                     campaign_id=c.id
@@ -579,6 +587,8 @@ if __name__ == "__main__":
     import argparse
     parser = argparse.ArgumentParser()
     parser.add_argument("--limit", type=int, default=1000, help="Max campaigns to fix in one run")
+    parser.add_argument("--id", type=int, help="Fix a specific campaign ID")
+    parser.add_argument("--force", action="store_true", help="Force AI re-parse even if data exists")
     args = parser.parse_args()
     
-    run_autofix(limit=args.limit)
+    run_autofix(limit=args.limit, campaign_id=args.id, force_all=args.force)
