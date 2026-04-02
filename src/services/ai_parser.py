@@ -96,10 +96,14 @@ BANK_RULES = {
 🚨 YAPI KREDI (WORLD) SPECIFIC RULES:
 - TERMINOLOGY: "Worldpuan" is the currency.
     - ⚠️ IMPORTANT: "TL Worldpuan" means the value is in TL. If it says "100 TL Worldpuan", earning is "100 TL Worldpuan".
-- ELIGIBLE CARDS:
-    - Keywords: "Yapı Kredi Kredi Kartları", "Worldcard", "Opet Worldcard", "Gold", "Platinum", "Business", "World Eko", "Play".
-- PARTICIPATION:
-    - "World Mobil" or "Yapı Kredi Mobil" is the primary method.
+- ELIGIBLE CARDS (cards):
+    - 🚨 STRICT: "Worldcard", "Yapı Kredi Kredi Kartları", "Opet Worldcard", "Gold", "Platinum", "Business", "World Eko", "Play", "Adios", "Adios Premium", "Crystal".
+    - If title or text says "Adios'a Özel" or "Play'e Özel", ensure these are in the 'cards' list.
+- PARTICIPATION (katilim_sekli):
+    - 🚨 PRIORITY ORDER:
+      1. App: "World Mobil" or "Yapı Kredi Mobil". Look for "Hemen Katıl" button.
+      2. SMS: Look for a keyword + "4402" (e.g., "KAZAN yazıp 4402'ye SMS gönderin").
+    - 🚨 FORMAT: "World Mobil uygulamasından Hemen Katıl butonuna tıklayarak veya [KEYWORD] yazıp 4402'ye SMS göndererek katılabilirsiniz."
 - 🚨 REDUNDANCY ALERT: DO NOT repeat card names or dates in 'conditions'.
 """,
     'garanti': """
@@ -181,52 +185,32 @@ BANK_RULES = {
 - TERMINOLOGY: "Altın Puan". 1 Altın Puan = 1 TL.
 - ELIGIBLE CARDS (cards):
     - 🚨 STRICT: Extract all cards from the text (usually the 2nd bullet point in details).
-    - Keywords: "Sağlam Kart", "Sağlam Kart Kampüs", "Sağlam Kart Genç", "Miles & Smiles Kuveyt Türk Kredi Kartı", "Özel Bankacılık World Elite Kart", "Tüzel Kartlar".
-    - Include "sanal ve ek kartlar" if mentioned.
-- PARTICIPATION (participation):
+    - Keywords: "Sağlam Kart", "Sağlam Kart Kampüs", "Sağlam Kart Genç", "Miles & Smiles Kuveyt Türk Kredi Kartı", "Özel Bankacılık World Elite Kart", "Tüzel Kartlar", "Sağlam Nakit Kart".
+    - Include "sanal ve ek kartlar" if mentioned. 
+- PARTICIPATION (katilim_sekli):
     - 🚨 PRIORITY: Check for SMS keywords (e.g. "KATIL TROYRAMAZAN") and the short number (e.g. 2044).
+    - Look for: "Cebim POS", "Sanal POS", "Mobil" instructions.
     - If "otomatik" or "katılım gerektirmez" is mentioned, use "Kampanya otomatik katılımlıdır."
+    - 🚨 FORMAT: Use specific instruction: "2044'e [KEYWORD] yazıp SMS göndererek veya Kuveyt Türk Mobil üzerinden Kampanyalar menüsünden katılabilirsiniz."
 - CONDITIONS (conditions):
     - 🚨 DETAYLI AMA NET: 'KOŞULLAR VE DETAYLAR' başlığı altındaki kritik maddeleri al.
     - 🚨 TEMİZLİK: Tarih, kart listesi ve katılım yöntemini BURADA TEKRARLAMA. Sadece harcama sınırları, sektör kısıtlamaları ve hak kazanım detaylarını yaz.
-    - Minimum harcama (1.250 TL), maksimum ödül (250 TL) gibi kritik sınırları MUTLAKA dahil et.
 """,
     'halkbank': """
 🚨 HALKBANK (PARAF / PARAFLY) SPECIFIC RULES:
 - TERMINOLOGY: "ParafPara". 1 ParafPara = 1 TL.
-- ELIGIBLE CARDS:
+- ELIGIBLE CARDS (cards):
     - 🚨 STRICT: Look for "Dahil:" or "Geçerli kartlar:" section in conditions.
-    - Common INCLUSIONS: "Paraf", "Parafly", "sanal kartlar", "ek kartlar".
-    - Common EXCLUSIONS: "Paraf Genç", "banka kartları", "debit", "ticari kartlar", "commercial", "Halkcardlar".
-    - 🚨 EXTRACTION LOGIC:
-      * If you see "Dahil: Paraf, Parafly, sanal kartlar..." → Extract ["Paraf", "Parafly"]
-      * If you see "Hariç: Paraf Genç, banka kartları..." → Exclude those from the list
-      * If text says "Tüm Paraf kartları" but excludes some → List main types minus exclusions
-    - 🚨 DEFAULT: If no specific cards mentioned, use ["Paraf", "Parafly"]
+    - Common INCLUSIONS: "Paraf", "Parafly", "sanal kartlar", "ek kartlar", "Ticari kartlar", "Business", "Halkcard".
+    - Exclusions like "Paraf Genç" should be checked carefully.
 - PARTICIPATION (katilim_sekli):
     - 🚨 PRIORITY ORDER:
       1. SMS: Look for "3404'e SMS" or "3404'e KEYWORD" → Extract as "3404'e [KEYWORD] SMS"
       2. App: Look for "Paraf Mobil'den HEMEN KATIL" or "Halkbank Mobil'den katılın" → Extract as "Paraf Mobil" or "Halkbank Mobil"
       3. Automatic: If "katılım gerektirmez" or "otomatik" → Use "Otomatik Katılım"
-    - 🚨 FORMAT: Be specific. Examples:
-      * "Paraf Mobil'den HEMEN KATIL butonuna tıklayın"
-      * "3404'e RAMAZAN yazıp SMS gönderin"
-      * "Otomatik Katılım"
-- CONDITIONS:
-    - 🚨 CRITICAL: DO NOT repeat information already shown in separate sections (dates, eligible cards, participation method)
-    - 🚨 FOCUS ON UNIQUE DETAILS ONLY:
-      * Excluded cards (e.g., "Paraf Genç, banka kartları hariç")
-      * Earning tiers (e.g., "5.000 TL'ye 500 TL, 10.000 TL'ye 1.000 TL")
-      * Maximum limits (e.g., "Maksimum 2.000 TL kazanç")
-      * Special conditions (e.g., "İlk kez başvuranlar", "Sadece yurt içi işlemler")
-      * Exclusions (e.g., "Nakit çekim, havale hariç")
-      * Usage restrictions (e.g., "ParafPara 6 ay içinde kullanılmalı")
-    - 🚨 FORMAT: 3-5 concise bullet points
-    - 🚨 AVOID: Repeating dates, card names, or participation method already extracted separately
-- DATE LOGIC:
-     - If year is missing, look for context (e.g. current year {current_date}).
-"""
-    ,
+    - 🚨 FORMAT: "[KEYWORD] yazıp 3404'e SMS göndererek veya Paraf Mobil uygulamasından Hemen Katıl butonuna tıklayarak katılabilirsiniz."
+- CONDITIONS: 🚨 3-5 concise bullet points focusing on spend limits and exclusions ONLY.
+""",
     'denizbank': """
 🚨 DENIZBANK (DENIZBONUS) SPECIFIC RULES:
 - TERMINOLOGY: "Bonus". 1 Bonus = 1 TL.
@@ -303,17 +287,18 @@ BANK_RULES = {
 - TERMINOLOGY: 
     - "Bonus": Used often for Happy Card (uses Bonus network). 1 Bonus = 1 TL.
     - "ParaPuan": Sometimes used. 1 ParaPuan = 1 TL.
-- ELIGIBLE CARDS:
+- ELIGIBLE CARDS (cards):
     - 🚨 STRICT: Extract ONLY cards mentioned.
-    - Common: "Happy Card", "Happy Zero", "Happy Gold", "Happy Platinum", "Âlâ Kart".
-    - "Türkiye Finans Kredi Kartları" = ["Happy Card", "Âlâ Kart"].
-- PARTICIPATION:
+    - Keywords: "Happy Card", "Happy Zero", "Happy Gold", "Happy Platinum", "Âlâ Kart", "Türkiye Finans Banka Kartı", "Hızır Kart".
+    - If "Türkiye Finans Kredi Kartları" is mentioned, include ["Happy Card", "Âlâ Kart"].
+    - ❌ KESİN YASAK: Diğer bankaların Bonus kartlarını listeye yazma.
+- PARTICIPATION (katilim_sekli):
     - 🚨 PRIORITY ORDER:
-      1. SMS: Look for keyword + "2442" (e.g. "KATIL yazıp 2442'ye SMS").
+      1. SMS: Look for keyword + "2442" (e.g. "AYIN yazıp 2442'ye SMS”).
       2. App: "Mobil Şube" or "İnternet Şubesi". Look for "Kampanyalar" menu.
       3. Automatic: ONLY if "otomatik katılım" or if no SMS/App instruction exists AND text implies auto.
-    - 🚨 FORMAT: 3-5 concise bullet points.
-    """,
+    - 🚨 FORMAT: "[KEYWORD] yazıp 2442'ye SMS göndererek veya Türkiye Finans Mobil Şube üzerinden katılabilirsiniz."
+""",
     "chippin": """
 🚨 CHIPPIN SPECIFIC RULES:
 - TERMINOLOGY:
@@ -407,6 +392,22 @@ BANK_RULES = {
 - BRANDS & SECTOR:
     - 🚨 CRITICAL: Paycell often has many digital/streaming partners. Extract brands like 'TV+', 'HBO Max', 'Exxen', 'A101', 'Şok', 'Trendyol'.
     - Sector: Match correctly (TV+, HBO Max -> 'dijital-platform').
+""",
+    'vodafone': """
+🚨 VODAFONE RED / FREEZONE SPECIFIC RULES:
+- ELIGIBLE CARDS: "Vodafone Red", "Vodafone FreeZone", "Vodafone Bireysel", "Vodafone Pay".
+- PARTICIPATION: 
+    - 🚨 PRIORITY: "Vodafone Yanımda" app. Look for "Fırsatı Kullan" or "Şifre Al" buttons.
+    - 🚨 FORMAT: "Vodafone Yanımda uygulaması üzerinden kampanya sayfasındaki butona tıklayarak şifre alabilir veya fırsatı kullanabilirsiniz."
+- CONDITIONS: Extract "şifre geçerlilik süresi", "tek seferlik", "aylık limit" fields.
+""",
+    'turk-telekom': """
+🚨 TÜRK TELEKOM MOBİL SPECIFIC RULES:
+- ELIGIBLE CARDS: "Türk Telekom Mobil", "Türk Telekom Prime", "Selfy".
+- PARTICIPATION: 
+    - 🚨 PRIORITY: "Türk Telekom" app (Online İşlemler). Look for "Fırsatı Kullan" or "Şifre Al".
+    - SMS: Sometimes KEYWORD to **4000** or **5000**.
+    - 🚨 FORMAT: "Türk Telekom uygulaması üzerinden kampanya sayfasından şifre alarak veya [KEYWORD] yazıp [NUMARA]'ya SMS göndererek katılabilirsiniz."
 """,
     'sekerbank': """
 🚨 SEKERBANK SPECIFIC RULES:
