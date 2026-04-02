@@ -211,7 +211,8 @@ def run_autofix(limit: int = 50):
                         "Garanti BBVA", "Garanti", "Garanti Bankası", "Bonus", "Akbank", "Axess",
                         "İş Bankası", "Türkiye İş Bankası", "Maximum", "Maximiles", "Yapı Kredi", "World", 
                         "Halkbank", "Paraf", "VakıfBank", "Kuveyt Türk", "Ziraat", "Ziraat Bankası", 
-                        "Bankkart", "Enpara", "QNB", "Finansbank", "QNB Finansbank", "TEB", "DenizBank", "CEPTETEB"
+                        "Bankkart", "Enpara", "QNB", "Finansbank", "QNB Finansbank", "TEB", "DenizBank", "CEPTETEB",
+                        "Miles&Smiles", "Shop&Fly", "Wings", "Ticari", "Troy", "Mastercard", "Visa", "American Express", "AMEX"
                     ]
                     for b in c.brands:
                         b_name = b.name if hasattr(b, 'name') else str(b)
@@ -423,22 +424,20 @@ def run_autofix(limit: int = 50):
                         c.clean_text = text_to_parse
                         updated = True
 
-                # --- Sektör tamiri ---
+                # --- Sektör tamiri (Korumacı Yaklaşım) ---
                 ai_sector_raw = ai_data.get("sector", "diger")
                 if isinstance(ai_sector_raw, list):
                     ai_sector_raw = ai_sector_raw[0] if len(ai_sector_raw) > 0 else "diger"
                 
-                # Try to map if AI returned a display name, otherwise assume it's a slug
                 final_sector_slug = SECTOR_MAP.get(ai_sector_raw, ai_sector_raw)
-                
                 if final_sector_slug not in SECTOR_MAP.values():
                     final_sector_slug = "diger"
                     
-                needs_sector_fix = (
-                    not c.sector_id or
-                    (c.sector and c.sector.slug != final_sector_slug)
-                )
-                if needs_sector_fix and final_sector_slug != "diger":
+                # Sadece mevcut sektör 'diger' ise veya hiç yoksa AI verisini kabul et
+                current_sector_slug = c.sector.slug if c.sector else None
+                is_current_sector_bad = not current_sector_slug or current_sector_slug == "diger"
+                
+                if is_current_sector_bad and final_sector_slug != "diger":
                     sector = db.query(Sector).filter(Sector.slug == final_sector_slug).first()
                     if not sector:
                         sector = db.query(Sector).filter(Sector.slug == 'diger').first()
@@ -446,8 +445,10 @@ def run_autofix(limit: int = 50):
                         c.sector_id = sector.id
                         print(f"   ✨ Repaired Sector: {sector.name}")
                         updated = True
+                elif not is_current_sector_bad:
+                    print(f"   🛡️ Sector '{current_sector_slug}' preserved, skipped AI overwrite.")
 
-                # --- Marka tamiri ---
+                # --- Marka tamiri (Safe-Update & Multi-Brand) ---
                 needs_brand_fix = False
                 if not c.brands:
                     needs_brand_fix = True
@@ -459,33 +460,52 @@ def run_autofix(limit: int = 50):
 
                 if needs_brand_fix and ai_data.get("brands"):
                     from src.services.brand_matcher import get_or_create_brand
-                    brand_cache = {} # Local cache for this campaign
+                    brand_cache = {} 
                     
-                    # Hatalı markaları temizle (eğer sıfırdan eklenmiyorsa)
-                    if c.brands:
-                        db.query(CampaignBrand).filter(CampaignBrand.campaign_id == c.id).delete()
-                        c.brands = []  # locally clear connection
-                        db.flush()
+                    # Mevcut markaları analiz et (Nokta Atışı ile eşleşenleri korumak için)
+                    existing_brand_ids = {b.id for b in c.brands}
+                    new_brand_names = ai_data["brands"]
+                    
+                    # Hatalı/Yasaklı markaları temizle (Banka/Kart isimleri gibi)
+                    correct_brands_to_keep = []
+                    for b in c.brands:
+                        if b.name not in wrong_bank_brands and b.name.lower() != "genel":
+                            correct_brands_to_keep.append(b)
+                    
+                    # Kampanya bağlarını sıfırla ama sadece hatalıları temizleyerek tekrar kuracağız
+                    db.query(CampaignBrand).filter(CampaignBrand.campaign_id == c.id).delete()
+                    db.flush()
+                    
+                    # Korunması gerekenleri geri ekle
+                    for b in correct_brands_to_keep:
+                        db.add(CampaignBrand(campaign_id=c.id, brand_id=b.id))
+                    
+                    kept_names = [b.name for b in correct_brands_to_keep]
+                    if kept_names:
+                        print(f"   🛡️ Preserved Brands: {', '.join(kept_names)}")
 
-                    for b_name in ai_data["brands"]:
+                    # AI'dan gelen yeni markaları ekle
+                    for b_name in new_brand_names:
                         if not isinstance(b_name, str) or len(b_name) < 2:
                             continue
-                        
+                        if b_name in wrong_bank_brands:
+                            continue
+                            
                         try:
                             brand = get_or_create_brand(db, b_name, brand_cache)
                             if brand:
-                                # Ensure link
-                                link = db.query(CampaignBrand).filter(
+                                # Bağlantı zaten yoksa ekle
+                                exists = db.query(CampaignBrand).filter(
                                     CampaignBrand.campaign_id == c.id,
                                     CampaignBrand.brand_id == brand.id
                                 ).first()
-                                if not link:
+                                if not exists:
                                     db.add(CampaignBrand(campaign_id=c.id, brand_id=brand.id))
-                                    print(f"   ✨ Replaced/Added Brand: {brand.name}")
+                                    print(f"   ✨ Added Brand: {brand.name}")
                                     updated = True
                         except Exception as be:
-                            db.rollback()
                             print(f"   ⚠️ Brand fix failed for {b_name}: {be}")
+                    db.flush()
 
                 # ALWAYS mark as auto_corrected so we don't try again forever (even if Gemini failed to find missing data)
                 c.auto_corrected = True

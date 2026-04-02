@@ -23,6 +23,9 @@ _SessionLocal = None
 _Campaign = None
 _Sector = None
 
+from .point_blank_matcher import get_point_blank_matcher # type: ignore
+from src.database import SessionLocal # type: ignore
+
 class TimeoutException(Exception):
     pass
 
@@ -590,9 +593,20 @@ class AIParser:
 
         # Clean text
         clean_text = self._clean_text(raw_text)
+
+        # --- 2. Point-Blank Pre-Extraction (Nokta Atışı) ---
+        pb_matches = []
+        db = SessionLocal()
+        try:
+            matcher = get_point_blank_matcher(db)
+            pb_matches = matcher.match_campaign(str(title) if title else "", clean_text)
+        except Exception as e:
+            print(f"   ⚠️ Point-Blank matcher error: {e}")
+        finally:
+            db.close()
         
         # Build prompt
-        prompt = self._build_prompt(clean_text, datetime.now().strftime("%Y-%m-%d"), bank_name, title)
+        prompt = self._build_prompt(clean_text, datetime.now().strftime("%Y-%m-%d"), bank_name, title, pb_matches)
         
         # --- 3. AI Call ---
         # Resilience is now handled at the gemini_client level (sequential retries + global cooling)
@@ -608,6 +622,23 @@ class AIParser:
 
             # Validate and normalize
             normalized = self._normalize_data(json_data)
+
+            # --- 4. Report Potential New Rules to Pool ---
+            db = SessionLocal()
+            try:
+                # If we have matches already, we still report NEW ones found by AI
+                matcher = get_point_blank_matcher(db)
+                existing_pb_brands = [m["brand"] for m in pb_matches]
+                
+                if normalized.get("brands"):
+                    for b in normalized["brands"]:
+                        if b and b != "Genel" and b not in existing_pb_brands:
+                            # Only report if it's NOT already in our point-blank list for this campaign
+                            matcher.report_new_candidate(b, b, normalized["sector"])
+            except Exception as e:
+                print(f"   ⚠️ Reporting candidate failed: {e}")
+            finally:
+                db.close()
             
             # INJECT cleaned text into the result dictionary for scrapers to save to DB
             normalized["_clean_text"] = clean_text
@@ -729,7 +760,7 @@ class AIParser:
 
         return text.strip()
     
-    def _build_prompt(self, raw_text: str, current_date: str, bank_name: Optional[str], page_title: Optional[str] = None) -> str:
+    def _build_prompt(self, raw_text: str, current_date: str, bank_name: Optional[str], page_title: Optional[str] = None, pb_matches: Optional[List[Dict]] = None) -> str:
         # 1. Clean Text (Remove boilerplate)
         cleaned_text = clean_campaign_text(raw_text)
         
@@ -751,12 +782,31 @@ class AIParser:
 'title' alanına SADECE bu başlığı yaz. Metinden farklı bir başlık TÜRETME. Kısaltabilir veya dilbilgisi düzeltmesi yapabilirsin ama anlamı değiştirme.
 """
 
+        # 4. Point-Blank Instructions (The Hallucination Killers)
+        pb_instruction = ""
+        if pb_matches:
+            brand_names = [m["brand"] for m in pb_matches if m.get("brand")]
+            # Use the sector from the first rule match (usually the most specific/relevant)
+            primary_sector = pb_matches[0].get("sector") if pb_matches else None
+            
+            pb_instruction = f"""
+🔒 POINT-BLANK (NOKTA ATIŞI) DOĞRULANMIŞ VERİLER:
+- KESİN MARKALAR (BRANDS): {', '.join(brand_names)}
+- ÖNERİLEN SEKTÖR (SECTOR): {primary_sector}
+
+TALİMAT:
+1. 'brands' listene yukarıdaki markaları MUTLAKA ekle. Detaylardan başka marka isimleri (Flo, Vodafone, Shell vb.) yakalarsan onları da ekle.
+2. ⚠️ KRİTİK: '{bank_name or 'Banka'}' ismini veya kart isimlerini (Axess, Bonus, Maximum vb.) ASLA marka olarak yazma.
+3. 'sector' alanında yukarıda önerilen sektörü baz al, ama eğer metin başka bir sektörü daha iyi tanımlıyorsa (veya genel ise) uygun olanı seç.
+"""
+
         return f"""
 Sen uzman bir kampanya analistisin. Aşağıdaki kampanya metnini analiz et ve JSON formatında yapısal veriye dönüştür.
 Bugünün tarihi: {current_date} (Yıl: {datetime.now().year})
 
 {bank_instructions}
 {title_instruction}
+{pb_instruction}
 
 VALID- SECTOR (CRITICAL):
     Valid Sectors for Validation:

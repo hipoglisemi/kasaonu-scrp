@@ -293,3 +293,23 @@ class ScraperLog(Base):
     )
 
 
+class PointBlankRule(Base):
+    """Point-Blank Matching Rules (Dictionary in DB)"""
+    __tablename__ = "point_blank_rules"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    keyword = Column(String, unique=True, nullable=False)
+    brand_name = Column(String, nullable=True) # Explicitly nullable for sector-only matches
+    sector_slug = Column(String, nullable=True)
+    is_verified = Column(Boolean, default=False, nullable=False)
+    match_count = Column(Integer, default=0, nullable=False)
+    created_at = Column(DateTime, default=func.now(), nullable=False)
+    updated_at = Column(DateTime, default=func.now(), onupdate=func.now(), nullable=False)
+
+    # Indexes
+    __table_args__ = (
+        Index("ix_point_blank_keyword", "keyword"),
+        Index("ix_point_blank_verified", "is_verified"),
+    )
+
+
