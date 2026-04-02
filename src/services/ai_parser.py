@@ -851,6 +851,7 @@ VALID- SECTOR (CRITICAL):
     - 🚨 GENEL KAMPANYALAR KURALI (ŞART!): Eğer kampanya kredi başvurusu, nakit avans, limit artırımı, ek taksit gibi SADECE bankanın kendi genel kampanyasıysa ve ortada dışarıdan başka bir ortak marka (Trendyol, Migros, THY vb.) YOKSA, markayı KESİNLİKLE "Genel" olarak yaz. Garanti BBVA gibi banka adlarını yazma! Sadece ["Genel"] yaz!
 3. **SECTOR**: Yukarıdaki VALID SECTORS listesinden EN UYGUN olanı seç. Asla bu liste dışına çıkma.
 4. **MARKETING**: 'description' alanı MUTLAKA 2 cümle olmalı. Samimi ve kullanıcıyı teşvik edici olmalı.
+    - 🚨 BÜYÜK HARF KURALI (HARF DÜZENİ): Eğer girdi metninde veya başlıkta TAMAMI BÜYÜK HARFLE (ALL CAPS) yazılmış kelimeler/cümleler (örn: "KAMPANYAYA KATIL", "İNDİRİM FIRSATI") varsa, JSON çıktısındaki her bir alanda ('description', 'conditions', 'title', vs.) bunları normal Cümle Düzenine (Sentence case) veya Başlık Düzenine (Title case) TERCÜME ET. Asla tamamı büyük harfli kelime gruplarını olduğu gibi bırakma.
 5. **PARTICIPATION (katilim_sekli)**:
     - 🚨 ASLA ATLATMA: SMS anahtar kelimeleri (örn: SUBAT1000, KATIL) ve kısa numaralar (örn: 4566, 4757) kampanya için kritik hayati veridir. Bunları mutlaka 'katilim_sekli' alanına formatlı şekilde yaz.
     - Örn: "4757'ye SUBAT1000 yazıp SMS göndererek katılabilirsiniz."
@@ -888,12 +889,10 @@ VALID- SECTOR (CRITICAL):
 
 8. **KATILIM (PARTICIPATION)**: 
     - 🚨 KRİTİK: SMS, Mobil, Uygulama, Katıl, Gönder gibi teknik katılım mekanizmalarını ara.
-    - 🚨 ULTRA YASAK: "Hemen faydalanabilirsiniz", "Detayları inceleyin", "Mobil uygulama üzerinden katılabilirsiniz" gibi anlamsız/jenerik metinleri ASLA yazma.
-    - Bulamadığında bankanın mobil uygulaması üzerinden katılımı vurgula (Örn: "BonusFlaş üzerinden Hemen Katıl butonuna tıklayarak katılın").
-    - 🚨 ÖZEL: Eğer katılım için "Rezervasyon", "Axess POS terminali" gibi teknik bir şart varsa bunu 'participation' alanına yaz.
-    - 🚨 DOĞRULAMA: İş Bankası için ASLA "World Mobil" yazma, "Maximum Mobil" olarak düzelt. Akbank için "Jüzdan", Garanti için "BonusFlaş", Yapı Kredi için "World Mobil" ifadelerini doğrula.
+    - 🚨 KATILIM GEREKTİRMEYEN KAMPANYALAR: Eğer sayfada "Hemen faydalanabilirsiniz", "Otomatik katılım" yazıyorsa veya özel bir katılıma gerek olmadığı açıksa; KESİNLİKLE "BonusFlaş'tan hemen katılın" gibi bir katılım adımı İCAT ETME. Sadece "Katılım gerektirmez" veya "Otomatik katılım" yaz.
+    - 🚨 JENERİK METİN YASAĞI: "Detayları inceleyin" gibi anlamsız metinleri ASLA yazma.
+    - 🚨 DOĞRULAMA: Sadece gerçekten uygulamadan katılım MÜŞTERİDEN İSTENİYORSA bankanın kendi mobil uygulamasını belirtin (İş Bankası-"Maximum Mobil", Akbank-"Jüzdan", Garanti-"BonusFlaş", Yapı Kredi-"World Mobil"). Yoksa uydurmayın.
     - Varsa tam talimatı yaz: "KAZAN yazıp 4455'e SMS gönderin" veya "Maximum Mobil üzerinden Hemen Katıl butonuna tıklayın".
-    - Yoksa ve metinde teknik bir detay bulunamıyorsa; bankanın mobil uygulaması üzerinden katılımı vurgula (Örn: "BonusFlaş üzerinden katılabilirsiniz").
 
 9. **REWARD_TEXT**: 
     - 🚨 ASLA YAZMA: "Detayları İnceleyin", "Hemen Faydalanın" gibi jenerik ifadeler yasaktır. 
