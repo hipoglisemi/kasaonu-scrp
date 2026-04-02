@@ -196,6 +196,29 @@ def run_autofix(limit: int = 50):
                 if not c.clean_text or len(c.clean_text.strip()) < 50:
                     is_defective = True
                     reasons.append("Missing Clean Text")
+                else:
+                    # SMART METADATA VERIFICATION (Comparing columns with Clean Text)
+                    clean_lower = (c.clean_text or "").lower()
+                    
+                    # 1. Cards Smart Check
+                    card_keywords = ["platinum", "gold", "business", "ticari", "troy", "amex", "business", "kurumsal", "sirket", "şahıs", "miles", "wings", "chip-para"]
+                    found_cards = [k for k in card_keywords if k in clean_lower]
+                    current_cards_lower = (c.eligible_cards or "").lower()
+                    
+                    if found_cards and not any(k in current_cards_lower for k in found_cards):
+                        # If clean_text mentions specific cards but column is generic/missing
+                        is_defective = True
+                        reasons.append(f"Incomplete Cards (Found in text: {', '.join(found_cards)})")
+                    
+                    # 2. Participation Smart Check
+                    part_keywords = ["sms", "gonder", "uygulama", "mobil", "katil", "mesaj", "bonusflas", "world mobil", "maximum mobil", "paraf mobil"]
+                    found_parts = [k for k in part_keywords if k in clean_lower]
+                    current_part_lower = (c.participation or "").lower()
+                    
+                    # Flag as incomplete if keywords found in text but column is very generic or short
+                    if found_parts and (not current_part_lower or len(current_part_lower) < 20 or "detay" in current_part_lower):
+                        is_defective = True
+                        reasons.append(f"Incomplete Participation (Found in text: {', '.join(found_parts)})")
 
                 # Sektör ve Marka Kontrolleri
                 valid_slugs = set(SECTOR_MAP.values())
@@ -237,10 +260,12 @@ def run_autofix(limit: int = 50):
                         # If already corrected once, ONLY retry if:
                         # 1. Severe text corruption
                         # 2. OR it STILL has an Invalid Bank Brand (New rules need to clean this up)
-                        # 3. OR FORCE_ALL is active
+                        # 3. OR it has Incomplete Metadata (Cards/Participation missed by AI)
+                        # 4. OR FORCE_ALL is active
                         has_bank_error = any("Invalid Bank Brand" in r for r in reasons)
+                        has_metadata_error = any("Incomplete Cards" in r or "Incomplete Participation" in r for r in reasons)
                         
-                        if not (is_corrupted or has_mojibake or has_bank_error) and not FORCE_ALL:
+                        if not (is_corrupted or has_mojibake or has_bank_error or has_metadata_error) and not FORCE_ALL:
                             stats["skipped_cooldown"] += 1
                             continue
                             
