@@ -578,6 +578,7 @@ class AIParser:
             card_name: Card name (optional, for context)
             tracking_url: URL to check in cache (Madde 1)
             force: If True, skip cache and force AI call
+            campaign_id: Optional campaign ID for source tracking
             
         Returns:
             Dictionary with structured campaign data
@@ -634,7 +635,7 @@ class AIParser:
                     for b in normalized["brands"]:
                         if b and b != "Genel" and b not in existing_pb_brands:
                             # Only report if it's NOT already in our point-blank list for this campaign
-                            matcher.report_new_candidate(b, b, normalized["sector"])
+                            matcher.report_new_candidate(b, b, normalized["sector"], campaign_id=campaign_id)
             except Exception as e:
                 print(f"   ⚠️ Reporting candidate failed: {e}")
             finally:
@@ -1087,19 +1088,12 @@ def get_ai_parser() -> AIParser:
     return _parser_instance
 
 
-def parse_campaign_data(
-    raw_text: str,
-    title: Optional[str] = None,
-    bank_name: Optional[str] = None,
-    card_name: Optional[str] = None,
-    tracking_url: Optional[str] = None,
-    force: bool = False
-) -> Dict[str, Any]:
+def parse_campaign(raw_text: str, title: Optional[str] = None, bank_name: Optional[str] = None, card_name: Optional[str] = None, tracking_url: Optional[str] = None, force: bool = False, campaign_id: Optional[int] = None) -> Dict:
     """
-    Convenience function to parse campaign data (full HTML mode)
+    Main entry point for AI parsing.
     """
     parser = get_ai_parser()
-    return parser.parse_campaign_data(raw_text, title, bank_name, card_name, tracking_url, force)
+    return parser.parse_campaign_data(raw_text, title, bank_name, card_name, tracking_url, force, campaign_id)
 
 
 def parse_api_campaign(

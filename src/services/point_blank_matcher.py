@@ -61,7 +61,7 @@ class PointBlankMatcher:
         
         return matches
 
-    def report_new_candidate(self, keyword: str, brand_name: Optional[str], sector_slug: Optional[str]):
+    def report_new_candidate(self, keyword: str, brand_name: Optional[str], sector_slug: Optional[str], campaign_id: Optional[int] = None):
         """
         Log a new candidate discovered by AI for admin review.
         """
@@ -80,6 +80,7 @@ class PointBlankMatcher:
                     brand_name=brand_name if brand_name else None,
                     sector_slug=sector_slug if sector_slug else "diger",
                     is_verified=False,
+                    sample_campaign_id=campaign_id,
                     match_count=0
                 )
                 self.db.add(new_rule)

@@ -339,6 +339,7 @@ def run_autofix(limit: int = 50):
                 ai_data = parse_campaign_data(
                     raw_text=text_to_parse,
                     title=c.title,
+                    campaign_id=c.id
                 )
                 
                 if not ai_data:
