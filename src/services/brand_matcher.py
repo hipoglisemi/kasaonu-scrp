@@ -120,6 +120,9 @@ def get_or_create_brand(db=None, name: str = "", brand_cache: dict = {}, sector_
     # Try matching existing brand first
     existing = find_existing_brand(db, name, brand_cache)
     if existing:
+        if not getattr(existing, 'is_active', True):
+            print(f"   🚫 Brand '{existing.name}' is blacklisted (is_active=False). Skipping.")
+            return None
         return existing
 
     # None found — create new brand using the normalized name
@@ -150,6 +153,9 @@ def get_or_create_brand(db=None, name: str = "", brand_cache: dict = {}, sector_
         existing = db.query(Brand).filter(Brand.slug == slug_val).first()
         if existing:
             brand_cache[existing.name.lower()] = existing
+            if not getattr(existing, 'is_active', True):
+                print(f"   🚫 Brand '{existing.name}' is blacklisted (is_active=False). Skipping.")
+                return None
         return existing
 
 

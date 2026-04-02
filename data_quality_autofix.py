@@ -518,9 +518,12 @@ def run_autofix(limit: int = 50, campaign_id: Optional[int] = None, force_all: b
                     db.query(CampaignBrand).filter(CampaignBrand.campaign_id == c.id).delete()
                     db.flush()
                     
+                    added_brand_ids = set()
+                    
                     # Korunması gerekenleri geri ekle
                     for b in correct_brands_to_keep:
                         db.add(CampaignBrand(campaign_id=c.id, brand_id=b.id))
+                        added_brand_ids.add(b.id)
                     
                     kept_names = [b.name for b in correct_brands_to_keep]
                     if kept_names:
@@ -536,13 +539,9 @@ def run_autofix(limit: int = 50, campaign_id: Optional[int] = None, force_all: b
                         try:
                             brand = get_or_create_brand(db, b_name, brand_cache)
                             if brand:
-                                # Bağlantı zaten yoksa ekle
-                                exists = db.query(CampaignBrand).filter(
-                                    CampaignBrand.campaign_id == c.id,
-                                    CampaignBrand.brand_id == brand.id
-                                ).first()
-                                if not exists:
+                                if brand.id not in added_brand_ids:
                                     db.add(CampaignBrand(campaign_id=c.id, brand_id=brand.id))
+                                    added_brand_ids.add(brand.id)
                                     print(f"   ✨ Added Brand: {brand.name}")
                                     updated = True
                         except Exception as be:
