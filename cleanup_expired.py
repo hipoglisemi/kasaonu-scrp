@@ -58,36 +58,57 @@ def notify_google_deleted(slugs: list[str]):
 
 def cleanup_campaigns():
     """
-    Cleans up expired campaigns:
-    Immediately deletes campaigns where end_date is in the past.
+    Cleans up expired campaigns with a 90-day retention policy for SEO:
+    1. Mark as inactive (isActive=False) if end_date is in the past.
+    2. Permanently delete ONLY if end_date is older than 90 days.
     """
-    print(f"🧹 Starting Campaign Cleanup: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+    print(f"🧹 Starting SEO-Friendly Campaign Cleanup: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+    
+    RETENTION_DAYS = 90
     
     with get_db_session() as db:
         today = datetime.now().date()
+        retention_cutoff = today - timedelta(days=RETENTION_DAYS)
         
-        # Immediate deletion of expired campaigns
+        # --- STAGE 1: Deactivate (Soft-Delete) ---
+        to_deactivate = db.query(Campaign).filter(
+            Campaign.end_date < today,
+            Campaign.is_active == True
+        ).all()
+        
+        if to_deactivate:
+            print(f"💤 Deactivating {len(to_deactivate)} expired campaigns (Soft-Delete for SEO).")
+            for c in to_deactivate:
+                c.is_active = False
+            db.flush()
+        
+        # --- STAGE 2: Permanent Delete (After Retention) ---
         to_delete = db.query(Campaign).filter(
-            Campaign.end_date < today
+            Campaign.end_date < retention_cutoff
         ).all()
         
         if to_delete:
             count = len(to_delete)
-            print(f"🗑️ Found {count} expired campaigns to delete (ended before {today}).")
+            print(f"🗑️ Found {count} old campaigns past {RETENTION_DAYS} days retention. Deleting permanently.")
             
-            # Slug'ları topla
             slugs_to_delete = [c.slug for c in to_delete]
             
             for c in to_delete:
                 db.delete(c)
             
             db.commit()
-            print(f"✅ Successfully deleted {count} expired campaigns.")
+            print(f"✅ Successfully deleted {count} campaigns from DB.")
             
-            # Google'a bildir
+            # Notify Google ONLY for permanent deletions
             notify_google_deleted(slugs_to_delete)
         else:
-            print("✅ No expired campaigns to delete.")
+            if not to_deactivate:
+                print("✅ No campaigns to deactivate or delete.")
+            else:
+                db.commit()
+                print("✅ Deactivation complete. No old campaigns to delete yet.")
+            
+    print("🏁 Cleanup completed!")
             
     print("🏁 Cleanup completed!")
 
