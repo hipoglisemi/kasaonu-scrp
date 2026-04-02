@@ -146,6 +146,9 @@ class Campaign(Base):
     # Quality Control
     quality_score = Column(Integer, nullable=True)
     auto_corrected = Column(Boolean, default=False, nullable=False)
+    brand_search_attempts = Column(Integer, default=0, nullable=False)
+    no_brand_verified = Column(Boolean, default=False, nullable=False)
+    repair_count = Column(Integer, default=0, nullable=False)
     is_approved = Column(Boolean, default=False, nullable=False)
 
     # Dates

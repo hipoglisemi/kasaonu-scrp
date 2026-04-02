@@ -228,15 +228,23 @@ def run_autofix(limit: int = 50):
 
                 if is_defective and c.tracking_url:
                     # COOLDOWN & PERMANENT SKIP LOGIC
-                    if c.auto_corrected:
-                        # If the campaign was already auto-corrected but still selected as defective,
-                        # ONLY retry it if it has severe text corruption (mojibake or letter spacing) or FORCE_ALL.
-                        # If it's just missing cards/participation, we permanently skip it.
-                        if not (is_corrupted or has_mojibake) and not FORCE_ALL:
+                    # REPAIR COUNT & FORCE UPGRADE LOGIC
+                    if c.repair_count >= 2:
+                        stats["skipped_cooldown"] += 1
+                        continue
+                    
+                    if c.auto_corrected or c.repair_count > 0:
+                        # If already corrected once, ONLY retry if:
+                        # 1. Severe text corruption
+                        # 2. OR it STILL has an Invalid Bank Brand (New rules need to clean this up)
+                        # 3. OR FORCE_ALL is active
+                        has_bank_error = any("Invalid Bank Brand" in r for r in reasons)
+                        
+                        if not (is_corrupted or has_mojibake or has_bank_error) and not FORCE_ALL:
                             stats["skipped_cooldown"] += 1
                             continue
                             
-                        # If it IS corrupted, check if 48h have passed to retry
+                        # Cooldown check for retries
                         last_update = c.updated_at or c.created_at
                         if now - last_update < cooldown_period:
                             stats["skipped_cooldown"] += 1
