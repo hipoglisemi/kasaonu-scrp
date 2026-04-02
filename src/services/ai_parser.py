@@ -797,9 +797,8 @@ class AIParser:
 - ÖNERİLEN SEKTÖR (SECTOR): {primary_sector}
 
 TALİMAT:
-1. 'brands' listene yukarıdaki markaları MUTLAKA ekle. Detaylardan başka marka isimleri (Flo, Vodafone, Shell vb.) yakalarsan onları da ekle.
-2. ⚠️ KRİTİK: '{bank_name or 'Banka'}' ismini veya kart isimlerini (Axess, Bonus, Maximum vb.) ASLA marka olarak yazma.
-3. 'sector' alanında yukarıda önerilen sektörü baz al, ama eğer metin başka bir sektörü daha iyi tanımlıyorsa (veya genel ise) uygun olanı seç.
+1. 'brands' listene yukarıdaki markaları MUTLAKA ekle. Metin içinde AÇIKÇA yazılan başka ortak markalar varsa onları da ekle.
+2. ⚠️ KRİTİK: '{bank_name or 'Banka'}' ismini veya kart isimlerini (Axess, Bonus, Maximum vb.) ASLA marka olarak yazma. Sadece kampanya ortağı olan firmaları al.
 """
 
         return f"""
@@ -845,9 +844,9 @@ VALID- SECTOR (CRITICAL):
 ⭐⭐⭐ KRİTİK KURALLAR (DOKUNULMAZ) ⭐⭐⭐
 1. **DİL**: Tamamı TÜRKÇE olmalı.
 2. **BRANDS**: Metinde geçen markayı TAM OLARAK al. 
+    - 🚨 HALÜSİNASYON YASAĞI (ÇOK ÖNEMLİ): Sadece metin içinde AÇIKÇA okuduğun marka isimlerini ekle. Eğer kampanya tüm e-ticaret siteleri gibi "Genel Sektör" kampanyasıysa (ve açıkça marka listesi verilmemişse), asla kafandan tahmini markalar (Trendyol, Hepsiburada, Opet, THY vb.) UYDURMA! Metinde marka yoksa 'brands' listesini boş bırak veya sadece ["Genel"] yaz.
     - 🚨 ÖNEMLİ YASAK: Asla kampanya sahibi bankayı (İş Bankası, Akbank, Garanti vb.) veya kart programını (Maximum, Axess, Bonus, World, Wings vb.) MARKA olarak ekleme. Sadece ortak markayı (ör. Trendyol, Migros, THY) ekle.
     - 🚨 FORMAT KURALI: Marka veya kart isimlerini asla "P, a, r, a, f" veya "A, x, e, s, s" gibi her harfi virgülle ayrılmış şekilde yazma. Sadece tam ve okunabilir ismi yaz ("Paraf", "Axess").
-    - Bilinmeyen marka varsa UYDURMA, metindeki ismini kullan.
     - 🚨 GENEL KAMPANYALAR KURALI (ŞART!): Eğer kampanya kredi başvurusu, nakit avans, limit artırımı, ek taksit gibi SADECE bankanın kendi genel kampanyasıysa ve ortada dışarıdan başka bir ortak marka (Trendyol, Migros, THY vb.) YOKSA, markayı KESİNLİKLE "Genel" olarak yaz. Garanti BBVA gibi banka adlarını yazma! Sadece ["Genel"] yaz!
 3. **SECTOR**: Yukarıdaki VALID SECTORS listesinden EN UYGUN olanı seç. Asla bu liste dışına çıkma.
 4. **MARKETING**: 'description' alanı MUTLAKA 2 cümle olmalı. Samimi ve kullanıcıyı teşvik edici olmalı.
@@ -889,9 +888,10 @@ VALID- SECTOR (CRITICAL):
 
 8. **KATILIM (PARTICIPATION)**: 
     - 🚨 KRİTİK: SMS, Mobil, Uygulama, Katıl, Gönder gibi teknik katılım mekanizmalarını ara.
-    - 🚨 KATILIM GEREKTİRMEYEN KAMPANYALAR: Eğer sayfada "Hemen faydalanabilirsiniz", "Otomatik katılım" yazıyorsa veya özel bir katılıma gerek olmadığı açıksa; KESİNLİKLE "BonusFlaş'tan hemen katılın" gibi bir katılım adımı İCAT ETME. Sadece "Katılım gerektirmez" veya "Otomatik katılım" yaz.
-    - 🚨 JENERİK METİN YASAĞI: "Detayları inceleyin" gibi anlamsız metinleri ASLA yazma.
-    - 🚨 DOĞRULAMA: Sadece gerçekten uygulamadan katılım MÜŞTERİDEN İSTENİYORSA bankanın kendi mobil uygulamasını belirtin (İş Bankası-"Maximum Mobil", Akbank-"Jüzdan", Garanti-"BonusFlaş", Yapı Kredi-"World Mobil"). Yoksa uydurmayın.
+    - 🚨 ULTRA YASAK: "Hemen faydalanabilirsiniz", "Detayları inceleyin", "Mobil uygulama üzerinden katılabilirsiniz" gibi anlamsız/jenerik metinleri ASLA yazma.
+    - Bulamadığında bankanın mobil uygulaması üzerinden katılımı vurgula (Örn: "BonusFlaş üzerinden Hemen Katıl butonuna tıklayarak katılın").
+    - 🚨 ÖZEL: Eğer katılım için "Rezervasyon", "Axess POS terminali" gibi teknik bir şart varsa bunu 'participation' alanına yaz.
+    - 🚨 DOĞRULAMA: İş Bankası için ASLA "World Mobil" yazma, "Maximum Mobil" olarak düzelt. Akbank için "Jüzdan", Garanti için "BonusFlaş", Yapı Kredi için "World Mobil" ifadelerini doğrula.
     - Varsa tam talimatı yaz: "KAZAN yazıp 4455'e SMS gönderin" veya "Maximum Mobil üzerinden Hemen Katıl butonuna tıklayın".
 
 9. **REWARD_TEXT**: 
