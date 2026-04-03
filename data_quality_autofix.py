@@ -25,7 +25,7 @@ import logging
 logging.getLogger("httpx").setLevel(logging.WARNING)
 logging.getLogger("google_genai.models").setLevel(logging.WARNING)
 
-from src.models import Campaign, Sector, Brand, CampaignBrand # type: ignore
+from src.models import Campaign, Sector, Brand, CampaignBrand, Card, Bank # type: ignore
 from src.database import get_db_session # type: ignore
 from src.services.ai_parser import parse_campaign, AIParser # type: ignore
 from src.services.point_blank_matcher import get_point_blank_matcher # type: ignore
@@ -261,7 +261,7 @@ def run_autofix(limit: int = 50, campaign_id: Optional[int] = None, force_all: b
                 if is_defective and c.tracking_url:
                     # COOLDOWN & PERMANENT SKIP LOGIC
                     # REPAIR COUNT & FORCE UPGRADE LOGIC
-                    if c.repair_count >= 2:
+                    if c.repair_count >= 2 and not FORCE_ALL:
                         stats["skipped_cooldown"] += 1
                         continue
                     
@@ -280,7 +280,7 @@ def run_autofix(limit: int = 50, campaign_id: Optional[int] = None, force_all: b
                             
                         # Cooldown check for retries
                         last_update = c.updated_at or c.created_at
-                        if now - last_update < cooldown_period:
+                        if now - last_update < cooldown_period and not FORCE_ALL:
                             stats["skipped_cooldown"] += 1
                             continue
                         stats["retry"] += 1
@@ -306,7 +306,11 @@ def run_autofix(limit: int = 50, campaign_id: Optional[int] = None, force_all: b
             summary_reasons = ", ".join(reasons_list)
             
             with get_db_session() as db:
-                c = db.get(Campaign, c_id)
+                c = db.query(Campaign).options(
+                    joinedload(Campaign.card).joinedload(Card.bank),
+                    joinedload(Campaign.sector),
+                    joinedload(Campaign.brands)
+                ).filter(Campaign.id == c_id).first()
                 if not c:
                     print(f"\n🛠️ Skipping: [{c_id}] (Campaign no longer in DB)")
                     continue
@@ -344,10 +348,16 @@ def run_autofix(limit: int = 50, campaign_id: Optional[int] = None, force_all: b
                             print(f"   ❌ Could not extract meaningful text from URL or DB fields. Skipping.")
                             continue
 
-                print(f"   🤖 Sending {len(text_to_parse)} characters to AI for re-parsing...")
+                # Determine bank name for AI parser (needed for Point-Blank & bank-specific rules)
+                bank_name = None
+                if c.card and c.card.bank:
+                    bank_name = c.card.bank.name
+                
+                print(f"   🤖 Sending {len(text_to_parse)} characters to AI for re-parsing... (Bank: {bank_name or 'Unknown'})")
                 ai_data = parse_campaign(
                     raw_text=text_to_parse,
                     title=c.title,
+                    bank_name=bank_name,
                     campaign_id=c.id
                 )
                 
@@ -385,18 +395,27 @@ def run_autofix(limit: int = 50, campaign_id: Optional[int] = None, force_all: b
                         c.reward_type = ai_data["reward_type"]
                         updated = True
                         
-                # Update Eligible Cards if missing, corrupted or generic
-                if not c.eligible_cards or c.eligible_cards.strip() == "" or "Kampanyaya Dahil Kartlar" in (c.eligible_cards or "") or corrupted_regex.search(c.eligible_cards or ""):
+                # Update Eligible Cards if missing, corrupted, generic, OR incomplete
+                is_cards_empty = not c.eligible_cards or c.eligible_cards.strip() == ""
+                is_cards_corrupted = "Kampanyaya Dahil Kartlar" in (c.eligible_cards or "") or corrupted_regex.search(c.eligible_cards or "")
+                is_cards_incomplete = any("Incomplete Cards" in r for r in reasons_list)
+                
+                if is_cards_empty or is_cards_corrupted or is_cards_incomplete or FORCE_ALL:
                     if ai_data.get("cards") and len(ai_data["cards"]) > 0:
                         cards_str = ", ".join(ai_data["cards"])
-                        print(f"   ✨ Repaired Eligible Cards: {cards_str}")
+                        if is_cards_incomplete:
+                            print(f"   ✨ Upgraded Incomplete Cards: {c.eligible_cards} → {cards_str}")
+                        else:
+                            print(f"   ✨ Repaired Eligible Cards: {cards_str}")
                         c.eligible_cards = cards_str
                         updated = True
 
                 def get_last_day_of_month(date_obj):
                     import calendar
                     last_day = calendar.monthrange(date_obj.year, date_obj.month)[1]
-                    return date_obj.replace(day=last_day)
+                    res = date_obj.replace(day=last_day)
+                    # If it's a datetime object, convert to date. If it's already a date, just return it.
+                    return res.date() if hasattr(res, 'date') else res
 
                 baseline_date = c.created_at or datetime.now()
 
@@ -430,7 +449,7 @@ def run_autofix(limit: int = 50, campaign_id: Optional[int] = None, force_all: b
                     if not new_end:
                         # Baseline as end of the month of (start_date or created_at)
                         reference = c.start_date or baseline_date
-                        new_end = get_last_day_of_month(reference).date()
+                        new_end = get_last_day_of_month(reference)
                         print(f"   🔄 Falling back End Date to End of Month: {new_end}")
 
                     if new_end:
@@ -511,24 +530,34 @@ def run_autofix(limit: int = 50, campaign_id: Optional[int] = None, force_all: b
                     if not isinstance(new_brand_names, list):
                         new_brand_names = [new_brand_names] if new_brand_names else []
 
-                    # 🚨 POINT-BLANK GUARDRAIL (Skepticism)
-                    # If Point-Blank found a sector but NO brands, be extremely skeptical of AI brands
+                    # 🎯 AI-FIRST BRAND STRATEGY (AI Parser = primary, PB = supplement)
+                    # AI Parser is our main brand extractor. PB adds brands it found via regex.
+                    # Hallucination control: brand must exist in title or clean_text.
                     pb_matcher = get_point_blank_matcher(db)
                     pb_matches = pb_matcher.match_campaign(c.title, text_to_parse or "")
                     pb_brand_names = [m["brand"] for m in pb_matches if m.get("brand")]
-                    pb_sector = pb_matches[0].get("sector") if pb_matches else None
                     
-                    if pb_sector and not pb_brand_names:
-                        # PB matched a general sector rule but no specific brand.
-                        # This is a general campaign (e.g. Giyim, Market).
-                        # We should REJECT AI's hallucinations (Lee, Wrangler etc.) and stay brandless.
-                        if new_brand_names:
-                            print(f"   🛡️ PB Guardrail: Rejected AI hallucinations {new_brand_names} for general sector '{pb_sector}'. Staying brandless.")
-                            new_brand_names = []
-                    elif pb_brand_names:
-                        # If PB found brands, we trust them more than AI.
-                        # Merge them but keep PB ones as priority.
-                        new_brand_names = list(set(pb_brand_names + [b for b in new_brand_names if b in pb_brand_names]))
+                    # Merge: Start with AI brands, add PB brands that AI missed
+                    merged_brands = list(new_brand_names)  # AI is primary
+                    for pb_b in pb_brand_names:
+                        if pb_b not in merged_brands:
+                            merged_brands.append(pb_b)
+                    
+                    # 🛡️ HALLUCINATION GUARD: Validate each brand against title + clean_text
+                    # A brand is valid if it appears in the title OR in the clean_text
+                    title_lower = (c.title or "").lower()
+                    text_lower = (text_to_parse or "").lower()
+                    validated_brands = []
+                    for b_name in merged_brands:
+                        if not b_name or b_name == "Genel":
+                            continue
+                        b_lower = b_name.lower()
+                        if b_lower in title_lower or b_lower in text_lower:
+                            validated_brands.append(b_name)
+                        else:
+                            print(f"   🛡️ Hallucination Guard: Rejected '{b_name}' (not found in title or clean_text)")
+                    
+                    new_brand_names = validated_brands
                     
                     # Hatalı/Yasaklı markaları temizle (Banka/Kart isimleri gibi)
                     correct_brands_to_keep = []

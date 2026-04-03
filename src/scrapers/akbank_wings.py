@@ -115,7 +115,8 @@ class AkbankWingsScraper(AkbankBaseScraper):
 
             # Details text for AI
             details_container = soup.select_one('.privileges-detail-content') or soup.select_one('.cmsContent')
-            details_text = details_container.get_text(separator=' ', strip=True) if details_container else ""
+            details_text = details_container.get_text(separator='
+', strip=True) if details_container else ""
             
             if not details_text:
                 details_text = title

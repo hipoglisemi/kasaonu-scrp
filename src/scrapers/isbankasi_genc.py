@@ -264,7 +264,8 @@ class IsbankMaximumGencScraper:
                 full_url = urljoin(self.BASE_URL, a_tag["href"])
                 
                 # Sona ermiş kampanya tespiti
-                parent_text = item.get_text(separator=" ", strip=True).lower()
+                parent_text = item.get_text(separator='
+', strip=True).lower()
                 
                 if "sona ermiştir" in parent_text or "bitmiştir" in parent_text or "sona erdi" in parent_text or "süresi doldu" in parent_text:
                     expired_links.append(full_url)

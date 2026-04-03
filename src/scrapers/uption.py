@@ -263,14 +263,16 @@ class UptionScraper:
         for selector in selectors:
             elements = soup.select(selector)
             for el in elements:
-                txt = el.get_text(separator=' ', strip=True)
+                txt = el.get_text(separator='
+', strip=True)
                 if len(txt) > 20: # Avoid tiny noise
                     content_parts.append(txt)
         
         if not content_parts:
             # Last resort
             content_div = soup.select_one('main') or soup.select_one('article') or soup.find('body')
-            raw_content = content_div.get_text(separator=' ', strip=True) if content_div else title
+            raw_content = content_div.get_text(separator='
+', strip=True) if content_div else title
         else:
             # Use dict.fromkeys to preserve order and remove potential duplicate blocks
             raw_content = "\n\n".join(dict.fromkeys(content_parts))

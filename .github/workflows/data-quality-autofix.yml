@@ -5,6 +5,16 @@ on:
     # TSİ 07:00 → UTC 04:00
     - cron: '0 4 * * *'
   workflow_dispatch:
+    inputs:
+      limit:
+        description: 'Kaç kampanya taranacak?'
+        required: false
+        default: '50'
+      force:
+        description: 'Force AI Re-Parse (Zorla)'
+        required: false
+        type: boolean
+        default: false
 
 jobs:
   autofix:
@@ -43,7 +53,12 @@ jobs:
         GEMINI_MODEL: "gemini-3.1-flash-lite-preview"
         USE_VERTEX_AI: "False"
       run: |
-        xvfb-run --auto-servernum --server-args="-screen 0 1920x1080x24" python data_quality_autofix.py
+        LIMIT="${{ github.event.inputs.limit || '50' }}"
+        FORCE_FLAG=""
+        if [ "${{ github.event.inputs.force }}" == "true" ]; then
+          FORCE_FLAG="--force"
+        fi
+        xvfb-run --auto-servernum --server-args="-screen 0 1920x1080x24" python data_quality_autofix.py --limit "$LIMIT" $FORCE_FLAG
 
     - name: Bildirim Gönder
       if: always()

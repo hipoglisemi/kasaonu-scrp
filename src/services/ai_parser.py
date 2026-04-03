@@ -113,10 +113,9 @@ BANK_RULES = {
 🚨 GARANTI BBVA / BONUS / MILES&SMILES / SHOP&FLY SPECIFIC RULES:
 - TERMINOLOGY: "Bonus" (Bonus/Flexi), "Mil" (Miles&Smiles/Shop&Fly).
 - ELIGIBLE CARDS (cards):
-    - 🚨 STRICT EXTRACTION: Metindeki kart isimlerini TAM olarak çıkar.
-    - Miles&Smiles: "Miles & Smiles Garanti BBVA", "Miles & Smiles Garanti BBVA Business".
-    - Shop&Fly: "Shop & Fly", "Shop & Fly Gold", "Shop & Fly Business", "Shop & Fly Platinum".
-    - Bonus: "Bonus", "Bonus Gold", "Bonus Platinum", "Bonus American Express", "Bonus Business", "Bonus Genç", "Bonus Flexi", "Paracard Bonus".
+    - 🚨 BASİT VE NET OL: Kampanyanın metninde/koşullarında dahil olan veya geçerli olan kartlar olarak ne belirtildiyse DİREKT ONU YAZ.
+    - Örnek: "Kampanyaya bireysel Garanti BBVA kredi kartları ve Bonusnet platformundaki bankaların bireysel Bonus kredi kartları dahildir." yazıyorsa AYNEN AL.
+    - Sadece kart isimlerini kendin uydurma veya ezberden yazma, metindeki ifadeleri koruyarak listele.
     - ❌ YASAK: "Kampanyaya Dahil Kartlar" gibi başlıkları ASLA kart listesine yazma. Sadece kartın kendi ismini yaz.
 - PARTICIPATION: "BonusFlaş" app is primary. Look for "HEMEN KATIL" instructions.
 - 🚨 REDUNDANCY ALERT: DO NOT repeat card names, dates, or participation methods (e.g., BonusFlaş) in 'conditions'.
@@ -642,6 +641,12 @@ class AIParser:
             finally:
                 db.close()
             
+            # --- 5. Card Hallucination Guard ---
+            if normalized.get("cards") and clean_text:
+                normalized["cards"] = self._validate_cards_against_text(
+                    normalized["cards"], clean_text
+                )
+            
             # INJECT cleaned text into the result dictionary for scrapers to save to DB
             normalized["_clean_text"] = clean_text
 
@@ -775,20 +780,67 @@ class AIParser:
             r"seveni, kullananı, bedavası en bol",
             r"başvurunuzu hemen yapın",
             r"ilginizi çekebilir",
-            r"deniz bonus.*en çok tercih edilen"
+            r"deniz bonus.*en çok tercih edilen",
+            # Akbank footer patterns
+            r"axess mobil.*hemen indir",
+            r"app store ile indir",
+            r"google play ile indir",
+            r"mesajınız gönderildi",
+            r"ana sayfaya dön",
+            r"merak ettikleriniz",
+            r"sıkça sorulan sorular",
+            r"başvurum nerede",
+            r"kart şifresi al",
+            r"faiz ve ücretler",
+            r"hesap özeti açıklamaları",
+            r"kişisel verilerin korunması",
+            r"e-?mail toplama ve gönderim",
+            # İşbankası footer patterns
+            r"kampanyayı paylaş",
+            r"maximum mobil.*indir",
+            # Garanti / BonusFlaş footer
+            r"bonusflaş.*indirmek için",
+            r"bonusflaş.*ı indirin",
+            r"cüzdan\s+kampanyalar\s+ödemeler\s+kartlar",
+            r"qr kod okuyucu",
+            # General bank footers
+            r"sosyal medya\s+her hakkı",
+            r"her hakkı.*\.a\.ş",
+            r"çerez politikası\s+bize ulaşın",
+            r"bize ulaşın\s+sosyal medya",
+            r"biten kampanyalar",
+            # Şekerbank sidebar (benzer kampanya link listesi)
+            r"şekerbank\s+troy\s+thy\s+kampanyası",
+            r"kampanyası\s+\w+\s+kampanyası\s+\w+\s+kampanyası",
+            # Nays navigation menu
+            r"al/sat\s+biriktir\s+otomatik\s+para",
+            r"paribu.ya\s+para\s+gönder",
+            r"faturasız\s+hatta.*tl\s+yükl",
+            # Akbank HEMEN İNDİR footer
+            r"hemen\s+indir\s+veya\s+app\s+store",
+            r"jüzdan.*ı\s+indir",
+            # Generic cross-campaign / sidebar navigation
+            r"prev\s+next\s+\w+\s+servis",
+            r"detaylı\s+bilgi\s+prev\s+next",
+            # Vodafone/Turkcell footer
+            r"vodafone\s+yanımda.*indir",
+            r"turkcell\s+dijital\s+operatör",
         ]
         
         text_lower = text.lower()
         earliest_noise_idx = len(text)
         
+        # Minimum position guard: ignore noise markers in the first 300 chars
+        # or first 15% of text — they're likely navigation menu items, not footer.
+        min_noise_pos = max(300, int(len(text) * 0.15))
+        
         for marker in noise_markers:
-            match = re.search(marker, text_lower)
-            if match:
-                if match.start() < earliest_noise_idx:
+            for match in re.finditer(marker, text_lower):
+                if match.start() >= min_noise_pos and match.start() < earliest_noise_idx:
                     earliest_noise_idx = match.start()
         
         if earliest_noise_idx < len(text):
-            # If noise marker found, truncate there (plus a small lookback to avoid weird cuts)
+            # If noise marker found, truncate there
             text = text[:earliest_noise_idx].strip()
 
         # ── Step 3: Length limit (reverting to a safer 8000 AFTER cleaning) ──────────
@@ -891,8 +943,11 @@ VALID- SECTOR (CRITICAL):
     - 🚨 ASLA ATLATMA: SMS anahtar kelimeleri (örn: SUBAT1000, KATIL) ve kısa numaralar (örn: 4566, 4757) kampanya için kritik hayati veridir. Bunları mutlaka 'katilim_sekli' alanına formatlı şekilde yaz.
     - Örn: "4757'ye SUBAT1000 yazıp SMS göndererek katılabilirsiniz."
 6. **CARDS (cards)**:
-    - 🚨 ASLA ATLATMA: Metinde geçen tüm geçerli kartları (Axess, Wings, Free, Paraf, Parafly vb.) tam isimleriyle listele.
-    - Eğer "Chippin" gibi bir cüzdan kampanyasıysa ve metinde kart kısıtı yoksa, "Tüm Kartlar" ibaresini kullanabilirsin.
+    - 🚨 MUTLAK KURAL: 'cards' listesine SADECE ve SADECE metinde birebir okuduğun kart isimlerini yaz. Metinde "Paraf, Parafly, Paraf Business" yazıyorsa AYNEN bu 3 kartı listele.
+    - 🚨 HALÜSİNASYON YASAĞI: Metinde geçmeyen kart ismini KESİNLİKLE EKLEME. Eğer metinde sadece "Axess" geçiyorsa "Axess Gold", "Axess Platinum" gibi varyantları UYDURMA.
+    - 🚨 METNE SADIK KAL: Kart isimlerini metin içindeki YAZILIŞIYLA al. "DenizBonus" yazıyorsa "DenizBonus" yaz, "Deniz Bonus" YAZMA.
+    - 🚨 VARSAYIM YAPMA: Banka adını bildiğin için o bankanın tüm kart çeşitlerini listeye EKLEME. Sadece metinde açıkça yazan kartları al.
+    - Eğer metinde hiçbir kart ismi geçmiyorsa boş liste [] döndür.
 
     - 🚨 KESİN YASAK: 'description' alanına tarih, kart veya katılım bilgisi ASLA EKLEME.
 5. **REWARD TEXT (PUNCHY)**: 
@@ -1062,7 +1117,111 @@ ANALİZ EDİLECEK METİN:
         }
         
         return normalized
-    
+
+    def _validate_cards_against_text(self, cards: list, clean_text: str) -> list:
+        """
+        Card Hallucination Guard — Verifies each card name AI returned actually
+        appears in the clean_text. Removes hallucinated card names.
+        """
+        if not clean_text or not cards:
+            return cards
+        
+        # Normalize ampersand variations for comparison
+        def _normalize_ampersand(s: str) -> str:
+            """Normalize all '&' variants to a consistent form for matching."""
+            s = s.replace("&", " & ").replace("  ", " ")
+            return s
+        
+        text_lower = clean_text.lower()
+        text_amp_normalized = _normalize_ampersand(text_lower)
+        
+        validated = []
+        rejected = []
+        
+        # These are generic terms that don't need text verification
+        passthrough_terms = {
+            "tüm kartlar", "tüm kredi kartları", "tüm banka kartları",
+            "sanal ve ek kartlar", "sanal kartlar", "ek kartlar",
+        }
+        
+        for card in cards:
+            card_lower = card.lower().strip()
+            
+            # Pass through generic terms
+            if card_lower in passthrough_terms:
+                validated.append(card)
+                continue
+            
+            # Strategy 1: Direct substring match (handles "Shop&Fly" in text)
+            if card_lower in text_lower:
+                validated.append(card)
+                continue
+            
+            # Strategy 2: Ampersand-normalized match
+            card_amp_normalized = _normalize_ampersand(card_lower)
+            if card_amp_normalized in text_amp_normalized:
+                validated.append(card)
+                continue
+            
+            # Strategy 3: Core word matching
+            # "Axess Business" → check "axess" AND "business"
+            # Filter out stop words and ampersands
+            stop_words = {"ve", "ile", "için", "&", "and", "the"}
+            core_words = [w for w in card_amp_normalized.split() if len(w) > 2 and w not in stop_words]
+            
+            if not core_words:
+                # Very short card name — already failed direct match above
+                rejected.append(card)
+                continue
+            
+            # All core words must appear in clean_text
+            if all(w in text_amp_normalized for w in core_words):
+                validated.append(card)
+            else:
+                rejected.append(card)
+        
+        if rejected:
+            print(f"   🛡️ Card Guard: Rejected {rejected} (not found in clean_text)")
+        
+        return validated
+
+    def _validate_brands_against_text(self, brands: list, clean_text: str, title: str) -> list:
+        """
+        Brand Hallucination Guard — Verifies each brand name AI returned actually
+        appears in the clean_text or title. Removes hallucinated brand names.
+        """
+        if not brands:
+            return brands
+            
+        validated = []
+        rejected = []
+        
+        text_lower = (clean_text or "").lower()
+        title_lower = (title or "").lower()
+        
+        # Turkish letter character class
+        _TR = r"a-z\u00e7\u011f\u0131\u00f6\u015f\u00fcA-Z\u00c7\u011e\u0130\u00d6\u015e\u00dc"
+        
+        for brand in brands:
+            if not brand or len(brand) < 2:
+                continue
+                
+            import re
+            kw = re.escape(brand)
+            # Use string boundary pattern for strict matching
+            pattern = f"(?i)(?<![{_TR}]){kw}(?:['\u2018\u2019][a-z\u00e7\u011f\u0131\u00f6\u015f\u00fc]+)?(?![{_TR}])"
+            
+            # Brand is valid if it appears in Title OR Clean Text
+            if re.search(pattern, title_lower) or re.search(pattern, text_lower):
+                validated.append(brand)
+            else:
+                rejected.append(brand)
+                
+        if rejected:
+            print(f"   🛡️ Brand Guard: Rejected {rejected} (not found in title or clean_text)")
+            
+        return validated
+
     def _safe_decimal(self, value: Any) -> Optional[float]:
         """Safely convert to decimal"""
         if value is None:
@@ -1250,7 +1409,7 @@ KURALLAR:
    - **Cards (Kartlar)**: Dahil/geçerli kart isimlerini burada tekrarlama. Sadece `cards` alanında olmalı.
    - **Dates (Tarihler)**: "Şu tarihler arasında" gibi bilgileri tekrarlama. Sadece `start_date` ve `end_date` alanlarında olmalı.
    - ✅ SADECE teknik kuralları yaz: "Harcama alt sınırı", "Maksimum ödül limitleri", "İade/iptal durumları" vb.
-9. cards: Hangi kartlarla geçerli? Metinde belirtilen kartları listele.
+9. cards: 🚨 MUTLAK KURAL: SADECE metinde birebir okuduğun kart isimlerini yaz. Metinde "Paraf, Parafly, Paraf Business kampanyadan faydalanabilecektir" yazıyorsa AYNEN ["Paraf", "Parafly", "Paraf Business"] listele. Metinde geçmeyen kart ismi ASLA EKLEME! Varsayım yapma, uydurma!
 10. participation: 🚨 KRİTİK — Detay İçerik'te "SMS", "4454", "Mobil", "Katıl", "Jüzdan", "World Mobil", "ON Mobil" gibi ifadeleri ARA.
    - Katılım adımlarını buraya açık ve net yaz. Örn: "ON Mobil üzerinden Hemen Katıl butonuna tıklayarak katılın."
    - SMS varsa: "KEYWORD yazıp NUMARA'ya SMS gönderin" formatında yaz.
@@ -1295,6 +1454,21 @@ JSON olarak cevap ver:
 
         # Use the central normalization logic (Safe Dates, Fallbacks, etc.)
         normalized = parser._normalize_data(json_data)
+        
+        # --- Card Hallucination Guard ---
+        if normalized.get("cards") and clean_content:
+            normalized["cards"] = parser._validate_cards_against_text(
+                normalized["cards"], clean_content
+            )
+            
+        # --- Brand Hallucination Guard ---
+        if normalized.get("brands"):
+            normalized["brands"] = parser._validate_brands_against_text(
+                normalized["brands"], clean_content, title
+            )
+        
+        # INJECT cleaned text for scrapers to save
+        normalized["_clean_text"] = clean_content
         
         # Ensure 'short_title' is available for consumers of this specific function
         if "short_title" in json_data:

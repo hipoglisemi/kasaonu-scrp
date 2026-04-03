@@ -233,7 +233,8 @@ class IsbankMaximumScraper:
                 parent = a_tag.find_parent("div", class_="card") or a_tag.find_parent("div", class_="campaign-card") or a_tag.find_parent("div", class_="opportunity-result") or getattr(a_tag, 'parent', None)
             
             if parent:
-                parent_text = parent.get_text(separator=" ", strip=True).lower()
+                parent_text = parent.get_text(separator='
+', strip=True).lower()
 
             if a.find(class_="expired") or "gecmis" in href or "geçmiş" in a.text.lower() or \
                "sona ermiştir" in parent_text or "bitmiştir" in parent_text or "sona erdi" in parent_text or "süresi doldu" in parent_text:
