@@ -47,28 +47,55 @@ def clean_campaign_text(raw_text: str) -> str:
         r"juzdan'ı indir",
     ]
 
-    # Split text into sentences (by period followed by space/newline, or by newline)
-    # Then filter out boilerplate sentences individually
+    # Split text into sentences and filter
     lines = raw_text.split('\n')
     cleaned_lines = []
-
     for line in lines:
         trimmed = line.strip()
-        if not trimmed:
-            continue
-
-        # Split line into sentences by ". " or ".\n"
+        if not trimmed: continue
         sentences = re.split(r'(?<=\.)\s+', trimmed)
         clean_sentences = []
         for sentence in sentences:
             s = sentence.strip()
-            if not s:
-                continue
+            if not s: continue
             is_junk = any(re.search(p, s, re.IGNORECASE) for p in junk_patterns)
             if not is_junk:
                 clean_sentences.append(s)
-
         if clean_sentences:
             cleaned_lines.append(' '.join(clean_sentences))
 
-    return '\n'.join(cleaned_lines)
+    # ── Boilerplate Sniper (Truncate at noise sections) ──
+    noise_markers = [
+        r"çerez aydınlatma metni",
+        r"zorunlu çerezler",
+        r"daha fazla bilgi için",
+        r"benzer (kampanyalar|fırsatlar)",
+        r"diğer (kampanyalar|fırsatlar)",
+        r"sizin için seçtiklerimiz",
+        r"popüler markalar",
+        r"bizi takip edin",
+        r"site haritası",
+        r"tüm hakları saklıdır",
+        r"copyright",
+        r"en çok tercih edilen kredi kartlarını keşfedin",
+        r"fırsatlardan hemen yararlanın",
+        r"seveni, kullananı, bedavası en bol",
+        r"başvurunuzu hemen yapın",
+        r"ilginizi çekebilir",
+        r"deniz bonus.*en çok tercih edilen"
+    ]
+    
+    final_text = '\n'.join(cleaned_lines)
+    text_lower = final_text.lower()
+    earliest_noise_idx = len(final_text)
+    
+    for marker in noise_markers:
+        match = re.search(marker, text_lower)
+        if match:
+            if match.start() < earliest_noise_idx:
+                earliest_noise_idx = match.start()
+    
+    if earliest_noise_idx < len(final_text):
+        final_text = final_text[:earliest_noise_idx].strip()
+
+    return final_text

@@ -756,7 +756,42 @@ class AIParser:
         text = re.sub(r'\n{3,}', '\n\n', text)
         text = re.sub(r'[^\w\s\.,;:!?%₺\-/()İıĞğÜüŞşÖöÇç\n]', ' ', text)
 
-        # ── Step 3: Length limit (reverting to a safer 8000) ──────────
+        # ── Step 2.5: BOILERPLATE SNIPER (Truncate at noise sections) ──
+        # These markers usually signal the end of campaign data and beginning of site footer/sidebar/other campaigns.
+        noise_markers = [
+            r"çerez aydınlatma metni",
+            r"zorunlu çerezler",
+            r"daha fazla bilgi için",
+            r"benzer (kampanyalar|fırsatlar)",
+            r"diğer (kampanyalar|fırsatlar)",
+            r"sizin için seçtiklerimiz",
+            r"popüler markalar",
+            r"bizi takip edin",
+            r"site haritası",
+            r"tüm hakları saklıdır",
+            r"copyright",
+            r"en çok tercih edilen kredi kartlarını keşfedin",
+            r"fırsatlardan hemen yararlanın",
+            r"seveni, kullananı, bedavası en bol",
+            r"başvurunuzu hemen yapın",
+            r"ilginizi çekebilir",
+            r"deniz bonus.*en çok tercih edilen"
+        ]
+        
+        text_lower = text.lower()
+        earliest_noise_idx = len(text)
+        
+        for marker in noise_markers:
+            match = re.search(marker, text_lower)
+            if match:
+                if match.start() < earliest_noise_idx:
+                    earliest_noise_idx = match.start()
+        
+        if earliest_noise_idx < len(text):
+            # If noise marker found, truncate there (plus a small lookback to avoid weird cuts)
+            text = text[:earliest_noise_idx].strip()
+
+        # ── Step 3: Length limit (reverting to a safer 8000 AFTER cleaning) ──────────
         if len(text) > 8000:
             text = text[:8000] # type: ignore
 
@@ -799,6 +834,7 @@ class AIParser:
 TALİMAT:
 1. 'brands' listene yukarıdaki markaları MUTLAKA ekle. Metin içinde AÇIKÇA yazılan başka ortak markalar varsa onları da ekle.
 2. ⚠️ KRİTİK: '{bank_name or 'Banka'}' ismini veya kart isimlerini (Axess, Bonus, Maximum vb.) ASLA marka olarak yazma. Sadece kampanya ortağı olan firmaları al.
+3. 🛡️ SEKTÖR ODAKLI MARKA DENETİMİ: Metinde açıkça bu isimler geçmiyorsa, sadece "Giyim" veya "Market" gibi kelimelerden yola çıkarak kafandan marka (Lee, Wrangler, Migros vb.) UYDURMA. Metinde spesifik marka yoksa 'brands' listesini BOŞ bırak. Metin sonundaki (Benzer Fırsatlar vb.) marka isimlerini ana kampanya ile KARIŞTIRMA.
 """
 
         return f"""
@@ -847,7 +883,7 @@ VALID- SECTOR (CRITICAL):
     - 🚨 HALÜSİNASYON YASAĞI (ÇOK ÖNEMLİ): Sadece metin içinde AÇIKÇA okuduğun marka isimlerini ekle. Eğer kampanya tüm e-ticaret siteleri gibi "Genel Sektör" kampanyasıysa (ve açıkça marka listesi verilmemişse), asla kafandan tahmini markalar (Trendyol, Hepsiburada, Opet, THY vb.) UYDURMA! Metinde marka yoksa 'brands' listesini boş bırak veya sadece ["Genel"] yaz.
     - 🚨 ÖNEMLİ YASAK: Asla kampanya sahibi bankayı (İş Bankası, Akbank, Garanti vb.) veya kart programını (Maximum, Axess, Bonus, World, Wings vb.) MARKA olarak ekleme. Sadece ortak markayı (ör. Trendyol, Migros, THY) ekle.
     - 🚨 FORMAT KURALI: Marka veya kart isimlerini asla "P, a, r, a, f" veya "A, x, e, s, s" gibi her harfi virgülle ayrılmış şekilde yazma. Sadece tam ve okunabilir ismi yaz ("Paraf", "Axess").
-    - 🚨 GENEL KAMPANYALAR KURALI (ŞART!): Eğer kampanya kredi başvurusu, nakit avans, limit artırımı, ek taksit gibi SADECE bankanın kendi genel kampanyasıysa ve ortada dışarıdan başka bir ortak marka (Trendyol, Migros, THY vb.) YOKSA, markayı KESİNLİKLE "Genel" olarak yaz. Garanti BBVA gibi banka adlarını yazma! Sadece ["Genel"] yaz!
+    - 🚨 GENEL KAMPANYALAR KURALI (ŞART!): Eğer kampanya kredi başvurusu, nakit avans, limit artırımı, ek taksit gibi SADECE bankanın kendi genel kampanyasıysa ve ortada dışarıdan başka bir ortak marka (Trendyol, Migros, THY vb.) YOKSA, markayı KESİNLİKLE BOŞ bırak. ["Genel"] yazma! Sadece [] yaz!
 3. **SECTOR**: Yukarıdaki VALID SECTORS listesinden EN UYGUN olanı seç. Asla bu liste dışına çıkma.
 4. **MARKETING**: 'description' alanı MUTLAKA 2 cümle olmalı. Samimi ve kullanıcıyı teşvik edici olmalı.
     - 🚨 BÜYÜK HARF KURALI (HARF DÜZENİ): Eğer girdi metninde veya başlıkta TAMAMI BÜYÜK HARFLE (ALL CAPS) yazılmış kelimeler/cümleler (örn: "KAMPANYAYA KATIL", "İNDİRİM FIRSATI") varsa, JSON çıktısındaki her bir alanda ('description', 'conditions', 'title', vs.) bunları normal Cümle Düzenine (Sentence case) veya Başlık Düzenine (Title case) TERCÜME ET. Asla tamamı büyük harfli kelime gruplarını olduğu gibi bırakma.
@@ -1207,7 +1243,7 @@ KURALLAR:
 4. reward_type: "puan", "indirim", "taksit", veya "mil"
 5. reward_text: Kısa ve çarpıcı. "75 TL Worldpuan", "%20 İndirim", "300 TL'ye Varan Puan"
 6. sector: VALID SECTORS listesinden seç.
-7. brands: Metinde geçen dış marka isimlerini çıkar (ör. Trendyol, Migros). Asla Garanti BBVA, İş Bankası gibi banka adlarını yazma! Eğer ortada harici bir marka yoksa (kredi, nakit avans, otomatik fatura, ek taksit gibi bankanın genel bir kampanyasıysa) SADECE ["Genel"] yaz.
+7. brands: Metinde geçen dış marka isimlerini çıkar (ör. Trendyol, Migros). Asla Garanti BBVA, İş Bankası gibi banka adlarını yazma! Eğer ortada harici bir marka yoksa (kredi, nakit avans, otomatik fatura, ek taksit gibi bankanın genel bir kampanyasıysa) SADECE [] yaz.
 8. conditions: Koşulları kısa maddeler halinde özetle (max 5 madde). 
    🚨 🚨 **ULTRA KRİTİK - YASAK**: Aşağıdaki bilgileri 'conditions' içine yazmak KESİNLİKLE YASAKTIR:
    - **Participation (Katılım)**: "Hemen Katıl butonuna tıklayın", "SMS gönderin" gibi katılım adımlarını ASLA burada tekrarlama. Bunlar sadece `participation` alanında olmalı.

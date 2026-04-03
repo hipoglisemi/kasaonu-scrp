@@ -74,21 +74,36 @@ def repair_campaigns():
                                 brand_updates += 1
                                 is_changed = True
 
-                        # B. Remove Hallucinated Brands (Bank/Card names)
-                        # We only remove if Point-Blank doesn't explicitly confirm it as a brand
+                        # B. Remove Hallucinated Brands (Bank/Card names or AI guesses not in text)
+                        # STRATEGY: If Point-Blank is active for this campaign:
+                        # 1. Always remove Bank/Card names (Blacklist) unless explicitly confirmed as a brand
+                        # 2. If Point-Blank found a Sector but NO brands, remove ALL current brands (they are likely hallucinations)
+                        # 3. If Point-Blank found some brands, allow ONLY those and remove everything else.
+                        
                         BLACKLIST = ["Akbank", "Axess", "Wings", "Garanti", "Bonus", "Maximum", "Yapı Kredi", "World", 
                                      "İş Bankası", "Ziraat", "Halkbank", "Paraf", "Vakıfbank", "QNB", "Finansbank", 
                                      "Enpara", "TEB", "Denizbank", "Kuveyt Türk", "Sağlam Kart", "Banka"]
                         
                         for link in current_links:
                             brand = session.query(Brand).get(link.brand_id)
-                            if brand:
-                                # If brand name is in blacklist AND not confirmed by Point-Blank rules
-                                is_bad = any(bad.lower() in brand.name.lower() for bad in BLACKLIST)
-                                if is_bad and brand.name not in verified_brand_names:
-                                    session.delete(link)
-                                    brand_updates += 1
-                                    is_changed = True
+                            if not brand: continue
+
+                            is_bad_bank = any(bad.lower() in brand.name.lower() for bad in BLACKLIST)
+                            is_confirmed = brand.name in verified_brand_names
+                            
+                            # Decision logic:
+                            should_delete = False
+                            if is_bad_bank and not is_confirmed:
+                                should_delete = True
+                            elif pb_matches and not is_confirmed:
+                                # If PB is active (found something) but this brand wasn't confirmed, it's a hallucination.
+                                # Even if it's 'Genel', we now want to remove it as per new instructions.
+                                should_delete = True
+                            
+                            if should_delete:
+                                session.delete(link)
+                                brand_updates += 1
+                                is_changed = True
 
                         if is_changed:
                             repaired_count += 1

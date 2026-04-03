@@ -40,8 +40,10 @@ class PointBlankMatcher:
         seen_brands = set()
         
         for rule in self.rules:
-            # Flexible regex for Turkish apostrophes and suffixes
-            pattern = f"(?i)\\b{re.escape(rule.keyword)}(['’]?[a-zçğıöşü]*)?\\b"
+            # Flexible regex for Turkish: word boundaries (?<!...) and suffixes (['’]?[a-zçğıöşü]*)?
+            # We use custom boundaries because \b is not always consistent with Turkish characters.
+            kw_pattern = re.escape(rule.keyword)
+            pattern = f"(?i)(?<![a-zçğıöşüA-ZÇĞİÖŞÜ]){kw_pattern}(['’]?[a-zçğıöşü]*)?(?![a-zçğıöşüA-ZÇĞİÖŞÜ])"
             
             if re.search(pattern, full_text):
                 if rule.brand_name not in seen_brands:

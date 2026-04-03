@@ -28,6 +28,7 @@ logging.getLogger("google_genai.models").setLevel(logging.WARNING)
 from src.models import Campaign, Sector, Brand, CampaignBrand # type: ignore
 from src.database import get_db_session # type: ignore
 from src.services.ai_parser import parse_campaign, AIParser # type: ignore
+from src.services.point_blank_matcher import get_point_blank_matcher # type: ignore
 from sqlalchemy.orm import joinedload # type: ignore
 
 # Shared cleaner — same preprocessing scrapers use (filters boilerplate, dedup, 6K limit)
@@ -496,7 +497,7 @@ def run_autofix(limit: int = 50, campaign_id: Optional[int] = None, force_all: b
                     needs_brand_fix = True
                 elif reasons_list:
                     for r in reasons_list:
-                        if "Invalid Bank Brand" in r or "Review 'Genel' Brand" in r:
+                        if "Invalid Bank Brand" in r:
                             needs_brand_fix = True
                             break
 
@@ -507,11 +508,32 @@ def run_autofix(limit: int = 50, campaign_id: Optional[int] = None, force_all: b
                     # Mevcut markaları analiz et (Nokta Atışı ile eşleşenleri korumak için)
                     existing_brand_ids = {b.id for b in c.brands}
                     new_brand_names = ai_data["brands"]
+                    if not isinstance(new_brand_names, list):
+                        new_brand_names = [new_brand_names] if new_brand_names else []
+
+                    # 🚨 POINT-BLANK GUARDRAIL (Skepticism)
+                    # If Point-Blank found a sector but NO brands, be extremely skeptical of AI brands
+                    pb_matcher = get_point_blank_matcher(db)
+                    pb_matches = pb_matcher.match_campaign(c.title, text_to_parse or "")
+                    pb_brand_names = [m["brand"] for m in pb_matches if m.get("brand")]
+                    pb_sector = pb_matches[0].get("sector") if pb_matches else None
+                    
+                    if pb_sector and not pb_brand_names:
+                        # PB matched a general sector rule but no specific brand.
+                        # This is a general campaign (e.g. Giyim, Market).
+                        # We should REJECT AI's hallucinations (Lee, Wrangler etc.) and stay brandless.
+                        if new_brand_names:
+                            print(f"   🛡️ PB Guardrail: Rejected AI hallucinations {new_brand_names} for general sector '{pb_sector}'. Staying brandless.")
+                            new_brand_names = []
+                    elif pb_brand_names:
+                        # If PB found brands, we trust them more than AI.
+                        # Merge them but keep PB ones as priority.
+                        new_brand_names = list(set(pb_brand_names + [b for b in new_brand_names if b in pb_brand_names]))
                     
                     # Hatalı/Yasaklı markaları temizle (Banka/Kart isimleri gibi)
                     correct_brands_to_keep = []
                     for b in c.brands:
-                        if b.name not in wrong_bank_brands and b.name.lower() != "genel":
+                        if b.name not in wrong_bank_brands:
                             correct_brands_to_keep.append(b)
                     
                     # Kampanya bağlarını sıfırla ama sadece hatalıları temizleyerek tekrar kuracağız
