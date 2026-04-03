@@ -176,33 +176,47 @@ class PointBlankMatcher:
     def report_new_candidate(self, keyword: str, brand_name: Optional[str], sector_slug: Optional[str], campaign_id: Optional[int] = None):
         """
         Log a new candidate discovered by AI for admin review.
+        Skips if keyword OR brand_name already exists in any status (verified or candidate).
         """
         if not keyword or len(keyword) < 3:
             return
             
         try:
-            # Check if exists (any status)
-            existing = self.db.query(PointBlankRule).filter(
+            # Check 1: Does this exact keyword already exist?
+            existing_keyword = self.db.query(PointBlankRule).filter(
                 PointBlankRule.keyword.ilike(keyword)
             ).first()
             
-            if not existing:
-                new_rule = PointBlankRule(
-                    keyword=keyword,
-                    brand_name=brand_name if brand_name else None,
-                    sector_slug=sector_slug if sector_slug else "diger",
-                    is_verified=False,
-                    sample_campaign_id=campaign_id,
-                    match_count=0
-                )
-                self.db.add(new_rule)
-                self.db.commit()
-                logger.info(f"\U0001f195 New Point-Blank Candidate reported: {keyword} -> {brand_name}")
-            elif existing.sample_campaign_id is None and campaign_id is not None:
+            if existing_keyword:
                 # Update source if it was missing
-                existing.sample_campaign_id = campaign_id
-                self.db.commit()
-                logger.info(f"\U0001f517 Updated source for existing Point-Blank Rule: {keyword} -> Campaign {campaign_id}")
+                if existing_keyword.sample_campaign_id is None and campaign_id is not None:
+                    existing_keyword.sample_campaign_id = campaign_id
+                    self.db.commit()
+                return
+            
+            # Check 2: Does this brand_name already exist as a verified rule?
+            # Prevents "Pull&Bear" creating a new candidate when "Pull and Bear" is already verified
+            if brand_name:
+                existing_brand = self.db.query(PointBlankRule).filter(
+                    PointBlankRule.brand_name.ilike(brand_name),
+                    PointBlankRule.is_verified == True
+                ).first()
+                
+                if existing_brand:
+                    logger.info(f"⏭️ Skipped candidate '{keyword}': brand '{brand_name}' already verified as '{existing_brand.keyword}'")
+                    return
+            
+            new_rule = PointBlankRule(
+                keyword=keyword,
+                brand_name=brand_name if brand_name else None,
+                sector_slug=sector_slug if sector_slug else "diger",
+                is_verified=False,
+                sample_campaign_id=campaign_id,
+                match_count=0
+            )
+            self.db.add(new_rule)
+            self.db.commit()
+            logger.info(f"\U0001f195 New Point-Blank Candidate reported: {keyword} -> {brand_name}")
         except Exception as e:
             self.db.rollback()
             logger.error(f"\u274c Error reporting candidate: {e}")
