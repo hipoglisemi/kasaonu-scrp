@@ -226,8 +226,7 @@ class IsbankMaximilesScraper:
                     for a in recent:
                          a_tag: Any = cast(Any, a)
                          parent: Any = a_tag.find_parent("div", class_="campaign-item") or a_tag.find_parent("div", class_="col-xl-4") or a_tag.find_parent("div", class_="card") or a_tag.parent
-                         parent_text: str = parent.get_text(separator='
-', strip=True).lower() if parent else ""
+                         parent_text: str = parent.get_text(separator='\n', strip=True).lower() if parent else ""
                          if any(m in parent_text for m in EXPIRED_MARKERS):
                              expired_count += 1  # type: ignore # pyre-ignore[58]
                              if expired_count >= 3:
@@ -327,8 +326,7 @@ class IsbankMaximilesScraper:
                     full_url = urljoin(self.BASE_URL, a["href"].strip())
                     
                     parent = a.find_parent("div", class_="campaign-item") or a.find_parent("div", class_="col-xl-4") or a.find_parent("div", class_="card") or a.parent
-                    parent_text = parent.get_text(separator='
-', strip=True).lower() if parent else ""
+                    parent_text = parent.get_text(separator='\n', strip=True).lower() if parent else ""
 
                     if "gecmis" in href or "geçmiş" in a.text.lower() or any(m in parent_text for m in EXPIRED_MARKERS):
                         expired_links.append(full_url)

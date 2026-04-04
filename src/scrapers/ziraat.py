@@ -188,8 +188,7 @@ class ZiraatScraper:
             # We need to explicitly fetch them
             
             main_content = soup.select_one('.subpage-detail')
-            content_text = main_content.get_text(separator='
-', strip=True) if main_content else ""
+            content_text = main_content.get_text(separator='\n', strip=True) if main_content else ""
 
             # Append Tab Contents (Conditions, Cards)
             tabs = soup.select('.tabs-content .tab-content')

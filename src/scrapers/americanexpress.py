@@ -239,8 +239,7 @@ class AmericanExpressScraper:
         title_elem = soup.find('h1')
         if not title_elem:
             raise ValueError("Could not find campaign title (h1)")
-        raw_title = title_elem.get_text(separator='
-', strip=True)
+        raw_title = title_elem.get_text(separator='\n', strip=True)
         
         if is_url_blocked(self.db, url):
             print(f"  -> Skipped (Blocklisted): {raw_title}")
@@ -285,8 +284,7 @@ class AmericanExpressScraper:
         # ─── 3.5 Extract Explicit Header Info ─────────────────────────────────────
         header_info = ""
         for div in soup.find_all('div', class_=re.compile(r'public-sub|campaing')):
-            text = div.get_text(separator='
-', strip=True)
+            text = div.get_text(separator='\n', strip=True)
             if 'tarihi:' in text.lower() or 'sektör:' in text.lower() or 'marka:' in text.lower():
                 header_info += text + "\n"  # type: ignore # pyre-ignore[58]
         

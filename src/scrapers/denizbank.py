@@ -418,8 +418,7 @@ class DenizbankScraper:
             # Check for specific date element outside .campaign-detail
             date_elems = soup.select('.campaign-startend-date')
             if date_elems:
-                date_texts = [elem.get_text(separator='
-', strip=True) for elem in date_elems]
+                date_texts = [elem.get_text(separator='\n', strip=True) for elem in date_elems]
                 full_date_text = " | ".join(date_texts)
                 raw_text = f"TARIH: {full_date_text}\n\n" + raw_text
 
