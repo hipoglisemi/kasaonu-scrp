@@ -207,9 +207,13 @@ def run_autofix(limit: int = 50, campaign_id: Optional[int] = None, force_all: b
                     is_defective = True
                     reasons.append("Missing Marketing Summary")
                 
-                if not c.clean_text or len(c.clean_text.strip()) < 50:
+                # Check for Truncated/Short Clean Text (New: Auto-Rescue Trigger)
+                if not c.clean_text or len(c.clean_text.strip()) < 600:
                     is_defective = True
-                    reasons.append("Missing Clean Text")
+                    if not c.clean_text:
+                        reasons.append("Missing Clean Text")
+                    else:
+                        reasons.append("Short/Truncated Source Text")
                 else:
                     # SMART METADATA VERIFICATION (Comparing columns with Clean Text)
                     clean_lower = (c.clean_text or "").lower()
@@ -323,14 +327,16 @@ def run_autofix(limit: int = 50, campaign_id: Optional[int] = None, force_all: b
                 print(f"\n🛠️ Fixing: [{c.id}] {c.title[:40]}... (Reasons: {summary_reasons})")
                 print(f"   🔗 URL: {c.tracking_url}")
                 
-                # Use optimized clean_text from DB if available, unless it has mojibake
+                # Determine if we need a fresh fetch (Rescue)
+                is_truncated = any("Short/Truncated Source Text" in r for r in reasons_list)
                 text_to_parse = ""
-                if c.clean_text and len(c.clean_text) > 50 and not mojibake_pattern.search(c.clean_text):
+                
+                if c.clean_text and len(c.clean_text) >= 600 and not is_truncated and not mojibake_pattern.search(c.clean_text):
                     print(f"   ⚡ Using pre-cleaned text from DB ({len(c.clean_text)} chars)")
                     text_to_parse = c.clean_text
                 else:
-                    # Fallback to fetching fresh HTML for old unoptimized campaigns
-                    print(f"   🌐 Fetching HTML fallback for old campaign...")
+                    # Fresh fetch required for short or corrupted text
+                    print(f"   🌐 Logic: RESCUE! (Text is short/truncated or corrupted). Fetching fresh HTML...")
                     html_text = fetch_html(c.tracking_url)
                     
                     if html_text and len(html_text) >= 50:
