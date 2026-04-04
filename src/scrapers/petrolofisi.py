@@ -310,8 +310,6 @@ class PetrolOfisiScraper:
 
                     # Brand Matching
                     brand_names = ai_data.get("brands", [])
-                    if "Petrol Ofisi" not in brand_names:
-                        brand_names.append("Petrol Ofisi")
                         
                     brand_ids = get_or_create_brands_list(
                         self.db,

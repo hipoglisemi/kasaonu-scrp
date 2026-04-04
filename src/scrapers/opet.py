@@ -291,8 +291,6 @@ class OpetScraper:
 
                     # Brand Matching
                     brand_names = ai_data.get("brands", [])
-                    if "Opet" not in brand_names:
-                        brand_names.append("Opet")
                         
                     brand_ids = get_or_create_brands_list(
                         self.db,

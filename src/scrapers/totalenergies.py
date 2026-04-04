@@ -308,9 +308,7 @@ class TotalEnergiesScraper:
                     self.db.flush()
                     
                     # Matching Brands
-                    brand_names = campaign_data.get('brands', [self.SOURCE_NAME])
-                    if self.SOURCE_NAME not in brand_names:
-                        brand_names.append(self.SOURCE_NAME)
+                    brand_names = campaign_data.get('brands', [])
                         
                     brands_ids = get_or_create_brands_list(self.db, brand_names, self.brand_cache)
                     for b_id in brands_ids:

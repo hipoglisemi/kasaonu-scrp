@@ -280,8 +280,6 @@ class ShellScraper:
 
                     # Brand Matching
                     brand_names = ai_data.get("brands", [])
-                    if "Shell" not in brand_names:
-                        brand_names.append("Shell")
                         
                     brand_ids = get_or_create_brands_list(
                         self.db,
