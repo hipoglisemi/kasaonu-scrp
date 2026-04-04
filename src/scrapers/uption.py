@@ -321,22 +321,42 @@ class UptionScraper:
         sector_slug = data.get("sector", "diger")
         sector = self.sector_cache.get(sector_slug.lower()) or self.sector_cache.get("diger")
         
+        # Date conversion
+        start_date = None
+        end_date = None
+        if data.get("start_date"):
+            try:
+                start_date = datetime.strptime(data["start_date"], "%Y-%m-%d").date()
+            except Exception:
+                pass
+        if data.get("end_date"):
+            try:
+                end_date = datetime.strptime(data["end_date"], "%Y-%m-%d").date()
+            except Exception:
+                pass
+
         # Create Campaign
         try:
             slug = get_unique_slug(data.get("title", "uption-kampanya"), db, Campaign)
             
             campaign = Campaign(
-                bank_id=bank_id,
                 card_id=card.id if card else None,
                 sector_id=sector.id if sector else None,
+                slug=slug,
                 title=data.get("title", "Uption Kampanya"),
-                content=data.get("content", ""),
+                description=data.get("description", ""),
+                conditions="\n".join(data.get("conditions", [])) if data.get("conditions") else None,
+                eligible_cards=", ".join(data.get("cards", [])) if data.get("cards") else None,
+                participation=data.get("participation", "Uption mobil uygulaması üzerinden katılabilirsiniz."),
+                reward_text=data.get("reward_text"),
+                reward_value=data.get("reward_value"),
+                reward_type=data.get("reward_type"),
                 image_url=image_url,
                 tracking_url=url,
-                slug=slug,
-                start_date=data.get("start_date"),
-                end_date=data.get("end_date"),
-                is_active=True
+                start_date=start_date,
+                end_date=end_date,
+                is_active=True,
+                clean_text=data.get("_clean_text")
             )
             db.add(campaign)
             db.flush() # Get campaign.id
