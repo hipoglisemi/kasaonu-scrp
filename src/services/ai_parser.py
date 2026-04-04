@@ -618,6 +618,10 @@ class AIParser:
                 print("   ⚠️ Empty response text.")
                 result_text = "{}"
 
+            # ── DEBUG RAW RESPONSE ──
+            if os.getenv("DEBUG_AI"):
+                print(f"DEBUG: RAW AI RESPONSE FOR {title or 'Campaign'}:\n{result_text}")
+            
             # Extract JSON from response
             json_data = self._extract_json(result_text)
 
@@ -710,7 +714,7 @@ class AIParser:
             print(f"   ⚠️ Cache check failed: {e}")
         return None
 
-    def _clean_text(self, text: str) -> str:
+    def _clean_text(self, text: str, title: Optional[str] = None) -> str:
         """
         Clean and normalize text before sending to AI.
         Relaxed strategy to prevent stripping critical reward/participation data.
@@ -765,7 +769,7 @@ class AIParser:
         # These markers usually signal the end of campaign data and beginning of site footer/sidebar/other campaigns.
         noise_markers = [
             r"çerez aydınlatma metni",
-            r"zorunlu çerezler",
+            r" zorunlu çerezler ",
             r"daha fazla bilgi için",
             r"benzer (kampanyalar|fırsatlar)",
             r"diğer (kampanyalar|fırsatlar)",
@@ -830,18 +834,40 @@ class AIParser:
         text_lower = text.lower()
         earliest_noise_idx = len(text)
         
-        # Minimum position guard: ignore noise markers in the first 300 chars
-        # or first 15% of text — they're likely navigation menu items, not footer.
-        min_noise_pos = max(300, int(len(text) * 0.15))
+        # 🚨 SMART TRUNCATION GUARD: Only truncate if the noise marker is in the LAST 40% of the text.
+        # This prevents common navigation/sidebar KVKK links from killing the content while still cleaning footers.
+        min_truncation_pos = int(len(text) * 0.6)
         
         for marker in noise_markers:
             for match in re.finditer(marker, text_lower):
-                if match.start() >= min_noise_pos and match.start() < earliest_noise_idx:
+                if match.start() >= min_truncation_pos and match.start() < earliest_noise_idx:
                     earliest_noise_idx = match.start()
         
         if earliest_noise_idx < len(text):
-            # If noise marker found, truncate there
+            # If noise marker found in the tail, truncate there
             text = text[:earliest_noise_idx].strip()
+
+        # ── Step 2.6: LEADER NOISE REMOVAL (Header/Nav) ──
+        # If the campaign title exists deep in the text, and there's a lot of nav noise before it, trim it.
+        if title:
+            # Look for the FIRST occurrence of the title in the cleaned text
+            title_pos = text.lower().find(title.lower())
+            # If title is found and it's preceded by more than 800 chars of likely nav noise
+            if title_pos > 800:
+                # Basic guard: ensure we don't trim if title is found extremely late
+                if title_pos < len(text) * 0.8:
+                    text = text[title_pos:].strip()
+        
+        # ── Step 2.7: YAPIKREDI SPECIFIC HEADER CLEANING (Manual patterns)
+        yapi_header_markers = ["world nedir?", "worldcard kredi kartı başvurusu", "world'e özel hizmetler"]
+        for marker in yapi_header_markers:
+             m_pos = text.lower().find(marker)
+             if 0 <= m_pos < 1000: # Only if found early in the text
+                  # Find the first 'Kampanyalar' or 'Ana Sayfa' which usually follows these
+                  restart_pos = text.lower().find("ana sayfa", m_pos)
+                  if restart_pos != -1 and restart_pos < 2500:
+                       text = text[restart_pos:].strip()
+                       break
 
         # ── Step 3: Length limit (reverting to a safer 8000 AFTER cleaning) ──────────
         if len(text) > 8000:
@@ -942,7 +968,15 @@ VALID- SECTOR (CRITICAL):
 5. **PARTICIPATION (katilim_sekli)**:
     - 🚨 ASLA ATLATMA: SMS anahtar kelimeleri (örn: SUBAT1000, KATIL) ve kısa numaralar (örn: 4566, 4757) kampanya için kritik hayati veridir. Bunları mutlaka 'katilim_sekli' alanına formatlı şekilde yaz.
     - Örn: "4757'ye SUBAT1000 yazıp SMS göndererek katılabilirsiniz."
-6. **CARDS (cards)**:
+6. **CONDITIONS (STRICT BUT INCLUSIVE)**: 
+    - 🚨 **NEVER SKIP CRITICAL DATA**: Eğer girdi metni 1000 karakterden uzunsa ve birçok kural içeriyorsa, 'conditions' listesini ASLA 1-2 maddeyle geçiştirme veya boş bırakma.
+    - 🚨 **İÇERİK ODAKLI AYRIŞTIRMA**: Kampanyaya özel her türlü kuralı (Örn: "Günde en fazla 1 işlem", "Kampanya kapsamında kazanılan puanların son kullanım tarihi", "Fiziki POS'tan geçme zorunluluğu") MUTLAKA listeye ekle.
+    - 🚨 **PARTNER BANKALAR (CRITICAL)**: Eğer metinde "Anadolu Bank", "Albaraka", "Vakıfbank" veya "Worldcard lisanslı bankalar" gibi isimler geçiyorsa, bu isimleri MUTLAKA 'cards' listesine veya 'conditions' alanına KURTARARAK ekle. Asla "Worldcard" diyerek sadeleştirip silme.
+    - 🚨 🚨 **YASAK**: Sadece 'start_date' ve 'end_date' gibi tarihleri 'conditions' içine yazma.
+    - 🚨 **TAKSİT & BDDK UYARISI**: Başlıkta "9 Taksit" yazsa bile, koşullar alanında "BDDK kuralları gereği mobilyada 9 taksit" gibi detaylı halini MUTLAKA koru. Başlıkta var diye silme.
+    - 🚨 **JURIDICAL BOILERPLATE REMOVAL (SMART MODE)**: Sadece tamamen standart olan "Banka kampanyayı durdurma hakkını saklı tutar" gibi her bankada aynı olan cümleleri sil. Kampanyanın kendi kurgusuna ait kısıtlamaları (Ticari kartlar dahil değil, Anadolu Bank dahil vb.) SİLME.
+    - ✅ **HEDEF**: Kullanıcının kampanya detay sayfasında bilmesi gereken her teknik/operasyonel kısıtı maddedeler halinde sunmak.
+7. **CARDS (cards)**:
     - 🚨 MUTLAK KURAL: 'cards' listesine SADECE ve SADECE metinde birebir okuduğun kart isimlerini yaz. Metinde "Paraf, Parafly, Paraf Business" yazıyorsa AYNEN bu 3 kartı listele.
     - 🚨 HALÜSİNASYON YASAĞI: Metinde geçmeyen kart ismini KESİNLİKLE EKLEME. Eğer metinde sadece "Axess" geçiyorsa "Axess Gold", "Axess Platinum" gibi varyantları UYDURMA.
     - 🚨 METNE SADIK KAL: Kart isimlerini metin içindeki YAZILIŞIYLA al. "DenizBonus" yazıyorsa "DenizBonus" yaz, "Deniz Bonus" YAZMA.

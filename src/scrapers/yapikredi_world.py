@@ -107,8 +107,25 @@ class YapikrediWorldScraper:
         start_date = self._parse_iso_date(start_date_str)
         end_date = self._parse_iso_date(end_date_str)
         
-        scraper_sector = item.get('Category') or item.get('Type') or item.get('SectorName') or None
-        
+        # NEW: Fetch detail page for full content instead of relying on API's truncated Content
+        print(f"      🌐 Fetching detail page for full content: {full_url}")
+        try:
+            detail_response = requests.get(full_url, headers={'User-Agent': 'Mozilla/5.0'}, timeout=15)
+            detail_response.raise_for_status()
+            full_html = detail_response.text
+            # Use BeautifulSoup to get main content area if possible, to reduce noise
+            from bs4 import BeautifulSoup
+            inner_soup = BeautifulSoup(full_html, 'html.parser')
+            # Look for common Yapı Kredi detail containers (research shows .campaign-detail-content or similar)
+            main_content_div = inner_soup.select_one('.campaign-detail-content, .campaign-detail, main')
+            if main_content_div:
+                content_html = str(main_content_div)
+            else:
+                content_html = full_html
+        except Exception as e:
+            print(f"      ⚠️ Failed to fetch detail page, falling back to API content: {e}")
+            content_html = item.get('Content') or ''
+
         ai_result = parse_api_campaign(
             title=title,
             short_description=short_description,

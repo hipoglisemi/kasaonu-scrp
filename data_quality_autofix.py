@@ -188,9 +188,14 @@ def run_autofix(limit: int = 50, campaign_id: Optional[int] = None, force_all: b
                 if not c.end_date:
                     is_defective = True
                     reasons.append("Missing End Date")
-                if not c.conditions or c.conditions.strip() == "" or corrupted_regex.search(c.conditions or ""):
+                if not c.conditions or c.conditions.strip() == "" or len(c.conditions.strip()) < 200 or corrupted_regex.search(c.conditions or ""):
                     is_defective = True
-                    reasons.append("Missing/Corrupted Conditions")
+                    if not c.conditions:
+                        reasons.append("Missing Conditions")
+                    elif len(c.conditions.strip()) < 200:
+                        reasons.append("Short/Incomplete Conditions")
+                    else:
+                        reasons.append("Corrupted Conditions")
                 
                 # Check for Generic/Missing Participation
                 is_participation_bad = not c.participation or c.participation.strip() == "" or any(p in (c.participation or "") for p in useless_participations) or "Detayları İnceleyin" in (c.participation or "")

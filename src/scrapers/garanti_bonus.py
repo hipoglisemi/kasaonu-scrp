@@ -234,32 +234,33 @@ class GarantiBonusScraper:
             # Extract ALL campaign content for AI
             content_parts = []
             
-            # 1. Info Boxes (Left & Right) - CRITICAL: Contains participation, dates, validity
-            # We put this FIRST to ensure it's not truncated if content exceeds limit
-            # Some campaigns have info on left, some on right. Using common class.
-            info_boxes = soup.select('.campaign-detail__info')
+            # 1. Info Boxes (Left & Right) 
+            info_boxes = soup.select('.campaign-detail__info, .campaign-detail__others, .info-content')
             if info_boxes:
                 for box in info_boxes:
                     content_parts.append(box.get_text(separator='\n'))
-            else:
-                # Fallback to specific sidebars if common class not found
-                sidebar = soup.select_one('.campaign-detail__info--right')
-                if sidebar:
-                    content_parts.append(sidebar.get_text(separator='\n'))
-                
-                sidebar_left = soup.select_one('.campaign-detail__info--left')
-                if sidebar_left:
-                    content_parts.append(sidebar_left.get_text(separator='\n'))
             
-            # 2. Main content area (left side) - "Nasıl Kazanırım?" and "Diğer Bilgiler"
-            main_content = soup.select_one('.how-to-win')
-            if main_content:
-                content_parts.append(main_content.get_text(separator='\n'))
+            # 2. Main content areas - "Nasıl Kazanırım?" and "Diğer Bilgiler"
+            # Explicitly adding common Garanti detail containers
+            detail_selectors = [
+                '.how-to-win', 
+                '.campaign-detail__content', 
+                '.campaign-detail-tab-content',
+                '.campaign-description',
+                '#tab-details'
+            ]
+            for selector in detail_selectors:
+                elements = soup.select(selector)
+                for el in elements:
+                    text = el.get_text(separator='\n', strip=True)
+                    if text and text not in content_parts:
+                        content_parts.append(text)
             
-            # 3. Alternative: campaign detail content
-            detail_content = soup.select_one('.campaign-detail__content')
-            if detail_content and not main_content:
-                content_parts.append(detail_content.get_text(separator='\n'))
+            # 3. Fallback: If still too short, take more from main
+            if len('\n'.join(content_parts)) < 300:
+                main_body = soup.select_one('main, .main-container, #main-content')
+                if main_body:
+                    content_parts.append(main_body.get_text(separator='\n', strip=True))
             
             # Combine all content
             content_text = '\n\n'.join(content_parts)
