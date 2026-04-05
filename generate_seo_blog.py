@@ -34,23 +34,26 @@ def get_connection():
     return psycopg2.connect(DB_URL)
 
 
-def get_existing_titles() -> Set[str]:
-    """Daha önce yazılmış blog başlıklarını çek (duplicate önleme)."""
+def get_existing_data() -> Tuple[Set[str], Set[str]]:
+    """Daha önce yazılmış blog başlıklarını ve sluglarını çek (duplicate önleme)."""
     titles: Set[str] = set()
+    slugs: Set[str] = set()
     conn: Optional[Any] = None
     try:
         conn = get_connection()
         cur = conn.cursor()
-        cur.execute('SELECT LOWER(title) FROM blogs')
+        cur.execute('SELECT LOWER(title), slug FROM blogs')
         rows = cur.fetchall()
         if rows:
-            titles = {row[0].strip() for row in rows}
+            for title, slug in rows:
+                titles.add(title.strip())
+                slugs.add(slug.strip())
     except Exception as e:
         print(f"⚠️  Mevcut bloglar çekilemedi: {e}")
     finally:
         if conn:
             conn.close()
-    return titles
+    return titles, slugs
 
 
 def get_banks_and_sectors() -> Tuple[List[Any], List[Any]]:
@@ -150,7 +153,7 @@ TOPIC_TEMPLATES: List[Tuple[str, str]] = [
 ]
 
 
-def generate_topics(banks: List[Any], sectors: List[Any], existing_titles: Set[str], year: int = 2026) -> List[Dict[str, Any]]:
+def generate_topics(banks: List[Any], sectors: List[Any], existing_titles: Set[str], existing_slugs: Set[str], year: int = 2026) -> List[Dict[str, Any]]:
     """Banka + sektör kombinasyonlarından yazılmamış konu listesi üret."""
     topics: List[Dict[str, Any]] = []
     for template_raw, ttype in TOPIC_TEMPLATES:
@@ -158,12 +161,14 @@ def generate_topics(banks: List[Any], sectors: List[Any], existing_titles: Set[s
         if ttype == "bank":
             for bank in cast(List[Any], banks):
                 title = template.format(bank=bank[1], year=year)
-                if title.lower() not in existing_titles:
+                slug = slugify(title)
+                if title.lower() not in existing_titles and slug not in existing_slugs:
                     topics.append({"title": title, "bank": bank, "sector": None})
         elif ttype == "sector":
             for sector in cast(List[Any], sectors):
                 title = template.format(sector=sector[1], year=year)
-                if title.lower() not in existing_titles:
+                slug = slugify(title)
+                if title.lower() not in existing_titles and slug not in existing_slugs:
                     topics.append({"title": title, "bank": None, "sector": sector})
         elif ttype == "bank_sector":
             # List[Any] de'ki indexing uyarısını Any cast ile aşalım
@@ -173,7 +178,8 @@ def generate_topics(banks: List[Any], sectors: List[Any], existing_titles: Set[s
                 for sector in selected_sectors:
                     # IDE uyarısını gidermek için Any cast ve ignore kullanalım
                     title = cast(Any, template).format(bank=bank[1], sector=sector[1], year=year)  # type: ignore
-                    if title.lower() not in existing_titles:
+                    slug = slugify(title)
+                    if title.lower() not in existing_titles and slug not in existing_slugs:
                         topics.append({"title": title, "bank": bank, "sector": sector})
     return topics
 
@@ -283,12 +289,12 @@ def main():
 
     print("🚀  KartAvantaj SEO Blog Üreticisi başlatıldı")
 
-    existing_titles = get_existing_titles()
+    existing_titles, existing_slugs = get_existing_data()
     banks, sectors = get_banks_and_sectors()
 
     print(f"🏦  {len(banks)} aktif banka, 📁 {len(sectors)} aktif sektör bulundu")
 
-    topics = generate_topics(banks, sectors, existing_titles)
+    topics = generate_topics(banks, sectors, existing_titles, existing_slugs)
 
     if not topics:
         print("📭  Yazılacak yeni konu bulunamadı. Tüm kombinasyonlar mevcut.")
