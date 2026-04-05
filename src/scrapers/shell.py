@@ -148,7 +148,7 @@ class ShellScraper:
 
             # Collect cards - Shell uses .pal-brand1-subtle for current campaigns
             soup = BeautifulSoup(self.driver.page_source, "html.parser")
-            cards = soup.select("a.pal-brand1-subtle")
+            cards = soup.select("a.clickable, a.pal-brand1-subtle, a[class*='pal-brand']")
             print(f"   🎯 Found {len(cards)} current campaign cards.")
 
             bank = self._get_or_create_bank(self.db)
@@ -162,7 +162,7 @@ class ShellScraper:
                 try:
                     # Link
                     relative_url = card_soup.get("href")
-                    if not relative_url:
+                    if not relative_url or "/kampanyalar/" not in relative_url.lower():
                         continue
                     
                     detail_url = urljoin(self.BASE_URL, relative_url)

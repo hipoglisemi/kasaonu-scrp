@@ -152,7 +152,7 @@ class OpetScraper:
                 try:
                     # Specific selector from verification
                     btn = WebDriverWait(self.driver, 5).until(
-                        EC.presence_of_element_located((By.CSS_SELECTOR, "a.btn.btn-primary.mx-auto"))
+                        EC.presence_of_element_located((By.CSS_SELECTOR, "a.btn.btn-primary.mx-auto, div.btn-more"))
                     )
                     
                     # Check if button is visible and contains correct text
@@ -179,7 +179,7 @@ class OpetScraper:
             # Collect cards
             time.sleep(5) # Final wait for everything to render
             soup = BeautifulSoup(self.driver.page_source, "html.parser")
-            cards = soup.select(".campaign-item")
+            cards = soup.select("a.position-relative.h-100, .campaign-item")
             
             if not cards:
                 print("   ⚠️ No cards found with '.campaign-item'. Diagnostic info:")
@@ -203,11 +203,7 @@ class OpetScraper:
 
                 try:
                     # Link & Title
-                    link_tag = card_soup.select_one("a[href*='/kampanyalar/']:not(.h-100)")
-                    if not link_tag:
-                        # Try the image link as fallback
-                        link_tag = card_soup.select_one("a.position-relative.h-100")
-                    
+                    link_tag = card_soup if card_soup.name == "a" and card_soup.get("href") else card_soup.select_one("a[href*='/kampanyalar/']")
                     if not link_tag:
                         continue
                         

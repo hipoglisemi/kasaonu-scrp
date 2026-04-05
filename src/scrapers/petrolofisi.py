@@ -164,7 +164,7 @@ class PetrolOfisiScraper:
                 try:
                     # Selector for Petrol Ofisi 'Daha fazla göster' button
                     btn = WebDriverWait(self.driver, 5).until(
-                        EC.presence_of_element_located((By.CSS_SELECTOR, "button.show-more, .btn.btn-primary.show-more"))
+                        EC.presence_of_element_located((By.CSS_SELECTOR, "button.show-more, .btn.btn-primary.show-more, .campaigns-more"))
                     )
                     
                     if not btn.is_displayed():
@@ -190,7 +190,7 @@ class PetrolOfisiScraper:
             time.sleep(5)
             source = driver.page_source
             soup = BeautifulSoup(source, "html.parser")
-            cards = soup.select(".card-campaign")
+            cards = soup.select(".campaign-card, .card-campaign")
             
             if not cards:
                 print("   ⚠️ No cards found with '.card-campaign'. Diagnostic info:")

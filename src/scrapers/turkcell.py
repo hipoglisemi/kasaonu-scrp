@@ -35,7 +35,7 @@ class TurkcellScraper:
     """
     
     BASE_URL = "https://www.turkcell.com.tr"
-    LISTING_URL = "https://www.turkcell.com.tr/kampanyalar/marka-kampanyalari/marka-kampanyalari"
+    LISTING_URL = "https://www.turkcell.com.tr/kampanyalar/marka-kampanyalari"
     
     def __init__(self, max_campaigns: int = 20, headless: bool = True):
         self.max_campaigns = max_campaigns
@@ -150,7 +150,7 @@ class TurkcellScraper:
                 last_height = new_height
                 print(f"      🔃 Scrolled ({i+1})...")
 
-            elements = await page.query_selector_all('a:has(h4[class*="title"])')  # type: ignore # pyre-ignore[16,6]
+            elements = await page.query_selector_all('a[href*="/marka-kampanyalari/"]:has(h4)')  # type: ignore # pyre-ignore[16,6]
             links = []
             for el in elements:
                 href = await el.get_attribute('href')
@@ -191,7 +191,7 @@ class TurkcellScraper:
 
             image_url = await page.evaluate('''() => {
                 const img = document.querySelector('.Detail_detail__image__omC5p img, [class*="Detail_detail__image"] img');
-                return img ? img.src : null;  # type: ignore # pyre-ignore[7]
+                return img ? img.src : null;
             }''')
             
             headers = await page.query_selector_all('div.ant-collapse-header')
@@ -206,9 +206,9 @@ class TurkcellScraper:
                     await page.evaluate('(h) => h.click()', header)  # type: ignore # pyre-ignore
                     await asyncio.sleep(0.5)
                     
-                    text = await page.evaluate('''(header) => {  # type: ignore # pyre-ignore
+                    text = await page.evaluate('''(header) => {
                         const item = header.closest('.ant-collapse-item');
-                        return item && item.querySelector('.ant-collapse-content') ? item.querySelector('.ant-collapse-content').innerText : "";  # type: ignore # pyre-ignore[7]
+                        return item && item.querySelector('.ant-collapse-content') ? item.querySelector('.ant-collapse-content').innerText : "";
                     }''', header)
                     
                     if text.strip():
