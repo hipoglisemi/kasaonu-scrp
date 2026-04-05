@@ -207,18 +207,30 @@ class VakifbankScraper:
             response = self.session.get(url, timeout=30)
             html = response.text
             
-            # --- Blocklist check (move here to get title for log if possible) ---
+            # --- Blocklist check ---
             if is_url_blocked(self.db, url):
                 soup_temp = BeautifulSoup(html, 'html.parser')
                 title_el = soup_temp.select_one('h1')
                 title = title_el.get_text(strip=True) if title_el else url
                 print(f"   🚫 Skipped (Blocklisted): {title}")
                 return "skipped"  # type: ignore # pyre-ignore[7]
+
+            # --- ISOLATE MAIN CONTENT ---
+            soup = BeautifulSoup(html, 'html.parser')
+            detail_container = soup.select_one('.kampanyaDetay')
+            if detail_container:
+                # Remove 'İlginizi Çekebilecek Kampanyalar' from within if nested (unlikely but safe)
+                for other in detail_container.select('.otherCampaigns'):
+                    other.decompose()
+                processed_html = str(detail_container)
+            else:
+                # Fallback to full HTML if selector fails (shouldn't happen on standard pages)
+                processed_html = html
             
             # --- USE CENTRALIZED AI PARSER ---
             # It handles JSON extraction, normalization, and safety checks internally
             ai_data = self.parser.parse_campaign_data(
-                raw_text=html,
+                raw_text=processed_html,
                 bank_name="VakıfBank" # Trigger specific rules
             )
             
@@ -310,6 +322,7 @@ class VakifbankScraper:
                 end_date=vu,
                 is_active=True,
                 tracking_url=url,
+                clean_text=ai_data.get("_clean_text"),
                 created_at=datetime.utcnow(),
                 updated_at=datetime.utcnow()
             )

@@ -71,6 +71,8 @@ def clean_campaign_text(raw_text: str) -> str:
         r"daha fazla bilgi için",
         r"benzer (kampanyalar|fırsatlar)",
         r"diğer (kampanyalar|fırsatlar)",
+        r"ilginizi çekebilecek kampanyalar",
+        r"ilginizi çekebilir",
         r"sizin için seçtiklerimiz",
         r"popüler markalar",
         r"bizi takip edin",
@@ -81,7 +83,6 @@ def clean_campaign_text(raw_text: str) -> str:
         r"fırsatlardan hemen yararlanın",
         r"seveni, kullananı, bedavası en bol",
         r"başvurunuzu hemen yapın",
-        r"ilginizi çekebilir",
         r"deniz bonus.*en çok tercih edilen",
         # Akbank footer patterns
         r"axess mobil.*hemen indir",

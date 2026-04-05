@@ -773,6 +773,8 @@ class AIParser:
             r"daha fazla bilgi için",
             r"benzer (kampanyalar|fırsatlar)",
             r"diğer (kampanyalar|fırsatlar)",
+            r"ilginizi çekebilecek kampanyalar",
+            r"ilginizi çekebilir",
             r"sizin için seçtiklerimiz",
             r"popüler markalar",
             r"bizi takip edin",
@@ -783,7 +785,6 @@ class AIParser:
             r"fırsatlardan hemen yararlanın",
             r"seveni, kullananı, bedavası en bol",
             r"başvurunuzu hemen yapın",
-            r"ilginizi çekebilir",
             r"deniz bonus.*en çok tercih edilen",
             # Akbank footer patterns
             r"axess mobil.*hemen indir",
@@ -1029,14 +1030,15 @@ VALID- SECTOR (CRITICAL):
     - Max 120 karakter.
 
 11. **HARCAMA-KAZANÇ KURALLARI (MATHEMATIC LOGIC)**:
-    - **discount**: SADECE "{{N}} Taksit" veya "+{{N}} Taksit"
-    - **reward_text**: 
-      - 🚨 YÜZDE + MAX LİMİT KURALI: "%10 (max 200TL)" formatında yaz.
-      - 🚨 PUAN: "100 TL Worldpuan" veya "500 Mil".
-      - 🚨 İNDİRİM: "200 TL İndirim".
-      - 🚨 ULTRA YASAK: "Detayları İnceleyin", "Hemen Faydalanın", "Kampanyaya Dahil Kartlar" gibi jenerik ifadeler yasaktır. 
-      - Metinde veya Başlıkta kampanya ödülü neyse onu yaz. Hiç bulamazsan ödülü "Kampanya Fırsatı" olarak belirt ama jenerik ibare kullanma. Bulunamayan her alanı BOŞ/NULL bırak, uydurma metin yazma.
-    - **min_spend**: Kampanyadan faydalanmak için gereken minimum harcama tutarı. (Sayısal)
+  "reward_value": 0.0,
+  "reward_type": "puan/indirim/taksit/mil",
+  "reward_text": "150 TL Puan",
+  "min_spend": 0.0,
+  "start_date": "YYYY-MM-DD",
+  "end_date": "YYYY-MM-DD",
+  "sector": "Sektör Slug'ı",
+  "brands": ["Marka1", "Marka2"], // 🚨 YASAK: Footer veya 'Benzer Fırsatlar' bölmesindeki markaları buraya EKLEME. Sadece ANA kampanya ortağını yaz.
+  "cards": ["Kart1", "Kart2"],
 
 JSON Formatı:
 {{
