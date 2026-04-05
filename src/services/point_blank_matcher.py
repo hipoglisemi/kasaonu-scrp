@@ -86,6 +86,9 @@ class PointBlankMatcher:
         seen_brands = set()
         
         for rule in self.rules:
+            if rule.sector_slug == "BLACKLIST":
+                continue
+                
             if rule.brand_name in seen_brands:
                 continue
                 
@@ -180,6 +183,8 @@ class PointBlankMatcher:
         """
         if not keyword or len(keyword) < 3:
             return
+            
+        keyword = keyword.strip()
             
         try:
             # Check 1: Does this exact keyword already exist?
