@@ -64,13 +64,10 @@ BANK_RULES = {
 - SMS: Usually 4566. SMS keyword is usually a single word (e.g., "A101", "TEKNOSA").
 - REWARD: If it says "8 aya varan taksit", it's an installment campaign. Earning: "Taksit İmkanı". 🚨 ASLA "Detayları İnceleyin" yazma.
 - ELIGIBLE CARDS:
-    - 🚨 TITLE TRAP: Even if title says "Axess'e Özel", check footer for "Axess, Wings, Free... dahildir".
-    - ❌ KESİN YASAK: Asla "Kampanyaya Dahil Kartlar" yazma. Eğer kart listesi bulamazsan alanı BOŞ BIRAK.
-    - Wings Variants: ["Wings Classic", "Wings Black", "Wings Black Plus"].
-    - "Ticari kartlar" / "Business" / "KOBİ" = ["Axess Business", "Wings Business"].
-    - "Bank’O Card Axess" = ["Bank’O Card Axess"].
-    - "Akbank Kart" / "Bankamatik" = ["Akbank Kart"].
-    - If it says "tüm Akbank kredi kartları", list all relevant consumer cards.
+    - 🚨 RAW EXTRACTION (LITERAL): Extract the EXACT card names or categories from the text. 
+    - ⛔ NO MAPPING: If text says "Ticari kartlar", write "Ticari kartlar". If it says "Bank’O Card Axess", write "Bank’O Card Axess".
+    - ⚠️ TITLE TRAP: Even if title says "Axess'e Özel", check footer for "Axess, Wings, Free... dahildir".
+    - ❌ KESİN YASAK: Asla "Kampanyaya Dahil Kartlar" yazma.
     - ⚠️ KESİN YASAK: Kart isimlerini asla 'conditions' (koşullar) listesine yazma. Sadece 'cards' alanına yaz.
 - 🚨 AKBANK REDUNDANCY ALERT (CRITICAL):
     - Akbank metinleri tarih ve kart bilgisini çok tekrar eder. 
@@ -100,8 +97,9 @@ BANK_RULES = {
 - TERMINOLOGY: "Worldpuan" is the currency.
     - ⚠️ IMPORTANT: "TL Worldpuan" means the value is in TL. If it says "100 TL Worldpuan", earning is "100 TL Worldpuan".
 - ELIGIBLE CARDS (cards):
-    - 🚨 STRICT: "Worldcard", "Yapı Kredi Kredi Kartları", "Opet Worldcard", "Gold", "Platinum", "Business", "World Eko", "Play", "Adios", "Adios Premium", "Crystal".
-    - If title or text says "Adios'a Özel" or "Play'e Özel", ensure these are in the 'cards' list.
+    - 🚨 RAW EXTRACTION (LITERAL): Extract the EXACT card names or common categories from the text.
+    - Metinde ne geçiyorsa aynen al: "Worldcard", "Yapı Kredi Kredi Kartları", "Mastercard logolu kartlar", "Business", "World Eko", "Adios" vb.
+    - ❌ NO DEFAULTING: If the text says "Mastercard", write "Mastercard". DO NOT write "Worldcard" unless it's in the text.
 - PARTICIPATION (katilim_sekli):
     - 🚨 PRIORITY ORDER:
       1. App: "World Mobil" or "Yapı Kredi Mobil". Look for "Hemen Katıl" button.
@@ -113,9 +111,9 @@ BANK_RULES = {
 🚨 GARANTI BBVA / BONUS / MILES&SMILES / SHOP&FLY SPECIFIC RULES:
 - TERMINOLOGY: "Bonus" (Bonus/Flexi), "Mil" (Miles&Smiles/Shop&Fly).
 - ELIGIBLE CARDS (cards):
-    - 🚨 BASİT VE NET OL: Kampanyanın metninde/koşullarında dahil olan veya geçerli olan kartlar olarak ne belirtildiyse DİREKT ONU YAZ.
+    - 🚨 RAW EXTRACTION (LITERAL): Metinde ne yazıyorsa DİREKT ONU YAZ.
     - Örnek: "Kampanyaya bireysel Garanti BBVA kredi kartları ve Bonusnet platformundaki bankaların bireysel Bonus kredi kartları dahildir." yazıyorsa AYNEN AL.
-    - Sadece kart isimlerini kendin uydurma veya ezberden yazma, metindeki ifadeleri koruyarak listele.
+    - Sektöre veya markaya özel kart isimlerini (Örn: "Shop&Fly", "Miles&Smiles") metindeki halleriyle listele.
     - ❌ YASAK: "Kampanyaya Dahil Kartlar" gibi başlıkları ASLA kart listesine yazma. Sadece kartın kendi ismini yaz.
 - PARTICIPATION: "BonusFlaş" app is primary. Look for "HEMEN KATIL" instructions.
 - 🚨 REDUNDANCY ALERT: DO NOT repeat card names, dates, or participation methods (e.g., BonusFlaş) in 'conditions'.
@@ -124,9 +122,9 @@ BANK_RULES = {
 🚨 IS BANKASI/MAXIMUM/MAXIMİLES SPECIFIC RULES:
 - TERMINOLOGY: "Maxipuan" (Points) or "MaxiMil" (Miles).
 - ELIGIBLE CARDS (cards):
-    - 🚨 BASİT VE NET OL: Kampanya sitesindeki "Kampanyaya dâhil olan kartlar" veya "Geçerli Kartlar" kısmında ne yazıyorsa DİREKT ONU YAZ.
-    - Örnek: "Bankamatik Kartı, İş Bankası Maximum özellikli kredi kartları (Maximum, Maximiles, Maximiles Black, MercedesCard, İş’te Üniversiteli, Maximum Pati Kart, Maximum Genç)" yazıyorsa AYNEN AL.
-    - Sadece "ek kartlar, sanal kartlar, ticari kartlar" gibi genel ibareleri "Ek Kartlar", "Sanal Kartlar", "Ticari Kredi Kartları" şeklinde özetleyip listeye ekleyebilirsin.
+    - 🚨 RAW EXTRACTION (LITERAL): Metinde ne yazıyorsa DİREKT ONU YAZ.
+    - 📍 ÖNEMLİ: "Sanal kartlar", "Ticari kartlar" vb. ifadeleri sadece **dahil/geçerli** oldukları belirtilmişse listeye ekle. Eğer "hariçtir" deniyorsa ASLA yazma.
+    - Örnek: "İş Bankası Maximum özellikli kredi kartları (Maximum, Maximiles...)" yazıyorsa AYNEN AL.
     - ❌ KESİN YASAK: Fibabanka, Ziraat gibi diğer banka kartlarını ASLA YAZMA. Sadece İş Bankası kartlarını listele.
 - PARTICIPATION (katilim_sekli):
     - 🚨 PRIORITY ORDER:
@@ -153,10 +151,9 @@ BANK_RULES = {
     'vakıfbank': """
 🚨 VAKIFBANK/WORLD SPECIFIC RULES:
 - TERMINOLOGY: "Worldpuan". 1 Worldpuan = 0.005 TL usually. "TL Worldpuan" = TL value.
-- ELIGIBLE CARDS (CRITICAL):
-    - 📍 LOCATION: Info is usually in the **very first sentence/paragraph** of the text.
-    - EXTRACT: "VakıfBank Worldcard", "Platinum", "Rail&Miles", "Bankomat Kart", "Business".
-    - IGNORE: General phrases like "Tüm kartlar" if specific ones are listed.
+- ELIGIBLE CARDS:
+    - 🚨 RAW EXTRACTION (LITERAL): Metinde geçen kart isimlerini aynen al: "VakıfBank Worldcard", "Platinum", "Rail&Miles", "Bankomat Kart", "Business", "TROY".
+    - 📍 LOCATION: Bilgi genelde metnin ilk cümlesinde veya "Dahil Olan Kartlar" tablosundadır.
 - CONDITIONS (SUMMARY MODE):
     - ✂️ SUMMARIZE: The source text is very long. Convert it into max 4-5 bullet points.
     - SCOPE: Include dates, min spend, reward limit, and exclusions.
@@ -168,10 +165,10 @@ BANK_RULES = {
 🚨 ZIRAAT BANKKART SPECIFIC RULES:
 - TERMINOLOGY: "Bankkart Lira". 1 Bankkart Lira = 1 TL.
 - ELIGIBLE CARDS:
-    - 🚨 STRICT: EXTRACT ONLY cards explicitly mentioned in the text.
-    - If text says "Bankkart'ınız ile", use "Bankkart".
-    - Do NOT add "Bankkart Genç", "Başak" etc. unless explicitly listed.
-    - 🚨 EXCLUSION: Check for "dahil değildir". "Bankkart Business" and "Ücretsiz" are usually EXCLUDED.
+    - 🚨 STRICT LITERAL EXTRACTION: Extract ONLY the cards explicitly mentioned in the text.
+    - 📍 RULE: If text says "Bankkart, Bankkart Genç ve Bankkart Başak", then use EXACTLY ["Bankkart", "Bankkart Genç", "Bankkart Başak"].
+    - 📍 RULE: If text says "Taksit özelliği olan Bankkart ve Bankkart Başak", then use EXACTLY ["Bankkart", "Bankkart Başak"].
+    - 📍 RULE: Check for "dahil değildir". "Bankkart Business" and "Ücretsiz" are usually EXCLUDED. Do not list excluded cards.
 - PARTICIPATION:
     - SMS: Look for specific keywords (e.g., "SUBAT2500", "RAMAZAN", "MARKET") sent to **4757**.
     - App: "Bankkart Mobil", "bankkart.com.tr".
@@ -1041,8 +1038,8 @@ VALID- SECTOR (CRITICAL):
   "end_date": "YYYY-MM-DD",
   "sector": "Sektör Slug'ı",
   "brands": ["Marka1", "Marka2"], // 🚨 YASAK: Footer veya 'Benzer Fırsatlar' bölmesindeki markaları buraya EKLEME. Sadece ANA kampanya ortağını yaz.
-  "cards": ["Kart1", "Kart2"],
-
+  "cards": ["Kart1", "Kart2"],    // 🚨 METİNE HARFİYEN SADIK KAL: Sadece metinde birebir okuduğun kart isimlerini yaz.
+ 
 JSON Formatı:
 {{
   "title": "Kısa ve çarpıcı başlık",
@@ -1056,7 +1053,7 @@ JSON Formatı:
   "end_date": "YYYY-MM-DD",
   "sector": "Sektör Slug'ı",
   "brands": ["Marka1", "Marka2"],
-  "cards": ["Kart1", "Kart2"],
+  "cards": ["Kart1", "Kart2"], // 🚨 METİNE HARFİYEN SADIK KAL: Sadece metinde birebir okuduğun kart isimlerini veya kategorilerini yaz. Hiçbir ismi standartlaştırma veya başka bir isme çevirme.
   "participation": "Katılım talimatı (SMS/App)",
   "conditions": ["Madde 1", "Madde 2"] // 🚨 ASLA madde işareti (- , * , •) kullanma, sadece metni yaz.
 }}
@@ -1165,62 +1162,67 @@ ANALİZ EDİLECEK METİN:
         if not clean_text or not cards:
             return cards
         
-        # Normalize ampersand variations for comparison
-        def _normalize_ampersand(s: str) -> str:
-            """Normalize all '&' variants to a consistent form for matching."""
-            s = s.replace("&", " & ").replace("  ", " ")
-            return s
+        # Normalize ampersand AND Turkish characters for comparison
+        def _normalize(s: str) -> str:
+            """Normalize all '&' variants and turkish characters."""
+            s = s.lower().replace("&", " & ").replace("  ", " ")
+            # Basic Turkish normalization for case-insensitive match
+            s = s.replace('ı', 'i').replace('ş', 's').replace('ğ', 'g').replace('ü', 'u').replace('ö', 'o').replace('ç', 'c')
+            return s.strip()
         
-        text_lower = clean_text.lower()
-        text_amp_normalized = _normalize_ampersand(text_lower)
+        text_normalized = _normalize(clean_text)
         
         validated = []
         rejected = []
         
-        # These are generic terms that don't need text verification
         passthrough_terms = {
             "tüm kartlar", "tüm kredi kartları", "tüm banka kartları",
             "sanal ve ek kartlar", "sanal kartlar", "ek kartlar",
         }
         
         for card in cards:
-            card_lower = card.lower().strip()
+            card_orig = card
+            card_norm = _normalize(card)
             
             # Pass through generic terms
-            if card_lower in passthrough_terms:
-                validated.append(card)
+            if card_norm in passthrough_terms:
+                validated.append(card_orig)
                 continue
             
-            # Strategy 1: Direct substring match (handles "Shop&Fly" in text)
-            if card_lower in text_lower:
-                validated.append(card)
+            # Strategy 1: Direct substring match in normalized text
+            if card_norm in text_normalized:
+                validated.append(card_orig)
                 continue
             
-            # Strategy 2: Ampersand-normalized match
-            card_amp_normalized = _normalize_ampersand(card_lower)
-            if card_amp_normalized in text_amp_normalized:
-                validated.append(card)
-                continue
-            
-            # Strategy 3: Core word matching
-            # "Axess Business" → check "axess" AND "business"
-            # Filter out stop words and ampersands
-            stop_words = {"ve", "ile", "için", "&", "and", "the"}
-            core_words = [w for w in card_amp_normalized.split() if len(w) > 2 and w not in stop_words]
+            # Strategy 2: Core word matching in normalized text
+            stop_words = {"ve", "ile", "için", "&", "and", "the", "logolu"}
+            core_words = [w for w in card_norm.split() if len(w) > 2 and w not in stop_words]
             
             if not core_words:
-                # Very short card name — already failed direct match above
-                rejected.append(card)
+                rejected.append(card_orig)
                 continue
             
-            # All core words must appear in clean_text
-            if all(w in text_amp_normalized for w in core_words):
-                validated.append(card)
+            # All core words must appear in normalized text
+            if all(w in text_normalized for w in core_words):
+                validated.append(card_orig)
             else:
-                rejected.append(card)
+                rejected.append(card_orig)
         
         if rejected:
             print(f"   🛡️ Card Guard: Rejected {rejected} (not found in clean_text)")
+            
+        # Ziraat Specific Overrides (Card Sniper)
+        # If AI misses Bankkart variations due to model intelligence stripping them, we strictly enforce them reading the raw text.
+        if "bankkart" in text_normalized:
+            if "basak" in text_normalized and "bankkart basak" in text_normalized and not any("basak" in _normalize(c) for c in validated):
+                validated.append("Bankkart Başak")
+                print("   🎯 Card Sniper: Restored 'Bankkart Başak'")
+            if "genc" in text_normalized and "bankkart genc" in text_normalized and not any("genc" in _normalize(c) for c in validated):
+                validated.append("Bankkart Genç")
+                print("   🎯 Card Sniper: Restored 'Bankkart Genç'")
+            if "business" in text_normalized and "bankkart business" in text_normalized and not any("business" in _normalize(c) for c in validated):
+                validated.append("Bankkart Business")
+                print("   🎯 Card Sniper: Restored 'Bankkart Business'")
         
         return validated
 
@@ -1448,7 +1450,7 @@ KURALLAR:
    - **Cards (Kartlar)**: Dahil/geçerli kart isimlerini burada tekrarlama. Sadece `cards` alanında olmalı.
    - **Dates (Tarihler)**: "Şu tarihler arasında" gibi bilgileri tekrarlama. Sadece `start_date` ve `end_date` alanlarında olmalı.
    - ✅ SADECE teknik kuralları yaz: "Harcama alt sınırı", "Maksimum ödül limitleri", "İade/iptal durumları" vb.
-9. cards: 🚨 MUTLAK KURAL: SADECE metinde birebir okuduğun kart isimlerini yaz. Metinde "Paraf, Parafly, Paraf Business kampanyadan faydalanabilecektir" yazıyorsa AYNEN ["Paraf", "Parafly", "Paraf Business"] listele. Metinde geçmeyen kart ismi ASLA EKLEME! Varsayım yapma, uydurma!
+9. cards: 🚨 METİNE HARFİYEN SADIK KAL: SADECE metinde birebir okuduğun kart isimlerini veya özel kategorilerini yaz. Metinde "Paraf, Parafly, Paraf Business" yazıyorsa AYNEN ["Paraf", "Parafly", "Paraf Business"] listele. Metinde "Ticari" geçiyorsa "Ticari" yaz. Hiçbir ismi standartlaştırma veya başka bir isme çevirme! Varsayım yapma, uydurma!
 10. participation: 🚨 KRİTİK — Detay İçerik'te "SMS", "4454", "Mobil", "Katıl", "Jüzdan", "World Mobil", "ON Mobil" gibi ifadeleri ARA.
    - Katılım adımlarını buraya açık ve net yaz. Örn: "ON Mobil üzerinden Hemen Katıl butonuna tıklayarak katılın."
    - SMS varsa: "KEYWORD yazıp NUMARA'ya SMS gönderin" formatında yaz.
