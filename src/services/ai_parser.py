@@ -216,10 +216,13 @@ BANK_RULES = {
     'denizbank': """
 🚨 DENIZBANK (DENIZBONUS) SPECIFIC RULES:
 - TERMINOLOGY: "Bonus". 1 Bonus = 1 TL.
-- ELIGIBLE CARDS:
-    - 🚨 STRICT: "DenizBonus", "DenizBonus Gold", "DenizBonus Platinum", "DenizBank Black", "DenizBank TROY".
-    - "Ticari Kartlar" = ["DenizBonus Business"].
-    - 🚨 EXCLUSION: "Net Kart", "Bankamatik", "Ptt Bonus" are often EXCLUDED.
+- ELIGIBLE CARDS (cards):
+    - 🚨 RAW EXTRACTION (CRITICAL): Do NOT map cards to a fixed list. Extract the EXACT descriptive string from the text.
+    - Examples: 
+        * "Tüm bonus özellikli DenizBank Bireysel Kredi Kartları"
+        * "DenizBank TROY logolu bireysel ve ticari kredi kartı, banka kartı ve ön ödemeli kartlar"
+        * "Net Kart"
+    - ❌ KESİN YASAK: Metinde geçmeyen kart isimlerini (DenizBonus Gold vb.) uydurma. Metinde ne yazıyorsa harfi harfine onu al.
 - PARTICIPATION:
     - 🚨 PRIORITY:
       1. App: "MobilDeniz" or "DenizKartım". Look for "Hemen Katıl" button.

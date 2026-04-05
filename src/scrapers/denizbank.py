@@ -397,48 +397,37 @@ class DenizbankScraper:
                     if src.startswith('http'):
                         image_url = src
                     else:
-                        from urllib.parse import urljoin  # type: ignore # pyre-ignore[21]
+                        from urllib.parse import urljoin
                         image_url = urljoin(self.BASE_URL, src)
                     break
 
-        # Raw Text for AI - ONLY from main campaign detail (exclude "İlginizi Çekebilecek" section)
-        main_content = soup.select_one('.campaign-detail')
-        
-        if main_content:
-            # First, remove any "İlginizi Çekebilecek Diğer Kampanyalar" section
-            # This section is usually AFTER .campaign-detail, but sometimes inside
-            for elem in soup.find_all(text=re.compile(r'İLGİNİZİ ÇEKEBİLECEK.*KAMPANYALAR', re.IGNORECASE)):
-                parent = elem.find_parent()
-                if parent:
-                    # Remove this entire section
-                    parent.decompose()
-            
-            raw_text = main_content.get_text(separator="\n", strip=True)
-            
-            # Check for specific date element outside .campaign-detail
-            date_elems = soup.select('.campaign-startend-date')
-            if date_elems:
-                date_texts = [elem.get_text(separator='\n', strip=True) for elem in date_elems]
-                full_date_text = " | ".join(date_texts)
-                raw_text = f"TARIH: {full_date_text}\n\n" + raw_text
+        # Raw Text for AI - Target the specific conditions container
+        # Since it uses a custom scrollbar (Perfect Scrollbar), 
+        # we use JS to get innerText to ensure we get everything inside.
+        raw_text = ""
+        try:
+            raw_text_js = self.driver.execute_script("""
+                const el = document.querySelector('.campaign-detail-text');
+                return el ? el.innerText : "";
+            """)
+            if raw_text_js and len(raw_text_js.strip()) > 100:
+                print(f"   ✨ Extracted {len(raw_text_js)} chars via JS from .campaign-detail-text")
+                raw_text = raw_text_js
+            else:
+                # Fallback to BeautifulSoup if JS fails or returns too little
+                main_content = soup.select_one('.campaign-detail-text') or soup.select_one('.campaign-detail')
+                if not main_content:
+                    # Fallback to generic content extraction
+                    main_content = soup.find('div', class_=re.compile(r'detail|content|campaign'))
+                
+                raw_text = main_content.get_text(separator="\n", strip=True) if main_content else ""
+        except Exception as e:
+            print(f"   ⚠️ JS text extraction failed: {e}")
+            main_content = soup.select_one('.campaign-detail-text') or soup.select_one('.campaign-detail')
+            raw_text = main_content.get_text(separator="\n", strip=True) if main_content else ""
 
-            # Check for "NASIL KAZANIRIM" section (often outside .campaign-detail)
-            # Search for h4, h3, or div containing "NASIL KAZANIRIM"
-            try:
-                nasil_headers = soup.find_all(lambda tag: tag.name in ['h4', 'h3', 'div', 'strong', 'b'] and 'NASIL KAZANIRIM' in tag.get_text().upper())  # type: ignore # pyre-ignore[16,6]
-                for header in nasil_headers:
-                    # Get the next sibling or parent's text
-                    parent = header.find_parent()
-                    if parent:
-                        nasil_text = parent.get_text(separator="\n", strip=True)
-                        if len(nasil_text) > len(header.get_text()): # Ensure we got more than just the header
-                             print(f"   💡 Found 'NASIL KAZANIRIM' content.")
-                             raw_text += f"\n\nNASIL KAZANIRIM:\n{nasil_text}"  # type: ignore # pyre-ignore[58]
-            except Exception as e:
-                print(f"   ⚠️ Error extracting 'NASIL KAZANIRIM': {e}")
-
-            # Additional cleanup: remove any remaining references to other campaigns
-            # (sometimes they leak through in the text)
+        # Additional cleanup: remove any remaining references to other campaigns
+        if raw_text:
             lines = raw_text.split('\n')
             filtered_lines = []
             skip_rest = False
@@ -453,10 +442,6 @@ class DenizbankScraper:
                     filtered_lines.append(str(line))  # type: ignore
             
             raw_text = '\n'.join(filtered_lines)
-        else:
-            # Fallback to generic content extraction
-            main_content = soup.find('div', class_=re.compile(r'detail|content|campaign'))
-            raw_text = main_content.get_text(separator="\n", strip=True) if main_content else soup.body.get_text()
 
         # AI Parsing
         if self.ai_parser:
