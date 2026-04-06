@@ -433,13 +433,18 @@ class DenizbankScraper:
             skip_rest = False
             
             for line in lines:
+                # Clean line for reliable Turkish matching
+                line_lower = line.lower().replace('i̇', 'i').replace('ı', 'i')
+                
                 # If we hit "İlginizi Çekebilecek" or similar, skip rest
-                if re.search(r'(İLGİNİZİ ÇEKEBİLECEK|DİĞER KAMPANYALAR|BENZER KAMPANYALAR)', line, re.IGNORECASE):
+                if 'ilginizi çekebilecek' in line_lower or 'ilginizi cekebilecek' in line_lower or \
+                   'diğer kampanyalar' in line_lower or 'diger kampanyalar' in line_lower or \
+                   'benzer kampanyalar' in line_lower:
                     skip_rest = True
                     continue
                 
                 if not skip_rest:
-                    filtered_lines.append(str(line))  # type: ignore
+                    filtered_lines.append(str(line))
             
             raw_text = '\n'.join(filtered_lines)
 

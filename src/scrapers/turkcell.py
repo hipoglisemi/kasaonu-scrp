@@ -190,8 +190,16 @@ class TurkcellScraper:
                     return "skipped"  # type: ignore # pyre-ignore[7]
 
             image_url = await page.evaluate('''() => {
-                const img = document.querySelector('.Detail_detail__image__omC5p img, [class*="Detail_detail__image"] img');
-                return img ? img.src : null;
+                const img = document.querySelector('.Detail_detail__image__omC5p img, [class*="Detail_detail__image"] img, .m-detail-image img');
+                if (img && img.src && !img.src.includes('logo')) return img.src;
+                
+                const ogImg = document.querySelector('meta[property="og:image"]');
+                if (ogImg && ogImg.content && !ogImg.content.includes('logo')) return ogImg.content;
+                
+                const anyImg = document.querySelector('.m-top-detail img, .campaign-detail img, article img');
+                if (anyImg && anyImg.src && !anyImg.src.includes('logo')) return anyImg.src;
+                
+                return null;
             }''')
             
             headers = await page.query_selector_all('div.ant-collapse-header')
@@ -264,7 +272,7 @@ class TurkcellScraper:
                     reward_type=ai_data.get("reward_type"),
                     start_date=ai_data.get("start_date"),
                     end_date=ai_data.get("end_date"),
-                    image_url=image_url or ai_data.get("image_url") or "https://www.turkcell.com.tr/assets/img/turkcell-logo.png",
+                    image_url=image_url or ai_data.get("image_url") or "/logos/banks/turkcell.png",
                     tracking_url=url,
                     is_active=True,
                     ai_marketing_text=ai_data.get("marketing_text"),
