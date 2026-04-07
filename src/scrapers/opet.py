@@ -148,32 +148,42 @@ class OpetScraper:
             # Handling "Daha Fazla Göster"
             print("   ⏳ Loading all campaigns (Clicking 'Daha Fazla Göster')...")
             click_count = 0
-            while click_count < 20: # Increased limit for Opet (user says 37 total)
+            while click_count < 20:
                 try:
-                    # Specific selector from verification
-                    btn = WebDriverWait(self.driver, 5).until(
-                        EC.presence_of_element_located((By.CSS_SELECTOR, "a.btn.btn-primary.mx-auto, div.btn-more"))
-                    )
+                    # More robust selector covering different button variants
+                    selectors = [
+                        "a.btn.btn-primary.mx-auto", 
+                        "div.btn-more", 
+                        "a[href='#'].btn",
+                        ".campaign-list-more a"
+                    ]
                     
-                    # Check if button is visible and contains correct text
-                    if not btn.is_displayed() or "DAHA FAZLA" not in btn.text.upper():
+                    btn = None
+                    for selector in selectors:
+                        try:
+                            found = WebDriverWait(self.driver, 3).until(
+                                EC.presence_of_element_located((By.CSS_SELECTOR, selector))
+                            )
+                            if found.is_displayed() and "DAHA FAZLA" in found.text.upper():
+                                btn = found
+                                break
+                        except:
+                            continue
+
+                    if not btn:
                         break
                         
                     # Scroll to button
                     self.driver.execute_script("arguments[0].scrollIntoView({block: 'center'});", btn)
                     time.sleep(1)
                     
-                    # Use JS click for reliability if normal click fails
-                    try:
-                        btn.click()
-                    except:
-                        self.driver.execute_script("arguments[0].click();", btn)
+                    # Use JS click for reliability
+                    self.driver.execute_script("arguments[0].click();", btn)
                         
                     click_count += 1
                     print(f"   🖱️ Clicked 'Show More' {click_count} times.")
-                    time.sleep(2)
-                except:
-                    # Button no longer exists or not clickable
+                    time.sleep(3) # Wait for content to load
+                except Exception as e:
                     break
 
             # Collect cards
@@ -202,14 +212,24 @@ class OpetScraper:
                     break
 
                 try:
-                    # Link & Title
-                    link_tag = card_soup if card_soup.name == "a" and card_soup.get("href") else card_soup.select_one("a[href*='/kampanyalar/']")
-                    if not link_tag:
+                    # Link & Title extraction
+                    # Card itself might be the link, or it might contain a link
+                    link_tag = card_soup if card_soup.name == "a" else card_soup.select_one("a[href*='kampanya'], a.position-relative, a[href*='/kampanyalar/']")
+                    
+                    if not link_tag and card_soup.name != "a":
+                        link_tag = card_soup.select_one("a") # Fallback to any link
+                        
+                    if not link_tag or not link_tag.get("href"):
                         continue
                         
                     relative_url = link_tag.get("href")
                     detail_url = urljoin(self.BASE_URL, relative_url)
-                    title = link_tag.get_text(strip=True) or "Opet Kampanyası"
+                    
+                    # Title extraction
+                    title = link_tag.get_text(strip=True)
+                    if not title or len(title) < 5:
+                        title_tag = card_soup.select_one("h3, h4, .title, .card-title")
+                        title = title_tag.get_text(strip=True) if title_tag else "Opet Kampanyası"
                     
                     # Image
                     img_tag = card_soup.select_one("img")

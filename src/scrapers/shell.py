@@ -146,10 +146,22 @@ class ShellScraper:
             except:
                 pass
 
-            # Collect cards - Shell uses .pal-brand1-subtle for current campaigns
+            # Collect cards - Shell uses .pal-brand attributes for current campaigns
             soup = BeautifulSoup(self.driver.page_source, "html.parser")
-            cards = soup.select("a.clickable, a.pal-brand1-subtle, a[class*='pal-brand']")
-            print(f"   🎯 Found {len(cards)} current campaign cards.")
+            # a[class*='pal-brand'] is more specific than a.clickable
+            cards = soup.select("a.pal-brand1-subtle, a[class*='pal-brand']")
+            
+            # Filter out non-campaign links from the selector results
+            valid_cards = []
+            for c in cards:
+                href = c.get("href", "")
+                # Shell campaign URLs usually have /suruculer/ and end in .html or contain kampanyalar
+                if "shellden-avantajli-kampanyalar" in href or "/kampanyalar/" in href or ("suruculer" in href and ".html" in href):
+                    if not any(x in href for x in ["iletisim", "hakkimizda", "gizlilik"]):
+                        valid_cards.append(c)
+            
+            cards = valid_cards
+            print(f"   🎯 Found {len(cards)} relevant campaign cards.")
 
             bank = self._get_or_create_bank(self.db)
             card = self._get_or_create_card(self.db, bank.id)
@@ -162,13 +174,13 @@ class ShellScraper:
                 try:
                     # Link
                     relative_url = card_soup.get("href")
-                    if not relative_url or "/kampanyalar/" not in relative_url.lower():
+                    if not relative_url:
                         continue
                     
                     detail_url = urljoin(self.BASE_URL, relative_url)
                     
-                    # Title
-                    title_tag = card_soup.select_one("h3 p, h3 span, h3")
+                    # Title - Try to find title in card content
+                    title_tag = card_soup.select_one("h3, h4, .title, p.pal-text")
                     title = title_tag.get_text(strip=True) if title_tag else "Shell Kampanyası"
                     
                     # Image

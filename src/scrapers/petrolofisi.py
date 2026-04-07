@@ -213,17 +213,25 @@ class PetrolOfisiScraper:
                     break
 
                 try:
-                    # Link & Title
-                    link_tag = card_soup.select_one("a[href*='/kampanyalar/']")
-                    if not link_tag:
+                    # Link & Title extraction
+                    # Card itself might be the link, or it might contain multiple links
+                    link_tag = card_soup if card_soup.name == "a" else card_soup.select_one("a[href*='kampanya'], a.detayli-bilgi, a.btn")
+                    
+                    if not link_tag and card_soup.name != "a":
+                        link_tag = card_soup.select_one("a") # Fallback to any link
+                        
+                    if not link_tag or not link_tag.get("href"):
                         continue
                         
                     relative_url = link_tag.get("href")
-                    if not relative_url:
-                        continue
 
-                    # Skip non-campaign links
-                    if "biten-kampanyalar" in relative_url or relative_url.endswith("/kampanyalar") or relative_url == "/kampanyalar/":
+                    # Skip non-campaign links or irrelevant pages
+                    ignore_patterns = [
+                        "biten-kampanyalar", "/kampanyalar$", "/kampanyalar/$", 
+                        "bize-ulasin", "gizlilik", "kurumsal", "istasyonlar", 
+                        "otopuan-nerede", "yardim", "kvkk"
+                    ]
+                    if any(p in relative_url.lower() for p in ignore_patterns):
                         continue
 
                     detail_url = urljoin(self.BASE_URL, relative_url)

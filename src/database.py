@@ -20,6 +20,10 @@ if not DATABASE_URL:
 # Sanitize DATABASE_URL (strip quotes if they exist)
 DATABASE_URL = DATABASE_URL.strip('"').strip("'")
 
+# SQLAlchemy 1.4+ requires 'postgresql://' instead of 'postgres://'
+if DATABASE_URL.startswith("postgres://"):
+    DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
+
 # Create SQLAlchemy engine
 engine = create_engine(
     DATABASE_URL,
