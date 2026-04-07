@@ -190,14 +190,39 @@ class TurkcellScraper:
                     return "skipped"  # type: ignore # pyre-ignore[7]
 
             image_url = await page.evaluate('''() => {
-                const img = document.querySelector('.Detail_detail__image__omC5p img, [class*="Detail_detail__image"] img, .m-detail-image img');
-                if (img && img.src && !img.src.includes('logo')) return img.src;
+                // Predefined exclusion keywords for Turkcell specifically
+                const isLogo = (src) => {
+                    const blacklist = ['logo', 'icon', 'facebook', 'instagram', 'twitter', 'youtube', 'linkedin', 'app-store', 'google-play', 'huawei'];
+                    return blacklist.some(key => src.toLowerCase().includes(key));
+                };
+
+                // 1. Try to find the campaign banner in the specific detail container
+                // We scope it to 'main' or high-level wrappers to avoid footer logos
+                const mainArea = document.querySelector('main, #main-content, arc-container');
+                const bannerSelectors = [
+                    '.Detail_detail__image__omC5p img', 
+                    '[class*="Detail_detail__image"] img',
+                    '.m-detail-image img'
+                ];
                 
+                for (const selector of bannerSelectors) {
+                    const img = mainArea ? mainArea.querySelector(selector) : document.querySelector(selector);
+                    if (img && img.src && !isLogo(img.src)) return img.src;
+                }
+
+                // 2. Look for images from Turkcell's campaign CDN (very reliable indicator)
+                const cdnImg = Array.from(document.querySelectorAll('img')).find(img => 
+                    img.src && img.src.includes('imgci.com') && !isLogo(img.src)
+                );
+                if (cdnImg) return cdnImg.src;
+
+                // 3. Open Graph Image as fallback
                 const ogImg = document.querySelector('meta[property="og:image"]');
-                if (ogImg && ogImg.content && !ogImg.content.includes('logo')) return ogImg.content;
+                if (ogImg && ogImg.content && !isLogo(ogImg.content)) return ogImg.content;
                 
-                const anyImg = document.querySelector('.m-top-detail img, .campaign-detail img, article img');
-                if (anyImg && anyImg.src && !anyImg.src.includes('logo')) return anyImg.src;
+                // 4. Any large image in main content
+                const anyMainImg = mainArea ? mainArea.querySelector('img') : null;
+                if (anyMainImg && anyMainImg.src && !isLogo(anyMainImg.src)) return anyMainImg.src;
                 
                 return null;
             }''')

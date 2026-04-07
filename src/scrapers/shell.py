@@ -148,20 +148,48 @@ class ShellScraper:
 
             # Collect cards - Shell uses .pal-brand attributes for current campaigns
             soup = BeautifulSoup(self.driver.page_source, "html.parser")
-            # a[class*='pal-brand'] is more specific than a.clickable
-            cards = soup.select("a.pal-brand1-subtle, a[class*='pal-brand']")
             
-            # Filter out non-campaign links from the selector results
+            # Find the "Geçmiş Kampanyalar" header to use as an exclusion boundary
+            past_header = soup.find(lambda tag: tag.name == "h2" and "Geçmiş Kampanyalar" in tag.get_text())
+            
+            # Select all potential campaign cards
+            all_cards = soup.select("a.pal-brand1-subtle, a[class*='pal-brand']")
+            
+            # Filter out non-campaign links and PAST campaigns
             valid_cards = []
-            for c in cards:
-                href = c.get("href", "")
-                # Shell campaign URLs usually have /suruculer/ and end in .html or contain kampanyalar
-                if "shellden-avantajli-kampanyalar" in href or "/kampanyalar/" in href or ("suruculer" in href and ".html" in href):
-                    if not any(x in href for x in ["iletisim", "hakkimizda", "gizlilik"]):
-                        valid_cards.append(c)
+            for c in all_cards:
+                # If we have a past_header, check if this card comes AFTER it in the DOM
+                if past_header:
+                    # Check if card is a descendant of an element that comes after past_header
+                    # A simpler check: if we are iterating sequentially (not possible with select), 
+                    # but cards are usually in order. 
+                    # Let's use source index or just iterate over siblings if possible.
+                    # Actually, we can check the distance from the top or just use a more robust sibling check.
+                    
+                    # Alternative: Find all H2s and cards in order
+                    pass
+
+            # Improved sequential identification
+            cards = []
+            container = soup.select_one("main, .main-content, #main-content") or soup.body
+            if container:
+                found_past_section = False
+                for element in container.descendants:
+                    if element.name == "h2" and "Geçmiş Kampanyalar" in element.get_text():
+                        found_past_section = True
+                        break # Stop collecting cards!
+                    
+                    # If it's a card link
+                    if not found_past_section and element.name == "a":
+                        classes = element.get("class", [])
+                        if any("pal-brand" in cls for cls in classes):
+                            href = element.get("href", "")
+                            if "shellden-avantajli-kampanyalar" in href or "/kampanyalar/" in href or ("suruculer" in href and ".html" in href):
+                                if not any(x in href for x in ["iletisim", "hakkimizda", "gizlilik"]):
+                                    if element not in cards:
+                                        cards.append(element)
             
-            cards = valid_cards
-            print(f"   🎯 Found {len(cards)} relevant campaign cards.")
+            print(f"   🎯 Found {len(cards)} active campaign cards (Filtered out past campaigns).")
 
             bank = self._get_or_create_bank(self.db)
             card = self._get_or_create_card(self.db, bank.id)
