@@ -212,7 +212,7 @@ class VodafoneScraper:
             ai_data = self.parser.parse_campaign_data(
                 raw_text=raw_text,
                 title=title,
-                bank_name="vodafone",
+                bank_name="Genel",
                 card_name="Vodafone"
             )
 

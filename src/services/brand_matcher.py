@@ -96,7 +96,26 @@ def find_existing_brand(db, name: str, brand_cache: dict) -> Optional[object]:
         brand_cache[existing.name.lower()] = existing
         return existing
 
+    # 6. Alias list match (DB query)
+    # Check if any brand has this name (or normalized name) in its aliases array
+    # Using SQLAlchemy 'any' for Postgres ARRAY column
+    existing_by_alias = db.query(Brand).filter(
+        Brand.aliases.any(normalized)
+    ).first()
+    
+    if not existing_by_alias:
+        # Also try with lowercase version of original name
+        existing_by_alias = db.query(Brand).filter(
+            Brand.aliases.any(name.strip().lower())
+        ).first()
+
+    if existing_by_alias:
+        brand_cache[existing_by_alias.name.lower()] = existing_by_alias
+        print(f"   🎯 Alias Match: '{name}' matched to '{existing_by_alias.name}' via alias.")
+        return existing_by_alias
+
     return None
+
 
 
 def get_or_create_brand(db=None, name: str = "", brand_cache: dict = {}, sector_id=None, **kwargs) -> Optional[object]:

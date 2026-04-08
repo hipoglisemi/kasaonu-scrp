@@ -265,7 +265,7 @@ class PetrolOfisiScraper:
                     ai_data = self.parser.parse_campaign_data(
                         raw_text=raw_html,
                         title=title,
-                        bank_name="Petrol Ofisi",
+                        bank_name="Genel",
                         tracking_url=detail_url
                     )
 
@@ -309,8 +309,8 @@ class PetrolOfisiScraper:
                         tracking_url=detail_url,
                         is_active=True,
                         clean_text=ai_data.get("_clean_text"),
-                        sector_id=self._get_sector_id(ai_data.get("sector", "akaryakit")),
-                        category=ai_data.get("sector", "akaryakit")
+                        sector_id=self._get_sector_id(ai_data.get("sector")),
+                        category=ai_data.get("sector", "diger")
                     )
 
                     self.db.add(new_campaign)
@@ -363,11 +363,11 @@ class PetrolOfisiScraper:
         )
         print(f"🏁 Finished {self.SOURCE_NAME}. Saved: {stats['total_saved']}, Skipped: {stats['total_skipped']}, Failed: {stats['total_failed']}")
 
-    def _get_sector_id(self, sector_slug: str) -> Optional[int]:
+    def _get_sector_id(self, sector_slug: Optional[str]) -> Optional[int]:
         """Maps AI sector slug to DB sector ID."""
+        if not sector_slug:
+            return None
         sector = self.db.query(Sector).filter(Sector.slug == sector_slug).first()
-        if not sector:
-            sector = self.db.query(Sector).filter(Sector.slug == "akaryakit").first()
         return sector.id if sector else None
 
 if __name__ == "__main__":

@@ -43,50 +43,56 @@ class PointBlankMatcher:
         """
         Build regex pattern for a keyword with Turkish-aware word boundaries.
         
-        v2 FIX: Suffix group now ONLY allows characters after an apostrophe.
-        This prevents false positives like:
-          - "Etiket" matching "Eti" (was: Eti + ket suffix captured)
-          - "Maximum" matching "Max" (was: Max + imum suffix captured)
-          - "Shopping" matching "Hop" (was: ...Hop + ping suffix captured — actually blocked by lookbehind)
-        
-        Legitimate Turkish suffixes still work: Eti'nin, Migros'un, Opet'te
+        v2.1: Improved word boundaries and suffix handling.
         """
         kw_pattern = re.escape(keyword)
         
         # Turkish letter set for word boundary checks
         tr_letters = r"a-z\u00e7\u011f\u0131\u00f6\u015f\u00fcA-Z\u00c7\u011e\u0130\u00d6\u015e\u00dc"
         
-        # v2: Only allow suffix after apostrophe ('), not bare letter continuation
-        # Old: (['']?[a-zçğıöşü]*)? — matched "Etiket" as "Eti" + "ket"
-        # New: (?:[''\u2019][a-zçğıöşü]+)? — only matches "Eti'nin", "Eti\u2019nin"
+        # v2.1: Better word boundaries that handle punctuation and start/end of string
         pattern = (
             f"(?i)"
-            f"(?<![{tr_letters}])"       # Not preceded by a letter (word boundary start)
-            f"{kw_pattern}"               # The keyword itself
-            f"(?:['\u2018\u2019][a-z\u00e7\u011f\u0131\u00f6\u015f\u00fc]+)?"  # Optional: apostrophe + Turkish suffix
-            f"(?![{tr_letters}])"         # Not followed by a letter (word boundary end)
+            f"(?<![{tr_letters}])"       # Not preceded by a letter
+            f"{kw_pattern}"               # The keyword
+            f"(?:['\u2018\u2019][a-z\u00e7\u011f\u0131\u00f6\u015f\u00fc]{{1,4}})?"  # Apostrophe + short suffix
+            f"(?![{tr_letters}])"         # Not followed by a letter
         )
         return pattern
 
-    def match_campaign(self, title: str, description: Optional[str] = "") -> List[Dict]:
+    def match_campaign(self, title: str, description: Optional[str] = "", exclude_terms: Optional[List[str]] = None) -> List[Dict]:
         """
-        Match a campaign against all point-blank rules.
-        Returns a list of dicts with brand, sector, rule_id, keyword, and title_match flag.
-        
-        v2 LOGIC:
-        1. Search title and body separately
-        2. Title matches are always trusted (high confidence)
-        3. Body-only matches for short keywords (<=4 chars) are flagged
-        4. Sector coherence filter removes suspicious body-only short matches
+        Match a campaign against point-blank rules.
+        Supports exclude_terms to ignore scraper/source names.
         """
         title_str = title or ""
         body_str = description or ""
+        
+        # Clean exclude_terms
+        excludes = set()
+        if exclude_terms:
+            for term in exclude_terms:
+                if term:
+                    excludes.add(term.lower())
+                    # Also exclude parts of the term (e.g. "Türk Telekom" -> "Türk", "Telekom")
+                    parts = term.split()
+                    if len(parts) > 1:
+                        for p in parts:
+                            if len(p) > 2:
+                                excludes.add(p.lower())
         
         raw_matches = []
         seen_brands = set()
         
         for rule in self.rules:
             if rule.sector_slug == "BLACKLIST":
+                continue
+                
+            brand_lower = rule.brand_name.lower() if rule.brand_name else ""
+            keyword_lower = rule.keyword.lower()
+            
+            # 🛡️ EXCLUSION GUARD: Skip if brand/keyword is in exclude list
+            if brand_lower in excludes or keyword_lower in excludes:
                 continue
                 
             if rule.brand_name in seen_brands:

@@ -248,7 +248,7 @@ class TotalEnergiesScraper:
                     campaign_data = self.parser.parse_campaign_data(
                         raw_text=str(detail_soup),
                         title=title,
-                        bank_name=self.SOURCE_NAME,
+                        bank_name="Genel",
                         tracking_url=detail_url
                     )
                     
@@ -265,7 +265,7 @@ class TotalEnergiesScraper:
                     card = self._get_or_create_card(self.db, bank.id)
                     
                     # Get Sector
-                    sector_slug = campaign_data.get('sector', 'akaryakit')
+                    sector_slug = campaign_data.get('sector')
                     sector = self.db.query(Sector).filter(Sector.slug == sector_slug).first()
                     sector_id = sector.id if sector else None
 
@@ -295,7 +295,7 @@ class TotalEnergiesScraper:
                         conditions="\n".join(campaign_data.get('conditions', [])),
                         participation=campaign_data.get('participation'),
                         eligible_cards=", ".join(campaign_data.get('cards', [])),
-                        category=campaign_data.get('sector', 'akaryakit'),
+                        category=campaign_data.get('sector', 'diger'),
                         image_url=listing_image_url or campaign_data.get('image_url'),
                         tracking_url=detail_url,
                         start_date=start_dt,

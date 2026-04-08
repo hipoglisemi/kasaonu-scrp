@@ -257,7 +257,7 @@ class TurkcellScraper:
                 title=title,
                 short_description=title,
                 content_html=raw_text,
-                bank_name="Turkcell"
+                bank_name="Genel"
             )
             
             if participation_text:
