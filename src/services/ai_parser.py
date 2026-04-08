@@ -306,8 +306,9 @@ BANK_RULES = {
 - TERMINOLOGY:
     - "Chippuan": Reward currency. 1 Chippuan = 1 TL.
     - "Nakit İade": Cash back to credit card.
-- ELIGIBLE CARDS:
-    - Usually "Tüm kredi kartları" or specific bank cards added to Chippin.
+- ELIGIBLE CARDS: 
+    - 🚨 KESİN YASAK: Eğer metinde spesifik bir kart adı yoksa, 'cards' alanına "Chippin" yazıp geçme. 
+    - 📍 DOĞRUSU: "Chippin kullanıcıları" veya "Tüm kredi kartları" gibi bir ifade kullan veya sadece ["-"] bırak.
 - PARTICIPATION:
     - 🚨 PRIORITY ORDER:
       1. App Payment: "Chippin ile ödeme yapmanız gerekmektedir."
@@ -336,7 +337,8 @@ BANK_RULES = {
 🚨 PARAM SPECIFIC RULES:
 - TERMINOLOGY: "Nakit İade". 
 - ELIGIBLE CARDS:
-    - 🚨 STRICT: Extract ONLY cards mentioned, typically "ParamKart" or "Param TROY Kart".
+    - 🚨 STRICT: Sadece metinde geçen kartları al (Örn: "ParamKart").
+    - 🚨 KESİN YASAK: Eğer kart ismi yoksa, 'cards' alanına sadece "Param" yazma. "ParamKart sahipleri" yaz veya ["-"] bırak.
 - BRANDS & SECTOR:
     - 🚨 CRITICAL: Extract the brand name accurately (e.g., 'Koton', 'Pazarama', 'IKEA') and put it in the `brands` array. Do NOT put 'Param' as a brand.
     - Sector: Pick the correct sector from the valid list based on the brand or general context (e.g., 'Koton' -> 'Giyim & Aksesuar').
@@ -347,7 +349,8 @@ BANK_RULES = {
 🚨 MASTERPASS SPECIFIC RULES:
 - TERMINOLOGY: "İndirim", "Kupon", "İade". Rewards are usually TL value or Percent.
 - ELIGIBLE CARDS: 
-    - 🚨 STRICT: Extract ONLY the cards mentioned, typically "Masterpass'e kayıtlı Mastercard", "Maestro kartlar", "Troy kartlar", vb. Do NOT write "Tüm kartlar" unless explicitly stated.
+    - 🚨 STRICT: Sadece metinde geçen kartları al (Örn: "Mastercard", "Troy"). 
+    - 🚨 KESİN YASAK: Kart ismi yoksa 'cards' alanına sadece "Masterpass" veya "Mastercard" yazma. "Masterpass'e kayıtlı kart sahipleri" yaz veya ["-"] bırak.
 - BRANDS & SECTOR:
     - 🚨 CRITICAL: Extract the brand name accurately (e.g., 'Martı', 'Boyner', 'Uber', 'Getir', 'Galatasaray') and put it in the `brands` array. Do NOT put 'Masterpass' or 'Mastercard' as a brand.
     - Sector: Pick the correct sector from the valid list based on the brand or general context. If it's a sports event, match, or team (like UEFA, Galatasaray), categorize as 'Kültür & Sanat' or 'Eğlence'.
@@ -379,7 +382,9 @@ BANK_RULES = {
     - 🚨 PRIORITY: Look for keywords like "Katılım Kriterleri", "Nasıl Faydalanırım", "Diğer Satın Alma Seçenekleri", "Kampanya Detayları".
     - If headers contain these, their content is the MOST IMPORTANT for the 'participation' field.
     - If the text mentions "Uygulama üzerinden", "Şifre al", "Paycell", extract these exact steps.
-- ELIGIBLE CARDS: Common values: "Tüm Turkcell Müşterileri", "Paycell Kart Sahipleri", "Turkcell Pasaj Müşterileri".
+- ELIGIBLE CARDS: 
+    - 🚨 KESİN YASAK: Kart ismi yoksa 'cards' alanına sadece "Turkcell" yazma. 
+    - 📍 DOĞRUSU: "Turkcell müşterileri", "Paycell Kart sahipleri" veya "Turkcell Pasaj müşterileri" gibi ifadeler kullan.
 - BRAND: Identify the partner brand (e.g., Obilet, Sigortam.net, Uber) clearly.
 """,
     'paycell': """
@@ -397,19 +402,29 @@ BANK_RULES = {
 """,
     'vodafone': """
 🚨 VODAFONE RED / FREEZONE SPECIFIC RULES:
-- ELIGIBLE CARDS: "Vodafone Red", "Vodafone FreeZone", "Vodafone Bireysel", "Vodafone Pay".
+- ELIGIBLE CARDS: 
+    - 🚨 KESİN YASAK: Kart ismi yoksa 'cards' alanına sadece "Vodafone" yazma. 
+    - 📍 DOĞRUSU: "Vodafone Red", "Vodafone FreeZone", "Vodafone müşterileri" gibi ifadeler kullan veya ["-"] bırak.
 - PARTICIPATION: 
     - 🚨 PRIORITY: "Vodafone Yanımda" app. Look for "Fırsatı Kullan" or "Şifre Al" buttons.
     - 🚨 FORMAT: "Vodafone Yanımda uygulaması üzerinden kampanya sayfasındaki butona tıklayarak şifre alabilir veya fırsatı kullanabilirsiniz."
 - CONDITIONS: Extract "şifre geçerlilik süresi", "tek seferlik", "aylık limit" fields.
 """,
     'turk-telekom': """
-🚨 TÜRK TELEKOM MOBİL SPECIFIC RULES:
-- ELIGIBLE CARDS: "Türk Telekom Mobil", "Türk Telekom Prime", "Selfy".
-- PARTICIPATION: 
-    - 🚨 PRIORITY: "Türk Telekom" app (Online İşlemler). Look for "Fırsatı Kullan" or "Şifre Al".
-    - SMS: Sometimes KEYWORD to **4000** or **5000**.
-    - 🚨 FORMAT: "Türk Telekom uygulaması üzerinden kampanya sayfasından şifre alarak veya [KEYWORD] yazıp [NUMARA]'ya SMS göndererek katılabilirsiniz."
+🚨 TÜRK TELEKOM SPECIFIC PARTICIPATION RULES (MEGA-STRICT):
+- TERMINOLOGY: 
+    - 🚨 KESİN YASAK: Asla "banka", "banka kanalları" veya "banka şubesi" ifadelerini kullanma. Türk Telekom bir banka değildir.
+- PARTICIPATION (katilim_sekli):
+    - 🚨 KESİN KURAL: "Kampanyaya katılım kod ile gerçekleştirilecektir" veya "Uygulama üzerinden katılabilirsiniz" gibi kısa ve jenerik özetler ASLA yazma.
+    - 🚨 SMS DETECTION (PRIORITY 1): Metinde "şifre", "kod", "sms", "6262", "4000", "5000", "7000" gibi ibareler geçiyorsa DİKKAT kesil.
+    - 🚨 SMS EXTRACTION: Eğer metinde bir Anahtar Kelime (Örn: PRIME MIGROS, CHAKRA, SELFY vb.) ve bir Kısa Numara (Örn: 6262) varsa, 'katilim_sekli' kısmına MUTLAKA şu formatta tam cümleyi yaz: "[ANAHTAR KELİME] yazıp [NUMARA]'ya SMS göndererek şifrenizi alabilirsiniz."
+    - 🚨 APP DETECTION (PRIORITY 2): Eğer SMS yoksa, "Türk Telekom Uygulaması" (Online İşlemler) içinden hangi menüye girileceğini yaz (Örn: "Bana Özel menüsünden şifre alarak katılabilirsiniz").
+    - 📍 NOT: Hiçbir detay yoksa sadece "Türk Telekom uygulaması üzerinden katılabilirsiniz" yaz.
+- ELIGIBLE CARDS: "Türk Telekom Prime", "Selfy", "Türk Telekom Mobil müşterileri".
+- 🚨 BRAND EXCLUSION (CRITICAL):
+    - "Tivibu", "Muud", "Selfy", "Prime", "Evde İnternet", "Mobil" gibi ifadeler Türk Telekom'un kendi markalarıdır.
+    - Bunları ASLA 'brands' listesinde birer PARTNER olarak verme.
+    - SADECE dış ortaklar (örn: Idefix, Evidea, LC Waikiki) partner markadır.
 """,
     'sekerbank': """
 🚨 SEKERBANK SPECIFIC RULES:
@@ -600,7 +615,18 @@ class AIParser:
         db = SessionLocal()
         try:
             matcher = get_point_blank_matcher(db)
-            pb_matches = matcher.match_campaign(str(title) if title else "", clean_text)
+            # 🛡️ EXCLUSION LIST: Avoid matching the scraper name as a partner brand
+            exclude_list = [bank_name, card_name]
+            pb_matches = matcher.match_campaign(str(title) if title else "", clean_text, exclude_terms=exclude_list)
+            
+            # 🛡️ HOST PROTECTION: If we have multiple matches and one of them is a "Host" (TT, Vodafone, etc.),
+            # and another is a "Guest" (D&R, TikTak, etc.), we SHOULD NOT let the host dictate the sector.
+            if pb_matches and len(pb_matches) > 1:
+                host_slugs = {'turk-telekom', 'vodafone', 'turkcell', 'shell', 'opet', 'petrol-ofisi', 'totalenergies'}
+                guest_matches = [m for m in pb_matches if m.get('sector') != 'fatura-telekomunikasyon' and m.get('sector') != 'akaryakit']
+                if guest_matches:
+                    # Keep host for brand extraction but prioritized guest for sector instructions
+                    pb_matches = guest_matches + [m for m in pb_matches if m not in guest_matches]
         except Exception as e:
             print(f"   ⚠️ Point-Blank matcher error: {e}")
         finally:
@@ -902,18 +928,16 @@ class AIParser:
         pb_instruction = ""
         if pb_matches:
             brand_names = [m["brand"] for m in pb_matches if m.get("brand")]
-            # Use the sector from the first rule match (usually the most specific/relevant)
-            primary_sector = pb_matches[0].get("sector") if pb_matches else None
             
             pb_instruction = f"""
-🔒 POINT-BLANK (NOKTA ATIŞI) DOĞRULANMIŞ VERİLER:
-- KESİN MARKALAR (BRANDS): {', '.join(brand_names)}
-- ÖNERİLEN SEKTÖR (SECTOR): {primary_sector}
+🔒 POINT-BLANK (POTANSİYEL MARKA ADAYLARI):
+- METİNDE GEÇEN MARKALAR: {', '.join(brand_names)}
 
-TALİMAT:
-1. 'brands' listene yukarıdaki markaları MUTLAKA ekle. Metin içinde AÇIKÇA yazılan başka ortak markalar varsa onları da ekle.
-2. ⚠️ KRİTİK: '{bank_name or 'Banka'}' ismini veya kart isimlerini (Axess, Bonus, Maximum vb.) ASLA marka olarak yazma. Sadece kampanya ortağı olan firmaları al.
-3. 🛡️ SEKTÖR ODAKLI MARKA DENETİMİ: Metinde açıkça bu isimler geçmiyorsa, sadece "Giyim" veya "Market" gibi kelimelerden yola çıkarak kafandan marka (Lee, Wrangler, Migros vb.) UYDURMA. Metinde spesifik marka yoksa 'brands' listesini BOŞ bırak. Metin sonundaki (Benzer Fırsatlar vb.) marka isimlerini ana kampanya ile KARIŞTIRMA.
+TALİMATlar (AKILLI AYRIŞTIRMA):
+1. 🧠 ANALİZ ET: Yukarıdaki markalar gerçek bir kampanya ORTAĞI mı (örn: Trendyol, Migros) yoksa sadece alt yapı/katılım kanalı mı (örn: Tivibu, Online İşlemler, Fiber)?
+2. 🛡️ FİLTRELE: Sadece gerçek partnerleri 'brands' listesine ekle. Bankanın veya kurumun (TT, Turkcell vb.) kendi servislerini partner olarak YAZMA.
+3. ⚠️ KRİTİK: '{bank_name or 'Banka'}' ismini veya kart isimlerini (Axess, Bonus, Maximum vb.) ASLA marka olarak yazma.
+4. 🛡️ SEKTÖR ODAKLI MARKA DENETİMİ: Metinde açıkça bu isimler geçmiyorsa marka UYDURMA. Metinde spesifik marka yoksa 'brands' listesini BOŞ bırak. 
 """
 
         return f"""
@@ -955,6 +979,10 @@ VALID- SECTOR (CRITICAL):
     🚨 NOTE: If the campaign is about Sports, Matches, Football, Theatre, or Concerts (e.g., UEFA, Galatasaray, tiyatro, sinema), it MUST be categorized as 'kultur-sanat', NOT 'diger'.
     🚨 NOTE: If the campaign is about "yeni müşteri" (new customer), "kredi kartı başvurusu" (credit card application), "ihtiyaç kredisi" (loan) or any banking/financial product sale, you MUST categorize it as 'finans-yatirim'.
     🚨 SECTOR OUTPUT RULE: Your JSON `"sector"` value must ONLY be one of the slugs above (e.g. "market-gida", NOT "Market & Gıda").
+    🚨 🛡️ ÖDEME YÖNTEMİ VS ÜRÜN AYRIMI (ÇOK ÖNEMLİ): Eğer metinde "Faturana Yansıt", "Vodafone faturana ek ödeme", "Masterpass ile öde" gibi ibareler geçiyorsa, sektörü 'fatura-telekom' veya 'finans-yatirim' SEÇME. Ödeme yöntemi kampanya sektörünü değiştirmez.
+       - Örn: Hatemoğlu mağazasında faturana ek ödeme ile kıyafet alınıyorsa sektör 'giyim-aksesuar' olmalıdır.
+       - Örn: TikTak araç kiralamada faturaya ek ödeme yapılıyorsa sektör 'ulasim' olmalıdır.
+    Kısacası: Ödeme yöntemine değil, harcamanın YAPILDIĞI YERE ve SATIN ALINAN ÜRÜNE odaklan. Sektörü belirlemek için Başlık + Metin içeriğindeki ana amaca odaklan.
 
 ⭐⭐⭐ KRİTİK KURALLAR (DOKUNULMAZ) ⭐⭐⭐
 1. **DİL**: Tamamı TÜRKÇE olmalı.
@@ -968,7 +996,8 @@ VALID- SECTOR (CRITICAL):
     - 🚨 BÜYÜK HARF KURALI (HARF DÜZENİ): Eğer girdi metninde veya başlıkta TAMAMI BÜYÜK HARFLE (ALL CAPS) yazılmış kelimeler/cümleler (örn: "KAMPANYAYA KATIL", "İNDİRİM FIRSATI") varsa, JSON çıktısındaki her bir alanda ('description', 'conditions', 'title', vs.) bunları normal Cümle Düzenine (Sentence case) veya Başlık Düzenine (Title case) TERCÜME ET. Asla tamamı büyük harfli kelime gruplarını olduğu gibi bırakma.
 5. **PARTICIPATION (katilim_sekli)**:
     - 🚨 ASLA ATLATMA: SMS anahtar kelimeleri (örn: SUBAT1000, KATIL) ve kısa numaralar (örn: 4566, 4757) kampanya için kritik hayati veridir. Bunları mutlaka 'katilim_sekli' alanına formatlı şekilde yaz.
-    - Örn: "4757'ye SUBAT1000 yazıp SMS göndererek katılabilirsiniz."
+    - 🚨 ASLA ÖZETLEME: Metinde spesifik bir buton ("Hemen Katıl"), bir sayfa ("Kampanyalar sekmesi") veya bir menü geçiyorsa bunu ASLA silme ve "ürün satın alarak" diye jenerik bir cümleye dönüştürme. Kullanıcının tam olarak NEYE tıklayacağı eksiksiz yer alsın.
+    - Örn: "4757'ye SUBAT1000 yazıp SMS göndererek katılabilirsiniz veya ON Mobil'de Kampanyalar sekmesinden Hemen Katıl butonuna basabilirsiniz."
 6. **CONDITIONS (STRICT BUT INCLUSIVE)**: 
     - 🚨 **NEVER SKIP CRITICAL DATA**: Eğer girdi metni 1000 karakterden uzunsa ve birçok kural içeriyorsa, 'conditions' listesini ASLA 1-2 maddeyle geçiştirme veya boş bırakma.
     - 🚨 **İÇERİK ODAKLI AYRIŞTIRMA**: Kampanyaya özel her türlü kuralı (Örn: "Günde en fazla 1 işlem", "Kampanya kapsamında kazanılan puanların son kullanım tarihi", "Fiziki POS'tan geçme zorunluluğu") MUTLAKA listeye ekle.
@@ -977,12 +1006,13 @@ VALID- SECTOR (CRITICAL):
     - 🚨 **TAKSİT & BDDK UYARISI**: Başlıkta "9 Taksit" yazsa bile, koşullar alanında "BDDK kuralları gereği mobilyada 9 taksit" gibi detaylı halini MUTLAKA koru. Başlıkta var diye silme.
     - 🚨 **JURIDICAL BOILERPLATE REMOVAL (SMART MODE)**: Sadece tamamen standart olan "Banka kampanyayı durdurma hakkını saklı tutar" gibi her bankada aynı olan cümleleri sil. Kampanyanın kendi kurgusuna ait kısıtlamaları (Ticari kartlar dahil değil, Anadolu Bank dahil vb.) SİLME.
     - ✅ **HEDEF**: Kullanıcının kampanya detay sayfasında bilmesi gereken her teknik/operasyonel kısıtı maddedeler halinde sunmak.
-7. **CARDS (cards)**:
+10. **CARDS (cards)**:
     - 🚨 MUTLAK KURAL: 'cards' listesine SADECE ve SADECE metinde birebir okuduğun kart isimlerini yaz. Metinde "Paraf, Parafly, Paraf Business" yazıyorsa AYNEN bu 3 kartı listele.
     - 🚨 HALÜSİNASYON YASAĞI: Metinde geçmeyen kart ismini KESİNLİKLE EKLEME. Eğer metinde sadece "Axess" geçiyorsa "Axess Gold", "Axess Platinum" gibi varyantları UYDURMA.
     - 🚨 METNE SADIK KAL: Kart isimlerini metin içindeki YAZILIŞIYLA al. "DenizBonus" yazıyorsa "DenizBonus" yaz, "Deniz Bonus" YAZMA.
     - 🚨 VARSAYIM YAPMA: Banka adını bildiğin için o bankanın tüm kart çeşitlerini listeye EKLEME. Sadece metinde açıkça yazan kartları al.
-    - Eğer metinde hiçbir kart ismi geçmiyorsa boş liste [] döndür.
+    - 🚨 KURUM KAMPANYALARI (Turk Telekom, Shell, Turkcell vb.): Eğer metinde spesifik bir kart adı geçmiyorsa, 'cards' alanına kurumun adını tek başına yazma (Örn: "Turkcell", "Turkcell" yazma). Onun yerine kimlerin dahil olduğunu belirten ifadeyi yaz (Örn: "Turk Telekom müşterileri", "Shell Club Smart sahipleri") veya hiçbir şey bulamazsan sadece ["-"] bırak.
+    - Eğer metinde hiçbir kart ismi veya dahil olan grup bilgisi geçmiyorsa boş liste [] döndür.
 
     - 🚨 KESİN YASAK: 'description' alanına tarih, kart veya katılım bilgisi ASLA EKLEME.
 5. **REWARD TEXT (PUNCHY)**: 

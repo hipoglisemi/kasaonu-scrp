@@ -2,8 +2,8 @@ name: Data Quality Auto-Fixer
 
 on:
   schedule:
-    # TSİ 07:00 → UTC 04:00
-    - cron: '0 4 * * *'
+    # TSİ 04:00 (UTC 01:00)
+    - cron: '0 1 * * *'
   workflow_dispatch:
     inputs:
       limit:
