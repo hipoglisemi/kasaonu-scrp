@@ -277,10 +277,10 @@ def run_autofix(limit: int = 50, campaign_id: Optional[int] = None, force_all: b
                             reasons.append("Review 'Genel' Brand")
                             break
 
-                # FORCE REPAIR IF SPECIFIC ID IS PROVIDED (Bypass defect check)
-                if campaign_id and not is_defective:
+                # FORCE REPAIR IF SPECIFIC ID IS PROVIDED OR IDS_FILE MODE IS ACTIVE (Bypass defect check)
+                if (campaign_id or ids_file) and not is_defective:
                     is_defective = True
-                    reasons.append(f"Manual Force Repair (ID: {campaign_id})")
+                    reasons.append(f"Manual Force Repair (List Mode)")
 
                 if is_defective and c.tracking_url:
                     # COOLDOWN & PERMANENT SKIP LOGIC
