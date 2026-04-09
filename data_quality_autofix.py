@@ -89,7 +89,7 @@ def fetch_html(url: str) -> str:
         print(f"      ⚠️ Failed to fetch HTML for {url}: {e}")
         return ""
 
-def run_autofix(limit: int = 50, campaign_id: Optional[int] = None, force_all: bool = False):
+def run_autofix(limit: int = 50, campaign_id: Optional[int] = None, force_all: bool = False, ids_file: Optional[str] = None):
     print(f"🚀 Starting Data Quality Auto-Fixer (Limit: {limit})...")
     
     try:
@@ -114,10 +114,20 @@ def run_autofix(limit: int = 50, campaign_id: Optional[int] = None, force_all: b
             defective_campaigns = query.all()
             print(f"   📊 Checking {len(defective_campaigns)} active campaigns for defects.")
             
-            FORCE_ALL = force_all
+            FORCE_ALL = force_all or (ids_file is not None)
             to_fix_ids = []
             stats = {"new": 0, "retry": 0, "skipped_cooldown": 0}
 
+            # --- MANUAL BATCH MODE (IDS FROM FILE) ---
+            if ids_file and os.path.exists(ids_file):
+                print(f"📖 Reading IDs from file: {ids_file}")
+                with open(ids_file, "r") as f:
+                    file_ids = [line.strip() for line in f if line.strip().isdigit()]
+                
+                # Filter campaigns based on these IDs
+                defective_campaigns = [c for c in defective_campaigns if str(c.id) in file_ids]
+                print(f"✅ Filtered {len(defective_campaigns)} campaigns matching IDs in file.")
+            
             for c in defective_campaigns:
                 is_defective = False
                 updated = False
@@ -267,10 +277,15 @@ def run_autofix(limit: int = 50, campaign_id: Optional[int] = None, force_all: b
                             reasons.append("Review 'Genel' Brand")
                             break
 
+                # FORCE REPAIR IF SPECIFIC ID IS PROVIDED (Bypass defect check)
+                if campaign_id and not is_defective:
+                    is_defective = True
+                    reasons.append(f"Manual Force Repair (ID: {campaign_id})")
+
                 if is_defective and c.tracking_url:
                     # COOLDOWN & PERMANENT SKIP LOGIC
                     # REPAIR COUNT & FORCE UPGRADE LOGIC
-                    if c.repair_count >= 2 and not FORCE_ALL:
+                    if c.repair_count >= 2 and not FORCE_ALL and not campaign_id:
                         stats["skipped_cooldown"] += 1
                         continue
                     
@@ -625,19 +640,6 @@ def run_autofix(limit: int = 50, campaign_id: Optional[int] = None, force_all: b
             time.sleep(3)
             
         print(f"\n🏁 Auto-fixer complete. Successfully repaired {fixed_count}/{len(to_fix_ids)} campaigns.")
-
-        # --- Integrated Brand Maintenance ---
-        print("\n🧹 Starting Integrated Brand Maintenance...")
-        try:
-            from scripts.normalize_brand_names import run_normalization
-            from scripts.auto_brand_merge import run_auto_merge
-            
-            run_normalization()
-            run_auto_merge(dry_run=False)
-            print("✅ Brand maintenance (Normalization & Merging) completed successfully.")
-        except Exception as be:
-            print(f"⚠️ Brand maintenance failed: {be}")
-            
     except Exception as e:
         print(f"\n📛 CRITICAL ERROR during auto-fix: {e}")
         import traceback
@@ -649,7 +651,8 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--limit", type=int, default=1000, help="Max campaigns to fix in one run")
     parser.add_argument("--id", type=int, help="Fix a specific campaign ID")
+    parser.add_argument("--ids-file", type=str, help="Fix a list of IDs from a text file")
     parser.add_argument("--force", action="store_true", help="Force AI re-parse even if data exists")
     args = parser.parse_args()
     
-    run_autofix(limit=args.limit, campaign_id=args.id, force_all=args.force)
+    run_autofix(limit=args.limit, campaign_id=args.id, force_all=args.force, ids_file=args.ids_file)

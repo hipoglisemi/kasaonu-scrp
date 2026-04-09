@@ -17,6 +17,13 @@ from typing import Optional
 from src.services.brand_normalizer import normalize_brand_name  # type: ignore
 
 
+# Words that, if present, signify a distinct business segment and prevent 
+# merging into a shorter generic parent (e.g., 'Amazon Prime' vs 'Amazon')
+PROTECTED_SEGMENTS = {
+    'prime', 'yemek', 'hemen', 'go', 'music', 'premium', 'cloud', 'ads', 
+    'play', 'tv', 'video', 'spor', 'yanimda', 'market', 'online'
+}
+
 def _simplify(name: str) -> str:
     """
     Returns a simplified, comparison-safe key for a brand name.
@@ -85,6 +92,16 @@ def find_existing_brand(db, name: str, brand_cache: dict) -> Optional[object]:
     for cached_name, cached_brand in brand_cache.items():
         simplified_cached = _simplify(cached_name)
         if simplified_input.startswith(simplified_cached) or simplified_cached.startswith(simplified_input):
+            # 🛡️ PROTECTED SEGMENT GUARD:
+            # If "Amazon Prime" starts with "Amazon", we only merge if NEITHER has a protected segment,
+            # OR if BOTH have the SAME protected segments. 
+            # Otherwise, they are distinct (E-commerce vs Digital Platform).
+            input_protected = [p for p in PROTECTED_SEGMENTS if p in simplified_input]
+            cached_protected = [p for p in PROTECTED_SEGMENTS if p in simplified_cached]
+            
+            if input_protected != cached_protected:
+                continue # Do not match "Amazon Prime" to "Amazon" via startswith
+                
             if abs(len(simplified_input) - len(simplified_cached)) <= 15:
                 return cached_brand
 

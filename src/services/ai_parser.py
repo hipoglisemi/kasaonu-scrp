@@ -937,7 +937,13 @@ TALİMATlar (AKILLI AYRIŞTIRMA):
 1. 🧠 ANALİZ ET: Yukarıdaki markalar gerçek bir kampanya ORTAĞI mı (örn: Trendyol, Migros) yoksa sadece alt yapı/katılım kanalı mı (örn: Tivibu, Online İşlemler, Fiber)?
 2. 🛡️ FİLTRELE: Sadece gerçek partnerleri 'brands' listesine ekle. Bankanın veya kurumun (TT, Turkcell vb.) kendi servislerini partner olarak YAZMA.
 3. ⚠️ KRİTİK: '{bank_name or 'Banka'}' ismini veya kart isimlerini (Axess, Bonus, Maximum vb.) ASLA marka olarak yazma.
-4. 🛡️ SEKTÖR ODAKLI MARKA DENETİMİ: Metinde açıkça bu isimler geçmiyorsa marka UYDURMA. Metinde spesifik marka yoksa 'brands' listesini BOŞ bırak. 
+4. 🚨 **AMAZON AYRIMI (KRİTİK)**: Metin genel bir alışveriş veya kargo kampanyasıysa sektörü 'e-ticaret' seç. SADECE 'Amazon Prime' üyeliği, aboneliği veya Prime Video/Müzik ödemesi ise 'dijital-platform' seç.
+5. 🚨 **SEKTÖR HİYERARŞİSİ (ÇOK KRİTİK)**:
+        1. Eğer kampanya belirli bir dikey sektöre (Giyim, Elektronik, Kitap, Kozmetik, Akaryakıt, Turizm vb.) ait uzman bir markada ise (örn: Altınyıldız, Teknosa, İdefix, Gratis, ETS Tur), işlem web sitesinden/mobil uygulamadan yapılsa dahi sektörü o **DİKEY SEKTÖR** (Giyim, Elektronik vb.) olarak belirle.
+        2. 'e-ticaret' sektörü SADECE çok kategorili "Pazar Yerleri" (Marketplace) için saklanmalıdır: Trendyol, Hepsiburada, Amazon (Shopping), Pazarama, Çiçeksepeti, n11.
+        3. Bir marka hem dikey bir uzmanlığa sahipse hem de internetten satılıyorsa, dikey uzmanlık (Giyim, Elektronik vb.) HER ZAMAN kazanır.
+     Kısacası: Ödeme yöntemine veya satış kanalına değil, harcamanın YAPILDIĞI YERE ve SATIN ALINAN ÜRÜNE odaklan. Sektörü belirlemek için Başlık + Metin içeriğindeki ana amaca odaklan.
+6. 🛡️ SEKTÖR ODAKLI MARKA DENETİMİ: Metinde açıkça bu isimler geçmiyorsa marka UYDURMA. Metinde spesifik marka yoksa 'brands' listesini BOŞ bırak. 
 """
 
         return f"""
