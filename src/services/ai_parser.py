@@ -677,6 +677,12 @@ class AIParser:
                     normalized["cards"], clean_text
                 )
             
+            # --- 6. Brand Hallucination Guard ---
+            if normalized.get("brands") and clean_text:
+                normalized["brands"] = self._validate_brands_against_text(
+                    normalized["brands"], clean_text, str(title) if title else ""
+                )
+            
             # INJECT cleaned text into the result dictionary for scrapers to save to DB
             normalized["_clean_text"] = clean_text
 
@@ -726,7 +732,7 @@ class AIParser:
                         "reward_type": existing.reward_type,
                         "conditions": existing.conditions.split("\n") if existing.conditions else [],
                         "cards": existing.eligible_cards.split(", ") if existing.eligible_cards else [],
-                        "participation": "Otomatik katılım" if "Otomatik" in (existing.conditions or "") else "Detayları İnceleyin",
+                        "participation": "Otomatik katılım" if "Otomatik" in (existing.conditions or "") else "",
                         "start_date": existing.start_date.strftime("%Y-%m-%d") if existing.start_date else None,
                         "end_date": existing.end_date.strftime("%Y-%m-%d") if existing.end_date else None,
                         "sector": sector_name,
@@ -1336,14 +1342,14 @@ ANALİZ EDİLECEK METİN:
             "description": "",
             "reward_value": None,
             "reward_type": None,
-            "reward_text": "Detayları İnceleyin",
+            "reward_text": "",
             "min_spend": None,
             "start_date": None,
             "end_date": None,
             "sector": "Diğer",
             "brands": [],
             "cards": [],
-            "participation": "Detayları İnceleyin",
+            "participation": "",
             "conditions": []
         }
 
@@ -1438,35 +1444,35 @@ Bugünün tarihi: {current_date} (Yıl: {today.year})
 
 {sector_hint}
 
-VALID SECTORS (BİRİNİ SEÇ — SADECE bu listeden, PARANTEZ İÇİNDEKİLERİ YAZMA):
-- Fatura & Telekomünikasyon
-- Anne, Bebek & Oyuncak
-- Kitap, Kırtasiye & Ofis
-- Evcil Hayvan & Petshop
-- Hizmet & Bireysel Gelişim
-- Finans & Yatırım
-- Mücevherat, Optik & Saat
-- Market & Gıda
-- Akaryakıt
-- Giyim & Aksesuar
-- Restoran & Kafe
-- Elektronik
-- Mobilya & Dekorasyon
-- Kozmetik & Sağlık
-- E-Ticaret
-- Ulaşım
-- Dijital Platform
-- Kültür & Sanat
-- Eğitim
-- Sigorta
-- Otomotiv
-- Vergi & Kamu
-- Turizm & Konaklama
-- Diğer
+VALID SECTORS (BİRİNİ SEÇ — SADECE bu slug listeden):
+- market-gida
+- akaryakit
+- giyim-aksesuar
+- restoran-kafe
+- elektronik
+- mobilya-dekorasyon
+- kozmetik-saglik
+- e-ticaret
+- ulasim
+- dijital-platform
+- kultur-sanat
+- egitim
+- sigorta
+- otomotiv
+- vergi-kamu
+- turizm-konaklama
+- kuyum-optik-ve-saat
+- fatura-telekomunikasyon
+- anne-bebek-oyuncak
+- kitap-kirtasiye-ofis
+- evcil-hayvan-petshop
+- hizmet-bireysel-gelisim
+- finans-yatirim
+- diger
 
-⚠️ ÖNEMLİ: Sektör ismini AYNEN yukarıdaki listeden seç. Parantez içindeki açıklamaları YAZMA!
-   ✅ DOĞRU: "Restoran & Kafe"
-   ❌ YANLIŞ: "Restoran & Kafe (Fast Food, Yemek Siparişi)"
+⚠️ ÖNEMLİ: Sektör değerini AYNEN yukarıdaki slug listeden seç. Türkçe isim yazma!
+   ✅ DOĞRU: "ulasim"
+   ❌ YANLIŞ: "Ulaşım"
 
 
 KURALLAR:
@@ -1478,7 +1484,7 @@ KURALLAR:
 3. reward_value: Sayısal değer. "75 TL" → 75.0, "%20" → 20.0
 4. reward_type: "puan", "indirim", "taksit", veya "mil"
 5. reward_text: Kısa ve çarpıcı. "75 TL Worldpuan", "%20 İndirim", "300 TL'ye Varan Puan"
-6. sector: VALID SECTORS listesinden seç.
+6. sector: VALID SECTORS slug listesinden seç (örn: "ulasim", "market-gida").
 7. brands: Metinde geçen dış marka isimlerini çıkar (ör. Trendyol, Migros). Asla Garanti BBVA, İş Bankası gibi banka adlarını yazma! Eğer ortada harici bir marka yoksa (kredi, nakit avans, otomatik fatura, ek taksit gibi bankanın genel bir kampanyasıysa) SADECE [] yaz.
 8. conditions: Koşulları kısa maddeler halinde özetle (max 5 madde). 
    🚨 🚨 **ULTRA KRİTİK - YASAK**: Aşağıdaki bilgileri 'conditions' içine yazmak KESİNLİKLE YASAKTIR:
@@ -1508,7 +1514,7 @@ JSON olarak cevap ver:
   "reward_value": 0.0,
   "reward_type": "puan/indirim/taksit/mil",
   "reward_text": "Kısa ödül metni",
-  "sector": "Sektör",
+  "sector": "slug-format",
   "brands": [],
   "conditions": ["Madde 1", "Madde 2"],
   "cards": ["Kart1"],
@@ -1563,12 +1569,12 @@ JSON olarak cevap ver:
             "description": short_description,
             "reward_value": None,
             "reward_type": None,
-            "reward_text": "Detayları İnceleyin",
+            "reward_text": "",
             "sector": "Diğer",
             "brands": [],
             "conditions": [],
             "cards": [],
-            "participation": "Detayları İnceleyin",
+            "participation": "",
             "start_date": None,
             "end_date": None
         }

@@ -35,22 +35,28 @@ from sqlalchemy.orm import joinedload # type: ignore
 _clean_text = AIParser._clean_text
 
 SECTOR_MAP = {
+    # Türkçe isim → slug
     "Market & Gıda": "market-gida",
     "Akaryakıt": "akaryakit",
     "Giyim & Aksesuar": "giyim-aksesuar",
     "Restoran & Kafe": "restoran-kafe",
     "Elektronik": "elektronik",
     "Mobilya, Dekorasyon & Yapı Market": "mobilya-dekorasyon",
+    "Mobilya & Dekorasyon": "mobilya-dekorasyon",
     "Sağlık, Kozmetik & Kişisel Bakım": "kozmetik-saglik",
+    "Kozmetik & Sağlık": "kozmetik-saglik",
     "E-Ticaret": "e-ticaret",
     "Ulaşım": "ulasim",
     "Dijital Platform & Oyun": "dijital-platform",
+    "Dijital Platform": "dijital-platform",
     "Kültür, Sanat & Spor": "kultur-sanat",
+    "Kültür & Sanat": "kultur-sanat",
     "Eğitim": "egitim",
     "Sigorta": "sigorta",
     "Otomotiv": "otomotiv",
     "Vergi & Kamu": "vergi-kamu",
     "Turizm, Konaklama & Seyahat": "turizm-konaklama",
+    "Turizm & Konaklama": "turizm-konaklama",
     "Mücevherat, Optik & Saat": "kuyum-optik-ve-saat",
     "Fatura & Telekomünikasyon": "fatura-telekomunikasyon",
     "Anne, Bebek & Oyuncak": "anne-bebek-oyuncak",
@@ -58,7 +64,32 @@ SECTOR_MAP = {
     "Evcil Hayvan & Petshop": "evcil-hayvan-petshop",
     "Hizmet & Bireysel Gelişim": "hizmet-bireysel-gelisim",
     "Finans & Yatırım": "finans-yatirim",
-    "Diğer": "diger"
+    "Diğer": "diger",
+    # Slug → slug (AI bazen doğrudan slug dönüyor)
+    "market-gida": "market-gida",
+    "akaryakit": "akaryakit",
+    "giyim-aksesuar": "giyim-aksesuar",
+    "restoran-kafe": "restoran-kafe",
+    "elektronik": "elektronik",
+    "mobilya-dekorasyon": "mobilya-dekorasyon",
+    "kozmetik-saglik": "kozmetik-saglik",
+    "e-ticaret": "e-ticaret",
+    "ulasim": "ulasim",
+    "dijital-platform": "dijital-platform",
+    "kultur-sanat": "kultur-sanat",
+    "egitim": "egitim",
+    "sigorta": "sigorta",
+    "otomotiv": "otomotiv",
+    "vergi-kamu": "vergi-kamu",
+    "turizm-konaklama": "turizm-konaklama",
+    "kuyum-optik-ve-saat": "kuyum-optik-ve-saat",
+    "fatura-telekomunikasyon": "fatura-telekomunikasyon",
+    "anne-bebek-oyuncak": "anne-bebek-oyuncak",
+    "kitap-kirtasiye-ofis": "kitap-kirtasiye-ofis",
+    "evcil-hayvan-petshop": "evcil-hayvan-petshop",
+    "hizmet-bireysel-gelisim": "hizmet-bireysel-gelisim",
+    "finans-yatirim": "finans-yatirim",
+    "diger": "diger",
 }
 
 def fetch_html(url: str) -> str:
@@ -390,6 +421,19 @@ def run_autofix(limit: int = 50, campaign_id: Optional[int] = None, force_all: b
                 if not ai_data:
                     print(f"   ❌ Gemini AI failed to return data. Skipping.")
                     continue
+                
+                # 🛡️ REJECT FAILED AI RESPONSES
+                if ai_data.get("_ai_failed"):
+                    print(f"   ❌ AI returned fallback/failed data (_ai_failed=True). Skipping.")
+                    continue
+                
+                # 🛡️ SANITIZE PLACEHOLDERS — AI bazen tembel cevap veriyor, DB'ye yazılmasını engelle
+                _placeholders = ["detayları inceleyin", "hemen faydalanın", "kampanya dahilinde", "detayları aşağıda"]
+                for field in ["reward_text", "participation"]:
+                    val = (ai_data.get(field) or "").strip()
+                    if val.lower() in _placeholders or len(val) < 3:
+                        ai_data[field] = None  # None = "güncelleme yapma, mevcut değeri koru"
+                        print(f"   🛡️ Placeholder rejected for '{field}': '{val}'")
                     
                 # Update logic
                 updated = False
@@ -512,7 +556,7 @@ def run_autofix(limit: int = 50, campaign_id: Optional[int] = None, force_all: b
                         c.clean_text = text_to_parse
                         updated = True
 
-                # --- Sektör tamiri (Korumacı Yaklaşım) ---
+                # --- Sektör tamiri (AI-Trust Yaklaşımı) ---
                 ai_sector_raw = ai_data.get("sector", "diger")
                 if isinstance(ai_sector_raw, list):
                     ai_sector_raw = ai_sector_raw[0] if len(ai_sector_raw) > 0 else "diger"
@@ -521,20 +565,21 @@ def run_autofix(limit: int = 50, campaign_id: Optional[int] = None, force_all: b
                 if final_sector_slug not in SECTOR_MAP.values():
                     final_sector_slug = "diger"
                     
-                # Sadece mevcut sektör 'diger' ise veya hiç yoksa AI verisini kabul et
                 current_sector_slug = c.sector.slug if c.sector else None
-                is_current_sector_bad = not current_sector_slug or current_sector_slug == "diger"
                 
-                if is_current_sector_bad and final_sector_slug != "diger":
+                # AI "diger" diyorsa mevcut sektörü koru (downgrade etme)
+                # AI spesifik bir sektör bulduysa ve mevcut sektörden farklıysa → güncelle
+                if final_sector_slug != "diger" and final_sector_slug != current_sector_slug:
                     sector = db.query(Sector).filter(Sector.slug == final_sector_slug).first()
-                    if not sector:
-                        sector = db.query(Sector).filter(Sector.slug == 'diger').first()
                     if sector:
+                        old_name = c.sector.name if c.sector else 'Yok'
                         c.sector_id = sector.id
-                        print(f"   ✨ Repaired Sector: {sector.name}")
+                        print(f"   ✨ Repaired Sector: {old_name} → {sector.name}")
                         updated = True
-                elif not is_current_sector_bad:
-                    print(f"   🛡️ Sector '{current_sector_slug}' preserved, skipped AI overwrite.")
+                elif final_sector_slug == "diger" and current_sector_slug and current_sector_slug != "diger":
+                    print(f"   🛡️ Sector '{current_sector_slug}' preserved (AI said 'diger', keeping specific).")
+                elif final_sector_slug == current_sector_slug:
+                    pass  # Aynı sektör, güncelleme gerekmez
 
                 # --- Marka tamiri (Safe-Update & Multi-Brand) ---
                 needs_brand_fix = False
@@ -570,8 +615,9 @@ def run_autofix(limit: int = 50, campaign_id: Optional[int] = None, force_all: b
                         if pb_b not in merged_brands:
                             merged_brands.append(pb_b)
                     
-                    # 🛡️ HALLUCINATION GUARD: Validate each brand against title + clean_text
-                    # A brand is valid if it appears in the title OR in the clean_text
+                    # 🛡️ NEGATIVE CONTEXT CHECK — "hariç", "geçerli değil" gibi bağlamları yakala
+                    # AI Parser zaten text-match validasyonu yaptı, PB zaten verified kurallar.
+                    # Burada sadece negatif bağlam kontrolü yapıyoruz.
                     title_lower = (c.title or "").lower()
                     text_lower = (text_to_parse or "").lower()
                     validated_brands = []
@@ -579,24 +625,18 @@ def run_autofix(limit: int = 50, campaign_id: Optional[int] = None, force_all: b
                         if not b_name or b_name == "Genel":
                             continue
                         b_lower = b_name.lower()
-                        if b_lower in title_lower or b_lower in text_lower:
-                            # 🛡️ NEGATIVE CONTEXT CHECK (HALLUCINATION GUARD)
-                            # If brand name is near words like "hariç", "geçmez", "başka", reject it.
-                            is_negative = False
-                            for text_src in [title_lower, text_lower]:
-                                if b_lower in text_src:
-                                    idx = text_src.find(b_lower)
-                                    context = text_src[max(0, idx-40):min(len(text_src), idx+40)]
-                                    if any(neg in context for neg in ["hariç", "geçerli değil", "değildir", "kapsamaz", "başka"]):
-                                        is_negative = True
-                                        break
-                            
-                            if is_negative:
-                                print(f"   🛡️ Hallucination Guard: Rejected '{b_name}' (Found in negative context: ...{context.strip()}...)")
-                            else:
-                                validated_brands.append(b_name)
+                        is_negative = False
+                        for text_src in [title_lower, text_lower]:
+                            if b_lower in text_src:
+                                idx = text_src.find(b_lower)
+                                context = text_src[max(0, idx-40):min(len(text_src), idx+40)]
+                                if any(neg in context for neg in ["hariç", "geçerli değil", "değildir", "kapsamaz", "dahil değil"]):
+                                    is_negative = True
+                                    break
+                        if is_negative:
+                            print(f"   🛡️ Negative Context: Rejected '{b_name}' (found near exclusion words)")
                         else:
-                            print(f"   🛡️ Hallucination Guard: Rejected '{b_name}' (not found in title or clean_text)")
+                            validated_brands.append(b_name)
                     
                     new_brand_names = validated_brands
                     
