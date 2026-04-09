@@ -538,7 +538,7 @@ def run_autofix(limit: int = 50, campaign_id: Optional[int] = None, force_all: b
 
                 # --- Marka tamiri (Safe-Update & Multi-Brand) ---
                 needs_brand_fix = False
-                if not c.brands:
+                if not c.brands or (campaign_id or ids_file):
                     needs_brand_fix = True
                 elif reasons_list:
                     for r in reasons_list:
@@ -551,7 +551,8 @@ def run_autofix(limit: int = 50, campaign_id: Optional[int] = None, force_all: b
                     brand_cache = {} 
                     
                     # Mevcut markaları analiz et (Nokta Atışı ile eşleşenleri korumak için)
-                    existing_brand_ids = {b.id for b in c.brands}
+                    existing_brand_ids = {getattr(b, 'id', None) for b in c.brands}
+                    existing_brand_ids = {bid for bid in existing_brand_ids if bid is not None}
                     new_brand_names = ai_data["brands"]
                     if not isinstance(new_brand_names, list):
                         new_brand_names = [new_brand_names] if new_brand_names else []
@@ -579,32 +580,47 @@ def run_autofix(limit: int = 50, campaign_id: Optional[int] = None, force_all: b
                             continue
                         b_lower = b_name.lower()
                         if b_lower in title_lower or b_lower in text_lower:
-                            validated_brands.append(b_name)
+                            # 🛡️ NEGATIVE CONTEXT CHECK (HALLUCINATION GUARD)
+                            # If brand name is near words like "hariç", "geçmez", "başka", reject it.
+                            is_negative = False
+                            for text_src in [title_lower, text_lower]:
+                                if b_lower in text_src:
+                                    idx = text_src.find(b_lower)
+                                    context = text_src[max(0, idx-40):min(len(text_src), idx+40)]
+                                    if any(neg in context for neg in ["hariç", "geçerli değil", "değildir", "kapsamaz", "başka"]):
+                                        is_negative = True
+                                        break
+                            
+                            if is_negative:
+                                print(f"   🛡️ Hallucination Guard: Rejected '{b_name}' (Found in negative context: ...{context.strip()}...)")
+                            else:
+                                validated_brands.append(b_name)
                         else:
                             print(f"   🛡️ Hallucination Guard: Rejected '{b_name}' (not found in title or clean_text)")
                     
                     new_brand_names = validated_brands
                     
-                    # Hatalı/Yasaklı markaları temizle (Banka/Kart isimleri gibi)
+                    # If we are in force/id-file mode, we PURGE all old brands to ensure clean slate
+                    # Otherwise, we only purge the ones identified as bank brands
                     correct_brands_to_keep = []
-                    for b in c.brands:
-                        if b.name not in wrong_bank_brands:
-                            correct_brands_to_keep.append(b)
+                    if not (campaign_id or ids_file):
+                        for b in c.brands:
+                            if b.name not in wrong_bank_brands:
+                                correct_brands_to_keep.append(b)
                     
-                    # Kampanya bağlarını sıfırla ama sadece hatalıları temizleyerek tekrar kuracağız
+                    # Kampanya bağlarını sıfırla
                     db.query(CampaignBrand).filter(CampaignBrand.campaign_id == c.id).delete()
                     db.flush()
                     
                     added_brand_ids = set()
                     
-                    # Korunması gerekenleri geri ekle
-                    for b in correct_brands_to_keep:
-                        db.add(CampaignBrand(campaign_id=c.id, brand_id=b.id))
-                        added_brand_ids.add(b.id)
-                    
-                    kept_names = [b.name for b in correct_brands_to_keep]
-                    if kept_names:
-                        print(f"   🛡️ Preserved Brands: {', '.join(kept_names)}")
+                    if correct_brands_to_keep:
+                        for b in correct_brands_to_keep:
+                            db.add(CampaignBrand(campaign_id=c.id, brand_id=b.id))
+                            added_brand_ids.add(b.id)
+                        print(f"   🛡️ Preserved Brands: {', '.join([b.name for b in correct_brands_to_keep])}")
+                    else:
+                        print(f"   🧹 Purged all existing brands for fresh repair.")
 
                     # AI'dan gelen yeni markaları ekle
                     for b_name in new_brand_names:
