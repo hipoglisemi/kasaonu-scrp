@@ -567,19 +567,45 @@ def run_autofix(limit: int = 50, campaign_id: Optional[int] = None, force_all: b
                     
                 current_sector_slug = c.sector.slug if c.sector else None
                 
-                # AI "diger" diyorsa mevcut sektörü koru (downgrade etme)
-                # AI spesifik bir sektör bulduysa ve mevcut sektörden farklıysa → güncelle
-                if final_sector_slug != "diger" and final_sector_slug != current_sector_slug:
+                # --- Sektör Güncelleme Kararı ---
+                # 1. Mevcut "diger" ise → AI'nın spesifik sektörünü kabul et (upgrade)
+                # 2. Mevcut spesifik ama bilinen çelişki varsa → düzelt
+                # 3. Mevcut zaten spesifik ve çelişki yoksa → koru
+                
+                is_current_diger = not current_sector_slug or current_sector_slug == "diger"
+                
+                # Bilinen çelişki: Kültür Sanat ama seyahat/ulaşım kelimeleri var
+                travel_keywords = ['uçak', 'bilet', 'feribot', 'otel', 'hotel', 'konaklama', 'turizm', 'otobüs', 'seyahat']
+                title_lower = (c.title or "").lower()
+                text_lower = (text_to_parse or "").lower()[:300]
+                has_travel_conflict = (
+                    current_sector_slug == "kultur-sanat" and 
+                    any(k in title_lower or k in text_lower for k in travel_keywords)
+                )
+                
+                should_update_sector = False
+                if final_sector_slug == "diger":
+                    # AI "diger" diyorsa hiçbir zaman güncelleme (downgrade etme)
+                    if not is_current_diger:
+                        print(f"   🛡️ Sector '{current_sector_slug}' preserved (AI said 'diger', keeping specific).")
+                elif final_sector_slug == current_sector_slug:
+                    pass  # Aynı sektör, güncelleme gerekmez
+                elif is_current_diger:
+                    should_update_sector = True  # Upgrade: diger → spesifik
+                elif has_travel_conflict:
+                    should_update_sector = True  # Bilinen çelişki düzeltmesi
+                    print(f"   🔧 Sector conflict detected: travel keywords + kultur-sanat")
+                else:
+                    # Mevcut spesifik, AI farklı spesifik diyor → mevcut korunur
+                    print(f"   🛡️ Sector '{current_sector_slug}' preserved (AI suggested '{final_sector_slug}', but existing is already specific).")
+                
+                if should_update_sector:
                     sector = db.query(Sector).filter(Sector.slug == final_sector_slug).first()
                     if sector:
                         old_name = c.sector.name if c.sector else 'Yok'
                         c.sector_id = sector.id
                         print(f"   ✨ Repaired Sector: {old_name} → {sector.name}")
                         updated = True
-                elif final_sector_slug == "diger" and current_sector_slug and current_sector_slug != "diger":
-                    print(f"   🛡️ Sector '{current_sector_slug}' preserved (AI said 'diger', keeping specific).")
-                elif final_sector_slug == current_sector_slug:
-                    pass  # Aynı sektör, güncelleme gerekmez
 
                 # --- Marka tamiri (Safe-Update & Multi-Brand) ---
                 needs_brand_fix = False
