@@ -547,7 +547,7 @@ def run_autofix(limit: int = 50, campaign_id: Optional[int] = None, force_all: b
                             break
 
                 if needs_brand_fix and ai_data.get("brands"):
-                    from src.services.brand_matcher import get_or_create_brand
+                    from src.services.brand_matcher import get_or_create_brand  # type: ignore
                     brand_cache = {} 
                     
                     # Mevcut markaları analiz et (Nokta Atışı ile eşleşenleri korumak için)

@@ -435,8 +435,7 @@ class AlbarakaScraper:
             self.session.commit()  # type: ignore # pyre-ignore[16]
 
 
-            # Brands via brand_matcher
-            from src.services.brand_matcher import get_or_create_brands_list
+            from src.services.brand_matcher import get_or_create_brands_list  # type: ignore
             brand_ids = get_or_create_brands_list(
                 db=self.session,
                 names=data.get("brands", []),
