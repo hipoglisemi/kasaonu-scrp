@@ -337,7 +337,6 @@ class TEBScraper:
         conditions_lines: List[str] = []
         participation = ai_data.get("participation") or ""
         if participation:
-            conditions_lines.append(f"KATILIM: {str(participation)}")
 
         # eligible_cards: ai_parser listesi döndürür ama guard ekle
         cards_raw = ai_data.get("cards") or []

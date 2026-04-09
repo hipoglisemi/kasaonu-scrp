@@ -340,11 +340,9 @@ class AmericanExpressScraper:
         conditions_lines = []
         participation = ai_data.get("participation")
         if participation and participation != "Detayları İnceleyin":
-            conditions_lines.append(f"KATILIM: {participation}")
             
         cards = ai_data.get("cards", [])
         if cards:
-            conditions_lines.append(f"GEÇERLİ KARTLAR: {', '.join(cards)}")
             
         # Add actual conditions
         if isinstance(parsed_conditions, list):

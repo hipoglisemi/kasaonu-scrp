@@ -308,8 +308,6 @@ class NaysScraper:
                 conditions_list = [c.strip() for c in conditions_list.split("\n") if c.strip()]
             
             if participation and participation != "Detayları İnceleyin":
-                if f"KATILIM: {participation}" not in conditions_list:
-                    conditions_list.insert(0, f"KATILIM: {participation}")
             
             campaign.conditions = "\n".join(conditions_list)
             

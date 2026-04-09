@@ -501,7 +501,6 @@ class IsbankMaximumGencScraper:
                 conds = [c.strip() for c in conds.split("\n") if c.strip()]
             part = ai_data.get("participation")
             if part and "Detayları İnceleyin" not in part:
-                conds.insert(0, f"KATILIM: {part}")
 
             cards_raw = ai_data.get("cards", [])
             if isinstance(cards_raw, str):

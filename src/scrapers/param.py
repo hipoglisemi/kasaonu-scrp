@@ -399,7 +399,6 @@ class ParamScraper:
                 conds = [c.strip() for c in conds.split("\n") if c.strip()]
             part = ai_data.get("participation")
             if part:
-                conds.insert(0, f"KATILIM: {part}")
                 
             conds = self._filter_conditions(conds)
             final_conditions = "\n".join(conds) if conds else "\n".join(data["conditions"])

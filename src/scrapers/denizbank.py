@@ -480,12 +480,10 @@ class DenizbankScraper:
         # Add participation info to conditions
         participation = ai_data.get('participation')
         if participation and participation not in ["Detayları İnceleyin", "Otomatik Katılım", "Otomatik katılım"]:  # type: ignore # pyre-ignore[16,6]
-            conditions_lines.append(f"KATILIM: {participation}")
         
         # Add eligible cards info
         eligible_cards_list = ai_data.get('cards', [])
         if eligible_cards_list:
-            conditions_lines.append(f"GEÇERLİ KARTLAR: {', '.join(eligible_cards_list)}") # type: ignore # pyre-ignore[6]
         
         # Add original conditions
         ai_conditions = ai_data.get('conditions', [])

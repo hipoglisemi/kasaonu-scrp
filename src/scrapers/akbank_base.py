@@ -211,7 +211,6 @@ class AkbankBaseScraper:
             # Add participation info
             participation = ai_data.get('participation')
             if participation and participation != "Detayları İnceleyin":
-                conditions_lines.append(f"KATILIM: {participation}")
             
             # --- USER REQUEST: DO NOT REPEAT ELIGIBLE CARDS IN CONDITIONS ---
             eligible_cards_list = ai_data.get('cards', [])

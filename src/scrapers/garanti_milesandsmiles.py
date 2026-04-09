@@ -300,7 +300,6 @@ class GarantiMilesAndSmilesScraper:
             
             participation = ai_data.get('participation')
             if participation and participation != "Otomatik katılım":
-                conditions_text = f"KATILIM: {participation}\n\n" + conditions_text
             
             # Eligible Cards
             eligible_cards_str = None

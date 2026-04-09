@@ -638,7 +638,6 @@ class IsbankMaximilesScraper:
             conds = cast(List[str], ai_data.get("conditions", []))
             part = cast(Optional[str], ai_data.get("participation"))
             if part and "Detayları İnceleyin" not in part:
-                conds.insert(0, f"KATILIM: {part}")
             final_conditions = "\n".join(conds)
 
             if existing:

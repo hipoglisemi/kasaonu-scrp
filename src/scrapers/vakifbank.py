@@ -278,7 +278,6 @@ class VakifbankScraper:
             
             # Prepend participation if it exists and isn't generic
             if part_method and "Detayları İnceleyin" not in part_method:
-                conds.insert(0, f"KATILIM: {part_method}")
             
             final_conditions = "\n".join(conds)
 

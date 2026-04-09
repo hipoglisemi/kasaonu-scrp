@@ -231,7 +231,6 @@ class TamiScraper:
             conditions_lines = []
             participation = ai_data.get("participation")
             if participation and participation != "Detayları İnceleyin":
-                conditions_lines.append(f"KATILIM: {participation}")
             
             conditions = ai_data.get("conditions")
             if isinstance(conditions, list):

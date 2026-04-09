@@ -279,7 +279,6 @@ class EnparaScraper:
             # Add participation info to conditions if available
             participation = ai_data.get('participation')
             if participation and participation != "Otomatik katılım":
-                conditions_text = f"KATILIM: {participation}\n\n" + conditions_text
 
             campaign = Campaign(
                 slug=slug,

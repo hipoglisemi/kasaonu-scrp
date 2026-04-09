@@ -303,7 +303,6 @@ class ChippinScraper:
                 # Combine Conditions
                 conditions_lines = []
                 participation = ai_data.get("participation")
-                if participation: conditions_lines.append(f"KATILIM: {participation}")
                     
                 eligible_cards = ai_data.get("cards")
                 if eligible_cards:
