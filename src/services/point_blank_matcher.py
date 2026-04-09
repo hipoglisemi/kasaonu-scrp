@@ -12,6 +12,12 @@ logger = logging.getLogger(__name__)
 _SHORT_KW_THRESHOLD = 4
 
 
+# Global Brand Exclusions (Payment Schemes, Networks, etc.)
+_GLOBAL_BRAND_EXCLUSIONS = {
+    "Mastercard", "Visa", "Masterpass", "TROY", "Maestro", 
+    "American Express", "AMEX", "Maestro", "Visa Pay"
+}
+
 class PointBlankMatcher:
     """
     Point-Blank Engine v2: Database-driven regex matching for brands and sectors.
@@ -88,10 +94,14 @@ class PointBlankMatcher:
             if rule.sector_slug == "BLACKLIST":
                 continue
                 
+            # 🛡️ GLOBAL EXCLUSION GUARD: Skip if brand/keyword is in global exclusions
+            if (rule.brand_name in _GLOBAL_BRAND_EXCLUSIONS) or (rule.keyword in _GLOBAL_BRAND_EXCLUSIONS):
+                continue
+
             brand_lower = rule.brand_name.lower() if rule.brand_name else ""
             keyword_lower = rule.keyword.lower()
             
-            # 🛡️ EXCLUSION GUARD: Skip if brand/keyword is in exclude list
+            # 🛡️ LOCAL EXCLUSION GUARD: Skip if brand/keyword is in local exclude list (e.g. Scraper name)
             if brand_lower in excludes or keyword_lower in excludes:
                 continue
                 
@@ -190,6 +200,10 @@ class PointBlankMatcher:
         if not keyword or len(keyword) < 3:
             return
             
+        # 🛡️ GLOBAL EXCLUSION GUARD: Do not report blacklisted terms as candidates
+        if keyword in _GLOBAL_BRAND_EXCLUSIONS or brand_name in _GLOBAL_BRAND_EXCLUSIONS:
+            return
+
         keyword = keyword.strip()
             
         try:

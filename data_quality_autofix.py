@@ -28,7 +28,7 @@ logging.getLogger("google_genai.models").setLevel(logging.WARNING)
 from src.models import Campaign, Sector, Brand, CampaignBrand, Card, Bank # type: ignore
 from src.database import get_db_session # type: ignore
 from src.services.ai_parser import parse_campaign, AIParser # type: ignore
-from src.services.point_blank_matcher import get_point_blank_matcher # type: ignore
+from src.services.point_blank_matcher import get_point_blank_matcher, _GLOBAL_BRAND_EXCLUSIONS # type: ignore
 from sqlalchemy.orm import joinedload # type: ignore
 
 # Shared cleaner — same preprocessing scrapers use (filters boilerplate, dedup, 6K limit)
@@ -294,11 +294,17 @@ def run_autofix(limit: int = 50, campaign_id: Optional[int] = None, force_all: b
                         "İş Bankası", "Türkiye İş Bankası", "Maximum", "Maximiles", "Yapı Kredi", "World", 
                         "Halkbank", "Paraf", "VakıfBank", "Kuveyt Türk", "Ziraat", "Ziraat Bankası", 
                         "Bankkart", "Enpara", "QNB", "Finansbank", "QNB Finansbank", "TEB", "DenizBank", "CEPTETEB",
-                        "Miles&Smiles", "Shop&Fly", "Wings", "Ticari", "Troy", "Mastercard", "Visa", "American Express", "AMEX"
+                        "Miles&Smiles", "Shop&Fly", "Wings", "Ticari"
                     ]
+                    # Combine with Global Exclusions (Mastercard, Visa, TROY etc.)
+                    wrong_bank_brands.extend(list(_GLOBAL_BRAND_EXCLUSIONS))
                     for b in c.brands:
                         b_name = b.name if hasattr(b, 'name') else str(b)
                         b_name_strip = b_name.strip()
+                        if b_name_strip in _GLOBAL_BRAND_EXCLUSIONS:
+                            is_defective = True
+                            reasons.append(f"Blacklisted Brand (Card Network): {b_name_strip}")
+                            break
                         if b_name_strip in wrong_bank_brands:
                             is_defective = True
                             reasons.append(f"Invalid Bank Brand: {b_name_strip}")

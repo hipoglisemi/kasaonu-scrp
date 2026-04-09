@@ -23,7 +23,7 @@ _SessionLocal = None
 _Campaign = None
 _Sector = None
 
-from .point_blank_matcher import get_point_blank_matcher # type: ignore
+from .point_blank_matcher import get_point_blank_matcher, _GLOBAL_BRAND_EXCLUSIONS # type: ignore
 from src.database import SessionLocal # type: ignore
 
 class TimeoutException(Exception):
@@ -532,6 +532,8 @@ except Exception as e:
     _gemini_client = None
 # ────────────────────────────────────────────────────────────────────────────
 
+
+# Global Brand Exclusions (Payment Schemes, Networks, etc.)
 
 class AIParser:
     """
@@ -1312,6 +1314,11 @@ ANALİZ EDİLECEK METİN:
         
         for brand in brands:
             if not brand or len(brand) < 2:
+                continue
+            
+            # 🛡️ GLOBAL EXCLUSION GUARD: Explicitly reject card networks and schemes
+            if brand in _GLOBAL_BRAND_EXCLUSIONS:
+                rejected.append(brand)
                 continue
                 
             import re
