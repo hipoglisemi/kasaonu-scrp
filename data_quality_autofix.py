@@ -25,7 +25,7 @@ import logging
 logging.getLogger("httpx").setLevel(logging.WARNING)
 logging.getLogger("google_genai.models").setLevel(logging.WARNING)
 
-from src.models import Campaign, Sector, Brand, CampaignBrand, Card, Bank, CampaignAuditLog # type: ignore
+from src.models import Campaign, Sector, Brand, CampaignBrand, Card, Bank # type: ignore
 from src.database import get_db_session # type: ignore
 from src.services.ai_parser import parse_campaign, AIParser # type: ignore
 from src.services.point_blank_matcher import get_point_blank_matcher # type: ignore
@@ -121,20 +121,6 @@ def run_autofix(limit: int = 50, campaign_id: Optional[int] = None, force_all: b
             for c in defective_campaigns:
                 is_defective = False
                 updated = False
-
-                # -- SAVE BEFORE STATE FOR ROLLBACK --
-                import json
-                before_state = {
-                    "title": c.title,
-                    "description": c.description,
-                    "reward_text": c.reward_text,
-                    "reward_value": str(c.reward_value) if c.reward_value else None,
-                    "reward_type": c.reward_type,
-                    "eligible_cards": c.eligible_cards,
-                    "participation": c.participation,
-                    "conditions": c.conditions
-                }
-
                 wrong_bank_brands = set()
                 reasons = []
                 
@@ -392,20 +378,6 @@ def run_autofix(limit: int = 50, campaign_id: Optional[int] = None, force_all: b
                     
                 # Update logic
                 updated = False
-
-                # -- SAVE BEFORE STATE FOR ROLLBACK --
-                import json
-                before_state = {
-                    "title": c.title,
-                    "description": c.description,
-                    "reward_text": c.reward_text,
-                    "reward_value": str(c.reward_value) if c.reward_value else None,
-                    "reward_type": c.reward_type,
-                    "eligible_cards": c.eligible_cards,
-                    "participation": c.participation,
-                    "conditions": c.conditions
-                }
-
                 
                 # Update Description
                 if not c.description or len(c.description.strip()) < 15 or FORCE_ALL:
@@ -641,29 +613,6 @@ def run_autofix(limit: int = 50, campaign_id: Optional[int] = None, force_all: b
                 # ALWAYS mark as auto_corrected so we don't try again forever (even if Gemini failed to find missing data)
                 c.auto_corrected = True
                 c.repair_count = (c.repair_count or 0) + 1
-
-                try:
-                    audit = CampaignAuditLog(
-                        campaign_id=c.id,
-                        audit_type="NIGHTLY_AUTOFIX",
-                        field_name="ALL",
-                        old_value=json.dumps(before_state, ensure_ascii=False),
-                        new_value=json.dumps({
-                            "title": c.title,
-                            "description": c.description,
-                            "reward_text": c.reward_text,
-                            "reward_value": str(c.reward_value) if c.reward_value else None,
-                            "reward_type": c.reward_type,
-                            "eligible_cards": c.eligible_cards,
-                            "participation": c.participation,
-                            "conditions": c.conditions
-                        }, ensure_ascii=False),
-                        auto_fixed=True,
-                        confidence=0.9
-                    )
-                    db.add(audit)
-                except Exception as al_err:
-                    print(f"⚠️ Audit log could not be saved: {al_err}")
                 db.commit()
                 fixed_count += 1
                 

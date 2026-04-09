@@ -316,18 +316,4 @@ class PointBlankRule(Base):
         Index("ix_point_blank_verified", "is_verified"),
     )
 
-class CampaignAuditLog(Base):
-    """Stores a log of automated or manual campaign data fixes"""
-    __tablename__ = "campaign_audit_log"
-
-    id = Column(Integer, primary_key=True, autoincrement=True)
-    campaign_id = Column(Integer, nullable=False)
-    audit_type = Column(String, nullable=False)
-    field_name = Column(String, nullable=True)
-    old_value = Column(String, nullable=True)
-    new_value = Column(String, nullable=True)
-    auto_fixed = Column(Boolean, default=False, nullable=False)
-    confidence = Column(Numeric(10, 2), nullable=True)
-    created_at = Column(DateTime, default=func.now(), nullable=False)
-
 
