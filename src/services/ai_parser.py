@@ -1105,15 +1105,40 @@ ANALİZ EDİLECEK METİN:
 """
     
     def _extract_json(self, text: str) -> Dict[str, Any]:
-        """Extract JSON from AI response"""
-        # Try to find JSON in response
-        json_match = re.search(r'\{.*\}', text, re.DOTALL)
-        if json_match:
-            json_str = json_match.group(0)
-            return json.loads(json_str)
+        """Extract JSON from AI response — handles extra data after JSON"""
+        # Find the first '{' and count brackets to find matching '}'
+        start = text.find('{')
+        if start == -1:
+            return json.loads(text)
         
-        # If no JSON found, try parsing entire response
-        return json.loads(text)
+        depth = 0
+        in_string = False
+        escape_next = False
+        end = start
+        
+        for i in range(start, len(text)):
+            c = text[i]
+            if escape_next:
+                escape_next = False
+                continue
+            if c == '\\' and in_string:
+                escape_next = True
+                continue
+            if c == '"' and not escape_next:
+                in_string = not in_string
+                continue
+            if in_string:
+                continue
+            if c == '{':
+                depth += 1
+            elif c == '}':
+                depth -= 1
+                if depth == 0:
+                    end = i
+                    break
+        
+        json_str = text[start:end + 1]
+        return json.loads(json_str)
     
     def _get_last_day_of_month(self, date_obj: datetime) -> datetime:
         """Helper to get the last day of the month for a given date."""
