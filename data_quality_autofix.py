@@ -556,7 +556,7 @@ def run_autofix(limit: int = 50, campaign_id: Optional[int] = None, force_all: b
                         c.clean_text = text_to_parse
                         updated = True
 
-                # --- Sektör tamiri (AI-Trust Yaklaşımı) ---
+                # --- Sektör tamiri ---
                 ai_sector_raw = ai_data.get("sector", "diger")
                 if isinstance(ai_sector_raw, list):
                     ai_sector_raw = ai_sector_raw[0] if len(ai_sector_raw) > 0 else "diger"
@@ -564,6 +564,17 @@ def run_autofix(limit: int = 50, campaign_id: Optional[int] = None, force_all: b
                 final_sector_slug = SECTOR_MAP.get(ai_sector_raw, ai_sector_raw)
                 if final_sector_slug not in SECTOR_MAP.values():
                     final_sector_slug = "diger"
+                
+                # 🎯 PBE SEKTÖR OVERRIDE — PBE doğrulanmış veri, AI tahmin.
+                # PBE bir marka-sektör eşleşmesi bulduysa, AI'nın sektörünü ez.
+                pb_matcher = get_point_blank_matcher(db)
+                pb_matches = pb_matcher.match_campaign(c.title, text_to_parse or "")
+                pb_sector_candidates = [m.get("sector") for m in pb_matches if m.get("sector") and m.get("brand")]
+                if pb_sector_candidates:
+                    pb_sector = pb_sector_candidates[0]  # İlk marka eşleşmesinin sektörü
+                    if pb_sector != final_sector_slug and pb_sector != "diger":
+                        print(f"   🎯 PBE Override: AI said '{final_sector_slug}', PBE says '{pb_sector}' → using PBE")
+                        final_sector_slug = pb_sector
                     
                 current_sector_slug = c.sector.slug if c.sector else None
                 
