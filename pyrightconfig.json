@@ -1,7 +1,8 @@
 {
   "executionEnvironments": [
     {
-      "root": "."
+      "root": ".",
+      "extraPaths": [".", "src"]
     }
   ],
   "venvPath": ".",
