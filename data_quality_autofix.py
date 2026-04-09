@@ -45,7 +45,7 @@ SECTOR_MAP = {
     "E-Ticaret": "e-ticaret",
     "Ulaşım": "ulasim",
     "Dijital Platform & Oyun": "dijital-platform",
-    "Spor, Kültür & Eğlence": "kultur-sanat",
+    "Kültür, Sanat & Spor": "kultur-sanat",
     "Eğitim": "egitim",
     "Sigorta": "sigorta",
     "Otomotiv": "otomotiv",

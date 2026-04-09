@@ -967,7 +967,7 @@ VALID- SECTOR (CRITICAL):
         "E-Ticaret": "e-ticaret",
         "Ulaşım": "ulasim",
         "Dijital Platform & Oyun": "dijital-platform",
-        "Spor, Kültür & Eğlence": "kultur-sanat",
+        "Kültür, Sanat & Spor": "kultur-sanat",
         "Eğitim": "egitim",
         "Sigorta": "sigorta",
         "Otomotiv": "otomotiv",
@@ -982,7 +982,7 @@ VALID- SECTOR (CRITICAL):
         "Finans & Yatırım": "finans-yatirim",
         "Diğer": "diger"
     }}
-    🚨 NOTE: If the campaign is about Sports, Matches, Football, Theatre, or Concerts (e.g., UEFA, Galatasaray, tiyatro, sinema), it MUST be categorized as 'kultur-sanat', NOT 'diger'.
+    🚨 NOTE: If the campaign is about Sports, Matches, Football, Theatre, or Concerts (e.g., UEFA, Galatasaray, tiyatro, sinema), it MUST be categorized as 'kultur-sanat' (Kültür, Sanat & Spor), NOT 'diger'.
     🚨 NOTE: If the campaign is about "yeni müşteri" (new customer), "kredi kartı başvurusu" (credit card application), "ihtiyaç kredisi" (loan) or any banking/financial product sale, you MUST categorize it as 'finans-yatirim'.
     🚨 SECTOR OUTPUT RULE: Your JSON `"sector"` value must ONLY be one of the slugs above (e.g. "market-gida", NOT "Market & Gıda").
     🚨 🛡️ ÖDEME YÖNTEMİ VS ÜRÜN AYRIMI (ÇOK ÖNEMLİ): Eğer metinde "Faturana Yansıt", "Vodafone faturana ek ödeme", "Masterpass ile öde" gibi ibareler geçiyorsa, sektörü 'fatura-telekom' veya 'finans-yatirim' SEÇME. Ödeme yöntemi kampanya sektörünü değiştirmez.

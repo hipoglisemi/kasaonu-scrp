@@ -52,7 +52,7 @@ SECTOR_MAP = {
     "Mobilya & Dekorasyon": "Mobilya & Dekorasyon",
     "Kozmetik & Sağlık": "Kozmetik & Sağlık", "E-Ticaret": "E-Ticaret",
     "Otomotiv": "Otomotiv", "Sigorta": "Sigorta", "Eğitim": "Eğitim",
-    "Kültür & Sanat": "Kültür & Sanat", "Eğlence": "Kültür & Sanat",
+    "Kültür, Sanat & Spor": "Kültür, Sanat & Spor", "Eğlence": "Kültür, Sanat & Spor",
     "Diğer": "Diğer",
 }
 
