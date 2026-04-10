@@ -3,6 +3,12 @@
 
 import sys
 import os
+
+# Path setup - reach project root (parent of src)
+project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+if project_root not in sys.path:
+    sys.path.insert(0, project_root)
+
 import time  # type: ignore # pyre-ignore[21]
 import re  # type: ignore # pyre-ignore[21]
 import uuid  # type: ignore # pyre-ignore[21]
@@ -45,60 +51,8 @@ if DATABASE_URL and DATABASE_URL.startswith("postgres://"):
 
 AIParser = None
 
-Base = declarative_base()
-
-class Bank(Base):
-    __tablename__ = 'banks'
-    id = Column(Integer, primary_key=True)
-    name = Column(String)
-    slug = Column(String)
-
-class Card(Base):
-    __tablename__ = 'cards'
-    id = Column(Integer, primary_key=True)
-    bank_id = Column(Integer, ForeignKey('banks.id'))  # type: ignore # pyre-ignore[16]
-    name = Column(String)
-    slug = Column(String)
-    is_active = Column(Boolean, default=True)
-
-class Sector(Base):
-    __tablename__ = 'sectors'
-    id = Column(Integer, primary_key=True)
-    name = Column(String)
-    slug = Column(String)
-
-class Brand(Base):
-    __tablename__ = 'brands'
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    name = Column(String)
-    slug = Column(String)
-
-class CampaignBrand(Base):
-    __tablename__ = 'test_campaign_brands' if os.environ.get('TEST_MODE') == '1' else 'campaign_brands'
-    campaign_id = Column(Integer, ForeignKey('campaigns.id'), primary_key=True)  # type: ignore # pyre-ignore[16]
-    brand_id = Column(UUID(as_uuid=True), ForeignKey('brands.id'), primary_key=True)  # type: ignore # pyre-ignore[16]
-
-class Campaign(Base):
-    __tablename__ = 'test_campaigns' if os.environ.get('TEST_MODE') == '1' else 'campaigns'
-    id = Column(Integer, primary_key=True)
-    card_id = Column(Integer, ForeignKey('cards.id'))  # type: ignore # pyre-ignore[16]
-    sector_id = Column(Integer, ForeignKey('sectors.id'))  # type: ignore # pyre-ignore[16]
-    slug = Column(String)
-    title = Column(String)
-    description = Column(String)
-    reward_text = Column(String)
-    reward_value = Column(Numeric)
-    reward_type = Column(String)
-    conditions = Column(String)
-    eligible_cards = Column(String)
-    image_url = Column(String)
-    start_date = Column(Date)
-    end_date = Column(Date)
-    is_active = Column(Boolean, default=True)
-    tracking_url = Column(String)
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow)
-    clean_text = Column(String)
+from src.database import SessionLocal  # type: ignore
+from src.models import Bank, Card, Sector, Brand, Campaign, CampaignBrand  # type: ignore
 
 class AlbarakaScraper:
     """Albaraka Türk bank campaign scraper"""
@@ -111,9 +65,7 @@ class AlbarakaScraper:
     def __init__(self):
         if not DATABASE_URL:
             raise ValueError("DATABASE_URL is not set")
-        self.engine = create_engine(DATABASE_URL, pool_pre_ping=True, pool_recycle=300)
-        Session = sessionmaker(bind=self.engine)
-        self.session = Session()
+        self.session = SessionLocal()
         self.headers = {
             "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
             "Accept": "application/json, text/javascript, */*; q=0.01",

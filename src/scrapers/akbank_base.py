@@ -19,6 +19,7 @@ from src.utils.slug_generator import generate_slug  # type: ignore # pyre-ignore
 from src.services.ai_parser import parse_api_campaign  # type: ignore # pyre-ignore[21]
 from src.services.brand_normalizer import normalize_brand_name  # type: ignore # pyre-ignore[21]
 from src.utils.scraper_utils import should_skip_campaign  # type: ignore # pyre-ignore[21]
+from src.services.brand_matcher import get_or_create_brands_list  # type: ignore
 from sqlalchemy.exc import IntegrityError  # type: ignore # pyre-ignore[21]
 
 # PostgreSQL fix for modern SQLAlchemy
@@ -255,7 +256,6 @@ class AkbankBaseScraper:
             db.commit()  # type: ignore # pyre-ignore[16]
             
             # Brands via brand_matcher
-            from src.services.brand_matcher import get_or_create_brands_list
             brand_ids = get_or_create_brands_list(
                 db=db,
                 names=ai_data.get("brands", []),

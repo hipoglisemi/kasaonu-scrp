@@ -21,7 +21,7 @@ if project_root not in sys.path:
     sys.path.insert(0, project_root)
 
 from src.utils.scraper_utils import is_url_blocked  # type: ignore
-from src.services.brand_matcher import get_or_create_brands_list
+from src.services.brand_matcher import get_or_create_brands_list  # type: ignore
 from bs4 import BeautifulSoup  # type: ignore # pyre-ignore[21]
 
 from dotenv import load_dotenv  # type: ignore # pyre-ignore[21]

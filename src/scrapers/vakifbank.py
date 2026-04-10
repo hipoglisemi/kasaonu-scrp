@@ -52,73 +52,8 @@ DATABASE_URL = os.environ.get("DATABASE_URL")
 if DATABASE_URL and DATABASE_URL.startswith("postgres://"):
     DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
 
-# --- MODELS ---
-Base = declarative_base()
-
-class Bank(Base):
-    __tablename__ = 'banks'
-    id = Column(Integer, primary_key=True)
-    name = Column(String)
-    slug = Column(String)
-    cards = relationship("Card", back_populates="bank")
-
-class Card(Base):
-    __tablename__ = 'cards'
-    id = Column(Integer, primary_key=True)
-    bank_id = Column(Integer, ForeignKey('banks.id'))  # type: ignore # pyre-ignore[16]
-    name = Column(String)
-    slug = Column(String)
-    is_active = Column(Boolean, name="is_active", default=True)
-    bank = relationship("Bank", back_populates="cards")
-    campaigns = relationship("Campaign", back_populates="card")
-
-class Sector(Base):
-    __tablename__ = 'sectors'
-    id = Column(Integer, primary_key=True)
-    name = Column(String)
-    slug = Column(String)
-    campaigns = relationship("Campaign", back_populates="sector")
-
-class Brand(Base):
-    __tablename__ = 'brands'
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    name = Column(String)
-    slug = Column(String)
-    campaigns = relationship("CampaignBrand", back_populates="brand")
-
-class CampaignBrand(Base):
-    __tablename__ = 'test_campaign_brands' if os.environ.get('TEST_MODE') == '1' else 'campaign_brands'
-    campaign_id = Column(Integer, ForeignKey('campaigns.id'), primary_key=True)  # type: ignore # pyre-ignore[16]
-    brand_id = Column(UUID(as_uuid=True), ForeignKey('brands.id'), primary_key=True)  # type: ignore # pyre-ignore[16]
-    brand = relationship("Brand", back_populates="campaigns")
-    campaign = relationship("Campaign", back_populates="brands")
-
-class Campaign(Base):
-    __tablename__ = 'test_campaigns' if os.environ.get('TEST_MODE') == '1' else 'campaigns'
-    id = Column(Integer, primary_key=True)
-    card_id = Column(Integer, ForeignKey('cards.id'))  # type: ignore # pyre-ignore[16]
-    sector_id = Column(Integer, ForeignKey('sectors.id'))  # type: ignore # pyre-ignore[16]
-    slug = Column(String)
-    title = Column(String)
-    description = Column(String)
-    reward_text = Column(String, name="reward_text")
-    reward_value = Column(Numeric, name="reward_value")
-    reward_type = Column(String, name="reward_type")
-    conditions = Column(String)
-    eligible_cards = Column(String, name="eligible_cards")
-    image_url = Column(String, name="image_url")
-    start_date = Column(Date, name="start_date")
-    end_date = Column(Date, name="end_date")
-    is_active = Column(Boolean, name="is_active", default=True)
-    tracking_url = Column(String, name="tracking_url")
-    created_at = Column(DateTime, name="created_at", default=datetime.utcnow)
-    updated_at = Column(DateTime, name="updated_at", default=datetime.utcnow)
-    ai_marketing_text = Column(String, name="ai_marketing_text")
-    
-    card = relationship("Card", back_populates="campaigns")
-    sector = relationship("Sector", back_populates="campaigns")
-    brands = relationship("CampaignBrand", back_populates="campaign")
-
+from src.database import SessionLocal  # type: ignore
+from src.models import Bank, Card, Sector, Brand, Campaign, CampaignBrand  # type: ignore
 
 # --- SCRAPER ---
 class VakifbankScraper:
@@ -130,9 +65,7 @@ class VakifbankScraper:
         self.session.headers.update({
             "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
         })
-        self.engine = create_engine(DATABASE_URL)
-        Session = sessionmaker(bind=self.engine)
-        self.db = Session()
+        self.db = SessionLocal()
         
         # Initialize AI Parser
         self.parser = AIParser() # Ensure GEMINI_API_KEY is in env
