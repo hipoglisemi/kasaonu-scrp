@@ -17,12 +17,13 @@ from typing import Optional, Dict, Any, List  # type: ignore # pyre-ignore[21]
 from urllib.parse import urljoin  # type: ignore # pyre-ignore[21]
 from bs4 import BeautifulSoup  # type: ignore # pyre-ignore[21]
 
-current_dir = os.path.dirname(os.path.abspath(__file__))
-project_root = os.path.dirname(os.path.dirname(current_dir))
+# Path setup - reach project root (parent of src)
+project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 if project_root not in sys.path:
-    sys.path.append(project_root)
+    sys.path.insert(0, project_root)
 
 from src.services.brand_matcher import get_or_create_brands_list  # type: ignore
+from src.database import get_db_session  # type: ignore
 
 try:
     from dotenv import load_dotenv  # type: ignore # pyre-ignore[21]

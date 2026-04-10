@@ -18,8 +18,8 @@ from urllib.parse import urljoin  # type: ignore # pyre-ignore[21]
 from src.utils.scraper_utils import is_url_blocked  # type: ignore
 from bs4 import BeautifulSoup  # type: ignore # pyre-ignore[21]
 
-# Path setup
-project_root = "/Users/hipoglisemi/Desktop/kartavantaj-scraper"
+# Path setup - reach project root (parent of src)
+project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 if project_root not in sys.path:
     sys.path.insert(0, project_root)
 

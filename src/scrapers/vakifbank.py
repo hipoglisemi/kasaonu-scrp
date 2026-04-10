@@ -18,17 +18,13 @@ from sqlalchemy.orm import sessionmaker, relationship, declarative_base  # type:
 from sqlalchemy.dialects.postgresql import UUID  # type: ignore # pyre-ignore[21]
 from src.utils.scraper_utils import is_url_blocked  # type: ignore
 
-# Import AI Parser from sibling directory
-# We need to add the project root to sys.path
-current_dir = os.path.dirname(os.path.abspath(__file__)) # src/scrapers
-project_root = os.path.dirname(os.path.dirname(current_dir)) # /Users/.../kartavantaj-scraper
+# Path setup - reach project root (parent of src)
+project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 if project_root not in sys.path:
-    sys.path.append(project_root)
-
-try:
-    from src.services.ai_parser import AIParser  # type: ignore # pyre-ignore[21]
+    sys.path.insert(0, project_root)
 
 from src.services.brand_matcher import get_or_create_brands_list  # type: ignore
+from src.services.ai_parser import AIParser  # type: ignore
 
 # Load Env (for DB and API Key)
 try:

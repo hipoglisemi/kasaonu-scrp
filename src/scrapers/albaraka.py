@@ -14,17 +14,15 @@ from urllib.parse import urljoin  # type: ignore # pyre-ignore[21]
 import requests  # type: ignore # pyre-ignore[21]
 import json  # type: ignore # pyre-ignore[21]
 
-# Path setup
-current_dir = os.path.dirname(os.path.abspath(__file__))  # src/scrapers
-project_root = os.path.dirname(os.path.dirname(current_dir))  # project root
+# Path setup - reach project root (parent of src)
+project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 if project_root not in sys.path:
     sys.path.insert(0, project_root)
-src_dir = os.path.dirname(current_dir)
-if src_dir not in sys.path:
-    sys.path.insert(1, src_dir)
 
-from src.utils.logger_utils import log_scraper_execution  # type: ignore # pyre-ignore[21]
+from src.utils.logger_utils import log_scraper_execution  # type: ignore
 from src.utils.scraper_utils import is_url_blocked  # type: ignore
+from src.database import SessionLocal  # type: ignore
+from src.services.brand_matcher import get_or_create_brands_list  # type: ignore
 
 # Load Env
 try:
@@ -129,10 +127,11 @@ class AlbarakaScraper:
         }
         
         try:
-            from src.services.ai_parser import AIParser as _AIParser  # type: ignore # pyre-ignore[21]
+            from src.services.ai_parser import AIParser as _AIParser  # type: ignore
             self.parser = _AIParser()
         except ImportError:
-            from services.ai_parser import AIParser as _AIParser  # type: ignore # pyre-ignore[21]
+            # Fallback for some local environments
+            from services.ai_parser import AIParser as _AIParser  # type: ignore
             self.parser = _AIParser()
 
     def _get_or_create_bank(self) -> int:
@@ -413,29 +412,29 @@ class AlbarakaScraper:
             eligible = ", ".join(data.get("cards", [])) or None
 
             campaign = Campaign(  # type: ignore # pyre-ignore[20]
-                card_id=card_id,  # type: ignore
-                sector_id=sector.id if sector else None,  # type: ignore
-                slug=slug,  # type: ignore
-                title=formatted_title,  # type: ignore
-                description=data.get("description") or data["title"][:200],  # type: ignore
-                reward_text=data.get("reward_text"),  # type: ignore
-                reward_value=data.get("reward_value"),  # type: ignore
-                reward_type=data.get("reward_type"),  # type: ignore
-                conditions=final_conditions,  # type: ignore
-                eligible_cards=eligible,  # type: ignore
-                image_url=data.get("image_url"),  # type: ignore
-                start_date=start_date,  # type: ignore
-                end_date=end_date,  # type: ignore
-                is_active=True,  # type: ignore
-                tracking_url=data["source_url"],  # type: ignore
-                created_at=datetime.utcnow(),  # type: ignore
-                updated_at=datetime.utcnow(),  # type: ignore
+                card_id=card_id,
+                sector_id=sector.id if sector else None,
+                slug=slug,
+                title=formatted_title,
+                description=data.get("description") or data["title"][:200],
+                reward_text=data.get("reward_text"),
+                reward_value=data.get("reward_value"),
+                reward_type=data.get("reward_type"),
+                conditions=final_conditions,
+                participation=part,
+                eligible_cards=eligible,
+                image_url=data.get("image_url"),
+                start_date=start_date,
+                end_date=end_date,
+                is_active=True,
+                tracking_url=data["source_url"],
+                created_at=datetime.utcnow(),
+                updated_at=datetime.utcnow(),
             )
             self.session.add(campaign)  # type: ignore # pyre-ignore[16]
             self.session.commit()  # type: ignore # pyre-ignore[16]
 
 
-            from src.services.brand_matcher import get_or_create_brands_list  # type: ignore
             brand_ids = get_or_create_brands_list(
                 db=self.session,
                 names=data.get("brands", []),
@@ -445,38 +444,16 @@ class AlbarakaScraper:
 
 
             for bid in brand_ids:
-
-
                 try:
-
-
                     link = self.session.query(CampaignBrand).filter(
-
-
                         CampaignBrand.campaign_id == campaign.id,
-
-
                         CampaignBrand.brand_id == bid
-
-
                     ).first()
-
-
                     if not link:
-
-
                         self.session.add(CampaignBrand(campaign_id=campaign.id, brand_id=bid))
-
-
                         self.session.commit()
-
-
                 except Exception as e:
-
-
                     self.session.rollback()
-
-
                     print(f"   ⚠️ CampaignBrand link failed: {e}")
 
 
