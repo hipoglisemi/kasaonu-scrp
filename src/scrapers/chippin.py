@@ -14,14 +14,18 @@ from typing import Optional, List, Dict, Any  # type: ignore # pyre-ignore[21]
 from bs4 import BeautifulSoup  # type: ignore # pyre-ignore[21]
 from dotenv import load_dotenv  # type: ignore # pyre-ignore[21]
 
-# Ensure src is in path
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+# Path setup - reach project root (parent of src)
+project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+if project_root not in sys.path:
+    sys.path.insert(0, project_root)
 
 from sqlalchemy import create_engine, text  # type: ignore # pyre-ignore[21]
-from services.ai_parser import AIParser  # type: ignore # pyre-ignore[21]
-from services.brand_normalizer import normalize_brand_name, cleanup_brands  # type: ignore # pyre-ignore[21]
-from utils.scraper_utils import is_url_blocked  # type: ignore
-from sqlalchemy.orm import Session  # type: ignore
+from sqlalchemy.orm import Session  # type: ignore # pyre-ignore[21]
+from src.database import get_db_session  # type: ignore # pyre-ignore[21]
+from src.models import Bank, Card, Sector, Brand, Campaign, CampaignBrand  # type: ignore # pyre-ignore[21]
+from src.utils.scraper_utils import is_url_blocked  # type: ignore # pyre-ignore[21]
+from src.utils.logger_utils import log_scraper_execution  # type: ignore # pyre-ignore[21]
+from src.services.ai_parser import AIParser  # type: ignore # pyre-ignore[21]
 
 load_dotenv()
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)

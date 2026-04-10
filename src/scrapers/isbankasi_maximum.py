@@ -41,6 +41,8 @@ from sqlalchemy.orm import sessionmaker, relationship, declarative_base  # type:
 from sqlalchemy.dialects.postgresql import UUID  # type: ignore # pyre-ignore[21]
 
 DATABASE_URL = os.environ.get("DATABASE_URL")
+if DATABASE_URL and DATABASE_URL.startswith("postgres://"):
+    DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
 print(f"[DEBUG] DATABASE_URL set: {'YES' if DATABASE_URL else 'NO'}")  # type: ignore # pyre-ignore[16,6]
 
 # AIParser is lazy-imported in __init__ to avoid google.generativeai hang
@@ -517,7 +519,7 @@ class IsbankMaximumScraper:
                 reward_type=data.get("reward_type"),  # type: ignore
                 conditions=final_conditions,  # type: ignore
                 eligible_cards=eligible,
-                participation=participation,  # type: ignore
+                participation=part,  # type: ignore
                 clean_text=data.get("_clean_text"),  # type: ignore
                 image_url=data["image_url"],  # type: ignore
                 start_date=start_date,  # type: ignore

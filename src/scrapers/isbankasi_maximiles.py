@@ -59,6 +59,11 @@ class IsbankMaximilesScraper:
 
     def __init__(self):
         self.engine = engine
+        # PostgreSQL fix for modern SQLAlchemy
+        db_url = os.environ.get("DATABASE_URL")
+        if db_url and db_url.startswith("postgres://"):
+             from sqlalchemy import create_engine
+             self.engine = create_engine(db_url.replace("postgres://", "postgresql://", 1), pool_pre_ping=True, pool_recycle=300)
         self.db = get_db_session()
         
         # Lazy import of AIParser to avoid google.generativeai hanging at module import time
@@ -670,7 +675,7 @@ class IsbankMaximilesScraper:
                     reward_type=ai_data.get("reward_type"),  # type: ignore
                     conditions=final_conditions,  # type: ignore
                     eligible_cards=", ".join(ai_data.get("cards", [])) or None,
-                    participation=participation,  # type: ignore
+                    participation=part,  # type: ignore
                     clean_text=ai_data.get("_clean_text"),  # type: ignore
                     image_url=data["image_url"],  # type: ignore
                     start_date=start_date,  # type: ignore

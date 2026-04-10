@@ -6,13 +6,15 @@ from typing import List, Optional, Any  # type: ignore # pyre-ignore[21]
 from bs4 import BeautifulSoup  # type: ignore # pyre-ignore[21]
 from dotenv import load_dotenv  # type: ignore # pyre-ignore[21]
 
-# Ensure src is in path
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+# Path setup - reach project root (parent of src)
+project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+if project_root not in sys.path:
+    sys.path.insert(0, project_root)
 
 from sqlalchemy import create_engine, text  # type: ignore # pyre-ignore[21]
-from services.ai_parser import AIParser  # type: ignore # pyre-ignore[21]
-from services.brand_normalizer import cleanup_brands  # type: ignore # pyre-ignore[21]
-from src.utils.scraper_utils import is_url_blocked  # type: ignore
+from src.services.ai_parser import AIParser  # type: ignore # pyre-ignore[21]
+from src.services.brand_normalizer import cleanup_brands  # type: ignore # pyre-ignore[21]
+from src.utils.scraper_utils import is_url_blocked  # type: ignore # pyre-ignore[21]
 
 # Playwright
 from playwright.sync_api import sync_playwright  # type: ignore # pyre-ignore[21]
@@ -21,6 +23,9 @@ load_dotenv()
 
 # --- CONFIG ---
 DATABASE_URL = os.getenv("DATABASE_URL")
+# PostgreSQL fix for modern SQLAlchemy
+if DATABASE_URL and DATABASE_URL.startswith("postgres://"):
+    DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
 if not DATABASE_URL:
     raise ValueError("DATABASE_URL is not set in .env")
 

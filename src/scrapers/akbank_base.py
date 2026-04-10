@@ -21,6 +21,12 @@ from src.services.brand_normalizer import normalize_brand_name  # type: ignore #
 from src.utils.scraper_utils import should_skip_campaign  # type: ignore # pyre-ignore[21]
 from sqlalchemy.exc import IntegrityError  # type: ignore # pyre-ignore[21]
 
+# PostgreSQL fix for modern SQLAlchemy
+DATABASE_URL = os.environ.get("DATABASE_URL")
+if DATABASE_URL and DATABASE_URL.startswith("postgres://"):
+    DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
+    os.environ["DATABASE_URL"] = DATABASE_URL
+
 class AkbankBaseScraper:
     """
     Base scraper for Akbank brands (Axess, Free, Wings, Ticari).
@@ -235,7 +241,7 @@ class AkbankBaseScraper:
                 reward_type=ai_data.get('reward_type'),  # type: ignore
                 conditions=conditions_text,  # type: ignore
                 eligible_cards=eligible_cards_str,
-                participation=participation,  # type: ignore
+                participation=part,  # type: ignore
                 image_url=image_url,  # type: ignore
                 start_date=start_date,  # type: ignore
                 end_date=end_date,  # type: ignore

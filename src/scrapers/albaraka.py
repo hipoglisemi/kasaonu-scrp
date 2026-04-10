@@ -14,11 +14,6 @@ from urllib.parse import urljoin  # type: ignore # pyre-ignore[21]
 import requests  # type: ignore # pyre-ignore[21]
 import json  # type: ignore # pyre-ignore[21]
 
-# Path setup - reach project root (parent of src)
-project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-if project_root not in sys.path:
-    sys.path.insert(0, project_root)
-
 from src.utils.logger_utils import log_scraper_execution  # type: ignore
 from src.utils.scraper_utils import is_url_blocked  # type: ignore
 from src.database import SessionLocal  # type: ignore
@@ -45,6 +40,8 @@ from sqlalchemy.orm import sessionmaker, relationship, declarative_base  # type:
 from sqlalchemy.dialects.postgresql import UUID  # type: ignore # pyre-ignore[21]
 
 DATABASE_URL = os.environ.get("DATABASE_URL")
+if DATABASE_URL and DATABASE_URL.startswith("postgres://"):
+    DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
 
 AIParser = None
 

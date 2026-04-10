@@ -5,9 +5,13 @@
 İşbankası Maximum Genç Scraper
 Powered by Playwright (GitHub Actions compatible, Cloudflare-resistant)
 """
-
+# Path setup - reach project root (parent of src)
 import os
 import sys
+project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+if project_root not in sys.path:
+    sys.path.insert(0, project_root)
+
 import time  # type: ignore # pyre-ignore[21]
 import re  # type: ignore # pyre-ignore[21]
 import uuid  # type: ignore # pyre-ignore[21]
@@ -17,11 +21,6 @@ from typing import Optional, Dict, Any, List  # type: ignore # pyre-ignore[21]
 from urllib.parse import urljoin  # type: ignore # pyre-ignore[21]
 from src.utils.scraper_utils import is_url_blocked  # type: ignore
 from bs4 import BeautifulSoup  # type: ignore # pyre-ignore[21]
-
-# Path setup - reach project root (parent of src)
-project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-if project_root not in sys.path:
-    sys.path.insert(0, project_root)
 
 from src.services.brand_matcher import get_or_create_brands_list  # type: ignore
 
@@ -48,6 +47,8 @@ from sqlalchemy.dialects.postgresql import UUID  # type: ignore # pyre-ignore[21
 AIParser = None
 
 DATABASE_URL = os.environ.get("DATABASE_URL")
+if DATABASE_URL and DATABASE_URL.startswith("postgres://"):
+    DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
 from src.models import Bank, Card, Sector, Brand, CampaignBrand, Campaign  # type: ignore # pyre-ignore[21]
 
 

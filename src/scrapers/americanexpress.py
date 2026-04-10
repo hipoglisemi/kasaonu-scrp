@@ -39,6 +39,10 @@ AIParser = None
 DATABASE_URL = os.environ.get("DATABASE_URL")
 if not DATABASE_URL:
     raise ValueError("DATABASE_URL is not set")
+
+# PostgreSQL fix for modern SQLAlchemy
+if DATABASE_URL.startswith("postgres://"):
+    DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
     
 from src.scrapers.param import Bank, Card, Sector, Brand, CampaignBrand, Campaign, SECTOR_MAP  # type: ignore # pyre-ignore[21]
 from src.utils.logger_utils import log_scraper_execution  # type: ignore # pyre-ignore[21]
@@ -374,7 +378,7 @@ class AmericanExpressScraper:
             reward_type=ai_data.get('reward_type'),  # type: ignore
             reward_value=ai_data.get('reward_value'),  # type: ignore
             eligible_cards=", ".join(cards) or "American Express",
-            participation=participation,  # type: ignore
+            participation=part,  # type: ignore
             is_active=True,  # type: ignore
             conditions=final_conditions,  # type: ignore
             tracking_url=url,  # type: ignore
