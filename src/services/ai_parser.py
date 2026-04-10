@@ -6,6 +6,7 @@ Replaces 100+ lines of regex with intelligent natural language understanding
 import os
 import json
 import re
+import html
 import logging
 import decimal
 import signal
@@ -1245,8 +1246,9 @@ ANALİZ EDİLECEK METİN:
         rejected = []
         
         passthrough_terms = {
-            "tüm kartlar", "tüm kredi kartları", "tüm banka kartları",
+            "tüm kartlar", "tüm kredi kartları", "tüm banka kartları", "tüm müşteriler",
             "sanal ve ek kartlar", "sanal kartlar", "ek kartlar",
+            "türk telekom müşterileri", "vodafone müşterileri", "turkcell müşterileri", "bireysel müşteriler", "faturalı müşteriler"
         }
         
         for card in cards:
@@ -1436,7 +1438,19 @@ def parse_api_campaign(
     
     # Clean HTML tags from content to get plain text conditions
     import re as _re
-    clean_content = _re.sub(r'<[^>]+>', '\n', content_html or '')
+    import html as _html
+    
+    # 1. Strip script and style tags WITH their content (to remove GTM, CSS noise)
+    content_html = content_html or ''
+    temp_content = _re.sub(r'<script.*?>.*?</script>', ' ', content_html, flags=_re.DOTALL | _re.IGNORECASE)
+    temp_content = _re.sub(r'<style.*?>.*?</style>', ' ', temp_content, flags=_re.DOTALL | _re.IGNORECASE)
+    
+    # 2. Strip all other tags
+    clean_content = _re.sub(r'<[^>]+>', '\n', temp_content)
+    
+    # 3. Decode HTML entities (fix &#x2019; etc)
+    clean_content = _html.unescape(clean_content)
+    
     clean_content = _re.sub(r'\n+', '\n', clean_content).strip()
     # Limit content length
     # For Garanti BBVA, we need more context (sidebar info often gets cut off)

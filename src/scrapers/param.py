@@ -443,7 +443,7 @@ class ParamScraper:
                     reward_type=ai_data.get("reward_type"),  # type: ignore
                     conditions=final_conditions,  # type: ignore
                     eligible_cards=eligible_cards_str,
-                    participation=part,  # type: ignore
+                    participation=participation,  # type: ignore
                     image_url=data.get("image_url"),  # type: ignore
                     start_date=start_date,  # type: ignore
                     end_date=end_date,  # type: ignore

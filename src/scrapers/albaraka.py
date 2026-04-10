@@ -370,7 +370,7 @@ class AlbarakaScraper:
                 reward_value=data.get("reward_value"),
                 reward_type=data.get("reward_type"),
                 conditions=final_conditions,
-                participation=part,
+                participation=participation,
                 eligible_cards=eligible,
                 image_url=data.get("image_url"),
                 start_date=start_date,

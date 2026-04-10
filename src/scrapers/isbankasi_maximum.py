@@ -519,7 +519,7 @@ class IsbankMaximumScraper:
                 reward_type=data.get("reward_type"),  # type: ignore
                 conditions=final_conditions,  # type: ignore
                 eligible_cards=eligible,
-                participation=part,  # type: ignore
+                participation=participation,  # type: ignore
                 clean_text=data.get("_clean_text"),  # type: ignore
                 image_url=data["image_url"],  # type: ignore
                 start_date=start_date,  # type: ignore

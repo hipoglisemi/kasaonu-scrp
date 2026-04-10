@@ -449,13 +449,19 @@ class TurkTelekomScraper:
             if not title or title.lower() == brand_name.lower():
                 # Look for the first meaningful paragraph text (Prime/Partnerships style)
                 # usually .detail-content p, .campaign-spot, .sub-title
-                spot = soup.select_one(".detail-content p, .campaign-spot, .sub-title, .detail-text-img + p")
-                if spot:
-                    spot_text = spot.get_text(strip=True)
-                    if len(spot_text) > 5 and len(spot_text) < 250:
-                        # Ensure we don't just pick something generic
-                        if not any(x in spot_text.lower() for x in ["türk telekom", "prime", "selfy"]) or len(spot_text) > 15:
-                            title = spot_text
+                # Priority 1: H1 (The official campaign title)
+                h1 = soup.select_one("h1.campaign-detail-title, .campaign-detail-info h1, h1")
+                if h1 and len(h1.get_text(strip=True)) > 5:
+                    title = h1.get_text(strip=True)
+                else:
+                    # Fallback 2: Look for the first meaningful paragraph text
+                    spot = soup.select_one(".detail-content p, .campaign-spot, .sub-title, .detail-text-img + p")
+                    if spot:
+                        spot_text = spot.get_text(strip=True)
+                        if len(spot_text) > 5 and len(spot_text) < 250:
+                            # Ensure we don't just pick something generic
+                            if not any(x in spot_text.lower() for x in ["türk telekom", "prime", "selfy"]) or len(spot_text) > 15:
+                                title = spot_text
             
             # Final fallback
             if not title:
@@ -600,7 +606,7 @@ class TurkTelekomScraper:
             tracking_url=url,
             is_active=True,
             ai_marketing_text=ai_marketing_text,
-            eligible_cards="Türk Telekom Müşterileri",
+            eligible_cards=data.get("eligible_cards") or "Türk Telekom Müşterileri",
             category=data.get("category"),
             badge_color=data.get("badge_color"),
             clean_text=data.get("_clean_text"),

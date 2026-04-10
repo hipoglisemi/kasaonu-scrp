@@ -519,7 +519,7 @@ class IsbankMaximumGencScraper:
                 reward_type=ai_data.get("reward_type"),
                 conditions="\n".join(conds),
                 eligible_cards=", ".join(cards_raw) or None,
-                participation=part,
+                participation=participation,
                 image_url=data["image_url"],
                 start_date=start_date, end_date=end_date,
                 is_active=True, tracking_url=url,

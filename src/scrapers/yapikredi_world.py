@@ -5,9 +5,12 @@ project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(_
 if project_root not in sys.path:
     sys.path.insert(0, project_root)
 
-import requests  # type: ignore # pyre-ignore[21]
-import time  # type: ignore # pyre-ignore[21]
-from datetime import datetime  # type: ignore # pyre-ignore[21]
+from urllib.parse import urljoin
+import requests
+import time
+import re
+from datetime import datetime
+from playwright.sync_api import sync_playwright
 from typing import Dict, Any, List, Optional  # type: ignore # pyre-ignore[21]
 from sqlalchemy.orm import Session  # type: ignore # pyre-ignore[21]
 
@@ -107,29 +110,54 @@ class YapikrediWorldScraper:
         start_date = self._parse_iso_date(start_date_str)
         end_date = self._parse_iso_date(end_date_str)
         
-        # NEW: Fetch detail page for full content instead of relying on API's truncated Content
-        print(f"      🌐 Fetching detail page for full content: {full_url}")
+        # NEW: Fetch detail page for full content using a browser for dynamic content
+        print(f"      🌐 Fetching detail page (Browser Mode) for full content: {full_url}")
+        browser_html = ""
         try:
-            detail_response = requests.get(full_url, headers={'User-Agent': 'Mozilla/5.0'}, timeout=15)
-            detail_response.raise_for_status()
-            full_html = detail_response.text
-            # Use BeautifulSoup to get main content area if possible, to reduce noise
-            from bs4 import BeautifulSoup
-            inner_soup = BeautifulSoup(full_html, 'html.parser')
-            # Look for common Yapı Kredi detail containers (research shows .campaign-detail-content or similar)
-            main_content_div = inner_soup.select_one('.campaign-detail-content, .campaign-detail, main')
-            if main_content_div:
-                content_html = str(main_content_div)
-            else:
-                content_html = full_html
+            with sync_playwright() as p:
+                # Use Firefox because Chromium is unstable in this terminal environment
+                browser = p.firefox.launch(headless=True)
+                context = browser.new_context(user_agent="Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
+                page = context.new_page()
+                
+                # Go to URL and wait for the specific content tab or just network idle
+                page.goto(full_url, wait_until="networkidle", timeout=30000)
+                
+                # SCROLL to load lazy elements (Crucial for the technical details at the bottom)
+                page.evaluate("window.scrollTo(0, document.body.scrollHeight)")
+                page.wait_for_timeout(2000)
+                
+                # Wait for campaign detail tabs if they exist
+                try:
+                    page.wait_for_selector(".campaign-detail-tab-details, .campaign-detail-content, .campaign-detail-box", timeout=5000)
+                except:
+                    pass
+                
+                browser_html = page.content()
+                browser.close()
+            
+            if browser_html:
+                from bs4 import BeautifulSoup
+                inner_soup = BeautifulSoup(browser_html, 'html.parser')
+                # Target all potential content areas - expanded to include .campaign-terms and .campaign-detail-box
+                main_content_div = inner_soup.select_one('.campaign-terms, .campaign-detail-content, .campaign-detail, .campaign-detail-tab-details, .campaign-detail-box, main')
+                if main_content_div:
+                    content_html = str(main_content_div)
+                else:
+                    content_html = browser_html
         except Exception as e:
-            print(f"      ⚠️ Failed to fetch detail page, falling back to API content: {e}")
+            print(f"      ⚠️ Browser fetch failed, falling back to API content: {e}")
             content_html = item.get('Content') or ''
+
+        # COMBINE: API data is usually cleaner than the dynamic detail page.
+        # We combine API description with the detail content to give AI best of both worlds.
+        api_desc = item.get('Description') or ''
+        combined_content = f"--- API DATA ---\n{api_desc}\n\n--- DETAIL PAGE ---\n{content_html}"
 
         ai_result = parse_api_campaign(
             title=title,
             short_description=short_description,
-            content_html=content_html,
+            content_html=combined_content,
             bank_name=self.BANK_NAME,
             scraper_sector=None  # Yapı Kredi API serves all sectors in one list
         )
@@ -255,6 +283,7 @@ class YapikrediWorldScraper:
                             continue
                     except:
                         pass
+                
                 
                 active_count += 1  # type: ignore # pyre-ignore[58]
                 try:

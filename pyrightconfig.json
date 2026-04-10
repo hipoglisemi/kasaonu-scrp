@@ -2,7 +2,7 @@
   "executionEnvironments": [
     {
       "root": ".",
-      "extraPaths": [".", "src"]
+      "extraPaths": ["."]
     }
   ],
   "venvPath": ".",
@@ -20,7 +20,7 @@
   "reportReturnType": false,
   "reportCallIssue": false,
   "exclude": [
-    "src/scrapers",
-    "src/scrapers/**"
+    "**/node_modules",
+    "**/__pycache__"
   ]
 }
