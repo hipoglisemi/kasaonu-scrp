@@ -101,10 +101,16 @@ def generate_with_rotation(
             )
             
             if is_retriable:
+                # 503 High Demand requires longer wait
+                is_503 = "503" in err_str or "high demand" in err_str
+                current_delay = retry_delay * 2 if is_503 else retry_delay
+                # Add jitter
+                current_delay += random.uniform(0, 2)
+                
                 msg = f"[KeyLoop] ⚠️  Key #{idx + 1} failed ({type(e).__name__})."
                 if idx + 1 < len(keys):
-                    print(f"{msg} Trying next key... ({idx + 2}/{len(keys)}) | Waiting {retry_delay}s...")
-                    time.sleep(retry_delay)
+                    print(f"{msg} {'(MODEL HIGH DEMAND)' if is_503 else ''} Trying next key... ({idx + 2}/{len(keys)}) | Waiting {current_delay:.1f}s...")
+                    time.sleep(current_delay)
                 else:
                     print(f"{msg} All {len(keys)} keys exhausted.")
                 last_error = e
