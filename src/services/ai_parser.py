@@ -1057,8 +1057,12 @@ VALID- SECTOR (CRITICAL):
     - Hiçbir somut değer bulamazsan "Kampanya Fırsatı" yaz.
 
 10. **PAZARLAMA ÖZETİ (MARKETING TEXT)**:
-    - 'ai_marketing_text' alanı için: Kampanyanın avantajını özetleyen, kullanıcıyı tıklamaya teşvik eden, emojisiz, samimi ve kısa bir cümle oluştur. (Örn: "Market harcamalarınızda 500 TL'ye varan puan kazanma fırsatını kaçırmayın!")
-    - Max 120 karakter.
+    - 'ai_marketing_text' alanı için: Kampanyanın avantajını özetleyen, kullanıcıyı heyecanlandıran, enerjik ve samimi bir metin oluştur.
+    - 🚨 UZUNLUK: Mutlaka 2-3 cümle olmalı (en az 150, en fazla 300 karakter).
+    - 🚨 EMOJİ KURALI: Cümlelerin arasına ve sonuna uygun emojiler ekle (🎉, 🚀, 💳, 🛒, ✈️, ⛽, 🍕 gibi kampanya konusuyla ilgili emojiler).
+    - 🚨 DİL: Enerjik, davetkar ve heyecan verici ol. "Kaçırmayın!", "Fırsatı yakalayın!", "Hemen katılın!" gibi ifadeler kullan.
+    - 🚨 İÇERİK: Somut rakamları (TL, puan, %, taksit sayısı) mutlaka belirt. Jenerik cümleler YASAK.
+    - Örnek: "Manisa, Çanakkale, Muğla ve Uşak'ta TROY logolu QNB kartınızla toplu taşımada ilk yolculuğunuz tamamen ücretsiz! 🚌💳 Hafta içi binek ulaşımınızı QNB karşılıyor, bu fırsatı sakın kaçırmayın! 🎉"
 
 11. **HARCAMA-KAZANÇ KURALLARI (MATHEMATIC LOGIC)**:
   "reward_value": 0.0,
@@ -1075,7 +1079,7 @@ JSON Formatı:
 {{
   "title": "Kısa ve çarpıcı başlık",
   "description": "2 cümlelik detaylı açıklama metni",
-  "ai_marketing_text": "Kısa ve davetkar pazarlama özeti",
+  "ai_marketing_text": "2-3 cümlelik enerjik, emojili pazarlama özeti",
   "reward_value": 0.0,
   "reward_type": "puan/indirim/taksit/mil",
   "reward_text": "150 TL Puan",
