@@ -23,6 +23,8 @@ project_root = "/Users/hipoglisemi/Desktop/kartavantaj-scraper"
 if project_root not in sys.path:
     sys.path.insert(0, project_root)
 
+from src.services.brand_matcher import get_or_create_brands_list  # type: ignore
+
 try:
     from dotenv import load_dotenv  # type: ignore # pyre-ignore[21]
     load_dotenv(os.path.join(project_root, '.env'))
@@ -525,20 +527,13 @@ class IsbankMaximumGencScraper:
             self.db.add(campaign)  # type: ignore # pyre-ignore[16]
             self.db.commit()  # type: ignore # pyre-ignore[16]
 
-
             # Brands via brand_matcher
-
-
-            from src.services.brand_matcher import get_or_create_brands_list
-
-
             brand_ids = get_or_create_brands_list(
                 db=self.db,
                 names=ai_data.get("brands", []),
                 brand_cache=getattr(self, 'brand_cache', {}),
                 sector_id=sector.id if sector else None
             )
-
 
             for bid in brand_ids:
 

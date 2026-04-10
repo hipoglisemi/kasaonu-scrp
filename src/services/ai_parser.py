@@ -1509,8 +1509,8 @@ VALID SECTORS (BİRİNİ SEÇ — SADECE bu slug listeden):
 
 KURALLAR:
 1. short_title: Başlığı KISA ve ÇARPICI hale getir. Kartlarda 2 satır dolduracak uzunlukta (40-70 karakter).
-   ❌ Çok kısa: "Market Fırsatı" (1 satır)
-   ✅ İdeal: "Market Alışverişinde 300 TL'ye Varan Puan!" (2 satır)
+   ❌ Çok kısa / Yanlış: Sadece marka ismi ("D&R" veya "Market Fırsatı")
+   ✅ İdeal: "D&R'da 150 TL'ye Varan İndirim!" veya "Market Alışverişinde 300 TL Puan!"
    ❌ Çok uzun: "Yapı Kredi Play ile her 300 TL ve üzeri market alışverişlerinde 60 TL puan" (3+ satır)
 2. description: 2 cümlelik, samimi ve teşvik edici pazarlama metni. Kullanıcıyı kampanyaya katılmaya ikna etmeli.
 3. reward_value: Sayısal değer. "75 TL" → 75.0, "%20" → 20.0

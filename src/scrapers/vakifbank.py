@@ -27,10 +27,8 @@ if project_root not in sys.path:
 
 try:
     from src.services.ai_parser import AIParser  # type: ignore # pyre-ignore[21]
-except ImportError:
-    # If running from different context, try adding parent of src
-    sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-    from src.services.ai_parser import AIParser  # type: ignore # pyre-ignore[21]
+
+from src.services.brand_matcher import get_or_create_brands_list  # type: ignore
 
 # Load Env (for DB and API Key)
 try:
@@ -334,12 +332,11 @@ class VakifbankScraper:
             brands = ai_data.get("brands", [])
             # Central parser returns list of strings
             # Brands via brand_matcher
-            from src.services.brand_matcher import get_or_create_brands_list
             brand_ids = get_or_create_brands_list(
-                self.db,
-                ai_data.get("brands", []),
-                getattr(self, 'brand_cache', {}),
-                sector.id if sector else None
+                db=self.db,
+                names=ai_data.get("brands", []),
+                brand_cache=getattr(self, 'brand_cache', {}),
+                sector_id=sector.id if sector else None
             )
             for bid in brand_ids:
                 try:

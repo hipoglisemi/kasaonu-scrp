@@ -131,7 +131,7 @@ class YapikrediWorldScraper:
             short_description=short_description,
             content_html=content_html,
             bank_name=self.BANK_NAME,
-            scraper_sector=scraper_sector
+            scraper_sector=None  # Yapı Kredi API serves all sectors in one list
         )
         
         display_title = ai_result.get('short_title') or title
@@ -194,10 +194,11 @@ class YapikrediWorldScraper:
                 print(f"   ✅ Saved: {campaign.title}")
 
                 # Brands via brand_matcher
-                from src.services.brand_matcher import get_or_create_brands_list
+                from src.services.brand_matcher import get_or_create_brands_list  # type: ignore
+                brand_names = ai_data.get("brands", [])
                 brand_ids = get_or_create_brands_list(
                     db=db,
-                    names=ai_data.get("brands", []),
+                    names=brand_names,
                     brand_cache=getattr(self, 'brand_cache', {}),
                     sector_id=sector.id if sector else None
                 )

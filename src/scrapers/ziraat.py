@@ -25,6 +25,7 @@ from src.models import Bank, Card, Sector, Brand, Campaign, CampaignBrand  # typ
 from src.services.ai_parser import AIParser  # type: ignore # pyre-ignore[21]
 from src.utils.scraper_utils import is_url_blocked  # type: ignore
 from src.utils.logger_utils import log_scraper_execution  # type: ignore # pyre-ignore[21]
+from src.services.brand_matcher import get_or_create_brands_list  # type: ignore
 
 
 class ZiraatScraper:
@@ -316,13 +317,12 @@ class ZiraatScraper:
             
             self.db.commit()  # type: ignore # pyre-ignore[16]
 
-            # BRANDS
-            from src.services.brand_matcher import get_or_create_brands_list
+            # Brands via brand_matcher
             brand_ids = get_or_create_brands_list(
-                self.db,
-                ai_data.get("brands", []),
-                getattr(self, 'brand_cache', {}),
-                sector.id if sector else None
+                db=self.db,
+                names=ai_data.get("brands", []),
+                brand_cache=getattr(self, 'brand_cache', {}),
+                sector_id=sector.id if sector else None
             )
             for bid in brand_ids:
                 try:

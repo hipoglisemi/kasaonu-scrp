@@ -22,6 +22,8 @@ project_root = os.path.dirname(os.path.dirname(current_dir))
 if project_root not in sys.path:
     sys.path.append(project_root)
 
+from src.services.brand_matcher import get_or_create_brands_list  # type: ignore
+
 try:
     from dotenv import load_dotenv  # type: ignore # pyre-ignore[21]
     load_dotenv(os.path.join(project_root, '.env'))
@@ -103,8 +105,6 @@ class AmericanExpressScraper:
         return sector  # type: ignore # pyre-ignore[7]
 
     def _get_or_create_brands(self, brand_names: List[str]) -> List[Brand]:  # type: ignore # pyre-ignore[16,6]
-        from src.services.brand_matcher import get_or_create_brands_list
-        
         # Filter anti-hallucination out before passing
         cleaned_names = []
         for name in brand_names:

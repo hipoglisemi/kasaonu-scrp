@@ -412,11 +412,6 @@ class TurkTelekomScraper:
         # 1. Duplicate Check & Update
         existing = self.db.query(Campaign).filter(Campaign.tracking_url == url).first()
         if existing:
-            # Re-activate if it was inactive
-            if not existing.is_active:
-                print(f"      🔋 Re-activating existing campaign: {existing.title}")
-                existing.is_active = True
-                
             # Update title if it's currently much shorter than combined title
             if predefined_title and len(predefined_title) > len(existing.title) + 2:
                 if any(x in url for x in ["bi-dunya", "prime", "selfy"]):
@@ -424,9 +419,8 @@ class TurkTelekomScraper:
                     existing.title = predefined_title
             
             self.db.commit()
-            # Temporarily disabled skip to verify participation fix
-            # print(f"      ⏭️ Skipping (Already exists & Active): {existing.title}")
-            # return False
+            print(f"      ⏭️ Skipping (Already exists): {existing.title}")
+            return False
 
         if is_url_blocked(self.db, url):
             print(f"      🚫 Skipping (Blocklisted): {url}")
@@ -542,6 +536,18 @@ class TurkTelekomScraper:
             if image_url and (not ai_data.get('image_url') or 'logo' in ai_data.get('image_url', '').lower()):
                 ai_data['image_url'] = image_url
             
+            # Expired Campaign Guard
+            end_date_str = ai_data.get("end_date")
+            if end_date_str:
+                try:
+                    from datetime import timedelta
+                    end_dt = datetime.fromisoformat(end_date_str) if 'T' in end_date_str else datetime.strptime(end_date_str[:10], "%Y-%m-%d")
+                    if end_dt < datetime.now() - timedelta(days=1):
+                        print(f"      🕰️ Skipping (Expired date {end_date_str} < Now): {url}")
+                        return False
+                except Exception as e:
+                    pass
+
             # Save to DB
             self._save_campaign(ai_data, url, image_url)
             return True  # type: ignore # pyre-ignore[7]
