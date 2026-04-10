@@ -21,6 +21,10 @@ from src.services.ai_parser import AIParser  # type: ignore
 from src.services.brand_normalizer import cleanup_brands  # type: ignore
 from src.utils.scraper_utils import is_url_blocked  # type: ignore
 
+# Database Imports
+from sqlalchemy import create_engine, text  # type: ignore
+from sqlalchemy.dialects.postgresql import JSONB  # type: ignore
+
 # Browser
 from selenium import webdriver  # type: ignore # pyre-ignore[21]
 from selenium.webdriver.chrome.service import Service  # type: ignore # pyre-ignore[21]
