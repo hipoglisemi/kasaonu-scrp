@@ -322,6 +322,7 @@ class ParafScraper:
             clean_text=data.get('_clean_text'),  # type: ignore 
             tracking_url=url,  # type: ignore 
             image_url=image_url,  # type: ignore 
+            participation=data.get("participation"), # type: ignore
             is_active=True  # type: ignore
         )
         

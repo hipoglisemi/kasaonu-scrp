@@ -276,6 +276,7 @@ class ParafGencScraper:
                 clean_text=data.get('_clean_text'),
                 tracking_url=url,
                 image_url=image_url,
+                participation=data.get("participation"),
                 is_active=True
             )
             

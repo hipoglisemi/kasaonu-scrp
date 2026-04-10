@@ -364,6 +364,7 @@ class KuveytTurkScraper:
         campaign.is_active = True
         campaign.updated_at = datetime.utcnow()
         campaign.clean_text = raw_data.get("raw_text")
+        campaign.participation = parsed_data.get("participation")
         
         # Meta
         campaign.start_date = self._parse_date_string(parsed_data.get("start_date")) or datetime.now().date()

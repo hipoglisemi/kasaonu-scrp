@@ -166,6 +166,8 @@ class YapikrediPlayScraper:
                     image_url=image_url,  # type: ignore
                     tracking_url=tracking_url,  # type: ignore
                     is_active=True,  # type: ignore
+                    participation=ai_data.get('participation'),  # type: ignore
+                    eligible_cards=", ".join(ai_data.get('cards', [])) if ai_data.get('cards') else None,  # type: ignore
                     created_at=datetime.utcnow(),  # type: ignore
                     updated_at=datetime.utcnow()  # type: ignore
                 )
