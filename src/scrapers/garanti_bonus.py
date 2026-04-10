@@ -343,6 +343,7 @@ class GarantiBonusScraper:
             participation = ai_data.get('participation')
             if participation and participation != "Otomatik katılım":
             
+                pass  # participation field written separately to DB
             # Prepare eligible cards
             eligible_cards_str = None
             cards_list = ai_data.get('cards', [])

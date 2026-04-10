@@ -338,6 +338,7 @@ class TEBScraper:
         participation = ai_data.get("participation") or ""
         if participation:
 
+            pass  # participation field written separately to DB
         # eligible_cards: ai_parser listesi döndürür ama guard ekle
         cards_raw = ai_data.get("cards") or []
         if isinstance(cards_raw, str):

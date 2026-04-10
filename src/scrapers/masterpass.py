@@ -336,6 +336,7 @@ class MasterpassScraper:
             part = ai_data.get("participation")
             if part:
                 
+                pass  # participation field written separately to DB
             conds = self._filter_conditions(conds)
             
             # Prevent empty text formatting array issues by using newlines instead of string literals

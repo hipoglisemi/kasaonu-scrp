@@ -379,6 +379,7 @@ class TurkiyeFinansScraper:
             participation = ai_data.get("participation")
             if participation:
 
+                pass  # participation field written separately to DB
             eligible_cards = ai_data.get("cards")
             eligible_str = ", ".join(eligible_cards) if eligible_cards else None
             if eligible_str and len(eligible_str) > 255:

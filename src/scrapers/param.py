@@ -400,6 +400,7 @@ class ParamScraper:
             part = ai_data.get("participation")
             if part:
                 
+                pass  # participation field written separately to DB
             conds = self._filter_conditions(conds)
             final_conditions = "\n".join(conds) if conds else "\n".join(data["conditions"])
 

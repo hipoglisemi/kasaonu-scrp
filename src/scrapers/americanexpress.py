@@ -340,10 +340,10 @@ class AmericanExpressScraper:
         conditions_lines = []
         participation = ai_data.get("participation")
         if participation and participation != "Detayları İnceleyin":
-            
+            pass  # participation field written separately to DB
         cards = ai_data.get("cards", [])
         if cards:
-            
+            pass  # eligible_cards field written separately to DB
         # Add actual conditions
         if isinstance(parsed_conditions, list):
             conditions_lines.extend(parsed_conditions)

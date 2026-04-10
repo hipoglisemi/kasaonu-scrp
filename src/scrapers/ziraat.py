@@ -261,6 +261,7 @@ class ZiraatScraper:
                 conds = [c.strip() for c in conds.split("\n") if c.strip()]
             part_method = ai_data.get("participation")
             if part_method and "Detayları İnceleyin" not in part_method:
+                pass  # participation field written separately to DB
             final_conditions = "\n".join(conds)
 
             cards_raw = ai_data.get("cards", [])

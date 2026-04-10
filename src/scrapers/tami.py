@@ -232,6 +232,7 @@ class TamiScraper:
             participation = ai_data.get("participation")
             if participation and participation != "Detayları İnceleyin":
             
+                pass  # participation field written separately to DB
             conditions = ai_data.get("conditions")
             if isinstance(conditions, list):
                 conditions_lines.extend([str(c) for c in conditions if c])

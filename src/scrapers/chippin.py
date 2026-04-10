@@ -30,6 +30,9 @@ urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 DATABASE_URL = os.getenv("DATABASE_URL")
 if not DATABASE_URL:
     raise ValueError("DATABASE_URL is not set in .env")
+# SQLAlchemy 2.x requires 'postgresql://' not 'postgres://'
+if DATABASE_URL.startswith("postgres://"):
+    DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
 
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 
@@ -303,6 +306,7 @@ class ChippinScraper:
                 # Combine Conditions
                 conditions_lines = []
                 participation = ai_data.get("participation")
+                # participation is written to DB via the participation field separately
                     
                 eligible_cards = ai_data.get("cards")
                 if eligible_cards:

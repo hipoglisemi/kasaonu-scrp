@@ -278,7 +278,7 @@ class VakifbankScraper:
             
             # Prepend participation if it exists and isn't generic
             if part_method and "Detayları İnceleyin" not in part_method:
-            
+                pass  # participation field written separately to DB
             final_conditions = "\n".join(conds)
 
             cards_raw = ai_data.get("cards", [])

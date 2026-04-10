@@ -280,6 +280,7 @@ class EnparaScraper:
             participation = ai_data.get('participation')
             if participation and participation != "Otomatik katılım":
 
+                pass  # participation field written separately to DB
             campaign = Campaign(
                 slug=slug,
                 title=title,

@@ -212,6 +212,7 @@ class AkbankBaseScraper:
             participation = ai_data.get('participation')
             if participation and participation != "Detayları İnceleyin":
             
+                pass  # participation field written separately to DB
             # --- USER REQUEST: DO NOT REPEAT ELIGIBLE CARDS IN CONDITIONS ---
             eligible_cards_list = ai_data.get('cards', [])
             # (Previously added GEÇERLİ KARTLAR here, now removed)

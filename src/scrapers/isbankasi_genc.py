@@ -502,6 +502,7 @@ class IsbankMaximumGencScraper:
             part = ai_data.get("participation")
             if part and "Detayları İnceleyin" not in part:
 
+                pass  # participation field written separately to DB
             cards_raw = ai_data.get("cards", [])
             if isinstance(cards_raw, str):
                 cards_raw = [c.strip() for c in cards_raw.split(",") if c.strip()]
