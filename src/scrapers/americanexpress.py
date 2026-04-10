@@ -372,7 +372,8 @@ class AmericanExpressScraper:
             clean_text=ai_data.get('_clean_text'),  # type: ignore
             reward_type=ai_data.get('reward_type'),  # type: ignore
             reward_value=ai_data.get('reward_value'),  # type: ignore
-            eligible_cards=", ".join(cards) or "American Express",  # type: ignore
+            eligible_cards=", ".join(cards) or "American Express",
+            participation=participation,  # type: ignore
             is_active=True,  # type: ignore
             conditions=final_conditions,  # type: ignore
             tracking_url=url,  # type: ignore

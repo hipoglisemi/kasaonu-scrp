@@ -347,6 +347,7 @@ class ChippinScraper:
                             "end_date": ai_data.get("end_date") or c.get("campaignEndDate"),
                             "sector_id": self._resolve_sector_by_name(str(ai_data.get("sector") or "Diğer")) or self._resolve_sector_by_name("Diğer"),
                             "card_id": card_id,
+                            "participation": ai_data.get("participation"),
                             "conditions": "\n".join(conditions_lines) if conditions_lines else None,
                             "eligible_cards": eligible_str,
                             "reward_text": ai_data.get("reward_text"),
@@ -358,13 +359,13 @@ class ChippinScraper:
                         result = conn.execute(text("""
                             INSERT INTO campaigns (
                                 title, description, slug, image_url, tracking_url, is_active,
-                                sector_id, card_id, start_date, end_date, conditions,
+                                sector_id, card_id, start_date, end_date, conditions, participation,
                                 eligible_cards, reward_text, reward_value, reward_type,
                                 created_at, updated_at
                             )
                             VALUES (
                                 :title, :description, :slug, :image_url, :tracking_url, true,
-                                :sector_id, :card_id, :start_date, :end_date, :conditions,
+                                :sector_id, :card_id, :start_date, :end_date, :conditions, :participation,
                                 :eligible_cards, :reward_text, :reward_value, :reward_type,
                                 NOW(), NOW()
                             )

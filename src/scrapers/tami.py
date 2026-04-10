@@ -251,6 +251,7 @@ class TamiScraper:
                 reward_type=ai_data.get("reward_type"),
                 conditions=conditions_text,
                 eligible_cards=eligible_cards,
+                participation=participation,
                 image_url=image_url,
                 start_date=start_date or datetime.utcnow(),
                 end_date=end_date,

@@ -303,6 +303,7 @@ class ZiraatScraper:
                 reward_value=ai_data.get("reward_value"),
                 conditions=final_conditions,
                 eligible_cards=", ".join(cards_raw),
+                participation=part_method,
                 image_url=final_image,
                 start_date=vf,
                 end_date=vu,

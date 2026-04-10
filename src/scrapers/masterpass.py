@@ -381,7 +381,8 @@ class MasterpassScraper:
                     reward_value=ai_data.get("reward_value"),  # type: ignore
                     reward_type=ai_data.get("reward_type"),  # type: ignore
                     conditions=final_conditions,  # type: ignore
-                    eligible_cards=eligible_cards_str,  # type: ignore
+                    eligible_cards=eligible_cards_str,
+                    participation=part,  # type: ignore
                     clean_text=ai_data.get("_clean_text"),  # type: ignore
                     image_url=data.get("image_url"),  # type: ignore
                     start_date=start_date,  # type: ignore

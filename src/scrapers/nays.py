@@ -308,8 +308,9 @@ class NaysScraper:
                 conditions_list = [c.strip() for c in conditions_list.split("\n") if c.strip()]
             
             if participation and participation != "Detayları İnceleyin":
-            
                 pass  # participation field written separately to DB
+            
+            campaign.participation = participation
             campaign.conditions = "\n".join(conditions_list)
             
             cards = ai_data.get("cards")

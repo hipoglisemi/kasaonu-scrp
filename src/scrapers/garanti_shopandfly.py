@@ -323,7 +323,8 @@ class GarantiShopAndFlyScraper:
                 reward_type=ai_data.get('reward_type'),  # type: ignore
                 description=details_text,  # type: ignore
                 conditions=conditions_text,  # type: ignore
-                eligible_cards=eligible_cards_str,  # type: ignore
+                eligible_cards=eligible_cards_str,
+                participation=participation,  # type: ignore
                 image_url=image_url,  # type: ignore
                 start_date=start_date,  # type: ignore
                 end_date=end_date,  # type: ignore

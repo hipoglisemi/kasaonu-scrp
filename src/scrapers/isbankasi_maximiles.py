@@ -669,7 +669,8 @@ class IsbankMaximilesScraper:
                     reward_value=ai_data.get("reward_value"),  # type: ignore
                     reward_type=ai_data.get("reward_type"),  # type: ignore
                     conditions=final_conditions,  # type: ignore
-                    eligible_cards=", ".join(ai_data.get("cards", [])) or None,  # type: ignore
+                    eligible_cards=", ".join(ai_data.get("cards", [])) or None,
+                    participation=participation,  # type: ignore
                     clean_text=ai_data.get("_clean_text"),  # type: ignore
                     image_url=data["image_url"],  # type: ignore
                     start_date=start_date,  # type: ignore

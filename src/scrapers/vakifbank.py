@@ -316,6 +316,7 @@ class VakifbankScraper:
                 reward_value=ai_data.get("reward_value"),
                 conditions=final_conditions,
                 eligible_cards=", ".join(cards_raw),
+                participation=part_method,
                 image_url=image_url,
                 start_date=vf,
                 end_date=vu,
