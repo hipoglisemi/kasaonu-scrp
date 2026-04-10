@@ -132,8 +132,21 @@ class QNBScraper:
                     print(f"   🚫 Skipped (Safety: Blocklisted): {ai_data.get('title') or url}")
                     return "skipped"  # type: ignore # pyre-ignore[7]
 
-                sector_name = ai_data.get('sector', 'Diğer')
-                sector = db.query(Sector).filter((Sector.slug == sector_name) | (Sector.name.ilike(sector_name))).first()  # type: ignore # pyre-ignore[16]
+                final_sector_slug = ai_data.get('sector')
+                
+                if ai_data.get('brands'):
+                    from src.models import PointBlankRule
+                    pbe_rules = db.query(PointBlankRule).filter(
+                        PointBlankRule.brand_name.in_(ai_data.get('brands')),
+                        PointBlankRule.is_verified == True
+                    ).all()
+                    for rule in pbe_rules:
+                        if rule.sector_slug and rule.sector_slug != 'BLACKLIST':
+                            final_sector_slug = rule.sector_slug
+                            print(f"      [PBE Override] Forced sector to '{final_sector_slug}' due to brand '{rule.brand_name}'")
+                            break
+
+                sector = db.query(Sector).filter((Sector.slug == final_sector_slug) | (Sector.name.ilike(final_sector_slug))).first() if final_sector_slug else None  # type: ignore # pyre-ignore[16]
                 if not sector:
                     sector = db.query(Sector).filter(Sector.slug == 'diger').first()  # type: ignore # pyre-ignore[16]
                 sector_id = sector.id if sector else None  # type: ignore # pyre-ignore[16]
@@ -163,7 +176,9 @@ class QNBScraper:
                     tracking_url=url,
                     is_active=True,
                     ai_marketing_text=ai_data.get("marketing_text"),
-                    clean_text=ai_data.get("_clean_text")
+                    clean_text=ai_data.get("_clean_text"),
+                    participation=ai_data.get("participation"),
+                    eligible_cards=", ".join(ai_data.get("cards", [])) if isinstance(ai_data.get("cards"), list) and ai_data.get("cards") else "QNBCard"
                 )
                 
                 db.add(campaign)  # type: ignore # pyre-ignore[16]
@@ -196,7 +211,7 @@ class QNBScraper:
             print(f"      ❌ DB Save Error: {e}")
             return "error"  # type: ignore # pyre-ignore[7]
 
-    def run(self, limit: int = 20):
+    def run(self, limit: int = 1000):
         print(f"🚀 Starting QNB Scraper...")
         items = self._fetch_campaigns(limit=limit)
         
@@ -234,6 +249,6 @@ class QNBScraper:
         clear_cache('campaigns:*')
 
 if __name__ == "__main__":
-    limit = 5 if os.environ.get('TEST_MODE') == '1' else 20
+    limit = 5 if os.environ.get('TEST_MODE') == '1' else 1000
     scraper = QNBScraper()
     scraper.run(limit=limit)

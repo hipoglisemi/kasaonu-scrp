@@ -37,7 +37,7 @@ class TurkcellScraper:
     BASE_URL = "https://www.turkcell.com.tr"
     LISTING_URL = "https://www.turkcell.com.tr/kampanyalar/marka-kampanyalari"
     
-    def __init__(self, max_campaigns: int = 20, headless: bool = True):
+    def __init__(self, max_campaigns: int = 1000, headless: bool = True):
         self.max_campaigns = max_campaigns
         self.headless = headless
         
@@ -301,7 +301,8 @@ class TurkcellScraper:
                     tracking_url=url,
                     is_active=True,
                     ai_marketing_text=ai_data.get("marketing_text"),
-                    clean_text=ai_data.get("_clean_text")
+                    clean_text=ai_data.get("_clean_text"),
+                    eligible_cards=", ".join(ai_data.get("cards", [])) if isinstance(ai_data.get("cards"), list) and ai_data.get("cards") else "Turkcell"
                 )
                 
                 db.add(campaign)  # type: ignore # pyre-ignore[16]
@@ -333,6 +334,6 @@ class TurkcellScraper:
             return "error"  # type: ignore # pyre-ignore[7]
 
 if __name__ == "__main__":
-    max_c = 5 if os.environ.get('TEST_MODE') == '1' else 20
+    max_c = 5 if os.environ.get('TEST_MODE') == '1' else 1000
     scraper = TurkcellScraper(max_campaigns=max_c, headless=True)
     scraper.run()

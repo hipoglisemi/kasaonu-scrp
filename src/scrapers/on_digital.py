@@ -343,6 +343,7 @@ class ONDigitalScraper:
                 is_active=True,
                 created_at=datetime.utcnow(),
                 updated_at=datetime.utcnow(),
+                eligible_cards=", ".join(data.get("cards", [])) if isinstance(data.get("cards"), list) and data.get("cards") else self.CARD_NAME
             )
 
             db.add(campaign)

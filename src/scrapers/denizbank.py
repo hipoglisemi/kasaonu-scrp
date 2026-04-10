@@ -681,7 +681,7 @@ class DenizbankScraper:
             print(f"      ❌ Detail error: {e}")
             return False
 
-    def run(self, limit=20):
+    def run(self, limit=1000):
         print("🚀 Starting Denizbank Hybrid Scraper...")
         if ZENROWS_API_KEY:
             print("   💎 Mode: Proxy API (ZenRows)")
@@ -782,7 +782,7 @@ if __name__ == "__main__":
     import argparse  # type: ignore # pyre-ignore[21]
     
     parser = argparse.ArgumentParser(description='Denizbank Scraper')
-    parser.add_argument('--limit', type=int, help='Limit number of campaigns', default=20)
+    parser.add_argument('--limit', type=int, help='Limit number of campaigns', default=1000)
     parser.add_argument('--url', type=str, help='Scrape a specific campaign URL')
     
     args = parser.parse_args()

@@ -4,7 +4,7 @@ from typing import Optional, Dict, List, Tuple
 from collections import Counter
 from sqlalchemy.orm import Session
 from sqlalchemy import func
-from src.models import PointBlankRule, Brand
+from src.models import PointBlankRule, Brand # type: ignore
 
 logger = logging.getLogger(__name__)
 

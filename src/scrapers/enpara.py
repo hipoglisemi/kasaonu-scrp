@@ -299,7 +299,8 @@ class EnparaScraper:
                 tracking_url=tracking_url,
                 is_active=True,
                 created_at=datetime.utcnow(),
-                updated_at=datetime.utcnow()
+                updated_at=datetime.utcnow(),
+                eligible_cards=", ".join(ai_data.get("cards", [])) if isinstance(ai_data.get("cards"), list) and ai_data.get("cards") else self.CARD_NAME
             )
             
             self.db.add(campaign)  # type: ignore # pyre-ignore[16]

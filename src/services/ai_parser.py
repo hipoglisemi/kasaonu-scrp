@@ -231,31 +231,17 @@ BANK_RULES = {
     - Include: Max earning limit, start/end dates, valid sectors.
 """,
     'qnb': """
-🚨 QNB FİNANSBANK SPECIFIC RULES:
+🚨 QNB SPECIFIC RULES:
 - TERMINOLOGY: "ParaPuan". 1 ParaPuan = 1 TL.
 - ELIGIBLE CARDS:
-    - 🚨 STRICT: Extract ONLY cards explicitly mentioned in the text.
-    - Common cards: "QNB Kredi Kartı", "QNB Nakit Banka Kartı", "TROY Kart", "QNB First Kredi Kartı".
-    - "Bireysel kredi kartları" = ["QNB Kredi Kartı"].
-    - 🚨 EXCLUSION: "Ticari kartlar" are often EXCLUDED unless explicitly mentioned.
+    - 🚨 Sitedeki kampanya metninde KAMPANYANIN GEÇERLİ OLDUĞU veya belirtilen işlemi YAPAN kart isimlerini (Örn: "QNB Kredi Kartı", "QNB Nakit banka kartı") BİREBİR ve EKSİKSİZ şekilde al. Metinde "QNB Kredi Kartı'nızla" diyorsa geçerli kart "QNB Kredi Kartı" dır.
+    - ❌ KESİN YASAK: Eğer metinde bir kart için "dahil değildir", "hariçtir", "kazanamaz" deniyorsa (Örn: Ticari kartlar, QNB Fix, Miles&Smiles vb.) o kartı ASLA 'cards' listesine ekleme. Kendi kendine jenerik kart adı uydurma.
 - PARTICIPATION:
-    - 🚨 PRIORITY ORDER:
-      1. SMS: Look for a keyword + "2273" (e.g. "RAMAZAN yazıp 2273'e SMS gönderin").
-      2. App: "QNB Mobil" or "QNB Finansbank Mobil". Look for "HEMEN KATIL" button.
-      3. Checkout/Sepet: If text says "sepet sayfasında ... seçilmeli" or "ödeme adımında ... seçin" or "ilk 6 hane" → use "Sepet sayfasında QNB İndirimleri seçin ve kart numarasının ilk 6 hanesini girin."
-      4. Automatic: ONLY if none of the above apply AND text says "katılım gerektirmez" or "otomatik".
-    - ⛔ NEGATIVE: Do NOT write "Otomatik Katılım" if there is any checkout/sepet/6-hane instruction in the text.
-    - 🚨 FORMAT: Be specific. Example: "RAMAZAN yazıp 2273'e SMS gönderin veya QNB Mobil'den HEMEN KATIL butonuna tıklayın."
+    - 🚨 Sitedeki metinde katılım için hangi yöntemler isteniyorsa HEPSİNİ eksiksiz yaz.
+    - Eğer hem SMS (Örn: "ECROU yazıp 2273'e") hem Uygulama (Örn: "QNB Mobil'den HEMEN KATIL") varsa İKİSİNİ BİRDEN yaz. Öncelik sırası yoktur, metinde ne görüyorsan onu virgülle ayırarak/bağlaçla birleştirerek yaz.
 - CONDITIONS:
-    - 🚨 CRITICAL: DO NOT repeat information already in dates, eligible cards, or participation sections.
-    - 🚨 FOCUS ON UNIQUE DETAILS ONLY:
-      * Minimum spend thresholds (e.g. "Her 2.500 TL harcamaya 200 TL ParaPuan")
-      * Maximum earning limits (e.g. "Maksimum 3.000 TL ParaPuan")
-      * Excluded transaction types (e.g. "Nakit çekim, havale hariç")
-      * Excluded card types (e.g. "Ticari kartlar hariç")
-      * ParaPuan usage restrictions (e.g. "ParaPuan 30 gün içinde yüklenir")
-    - 🚨 FORMAT: 3-5 concise bullet points. NO long paragraphs.
-    - 🚨 AVOID: Repeating dates, card names, or SMS/app instructions already extracted.
+    - Kampanyaya dair tüm önemli kuralları (ödülün verilme ve geri alınma tarihleri, taksit sayıları, alt limitler vb.) metinden birebir çıkarıp anlaşılır maddelere böl.
+    - Uzunluk veya madde sayısı sınırı YOKTUR. Metindeki önemli hiçbir şart atlanmamalıdır.
 """
     ,
     'teb': """
@@ -1266,8 +1252,14 @@ ANALİZ EDİLECEK METİN:
                 continue
             
             # Strategy 2: Core word matching in normalized text
+            # Strategy 2: Core word matching in normalized text
             stop_words = {"ve", "ile", "için", "&", "and", "the", "logolu"}
-            core_words = [w for w in card_norm.split() if len(w) > 2 and w not in stop_words]
+            core_words = []
+            for w in card_norm.split():
+                if len(w) > 2 and w not in stop_words:
+                    if w == 'karti':
+                        w = 'kart' # Lenient match for 'Kart ınızla' OCR errors
+                    core_words.append(w)
             
             if not core_words:
                 rejected.append(card_orig)
