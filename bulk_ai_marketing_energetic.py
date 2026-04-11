@@ -110,7 +110,7 @@ def main():
         rows = conn.execute(text("""
             SELECT id, title, description, reward_text 
             FROM campaigns 
-            WHERE is_active = true AND is_approved = true
+            WHERE is_active = true AND is_approved = true AND id < 14766
             ORDER BY id DESC
         """)).fetchall()
         
@@ -132,7 +132,7 @@ def main():
             
             if new_text and len(new_text) > 80:
                 conn.execute(
-                    text("UPDATE campaigns SET ai_marketing_text = :txt WHERE id = :id"),
+                    text("UPDATE campaigns SET ai_marketing_text = :txt, updated_at = NOW() WHERE id = :id"),
                     {"txt": new_text, "id": camp_id}
                 )
                 conn.commit()

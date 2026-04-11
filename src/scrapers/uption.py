@@ -11,7 +11,7 @@ from datetime import datetime
 from urllib.parse import urljoin
 
 # Ensure src is in path
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..')))
 
 from sqlalchemy.orm import Session # type: ignore
 from sqlalchemy.exc import IntegrityError # type: ignore

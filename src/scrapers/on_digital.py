@@ -7,7 +7,7 @@ from datetime import datetime
 from urllib.parse import urljoin
 
 # Ensure src is in path so CLI execution works
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..')))
 
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError

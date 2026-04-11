@@ -1,4 +1,8 @@
 {
+  "include": [
+    "src",
+    "*.py"
+  ],
   "executionEnvironments": [
     {
       "root": ".",

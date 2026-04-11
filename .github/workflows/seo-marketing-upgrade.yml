@@ -22,6 +22,14 @@ jobs:
           if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
           pip install google-genai sqlalchemy psycopg2-binary python-dotenv
 
+      - name: Cache Checkpoint File
+        uses: actions/cache@v4
+        with:
+          path: marketing_update_checkpoint.json
+          key: marketing-update-${{ github.run_id }}
+          restore-keys: |
+            marketing-update-
+
       - name: Run Marketing Upgrade
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
