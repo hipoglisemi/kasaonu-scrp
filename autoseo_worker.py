@@ -13,25 +13,28 @@ def get_connection():
     return psycopg2.connect(DB_URL)
 
 def generate_seo_content(name, type="bank"):
-    """Yapay zeka ile banka veya kart için 4 bölümlü SEO içeriği üretir."""
+    """Yapay zeka ile banka, kart veya kategori için 4 bölümlü SEO içeriği üretir."""
     print(f"✍️  {name} ({type}) için SEO içeriği üretiliyor...")
     
     prompt = f"""
     Sen KartAvantaj'ın kıdemli SEO ve finans editörüsün. 
     Görevin: "{name}" adlı {type} için Google'da üst sıralara çıkacak, 
-    kullanıcılara değer katan, profesyonel bir tanıtım metni yazmak.
+    kullanıcılara değer katan, profesyonel bir rehber yazmak.
     
     KURALLAR:
     1. Dil: Kusursuz Türkçe. Samimi ama güven verici bir ton.
     2. Yapı: Aşağıdaki 4 başlık altında topla ve her başlık başına çift yıldız (**) koy.
-       Bölümler: 
-       - **Kurum/Banka Hakkında**: Tarihçe, vizyon ve güvenilirlik.
-       - **Ürünler/Kredi Kartları**: Sunulan temel finansal ürünler.
-       - **Kampanya Kategorileri**: Sıkça düzenlenen indirim ve puan türleri.
-       - **Kullanıcı Avantajları**: Neden tercih edilmeli, ne avantaj sağlar?
-    3. Uzunluk: Her bölüm en az 75-100 kelime olmalı (Toplam 400+ kelime).
-    4. Format: Paragraflar arasında çift satır boşluk bırak. **Başlık**: İçerik şeklinde başla.
-    5. Yasaklar: Dış link verme, uydurma kampanya verisi kullanma (genel konuş).
+    3. Akıllı Linkleme: 
+       - Metin içine ASLA "ID" içeren veya geçici kampanya linki (Örn: /kampanya/axess-123) koyma.
+       - En güncel kampanyaları göstermek istediğin yere mutlaka [[GUNCEL_KAMPANYALAR]] etiketini koy.
+       - Sabit sayfalara (Örn: /banka/axess veya /kategori/market) link verebilirsin.
+    4. Bölümler: 
+       - **Hakkında**: {name} dünyasına giriş ve temel mantık.
+       - **Popüler Uygulamalar/Ürünler**: Öne çıkan özellikler.
+       - **Kampanya Türleri**: Genellikle hangi alanlarda indirim/puan verilir?
+       - **Kullanıcı İpuçları**: Tasarrufu maksimize etmek için öneriler.
+    5. Uzunluk: Her bölüm en az 75-100 kelime olmalı (Toplam 400+ kelime).
+    6. Format: Paragraflar arasında çift satır boşluk bırak. Başlıkları kalın yap.
     
     SADECE metni döndür. Başka hiçbir şey yazma.
     """
@@ -62,9 +65,20 @@ def process_missing_seos():
             if summary:
                 cur.execute("UPDATE banks SET seo_summary = %s WHERE id = %s", (summary, b_id))
                 conn.commit()
-                print(f"✅  {b_name} güncellendi.")
+                print(f"✅  {b_name} (Banka) güncellendi.")
 
-        # 2. Card Details
+        # 2. Sectors (Categories)
+        cur.execute("SELECT id, name FROM sectors WHERE ai_summary IS NULL OR ai_summary = ''")
+        sectors = cur.fetchall()
+        print(f"🔍  SEO içeriği eksik {len(sectors)} sektör bulundu.")
+        for s_id, s_name in sectors:
+            content = generate_seo_content(s_name, "kampanya kategorisi")
+            if content:
+                cur.execute("UPDATE sectors SET ai_summary = %s WHERE id = %s", (content, s_id))
+                conn.commit()
+                print(f"✅  {s_name} (Sektör) güncellendi.")
+
+        # 3. Card Details
         query = """
             SELECT cd.id, c.name 
             FROM card_details cd 
@@ -79,7 +93,7 @@ def process_missing_seos():
             if summary:
                 cur.execute("UPDATE card_details SET seo_summary = %s WHERE id = %s", (summary, d_id))
                 conn.commit()
-                print(f"✅  {c_name} güncellendi.")
+                print(f"✅  {c_name} (Kart) güncellendi.")
 
     except Exception as e:
         print(f"❌  Hata: {e}")

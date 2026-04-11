@@ -14,3 +14,11 @@ node_modules/
 **/node_modules/
 vertex-key.json
 *.json_backup
+# Trash & Logs
+*_out.txt
+processed_ids.txt
+failed_repair_ids.txt
+temp_backup/
+*.png
+!/logos/*.png # keep logos
+!/docs/*.png # keep docs

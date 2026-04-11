@@ -6,7 +6,9 @@
   "executionEnvironments": [
     {
       "root": ".",
-      "extraPaths": ["."]
+      "extraPaths": [
+        "./"
+      ]
     }
   ],
   "venvPath": ".",
