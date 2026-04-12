@@ -1,0 +1,44 @@
+name: SEO Content Refresher (Weekly)
+
+on:
+  schedule:
+    # Cuma gününü Cumartesiye bağlayan gece saat 03:00'te çalışır (UTC'ye göre 00:00)
+    - cron: '0 0 * * 6'
+  workflow_dispatch: # Manuel tetikleme (Admin paneli / GitHub üzerinden)
+
+jobs:
+  refresh-seo-content:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+        cache: 'pip'
+        
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        
+    - name: Run Background Image Refresher
+      env:
+        DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        UNSPLASH_ACCESS_KEY: ${{ secrets.UNSPLASH_ACCESS_KEY }}
+      run: |
+        python refresh_blog_images.py
+        
+    - name: Run AI Campaign Content Refresher
+      env:
+        DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+        GEMINI_API_KEY_1: ${{ secrets.GEMINI_API_KEY_1 }}
+        GEMINI_API_KEY_2: ${{ secrets.GEMINI_API_KEY_2 }}
+        GEMINI_API_KEY_3: ${{ secrets.GEMINI_API_KEY_3 }}
+        UNSPLASH_ACCESS_KEY: ${{ secrets.UNSPLASH_ACCESS_KEY }}
+      run: |
+        python refresh_blog_campaigns.py
