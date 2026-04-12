@@ -45,15 +45,45 @@ SEARCH_STOP_WORDS = {
     "sen", "biz", "siz", "onlar", "nasıl", "neden", "hangi", "ne zaman"
 }
 
-# Sabit Unsplash kapak görselleri (finance temalı)
-COVER_IMAGES = [
-    "https://images.unsplash.com/photo-1554224155-6726b3ff858f?w=1000&q=80",
-    "https://images.unsplash.com/photo-1563013544-824ae1b704d3?w=1000&q=80",
-    "https://images.unsplash.com/photo-1553729459-efe14ef6055d?w=1000&q=80",
-    "https://images.unsplash.com/photo-1579621970563-ebec7560ff3e?w=1000&q=80",
-    "https://images.unsplash.com/photo-1526304640581-d334cdbbf45e?w=1000&q=80",
-    "https://images.unsplash.com/photo-1559526324-4b87b5e36e44?w=1000&q=80",
-]
+import random
+import time
+import requests
+
+UNSPLASH_ACCESS_KEY = os.getenv("UNSPLASH_ACCESS_KEY")
+
+def get_unsplash_url(keyword: str, seo_title: str, existing_urls: list) -> str:
+    """
+    Doğrudan Unsplash API'den konuya uygun benzersiz bir görsel üretir.
+    existing_urls listesine bakarak daha önce kullanılmamış bir görsel garanti eder.
+    """
+    keywords = "finance, money, business, banking, credit card"
+    tag_cloud = slugify(f"{keyword} {seo_title}").replace("-", " ")
+    
+    if UNSPLASH_ACCESS_KEY:
+        for _ in range(5):
+            try:
+                res = requests.get(
+                    "https://api.unsplash.com/photos/random",
+                    params={
+                        "query": f"{tag_cloud} {keywords}",
+                        "orientation": "landscape",
+                        "client_id": UNSPLASH_ACCESS_KEY
+                    },
+                    timeout=5
+                )
+                if res.status_code == 200:
+                    url = res.json()["urls"]["regular"]
+                    base_url = url.split("?")[0]
+                    if not any(base_url in ext for ext in existing_urls):
+                        return url
+                elif res.status_code == 403:
+                    break
+            except Exception as e:
+                pass
+            
+    # Fallback
+    sig = int(time.time() * 1000) + random.randint(1, 100000)
+    return f"https://loremflickr.com/1200/800/finance,business,banking/all?lock={sig}"
 
 
 # ─────────────────────────────────────────────
@@ -284,7 +314,7 @@ def main():
         return
 
     # 2. Mevcut blogları al
-    existing_slugs, existing_titles = get_existing_blog_slugs()
+    existing_slugs, existing_titles, existing_urls = get_existing_blog_slugs()
     print(f"[VT] Mevcut {len(existing_slugs)} blog/pillar sayfası var.")
 
     # 3. En iyi eksik konuyu seç
@@ -303,7 +333,7 @@ def main():
     slug = f"{base_slug}-rehber-{int(time.time())}"
 
     # 6. Kapak görseli seç
-    image_url = random.choice(COVER_IMAGES)
+    image_url = get_unsplash_url(keyword, seo_title, existing_urls)
 
     print(f"\n[ÖZEt]")
     print(f"  Başlık : {seo_title}")

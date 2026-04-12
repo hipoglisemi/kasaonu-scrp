@@ -16,44 +16,77 @@ if not DB_URL:
 BLOG_MODEL = os.getenv("BLOG_MODEL", "gemini-2.5-flash")
 
 # ── Unsplash görselleri ──────────────────────────────────────────────────────
-COVER_IMAGES = [
-    "https://images.unsplash.com/photo-1554224155-6726b3ff858f?w=1000&q=80",
-    "https://images.unsplash.com/photo-1563013544-824ae1b704d3?w=1000&q=80",
-    "https://images.unsplash.com/photo-1553729459-efe14ef6055d?w=1000&q=80",
-    "https://images.unsplash.com/photo-1579621970563-ebec7560ff3e?w=1000&q=80",
-    "https://images.unsplash.com/photo-1526304640581-d334cdbbf45e?w=1000&q=80",
-    "https://images.unsplash.com/photo-1559526324-4b87b5e36e44?w=1000&q=80",
-    "https://images.unsplash.com/photo-1523240715632-99045506a591?w=1000&q=80",
-    "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=1000&q=80",
-]
+import random
+import time
+import requests
 
+UNSPLASH_ACCESS_KEY = os.getenv("UNSPLASH_ACCESS_KEY")
+
+def get_unsplash_url(title: str, existing_urls: list) -> str:
+    """
+    Doğrudan Unsplash API'den konuya uygun benzersiz bir görsel üretir.
+    existing_urls listesine bakarak daha önce kullanılmamış bir görsel garanti eder.
+    """
+    keywords = "finance, money, business, credit card"
+    clean_title = slugify(title).replace("-", " ")
+    
+    if UNSPLASH_ACCESS_KEY:
+        for _ in range(5): # Maks 5 deneme
+            try:
+                res = requests.get(
+                    "https://api.unsplash.com/photos/random",
+                    params={
+                        "query": f"{clean_title} {keywords}",
+                        "orientation": "landscape",
+                        "client_id": UNSPLASH_ACCESS_KEY
+                    },
+                    timeout=5
+                )
+                if res.status_code == 200:
+                    url = res.json()["urls"]["regular"]
+                    base_url = url.split("?")[0]
+                    # Check uniqueness
+                    if not any(base_url in ext for ext in existing_urls):
+                        return url
+                elif res.status_code == 403:
+                    print("⚠️ Unsplash Rate Limit (Saatlik 50 limit).")
+                    break
+            except Exception as e:
+                print(f"⚠️  Unsplash Bağlantı Hatası: {e}")
+                break
+            
+    # Fallback
+    sig = int(time.time() * 1000) + random.randint(1, 100000)
+    return f"https://loremflickr.com/1200/800/finance,business/all?lock={sig}"
 
 # ── Veritabanı yardımcıları ──────────────────────────────────────────────────
 
 def get_connection():
     return psycopg2.connect(DB_URL)
 
-
-def get_existing_data() -> Tuple[Set[str], Set[str]]:
-    """Daha önce yazılmış blog başlıklarını ve sluglarını çek (duplicate önleme)."""
+def get_existing_data() -> Tuple[Set[str], Set[str], list]:
+    """Daha önce yazılmış blog başlıklarını, sluglarını ve url'lerini çek."""
     titles: Set[str] = set()
     slugs: Set[str] = set()
+    urls: list = []
     conn: Optional[Any] = None
     try:
         conn = get_connection()
         cur = conn.cursor()
-        cur.execute('SELECT LOWER(title), slug FROM blogs')
+        cur.execute('SELECT LOWER(title), slug, image_url FROM blogs')
         rows = cur.fetchall()
         if rows:
-            for title, slug in rows:
+            for title, slug, img_url in rows:
                 titles.add(title.strip())
                 slugs.add(slug.strip())
+                if img_url:
+                    urls.append(img_url)
     except Exception as e:
-        print(f"⚠️  Mevcut bloglar çekilemedi: {e}")
+        pass
     finally:
         if conn:
             conn.close()
-    return titles, slugs
+    return titles, slugs, urls
 
 
 def get_banks_and_sectors() -> Tuple[List[Any], List[Any]]:
@@ -123,7 +156,7 @@ def save_to_database(title, slug, content_html, excerpt, meta_description, image
             """
             INSERT INTO blogs
               (title, slug, content_html, meta_description, image_url, category, is_published, created_at)
-            VALUES (%s, %s, %s, %s, %s, %s, FALSE, NOW())
+            VALUES (%s, %s, %s, %s, %s, %s, TRUE, NOW())
             RETURNING id
             """,
             (title, slug, content_html, meta_description, image_url, "Rehber"),
@@ -289,7 +322,7 @@ def main():
 
     print("🚀  KartAvantaj SEO Blog Üreticisi başlatıldı")
 
-    existing_titles, existing_slugs = get_existing_data()
+    existing_titles, existing_slugs, existing_urls = get_existing_data()
     banks, sectors = get_banks_and_sectors()
 
     print(f"🏦  {len(banks)} aktif banka, 📁 {len(sectors)} aktif sektör bulundu")
@@ -300,13 +333,12 @@ def main():
         print("📭  Yazılacak yeni konu bulunamadı. Tüm kombinasyonlar mevcut.")
         return
 
-    print(f"📋  {len(topics)} yeni konu mevcut")
-
     topic = random.choice(topics)
     title = topic["title"]
     bank = topic["bank"]
     sector = topic["sector"]
-    image_url = random.choice(COVER_IMAGES)
+
+    image_url = get_unsplash_url(title, existing_urls)
 
     print(f"📝  Seçilen konu: {title}")
 

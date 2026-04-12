@@ -110,7 +110,7 @@ def main():
         rows = conn.execute(text("""
             SELECT id, title, description, reward_text 
             FROM campaigns 
-            WHERE is_active = true AND is_approved = true AND id < 14766
+            WHERE is_active = true AND is_approved = true AND id <= 8128
             ORDER BY id DESC
         """)).fetchall()
         
