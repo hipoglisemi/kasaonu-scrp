@@ -349,11 +349,7 @@ class TEBScraper:
         if isinstance(cards_raw, str):
             cards_raw = [c.strip() for c in cards_raw.split(",") if c.strip()]
         eligible_cards_list: List[str] = cards_raw
-
-        if eligible_cards_list:
-            cond_str = f"GEÇERLİ KARTLAR: {', '.join(eligible_cards_list)}"
-            conditions_lines.append(cond_str)
-
+        
         # conditions listesi
         conds_raw = ai_data.get("conditions") or []
         if isinstance(conds_raw, str):

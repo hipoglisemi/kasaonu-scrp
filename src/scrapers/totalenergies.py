@@ -104,7 +104,7 @@ class TotalEnergiesScraper:
         return bank
 
     def _get_or_create_card(self, db: Session, bank_id: int) -> Card:
-        slug = "clubtotalenergies"
+        slug = "club-totalenergies" # Fixed to the master card slug
         if slug in self.card_cache:
             return self.card_cache[slug]
             
@@ -172,22 +172,40 @@ class TotalEnergiesScraper:
                     
                     is_expired = False
                     
-                    # Check icons
+                    # 1. Check classes (some have 'True' or 'expired' or 'grayscale' related classes)
+                    classes = card_soup.get("class", [])
+                    if any(c in ["True", "expire", "expired", "grayscale"] for c in classes):
+                        is_expired = True
+                    
+                    # 2. Check icons in detail button
                     detail_btn = card_soup.select_one(".showcase__card-detail--button")
                     if detail_btn:
                         icon_img = detail_btn.select_one("img")
                         if icon_img and "play_gray.svg" in icon_img.get("src", ""):
                             is_expired = True
                     
-                    # Check classes & style
-                    classes = card_soup.get("class", [])
-                    style = card_soup.get("style", "")
-                    
-                    if "True" in classes or "grayscale" in style.lower():
+                    # 3. Check for specific grayscale style indicators
+                    style = str(card_soup.get("style", "")).lower()
+                    if "grayscale" in style or "filter: gray" in style:
                         is_expired = True
                     
                     if is_expired:
-                        print(f"   ⏩ Skipping expired campaign: {card_soup.select_one('.showcase__card-detail--slogan').text.strip() if card_soup.select_one('.showcase__card-detail--slogan') else 'Unknown'}")
+                        title_text = card_soup.select_one(".showcase__card-detail--slogan").text.strip() if card_soup.select_one(".showcase__card-detail--slogan") else "Unknown Title"
+                        print(f"   📉 Deactivating/Skipping expired campaign: {title_text[:50]}...")
+                        
+                        # Set to inactive if exists in DB
+                        try:
+                            # Normalize URL as we do for skipping
+                            check_url = detail_url
+                            existing_campaign = self.db.query(Campaign).filter(Campaign.tracking_url == check_url).first()
+                            if existing_campaign and existing_campaign.is_active:
+                                existing_campaign.is_active = False
+                                self.db.commit()
+                                print(f"      ✅ Successfully marked as INACTIVE in DB.")
+                        except Exception as e:
+                            print(f"      ⚠️ Could not update status: {e}")
+                            self.db.rollback()
+                            
                         results["SKIPPED"] += 1
                         continue
 
