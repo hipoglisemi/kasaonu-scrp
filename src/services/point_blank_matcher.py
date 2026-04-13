@@ -12,10 +12,18 @@ logger = logging.getLogger(__name__)
 _SHORT_KW_THRESHOLD = 4
 
 
-# Global Brand Exclusions (Payment Schemes, Networks, etc.)
+# Global Brand Exclusions (Payment Schemes, Networks, Bank Apps, Digital Wallets)
 _GLOBAL_BRAND_EXCLUSIONS = {
+    # Ödeme Ağları
     "Mastercard", "Visa", "Masterpass", "TROY", "Maestro", 
-    "American Express", "AMEX", "Maestro", "Visa Pay"
+    "American Express", "AMEX", "Visa Pay", "My Visa", "BKM", "Priceless",
+    # Banka Uygulamaları & Dijital Cüzdanlar
+    "Bonusnet", "BonusFlaş", "Flexi", "CEPTETEB", "Cepteteb",
+    "Shop&Fly", "Shop Fly", "World Pay", "Jüzdan", "Juzdan",
+    "Fastpay", "Tosla", "Papara", "Nays", "GarantiPay",
+    # Kart Programları
+    "Maximum", "Axess", "Bonus", "World", "Wings", "Paraf", "Parafly",
+    "Maximiles", "Miles&Smiles", "CardFinans", "Free",
 }
 
 class PointBlankMatcher:

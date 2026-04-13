@@ -989,7 +989,7 @@ VALID- SECTOR (CRITICAL):
 1. **DİL**: Tamamı TÜRKÇE olmalı.
 2. **BRANDS**: Metinde geçen markayı TAM OLARAK al. 
     - 🚨 HALÜSİNASYON YASAĞI (ÇOK ÖNEMLİ): Sadece metin içinde AÇIKÇA okuduğun marka isimlerini ekle. Eğer kampanya tüm e-ticaret siteleri gibi "Genel Sektör" kampanyasıysa (ve açıkça marka listesi verilmemişse), asla kafandan tahmini markalar (Trendyol, Hepsiburada, Opet, THY vb.) UYDURMA! Metinde marka yoksa 'brands' listesini boş bırak veya sadece ["Genel"] yaz.
-    - 🚨 ÖNEMLİ YASAK: Asla kampanya sahibi bankayı (İş Bankası, Akbank, Garanti vb.) veya kart programını (Maximum, Axess, Bonus, World, Wings vb.) MARKA olarak ekleme. Sadece ortak markayı (ör. Trendyol, Migros, THY) ekle.
+    - 🚨 ÖNEMLİ YASAK: Asla kampanya sahibi bankayı (İş Bankası, Akbank, Garanti vb.), kart programını (Maximum, Axess, Bonus, World, Wings, Paraf, Maximiles vb.) veya banka uygulamalarını/ödeme sistemlerini (Bonusnet, BonusFlaş, Flexi, CEPTETEB, Shop&Fly, World Pay, Jüzdan, GarantiPay, Masterpass, Mastercard, Visa, TROY, Fastpay, Tosla, Papara, Nays, BKM vb.) MARKA olarak ekleme. Sadece ortak markayı (ör. Trendyol, Migros, THY) ekle.
     - 🚨 FORMAT KURALI: Marka veya kart isimlerini asla "P, a, r, a, f" veya "A, x, e, s, s" gibi her harfi virgülle ayrılmış şekilde yazma. Sadece tam ve okunabilir ismi yaz ("Paraf", "Axess").
     - 🚨 GENEL KAMPANYALAR KURALI (ŞART!): Eğer kampanya kredi başvurusu, nakit avans, limit artırımı, ek taksit gibi SADECE bankanın kendi genel kampanyasıysa ve ortada dışarıdan başka bir ortak marka (Trendyol, Migros, THY vb.) YOKSA, markayı KESİNLİKLE BOŞ bırak. ["Genel"] yazma! Sadece [] yaz!
 3. **SECTOR**: Yukarıdaki VALID SECTORS listesinden EN UYGUN olanı seç. Asla bu liste dışına çıkma.
