@@ -651,6 +651,7 @@ class IsbankMaximilesScraper:
                 existing.sector_id = sector.id if sector else None  # type: ignore # pyre-ignore[16]
                 existing.title = formatted_title
                 existing.description = ai_data.get("description") or data["title"][:200]  # type: ignore # pyre-ignore[16,6]
+                existing.ai_marketing_text = ai_data.get("ai_marketing_text") or ai_data.get("description") or data["title"][:200]  # type: ignore # pyre-ignore[16,6]
                 existing.reward_text = ai_data.get("reward_text")
                 existing.reward_value = ai_data.get("reward_value")
                 existing.reward_type = ai_data.get("reward_type")
@@ -670,6 +671,7 @@ class IsbankMaximilesScraper:
                     slug=slug,  # type: ignore
                     title=formatted_title,  # type: ignore
                     description=ai_data.get("description") or data["title"][:200],  # type: ignore
+                    ai_marketing_text=ai_data.get("ai_marketing_text") or ai_data.get("description") or data["title"][:200],  # type: ignore
                     reward_text=ai_data.get("reward_text"),  # type: ignore
                     reward_value=ai_data.get("reward_value"),  # type: ignore
                     reward_type=ai_data.get("reward_type"),  # type: ignore

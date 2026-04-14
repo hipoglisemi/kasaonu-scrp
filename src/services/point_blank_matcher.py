@@ -4,7 +4,7 @@ from typing import Optional, Dict, List, Tuple
 from collections import Counter
 from sqlalchemy.orm import Session
 from sqlalchemy import func
-from src.models import PointBlankRule, Brand # type: ignore
+from src.models import PointBlankRule, Brand, BrandBlocklist # type: ignore
 
 logger = logging.getLogger(__name__)
 
@@ -12,8 +12,8 @@ logger = logging.getLogger(__name__)
 _SHORT_KW_THRESHOLD = 4
 
 
-# Global Brand Exclusions (Payment Schemes, Networks, Bank Apps, Digital Wallets)
-_GLOBAL_BRAND_EXCLUSIONS = {
+# Global Brand Exclusions (HARDCODED FALLBACK)
+_STATIC_BRAND_EXCLUSIONS = {
     # Ödeme Ağları
     "Mastercard", "Visa", "Masterpass", "TROY", "Maestro", 
     "American Express", "AMEX", "Visa Pay", "My Visa", "BKM", "Priceless",
@@ -40,17 +40,31 @@ class PointBlankMatcher:
     def __init__(self, db: Session):
         self.db = db
         self.rules = []
+        self.blocklist = set()
         self._load_rules()
 
     def _load_rules(self):
-        """Load and cache verified rules from DB for high performance."""
+        """Load and cache verified rules and blocklist from DB for high performance."""
         try:
+            # 1. Load Point-Blank Rules
             self.rules = self.db.query(PointBlankRule).filter(
                 PointBlankRule.is_verified == True
             ).all()
-            logger.info(f"\U0001f3af Point-Blank Engine v2: {len(self.rules)} verified rules loaded.")
+            
+            # 2. Load Brand Blocklist (Dynamic Exclusions)
+            try:
+                db_blocklist = self.db.query(BrandBlocklist.name).all()
+                self.blocklist = {row[0] for row in db_blocklist} if db_blocklist else set()
+                # Merge with static exclusions just in case
+                self.blocklist.update(_STATIC_BRAND_EXCLUSIONS)
+                logger.info(f"🛡️  Dynamic Brand Blocklist: {len(self.blocklist)} items loaded.")
+            except Exception as e:
+                logger.warning(f"⚠️  Could not load dynamic blocklist, using static fallback: {e}")
+                self.blocklist = _STATIC_BRAND_EXCLUSIONS.copy()
+
+            logger.info(f"🎯 Point-Blank Engine v2: {len(self.rules)} verified rules loaded.")
         except Exception as e:
-            logger.error(f"\u274c Error loading Point-Blank rules: {e}")
+            logger.error(f"❌ Error loading Point-Blank rules: {e}")
             self.rules = []
 
     def _build_pattern(self, keyword: str) -> str:
@@ -102,8 +116,8 @@ class PointBlankMatcher:
             if rule.sector_slug == "BLACKLIST":
                 continue
                 
-            # 🛡️ GLOBAL EXCLUSION GUARD: Skip if brand/keyword is in global exclusions
-            if (rule.brand_name in _GLOBAL_BRAND_EXCLUSIONS) or (rule.keyword in _GLOBAL_BRAND_EXCLUSIONS):
+            # 🛡️ GLOBAL EXCLUSION GUARD: Skip if brand/keyword is in dynamic blocklist
+            if (rule.brand_name in self.blocklist) or (rule.keyword in self.blocklist):
                 continue
 
             brand_lower = rule.brand_name.lower() if rule.brand_name else ""
@@ -148,18 +162,6 @@ class PointBlankMatcher:
         """
         Filter out suspicious body-only short-keyword matches whose sector
         conflicts with the campaign's dominant sector.
-        
-        RULES:
-        1. Title matches are ALWAYS kept (user explicitly sees brand in title)
-        2. Body matches for long keywords (>4 chars) are ALWAYS kept
-        3. Body-only short keywords: kept IF their sector agrees with dominant sector
-        4. If NO title matches exist, the dominant sector comes from the most frequent
-           sector among all matches → short keywords from minority sectors are dropped
-        
-        EXAMPLES:
-        - "Opet'ten akaryakıt al, Migros'ta çek kazan" (both in title) → BOTH KEPT ✅
-        - Giyim campaign, "Hop" only in body → Hop (ulaşım) dropped ✅ 
-        - "Eti kampanyasında fırsat" (Eti in title) → KEPT ✅
         """
         if len(raw_matches) <= 1:
             return raw_matches
@@ -209,7 +211,7 @@ class PointBlankMatcher:
             return
             
         # 🛡️ GLOBAL EXCLUSION GUARD: Do not report blacklisted terms as candidates
-        if keyword in _GLOBAL_BRAND_EXCLUSIONS or brand_name in _GLOBAL_BRAND_EXCLUSIONS:
+        if keyword in self.blocklist or brand_name in self.blocklist:
             return
 
         keyword = keyword.strip()
@@ -228,7 +230,6 @@ class PointBlankMatcher:
                 return
             
             # Check 2: Does this brand_name already exist as a verified rule?
-            # Prevents "Pull&Bear" creating a new candidate when "Pull and Bear" is already verified
             if brand_name:
                 existing_brand = self.db.query(PointBlankRule).filter(
                     PointBlankRule.brand_name.ilike(brand_name),

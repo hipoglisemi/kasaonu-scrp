@@ -1,0 +1,299 @@
+[
+  {
+    "id": 14824,
+    "title": "Pazarama'da Toplam 1.000 Tl Alışverişinize Ücretsiz Aylık Pazarama Plus Üyeliği Fırsatı!",
+    "bank": "İşbankası",
+    "removals_negation": [
+      "Dijital Kod Market"
+    ],
+    "removals_noise": []
+  },
+  {
+    "id": 8476,
+    "title": "SULTAN CAVE SUITES KAPADOKYA'da %15'e varan indirim ayrıcalığı!",
+    "bank": "American Express",
+    "removals_negation": [
+      "Sultan Cave Suites Kapadokya"
+    ],
+    "removals_noise": []
+  },
+  {
+    "id": 15748,
+    "title": "Vergi ve Sigorta Ödemelerinize 4 aya varan Faizsiz Sonradan Taksit Kampanyası",
+    "bank": "Halkbank",
+    "removals_negation": [
+      "Sgk"
+    ],
+    "removals_noise": []
+  },
+  {
+    "id": 10004,
+    "title": "Seçili Nike Mağazalarında 4 Taksit Fırsatı!",
+    "bank": "Garanti BBVA",
+    "removals_negation": [
+      "Barçın"
+    ],
+    "removals_noise": []
+  },
+  {
+    "id": 10389,
+    "title": "Kidzania Girişlerinde %10 İndirim Ayrıcalığı!",
+    "bank": "İşbankası",
+    "removals_negation": [],
+    "removals_noise": [
+      "Mercedescard"
+    ]
+  },
+  {
+    "id": 8583,
+    "title": "Canva Üyelik Harcamalarınızda 150 TL'ye Varan İade!",
+    "bank": "Enpara",
+    "removals_negation": [
+      "Google"
+    ],
+    "removals_noise": []
+  },
+  {
+    "id": 15034,
+    "title": "Tatil Rezervasyonlarında 7.500 TL'ye Varan Worldpuan!",
+    "bank": "Yapı Kredi",
+    "removals_negation": [
+      "Setur"
+    ],
+    "removals_noise": []
+  },
+  {
+    "id": 15944,
+    "title": "Boyner'de 5.000 Tl Üzeri Alışverişe 1.000 Tl İndirim",
+    "bank": "Mastercard",
+    "removals_negation": [
+      "Network",
+      "New Balance"
+    ],
+    "removals_noise": []
+  },
+  {
+    "id": 16925,
+    "title": "E-Ticaret Harcamalarınıza Toplam 900 TL Bonus!",
+    "bank": "TEB",
+    "removals_negation": [
+      "N11"
+    ],
+    "removals_noise": []
+  },
+  {
+    "id": 15314,
+    "title": "Shell ClubSmart Hep Kazan ile Kahve Yanında Alınacak Gofrik 1 TL!",
+    "bank": "Shell",
+    "removals_negation": [
+      "Deli2Go"
+    ],
+    "removals_noise": []
+  },
+  {
+    "id": 9003,
+    "title": "HOTEL ANATOLIA Konaklamasında %10 İndirim!",
+    "bank": "Garanti BBVA",
+    "removals_negation": [
+      "Hotel Anatolia"
+    ],
+    "removals_noise": []
+  },
+  {
+    "id": 15496,
+    "title": "DeFacto'da 4.500 TL ve Üzeri Alışverişe 450 TL DeFacto Bonus!",
+    "bank": "Garanti BBVA",
+    "removals_negation": [
+      "Vera",
+      "Beko"
+    ],
+    "removals_noise": []
+  },
+  {
+    "id": 9426,
+    "title": "Paramkartlılara Türk Hava Yolları Biletlerinde 500 Tl İndirim!",
+    "bank": "Param",
+    "removals_negation": [
+      "Ajet"
+    ],
+    "removals_noise": []
+  },
+  {
+    "id": 9176,
+    "title": "HOTEL ANATOLIA Konaklamada %10 İndirim!",
+    "bank": "Garanti BBVA",
+    "removals_negation": [
+      "Hotel Anatolia"
+    ],
+    "removals_noise": []
+  },
+  {
+    "id": 12460,
+    "title": "Shell ClubSmart Hep Kazan ile 2 Fırın Ürünü Yanında Alınacak 3. Fırın Ürünü 1 TL!",
+    "bank": "Shell",
+    "removals_negation": [
+      "Deli2Go"
+    ],
+    "removals_noise": []
+  },
+  {
+    "id": 12107,
+    "title": "Silver Logolu Paraf Mastercard'ınıza özel Boyner'de 1.000 TL indirim",
+    "bank": "Halkbank",
+    "removals_negation": [
+      "New Balance",
+      "Network"
+    ],
+    "removals_noise": []
+  },
+  {
+    "id": 8452,
+    "title": "Kısmet By Milka'da size özel ayrıcalıklar!",
+    "bank": "American Express",
+    "removals_negation": [
+      "Kismet By Milka"
+    ],
+    "removals_noise": []
+  },
+  {
+    "id": 8791,
+    "title": "TROY Logolu TEB Kartları ile Türk Hava Yolları Biletlerinde 500 TL İndirim",
+    "bank": "TEB",
+    "removals_negation": [
+      "Ajet"
+    ],
+    "removals_noise": []
+  },
+  {
+    "id": 15689,
+    "title": "Dijital Platformlarda %20 İndirim",
+    "bank": "VakıfBank",
+    "removals_negation": [
+      "Fizy"
+    ],
+    "removals_noise": []
+  },
+  {
+    "id": 12104,
+    "title": "Silver Logolu Paraf Mastercard'ınıza özel Boyner'de 1.000 TL indirim!",
+    "bank": "Halkbank",
+    "removals_negation": [
+      "New Balance",
+      "Network"
+    ],
+    "removals_noise": []
+  },
+  {
+    "id": 9476,
+    "title": "TROY Kartla Türk Hava Yolları Biletleri 500 TL İndirimli!",
+    "bank": "QNB",
+    "removals_negation": [
+      "Ajet",
+      "Google"
+    ],
+    "removals_noise": []
+  },
+  {
+    "id": 11850,
+    "title": "S Sport Plus Üyeliklerinde 400 TL İndirim ve 150 TL Hediye Para",
+    "bank": "Nays",
+    "removals_negation": [
+      "App Store"
+    ],
+    "removals_noise": []
+  },
+  {
+    "id": 14358,
+    "title": "Yapı Market Alışverişlerinize 3.000 TL'ye Varan Bonus!",
+    "bank": "Garanti BBVA",
+    "removals_negation": [],
+    "removals_noise": [
+      "Migros",
+      "Pazarama",
+      "Trendyol"
+    ]
+  },
+  {
+    "id": 8544,
+    "title": "HOTEL ANATOLIA'da konaklamada peşin fiyatına %10 indirim!",
+    "bank": "American Express",
+    "removals_negation": [
+      "Hotel Anatolia"
+    ],
+    "removals_noise": []
+  },
+  {
+    "id": 15490,
+    "title": "U.S. Polo Assn. Alışverişinize 150 TL Bonus Fırsatı!",
+    "bank": "Garanti BBVA",
+    "removals_negation": [],
+    "removals_noise": [
+      "Brooks"
+    ]
+  },
+  {
+    "id": 15489,
+    "title": "U.S. Polo Assn. Alışverişine 600 TL'ye Varan Bonus Fırsatı!",
+    "bank": "Garanti BBVA",
+    "removals_negation": [],
+    "removals_noise": [
+      "Beymen",
+      "Jumbo",
+      "Avva"
+    ]
+  },
+  {
+    "id": 14394,
+    "title": "İgdaş Doğalgaz Faturası Ödemelerine Ücretsiz 3 Taksit Fırsatı!",
+    "bank": "Garanti BBVA",
+    "removals_negation": [],
+    "removals_noise": [
+      "Brooks"
+    ]
+  },
+  {
+    "id": 10008,
+    "title": "HOTEL ANATOLIA'da %10 İndirim Fırsatı!",
+    "bank": "Garanti BBVA",
+    "removals_negation": [
+      "Hotel Anatolia"
+    ],
+    "removals_noise": []
+  },
+  {
+    "id": 14440,
+    "title": "Online Rezervasyonlarınızda 1.500 TL'ye Varan Bonus Fırsatı!",
+    "bank": "Garanti BBVA",
+    "removals_negation": [],
+    "removals_noise": [
+      "Brooks"
+    ]
+  },
+  {
+    "id": 15212,
+    "title": "Trendyol alışverişlerinize Şeker Bonus Kart ile 500 TL bonus fırsatı!",
+    "bank": "Şekerbank",
+    "removals_negation": [
+      "Trendyol Go"
+    ],
+    "removals_noise": []
+  },
+  {
+    "id": 8477,
+    "title": "CAPPADOCIA CAVE SUITES'de %15'e varan indirim ayrıcalığı!",
+    "bank": "American Express",
+    "removals_negation": [
+      "Cappadocia Cave Suites"
+    ],
+    "removals_noise": []
+  },
+  {
+    "id": 8529,
+    "title": "eLIFEwellness'ta %10 indirim ayrıcalığı!",
+    "bank": "American Express",
+    "removals_negation": [
+      "Elifewellness"
+    ],
+    "removals_noise": []
+  }
+]

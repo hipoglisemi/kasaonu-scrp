@@ -24,7 +24,7 @@ _SessionLocal = None
 _Campaign = None
 _Sector = None
 
-from .point_blank_matcher import get_point_blank_matcher, _GLOBAL_BRAND_EXCLUSIONS # type: ignore
+from .point_blank_matcher import get_point_blank_matcher # type: ignore
 from src.database import SessionLocal # type: ignore
 
 class TimeoutException(Exception):
@@ -856,9 +856,9 @@ class AIParser:
         text_lower = text.lower()
         earliest_noise_idx = len(text)
         
-        # 🚨 SMART TRUNCATION GUARD: Only truncate if the noise marker is in the LAST 40% of the text.
-        # This prevents common navigation/sidebar KVKK links from killing the content while still cleaning footers.
-        min_truncation_pos = int(len(text) * 0.6)
+        # 🚨 SMART TRUNCATION GUARD: Truncate at noise sections to prevent illusion brands.
+        # But only if it's in the second half of the text (nav/boilerplate protection).
+        min_truncation_pos = int(len(text) * 0.4)
         
         for marker in noise_markers:
             for match in re.finditer(marker, text_lower):
@@ -866,7 +866,7 @@ class AIParser:
                     earliest_noise_idx = match.start()
         
         if earliest_noise_idx < len(text):
-            # If noise marker found in the tail, truncate there
+            # If noise marker found after the middle, truncate there to kill "Related Offers"
             text = text[:earliest_noise_idx].strip()
 
         # ── Step 2.6: LEADER NOISE REMOVAL (Header/Nav) ──
@@ -900,6 +900,20 @@ class AIParser:
     def _build_prompt(self, raw_text: str, current_date: str, bank_name: Optional[str], page_title: Optional[str] = None, pb_matches: Optional[List[Dict]] = None) -> str:
         # 1. Clean Text (Remove boilerplate)
         cleaned_text = clean_campaign_text(raw_text)
+
+        # 1.1 Fetch Dynamic Blocklist for the prompt
+        dynamic_blocklist = "Bonusnet, BonusFlaş, Jüzdan, Masterpass, Mastercard, Visa" # Fallback
+        db = SessionLocal()
+        try:
+            from .point_blank_matcher import get_point_blank_matcher
+            matcher = get_point_blank_matcher(db)
+            if matcher.blocklist:
+                # Group names for a clean prompt
+                dynamic_blocklist = ", ".join(sorted(list(matcher.blocklist)))
+        except:
+            pass
+        finally:
+            db.close()
         
         # 2. Get Bank Specific Instructions
         bank_instructions = ""
@@ -988,10 +1002,11 @@ VALID- SECTOR (CRITICAL):
 ⭐⭐⭐ KRİTİK KURALLAR (DOKUNULMAZ) ⭐⭐⭐
 1. **DİL**: Tamamı TÜRKÇE olmalı.
 2. **BRANDS**: Metinde geçen markayı TAM OLARAK al. 
-    - 🚨 HALÜSİNASYON YASAĞI (ÇOK ÖNEMLİ): Sadece metin içinde AÇIKÇA okuduğun marka isimlerini ekle. Eğer kampanya tüm e-ticaret siteleri gibi "Genel Sektör" kampanyasıysa (ve açıkça marka listesi verilmemişse), asla kafandan tahmini markalar (Trendyol, Hepsiburada, Opet, THY vb.) UYDURMA! Metinde marka yoksa 'brands' listesini boş bırak veya sadece ["Genel"] yaz.
-    - 🚨 ÖNEMLİ YASAK: Asla kampanya sahibi bankayı (İş Bankası, Akbank, Garanti vb.), kart programını (Maximum, Axess, Bonus, World, Wings, Paraf, Maximiles vb.) veya banka uygulamalarını/ödeme sistemlerini (Bonusnet, BonusFlaş, Flexi, CEPTETEB, Shop&Fly, World Pay, Jüzdan, GarantiPay, Masterpass, Mastercard, Visa, TROY, Fastpay, Tosla, Papara, Nays, BKM vb.) MARKA olarak ekleme. Sadece ortak markayı (ör. Trendyol, Migros, THY) ekle.
-    - 🚨 FORMAT KURALI: Marka veya kart isimlerini asla "P, a, r, a, f" veya "A, x, e, s, s" gibi her harfi virgülle ayrılmış şekilde yazma. Sadece tam ve okunabilir ismi yaz ("Paraf", "Axess").
-    - 🚨 GENEL KAMPANYALAR KURALI (ŞART!): Eğer kampanya kredi başvurusu, nakit avans, limit artırımı, ek taksit gibi SADECE bankanın kendi genel kampanyasıysa ve ortada dışarıdan başka bir ortak marka (Trendyol, Migros, THY vb.) YOKSA, markayı KESİNLİKLE BOŞ bırak. ["Genel"] yazma! Sadece [] yaz!
+    - 🚨 **ILLUSION PROTECTION (CRITICAL)**: Metnin sonu veya yan kolonlarında geçen "İLGİNİZİ ÇEKEBİLECEK DİĞER KAMPANYALAR" veya "Benzer Kampanyalar" bölümlerindeki markaları (Örn: Beymen, Avva vb.) KESİNLİKLE EKLEME! Sadece ana kampanya metninde asıl konu olarak geçen markayı belirt.
+    - 🚨 **HALÜSİNASYON YASAĞI (ÇOK ÖNEMLİ)**: Sadece metin içinde AÇIKÇA okuduğun marka isimlerini ekle. Eğer kampanya tüm e-ticaret siteleri gibi "Genel Sektör" kampanyasıysa (ve açıkça marka listesi verilmemişse), asla kafandan tahmini markalar (Trendyol, Hepsiburada, Opet, THY vb.) UYDURMA! Metinde marka yoksa 'brands' listesini boş bırak veya sadece ["Genel"] yaz.
+    - 🚨 **ÖNEMLİ YASAK**: Asla kampanya sahibi bankayı ({bank_name or 'Banka'}), kart programını (Maximum, Axess, Bonus, World, Wings, Paraf, Maximiles vb.) veya banka uygulamalarını/ödeme sistemlerini ({dynamic_blocklist}) MARKA olarak ekleme. Sadece ortak markayı (ör. Trendyol, Migros, THY) ekle.
+    - 🚨 **FORMAT KURALI**: Marka veya kart isimlerini asla "P, a, r, a, f" veya "A, x, e, s, s" gibi her harfi virgülle ayrılmış şekilde yazma. Sadece tam ve okunabilir ismi yaz ("Paraf", "Axess").
+    - 🚨 **GENEL KAMPANYALAR KURALI (ŞART!)**: Eğer kampanya kredi başvurusu, nakit avans, limit artırımı, ek taksit gibi SADECE bankanın kendi genel kampanyasıysa ve ortada dışarıdan başka bir ortak marka (Trendyol, Migros, THY vb.) YOKSA, markayı KESİNLİKLE BOŞ bırak. ["Genel"] yazma! Sadece [] yaz!
 3. **SECTOR**: Yukarıdaki VALID SECTORS listesinden EN UYGUN olanı seç. Asla bu liste dışına çıkma.
 4. **MARKETING**: 'description' alanı MUTLAKA 2 cümle olmalı. Samimi ve kullanıcıyı teşvik edici olmalı.
     - 🚨 BÜYÜK HARF KURALI (HARF DÜZENİ): Eğer girdi metninde veya başlıkta TAMAMI BÜYÜK HARFLE (ALL CAPS) yazılmış kelimeler/cümleler (örn: "KAMPANYAYA KATIL", "İNDİRİM FIRSATI") varsa, JSON çıktısındaki her bir alanda ('description', 'conditions', 'title', vs.) bunları normal Cümle Düzenine (Sentence case) veya Başlık Düzenine (Title case) TERCÜME ET. Asla tamamı büyük harfli kelime gruplarını olduğu gibi bırakma.
@@ -1010,6 +1025,8 @@ VALID- SECTOR (CRITICAL):
 10. **CARDS (cards)**:
     - 🚨 MUTLAK KURAL: 'cards' listesine SADECE ve SADECE metinde birebir okuduğun kart isimlerini yaz. Metinde "Paraf, Parafly, Paraf Business" yazıyorsa AYNEN bu 3 kartı listele.
     - 🚨 HALÜSİNASYON YASAĞI: Metinde geçmeyen kart ismini KESİNLİKLE EKLEME. Eğer metinde sadece "Axess" geçiyorsa "Axess Gold", "Axess Platinum" gibi varyantları UYDURMA.
+    - 🚨 **NEGATİF KISITLAMALAR (Dahil Değildir)**: Metinde 'dahil değildir', 'geçerli değildir', 'hariçtir', 'kapsam dışıdır', 'sayılmamaktadır' gibi ifadeler geçen cümleleri çok dikkatli oku. Özellikle "X markalı ürünler", "X satıcılı ürünler" gibi ibarelerden sonra gelen kısıtlamalara dikkat et. Bu markaları 'brands' listesinden KESİNLİKLE çıkar.
+    - 🚨 **MARKA-KOŞUL EŞLEŞTİRME**: 'brands' alanına eklediğin her ana markayı, 'conditions' listesine de "X mağazalarında geçerlidir." (veya "X sitesinde geçerlidir.") maddesi olarak MUTLAKA ekle.
     - 🚨 METNE SADIK KAL: Kart isimlerini metin içindeki YAZILIŞIYLA al. "DenizBonus" yazıyorsa "DenizBonus" yaz, "Deniz Bonus" YAZMA.
     - 🚨 VARSAYIM YAPMA: Banka adını bildiğin için o bankanın tüm kart çeşitlerini listeye EKLEME. Sadece metinde açıkça yazan kartları al.
     - 🚨 KURUM KAMPANYALARI (Turk Telekom, Shell, Turkcell vb.): Eğer metinde spesifik bir kart adı geçmiyorsa, 'cards' alanına kurumun adını tek başına yazma (Örn: "Turkcell", "Turkcell" yazma). Onun yerine kimlerin dahil olduğunu belirten ifadeyi yaz (Örn: "Turk Telekom müşterileri", "Shell Club Smart sahipleri") veya hiçbir şey bulamazsan sadece ["-"] bırak.
@@ -1065,6 +1082,16 @@ VALID- SECTOR (CRITICAL):
     - Örnek: "Manisa, Çanakkale, Muğla ve Uşak'ta TROY logolu QNB kartınızla toplu taşımada ilk yolculuğunuz tamamen ücretsiz! 🚌💳 Hafta içi binek ulaşımınızı QNB karşılıyor, bu fırsatı sakın kaçırmayın! 🎉"
 
 11. **HARCAMA-KAZANÇ KURALLARI (MATHEMATIC LOGIC)**:
+    - `reward_value`: Harcanması gereken miktar veya kazanılacak miktar değil, sadece KAZANILAN sayısal NET DEĞER (örn: 100, 150). Sadece float olmalı.
+    - `min_spend`: Gereken minimum harcama tutarı. Yoksa 0.0.
+
+12. **MARKA (BRANDS) ETİKETLEME - 🚨 KATI KURALLAR (SMART GUARD V4.9)**:
+    - ⛔ NEGATION TRAP (HAYATİ): Eğer bir marka isminin yakınlarında "dahil değildir", "hariçtir", "geçerli değildir", "kapsam dışıdır" ibaresi geçiyorsa o markayı ASLA 'brands' listesine EKLEME. (Örn: "Google, Facebook, SGK ödemeleri dahil değildir" -> Bunlar ASLA marka olamaz).
+    - ⛔ ILLUSION TRAP: Kampanyanın en altındaki "Benzer Fırsatlar", "İlginizi çekebilecek diğer kampanyalar" veya "Sizin için seçtiklerimiz" gibi başlıkların altındaki markaları ASLA 'brands' listesine EKLEME.
+    - ⛔ APP/PAYMENT TRAP: Ödeme/Uygulama aracıları marka DEĞİLDİR. "Hepsipay", "Vodafone Yanımda", "Maximum Mobil", "Jüzdan", "GarantiPay", "Passo", "Privia" gibi banka veya cüzdan kelimelerini ASLA marka listesine ekleme. Sadece ana kurum (Örn: Vodafone) markadır.
+    - ⛔ PUBLIC/GOVERNMENT TRAP: "SGK", "GİB", "Gelir İdaresi", "Duty Free" gibi devlet veya genel şemsiye kurumları marka DEĞİLDİR. ASLA ekleme.
+    - ✅ INCLUSION OVERRIDE: Sadece bağlamda açıkça "geçerlidir" veya "dahildir" denen GERÇEK/TİCARİ mağaza ve site markalarını (Trendyol, İpekyol, Avva vb.) listeye dahil et.
+
   "reward_value": 0.0,
   "reward_type": "puan/indirim/taksit/mil",
   "reward_text": "150 TL Puan",
@@ -1072,7 +1099,7 @@ VALID- SECTOR (CRITICAL):
   "start_date": "YYYY-MM-DD",
   "end_date": "YYYY-MM-DD",
   "sector": "Sektör Slug'ı",
-  "brands": ["Marka1", "Marka2"], // 🚨 YASAK: Footer veya 'Benzer Fırsatlar' bölmesindeki markaları buraya EKLEME. Sadece ANA kampanya ortağını yaz.
+  "brands": ["Marka1", "Marka2"], // 🚨 KATI KURAL: Sadece geçerli, kısıtlanmamış ana markaları yaz. SGK, Youtube, Privia, Hepsipay yasak.
   "cards": ["Kart1", "Kart2"],    // 🚨 METİNE HARFİYEN SADIK KAL: Sadece metinde birebir okuduğun kart isimlerini yaz.
  
 JSON Formatı:
@@ -1293,10 +1320,18 @@ ANALİZ EDİLECEK METİN:
         
         return validated
 
+    def _tr_lower(self, text: str) -> str:
+        """Turkish-aware lowering of strings."""
+        if not text: return ""
+        return text.replace('İ', 'i').replace('I', 'ı').lower()
+
     def _validate_brands_against_text(self, brands: list, clean_text: str, title: str) -> list:
         """
-        Brand Hallucination Guard — Verifies each brand name AI returned actually
-        appears in the clean_text or title. Removes hallucinated brand names.
+        Brand Hallucination Guard V4.5 — Precision Mode.
+        1. Title Guard (Turkish-aware): Brands in title are always safe.
+        2. Happy Center Guard: Prevent mis-tagging 'Happy Card' as 'Happy Center'.
+        3. Partial Exclusion Guard: Don't exclude brand if only 'belirli ürünler' are excluded.
+        4. Contextual Negation: 100-char window check in sentences.
         """
         if not brands:
             return brands
@@ -1304,34 +1339,97 @@ ANALİZ EDİLECEK METİN:
         validated = []
         rejected = []
         
-        text_lower = (clean_text or "").lower()
-        title_lower = (title or "").lower()
+        full_context_lower = self._tr_lower((clean_text or "") + " " + (title or ""))
         
-        # Turkish letter character class
-        _TR = r"a-z\u00e7\u011f\u0131\u00f6\u015f\u00fcA-Z\u00c7\u011e\u0130\u00d6\u015e\u00dc"
+        # Enhanced normalization for Title Guard (ignore symbols like ® or ™)
+        def _strip_symbols(t):
+            return re.sub(r"[^a-z0-9ıişğüç ]", " ", t) 
+            
+        title_plain = _strip_symbols(self._tr_lower(title or ""))
+        brand_plain_map = {} # Cache for plain brand names
         
+        negation_keywords = ["dahil değildir", "hariçtir", "geçerli değildir", "kapsam dışıdır", "dahil edilmeyecektir", "sayılmamaktadır", "taksitlendirilmemektedir"]
+        positive_keywords = ["geçerlidir", "dahildir", "geçerli olacaktır"]
+        PARTIAL_EXCLUSION_WORDS = ["belirli", "seçili", "bazı", "haricindeki", "dışındaki", "markalı", "kategorisindeki"]
+        NOISE_MARKERS = [
+            r"ilginizi çekebilecek diğer kampanyalar", 
+            r"benzer fırsatlar", 
+            r"benzer kampanyalar", 
+            r"diğer kampanyalar", 
+            r"sizin için seçtiklerimiz"
+        ]
+        
+        # Load blocklist
+        matcher_blocklist = set()
+        db = SessionLocal()
+        try:
+            from .point_blank_matcher import get_point_blank_matcher
+            matcher = get_point_blank_matcher(db)
+            matcher_blocklist = matcher.blocklist
+        except: pass
+        finally: db.close()
+
         for brand in brands:
-            if not brand or len(brand) < 2:
+            if not brand or len(brand) < 2: continue
+            brand_norm = self._tr_lower(brand)
+            brand_plain = _strip_symbols(brand_norm)
+            
+            # --- 1. TITLE & BLOCKLIST GUARD (V4.8: Symbol-Insensitive) ---
+            # If brand (even without symbols) is in title (even without symbols), PROTECT IT.
+            if brand_plain in title_plain or brand_norm in title_plain:
+                validated.append(brand)
                 continue
             
-            # 🛡️ GLOBAL EXCLUSION GUARD: Explicitly reject card networks and schemes
-            if brand in _GLOBAL_BRAND_EXCLUSIONS:
+            if brand in matcher_blocklist or brand_norm == "mercedescard":
                 rejected.append(brand)
                 continue
-                
-            import re
-            kw = re.escape(brand)
-            # Use string boundary pattern for strict matching
-            pattern = f"(?i)(?<![{_TR}]){kw}(?:['\u2018\u2019][a-z\u00e7\u011f\u0131\u00f6\u015f\u00fc]+)?(?![{_TR}])"
             
-            # Brand is valid if it appears in Title OR Clean Text
-            if re.search(pattern, title_lower) or re.search(pattern, text_lower):
+            # --- 2. HAPPY CENTER SPECIAL GUARD ---
+            if brand_norm == "happy center":
+                if not re.search(r"(?i)\bcenter\b", full_context_lower):
+                    if re.search(r"(?i)\bhappy\b", full_context_lower):
+                        rejected.append(brand)
+                        print(f"   🛡️ Happy Guard: Rejected '{brand}' (only 'Happy' found)")
+                        continue
+
+            # --- 3. ILLUSION (RECLAM) CHECK ---
+            is_illusion = False
+            for marker_pat in NOISE_MARKERS:
+                match = re.search(marker_pat, full_context_lower, re.IGNORECASE)
+                if match:
+                    marker_pos = match.start()
+                    # If brand is only found AFTER this position in main context
+                    # (and NOT in title or before position)
+                    brand_pat = rf"(?i)\b{re.escape(brand_norm)}\b"
+                    found_before = re.search(brand_pat, full_context_lower[:marker_pos])
+                    found_after = re.search(brand_pat, full_context_lower[marker_pos:])
+                    
+                    if found_after and not found_before and brand_norm not in title_plain:
+                        is_illusion = True
+                        break
+            
+            if is_illusion:
+                rejected.append(brand)
+                print(f"   🛡️ Illusion Guard: Rejected '{brand}' (Found only in related offers)")
+                continue
+                
+            # --- 4. CONTEXTUAL CHECK (V4.9 Smart Guard) ---
+            # Negation/Inclusion is now STRICTLY handled by the AI Prompt (Smart Guard).
+            # This Python layer only ensures the brand actually exists in the raw text.
+            
+            def _clean_ws(t):
+                return re.sub(r"\s+", " ", t).strip()
+                
+            clean_context = _clean_ws(full_context_lower)
+            clean_brand = _clean_ws(brand_norm)
+
+            if clean_brand in clean_context:
                 validated.append(brand)
             else:
                 rejected.append(brand)
                 
         if rejected:
-            print(f"   🛡️ Brand Guard: Rejected {rejected} (not found in title or clean_text)")
+            print(f"   🛡️ Brand Guard: Rejected {rejected}")
             
         return validated
 

@@ -1,0 +1,205 @@
+[
+  {
+    "id": 14824,
+    "title": "Pazarama'da Toplam 1.000 Tl Alışverişinize Ücretsiz Aylık Pazarama Plus Üyeliği Fırsatı!",
+    "bank": "İşbankası",
+    "removals_negation": [
+      "Dijital Kod Market"
+    ],
+    "removals_noise": []
+  },
+  {
+    "id": 15748,
+    "title": "Vergi ve Sigorta Ödemelerinize 4 aya varan Faizsiz Sonradan Taksit Kampanyası",
+    "bank": "Halkbank",
+    "removals_negation": [
+      "Sgk"
+    ],
+    "removals_noise": [
+      "Sgk"
+    ]
+  },
+  {
+    "id": 14829,
+    "title": "Paraf Değerlimiz Kredi Kart Sahibi Emekli Müşterilerimize Özel Otomatik Fatura Ödeme Talimatlarına 3.500 TL'ye Varan ParafPara!",
+    "bank": "Halkbank",
+    "removals_negation": [],
+    "removals_noise": [
+      "Sgk"
+    ]
+  },
+  {
+    "id": 16542,
+    "title": "Hepsiburada ile Vade Farksız 6 Aya Varan Taksit İmkanı!",
+    "bank": "Kuveyt Türk",
+    "removals_negation": [
+      "Xiaomi"
+    ],
+    "removals_noise": []
+  },
+  {
+    "id": 11097,
+    "title": "İGDAŞ Fatura Ödemelerinde Vade Farksız 6 Taksit",
+    "bank": "Halkbank",
+    "removals_negation": [],
+    "removals_noise": [
+      "Adv"
+    ]
+  },
+  {
+    "id": 9426,
+    "title": "Paramkartlılara Türk Hava Yolları Biletlerinde 500 Tl İndirim!",
+    "bank": "Param",
+    "removals_negation": [
+      "Ajet"
+    ],
+    "removals_noise": []
+  },
+  {
+    "id": 15968,
+    "title": "Troy logolu Bankomat Kart ile 300 TL Bankomat Para",
+    "bank": "VakıfBank",
+    "removals_negation": [
+      "Passolig"
+    ],
+    "removals_noise": []
+  },
+  {
+    "id": 9431,
+    "title": "D S damat'ta 6 Aya Varan Taksit Fırsatı",
+    "bank": "Halkbank",
+    "removals_negation": [],
+    "removals_noise": [
+      "Adv"
+    ]
+  },
+  {
+    "id": 12107,
+    "title": "Silver Logolu Paraf Mastercard'ınıza özel Boyner'de 1.000 TL indirim",
+    "bank": "Halkbank",
+    "removals_negation": [
+      "New Balance",
+      "Network"
+    ],
+    "removals_noise": []
+  },
+  {
+    "id": 8791,
+    "title": "TROY Logolu TEB Kartları ile Türk Hava Yolları Biletlerinde 500 TL İndirim",
+    "bank": "TEB",
+    "removals_negation": [
+      "Ajet"
+    ],
+    "removals_noise": []
+  },
+  {
+    "id": 15689,
+    "title": "Dijital Platformlarda %20 İndirim",
+    "bank": "VakıfBank",
+    "removals_negation": [
+      "Fizy"
+    ],
+    "removals_noise": []
+  },
+  {
+    "id": 8706,
+    "title": "Ayın Enparalısı Olma Koşulları ve Avantajları",
+    "bank": "Enpara",
+    "removals_negation": [],
+    "removals_noise": [
+      "Sgk"
+    ]
+  },
+  {
+    "id": 12104,
+    "title": "Silver Logolu Paraf Mastercard'ınıza özel Boyner'de 1.000 TL indirim!",
+    "bank": "Halkbank",
+    "removals_negation": [
+      "New Balance",
+      "Network"
+    ],
+    "removals_noise": []
+  },
+  {
+    "id": 9476,
+    "title": "TROY Kartla Türk Hava Yolları Biletleri 500 TL İndirimli!",
+    "bank": "QNB",
+    "removals_negation": [
+      "Ajet"
+    ],
+    "removals_noise": []
+  },
+  {
+    "id": 11850,
+    "title": "S Sport Plus Üyeliklerinde 400 TL İndirim ve 150 TL Hediye Para",
+    "bank": "Nays",
+    "removals_negation": [
+      "App Store"
+    ],
+    "removals_noise": []
+  },
+  {
+    "id": 11095,
+    "title": "İGDAŞ Fatura Ödemelerinde Vade Farksız 6 Taksit",
+    "bank": "Halkbank",
+    "removals_negation": [],
+    "removals_noise": [
+      "Adv"
+    ]
+  },
+  {
+    "id": 15944,
+    "title": "Boyner'de 5.000 Tl Üzeri Alışverişe 1.000 Tl İndirim",
+    "bank": "Mastercard",
+    "removals_negation": [
+      "Network",
+      "New Balance"
+    ],
+    "removals_noise": []
+  },
+  {
+    "id": 15034,
+    "title": "Tatil Rezervasyonlarında 7.500 TL'ye Varan Worldpuan!",
+    "bank": "Yapı Kredi",
+    "removals_negation": [
+      "Setur"
+    ],
+    "removals_noise": []
+  },
+  {
+    "id": 15216,
+    "title": "BIC CAMERA mağazalarında%5 oranında ayrıcalık ve %10tax free ayrıcalığı!",
+    "bank": "Şekerbank",
+    "removals_negation": [
+      "Apple"
+    ],
+    "removals_noise": []
+  },
+  {
+    "id": 15212,
+    "title": "Trendyol alışverişlerinize Şeker Bonus Kart ile 500 TL bonus fırsatı!",
+    "bank": "Şekerbank",
+    "removals_negation": [
+      "Trendyol Go"
+    ],
+    "removals_noise": []
+  },
+  {
+    "id": 10389,
+    "title": "Kidzania Girişlerinde %10 İndirim Ayrıcalığı!",
+    "bank": "İşbankası",
+    "removals_negation": [
+      "Mercedescard"
+    ],
+    "removals_noise": []
+  },
+  {
+    "id": 8583,
+    "title": "Canva Üyelik Harcamalarınızda 150 TL'ye Varan İade!",
+    "bank": "Enpara",
+    "removals_negation": [
+      "Google"
+    ],
+    "removals_noise": []
+  }
+]

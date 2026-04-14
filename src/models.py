@@ -317,3 +317,12 @@ class PointBlankRule(Base):
     )
 
 
+class BrandBlocklist(Base):
+    """Brand names that should never be tagged as partner brands (payment networks, bank apps, card programs, etc.)"""
+    __tablename__ = "brand_blocklist"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    name = Column(String, unique=True, nullable=False)
+    category = Column(String, default="other", nullable=False)
+    reason = Column(String, nullable=True)
+    created_at = Column(DateTime, default=func.now(), nullable=False)

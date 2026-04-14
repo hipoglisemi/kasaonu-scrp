@@ -17,6 +17,7 @@ import re
 import psycopg2
 from dotenv import load_dotenv
 from slugify import slugify
+from typing import List, Tuple, Set, Optional, Union, Dict
 
 load_dotenv()
 
@@ -90,14 +91,14 @@ def get_unsplash_url(keyword: str, seo_title: str, existing_urls: list) -> str:
 # ADIM 1: VERİTABANI ANALİZİ
 # ─────────────────────────────────────────────
 
-def get_trending_keywords() -> list[tuple[str, int]]:
+def get_trending_keywords() -> List[Tuple[str, int]]:
     """
     Son 60 gündeki search_logs ve missing_searches tablolarını harmanlayarak
     en çok aranan anahtar kelimeleri döndürür.
     Dönen liste: [(keyword, count), ...] — count'a göre azalan şekilde sıralı.
     """
     conn = None
-    keywords: dict[str, int] = {}
+    keywords: Dict[str, int] = {}
     try:
         conn = psycopg2.connect(DB_URL)
         cur = conn.cursor()
@@ -162,27 +163,30 @@ def _is_valid_keyword(kw: str) -> bool:
     return True
 
 
-def get_existing_blog_slugs() -> set[str]:
-    """Mevcut blog slug'larını ve başlıklarını çeker."""
+def get_existing_blog_slugs() -> Tuple[Set[str], Set[str], List[str]]:
+    """Mevcut blog slug'larını, başlıklarını ve görsel URL'lerini çeker."""
     conn = None
-    slugs: set[str] = set()
-    titles: set[str] = set()
+    slugs: Set[str] = set()
+    titles: Set[str] = set()
+    urls: List[str] = []
     try:
         conn = psycopg2.connect(DB_URL)
         cur = conn.cursor()
-        cur.execute('SELECT slug, LOWER(TRIM(title)) FROM blogs')
-        for slug, title in cur.fetchall():
+        cur.execute('SELECT slug, LOWER(TRIM(title)), image_url FROM blogs')
+        for slug, title, img_url in cur.fetchall():
             slugs.add(slug)
             titles.add(title)
+            if img_url:
+                urls.append(img_url)
     except Exception as e:
         print(f"[HATA] Mevcut bloglar okunurken hata: {e}")
     finally:
         if conn:
             conn.close()
-    return slugs, titles
+    return slugs, titles, urls
 
 
-def pick_best_missing_topic(trending: list[tuple[str, int]], existing_titles: set[str]) -> str | None:
+def pick_best_missing_topic(trending: List[Tuple[str, int]], existing_titles: Set[str]) -> Optional[str]:
     """
     Trending listesinden henüz Pillar Page'i olmayan en iyi konuyu seçer.
     Eğer zaten yeterince 'kredi kartı' veya temel terimler varsa onlara benzer konuları atlar.
@@ -192,7 +196,7 @@ def pick_best_missing_topic(trending: list[tuple[str, int]], existing_titles: se
         already_exists = any(keyword in t for t in existing_titles)
         if not already_exists:
             print(f"[SEÇİM] Konu: '{keyword}' (aranma: {count}x) — Henüz sayfası yok, seçildi!")
-            return keyword
+            return str(keyword)
     return None
 
 

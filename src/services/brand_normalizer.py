@@ -103,7 +103,7 @@ def cleanup_brands(brand_input):
         'juzdan', 'jüzdan', 'bonusflaş', 'bonusflas', 'ayrıcalık', 'avantaj', 'pos', 'üye işyeri', 'üye iş yerleri',
         'mobilya', 'sigorta', 'nalburiye', 'kozmetik', 'akaryakıt', 'giyim', 'aksesuar', 'elektronik', 'market', 'gıda',
         'restoran', 'kafe', 'e-ticaret', 'ulaşım', 'turizm', 'konaklama', 'otomotiv', 'kamu', 'eğitim',
-        'genel', 'yok', 'null'
+        'genel', 'yok', 'null', 'happy'
     ]
     
     final_brands = []

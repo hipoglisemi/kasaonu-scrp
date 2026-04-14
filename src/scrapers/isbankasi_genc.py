@@ -502,10 +502,9 @@ class IsbankMaximumGencScraper:
             conds = ai_data.get("conditions", [])
             if isinstance(conds, str):
                 conds = [c.strip() for c in conds.split("\n") if c.strip()]
-            part = ai_data.get("participation")
-            if part and "Detayları İnceleyin" not in part:
-
-                pass  # participation field written separately to DB
+            participation = ai_data.get("participation")
+            if participation and "Detayları İnceleyin" in participation:
+                participation = None
             cards_raw = ai_data.get("cards", [])
             if isinstance(cards_raw, str):
                 cards_raw = [c.strip() for c in cards_raw.split(",") if c.strip()]
@@ -514,6 +513,7 @@ class IsbankMaximumGencScraper:
                 card_id=self.card_id, sector_id=sector.id if sector else None,  # type: ignore # pyre-ignore[16]
                 slug=slug, title=formatted_title,
                 description=ai_data.get("description") or data["title"][:200],  # type: ignore # pyre-ignore[16,6]
+                ai_marketing_text=ai_data.get("ai_marketing_text") or ai_data.get("description") or data["title"][:200],  # type: ignore # pyre-ignore[16,6]
                 reward_text=ai_data.get("reward_text"),
                 reward_value=ai_data.get("reward_value"),
                 reward_type=ai_data.get("reward_type"),

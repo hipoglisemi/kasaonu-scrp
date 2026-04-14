@@ -233,9 +233,10 @@ class TotalEnergiesScraper:
                     detail_url = urljoin(self.BASE_URL, relative_url)
                     
                     # Normalize URL (remove -2, -3 etc. from the end of the slug)
-                    # example: .../kampanya-adi-3/ -> .../kampanya-adi/
-                    detail_url = re.sub(r'-\d+/?$', '/', detail_url)
-
+                    # example: .../kampanya-adi-3/ -> .../kampanya-adi
+                    detail_url = re.sub(r'-\d+/?$', '', detail_url)
+                    # Strip any trailing slash to avoid duplicate saves due to exact matches
+                    detail_url = detail_url.rstrip('/')
                     # Skip if already exists
                     if should_skip_campaign(self.db, detail_url):
                         print(f"   ⏩ Skipping: {title[:50]}...")
@@ -270,8 +271,8 @@ class TotalEnergiesScraper:
                         tracking_url=detail_url
                     )
                     
-                    if not campaign_data:
-                        print(f"   ❌ AI extraction failed for: {title}")
+                    if not campaign_data or campaign_data.get('_ai_failed'):
+                        print(f"   ❌ AI extraction failed (or returned error) for: {title}")
                         results["FAILED"] += 1
                         continue
 

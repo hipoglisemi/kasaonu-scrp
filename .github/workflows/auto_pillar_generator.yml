@@ -42,7 +42,7 @@ jobs:
           GOOGLE_CLOUD_PROJECT: ${{ vars.GOOGLE_CLOUD_PROJECT }}
           GOOGLE_CLOUD_LOCATION: ${{ vars.GOOGLE_CLOUD_LOCATION }}
           GOOGLE_APPLICATION_CREDENTIALS: "vertex-key.json"
-          GEMINI_MODEL: "gemini-3.1-flash-lite-preview"
+          GEMINI_MODEL: "gemini-2.5-flash"
         run: |
           python auto_seo_pillar_generator.py
 

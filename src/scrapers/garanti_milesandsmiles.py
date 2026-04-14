@@ -324,7 +324,8 @@ class GarantiMilesAndSmilesScraper:
                 clean_text=ai_data.get('_clean_text'),  # type: ignore
                 reward_value=ai_data.get('reward_value'),  # type: ignore
                 reward_type=ai_data.get('reward_type'),  # type: ignore
-                description=details_text,  # type: ignore
+                description=ai_data.get('description') or details_text,  # type: ignore
+                ai_marketing_text=ai_data.get('ai_marketing_text') or ai_data.get('description') or details_text,  # type: ignore
                 conditions=conditions_text,  # type: ignore
                 eligible_cards=eligible_cards_str,
                 participation=participation,  # type: ignore
