@@ -22,4 +22,3 @@ temp_backup/
 *.png
 !/logos/*.png # keep logos
 !/docs/*.png # keep docs
-backup_restore/
