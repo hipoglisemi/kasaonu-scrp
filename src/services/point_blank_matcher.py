@@ -258,3 +258,6 @@ class PointBlankMatcher:
 def get_point_blank_matcher(db: Session) -> PointBlankMatcher:
     """Helper to get a matcher instance."""
     return PointBlankMatcher(db)
+
+# Backward-compat alias (data_quality_autofix.py uses this name)
+_GLOBAL_BRAND_EXCLUSIONS = _STATIC_BRAND_EXCLUSIONS
