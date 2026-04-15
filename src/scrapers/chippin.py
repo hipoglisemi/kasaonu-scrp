@@ -358,6 +358,7 @@ class ChippinScraper:
                             "reward_text": ai_data.get("reward_text"),
                             "reward_value": reward_val,
                             "reward_type": ai_data.get("reward_type"),
+                            "ai_marketing_text": ai_data.get("ai_marketing_text") or ai_data.get("description") or title,
                         }
 
                         print(f"      ✨ Creating...")
@@ -365,13 +366,13 @@ class ChippinScraper:
                             INSERT INTO campaigns (
                                 title, description, slug, image_url, tracking_url, is_active,
                                 sector_id, card_id, start_date, end_date, conditions, participation,
-                                eligible_cards, reward_text, reward_value, reward_type,
+                                eligible_cards, reward_text, reward_value, reward_type, ai_marketing_text,
                                 created_at, updated_at
                             )
                             VALUES (
                                 :title, :description, :slug, :image_url, :tracking_url, true,
                                 :sector_id, :card_id, :start_date, :end_date, :conditions, :participation,
-                                :eligible_cards, :reward_text, :reward_value, :reward_type,
+                                :eligible_cards, :reward_text, :reward_value, :reward_type, :ai_marketing_text,
                                 NOW(), NOW()
                             )
                             ON CONFLICT (slug) DO UPDATE SET updated_at = NOW()

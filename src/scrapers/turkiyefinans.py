@@ -407,6 +407,7 @@ class TurkiyeFinansScraper:
                 campaign_data = {
                     "title": ai_data.get("title") or title,
                     "description": ai_data.get("description") or "",
+                    "ai_marketing_text": ai_data.get("ai_marketing_text") or ai_data.get("description") or title,
                     "image_url": image_url,
                     "tracking_url": url,
                     "start_date": ai_data.get("start_date"),
@@ -428,13 +429,13 @@ class TurkiyeFinansScraper:
                     INSERT INTO campaigns (
                         title, description, slug, image_url, tracking_url, is_active,
                         sector_id, card_id, start_date, end_date, conditions, participation,
-                        eligible_cards, reward_text, reward_value, reward_type, clean_text,
+                        eligible_cards, reward_text, reward_value, reward_type, clean_text, ai_marketing_text,
                         created_at, updated_at
                     )
                     VALUES (
                         :title, :description, :slug, :image_url, :tracking_url, true,
                         :sector_id, :card_id, :start_date, :end_date, :conditions, :participation,
-                        :eligible_cards, :reward_text, :reward_value, :reward_type, :clean_text,
+                        :eligible_cards, :reward_text, :reward_value, :reward_type, :clean_text, :ai_marketing_text,
                         NOW(), NOW()
                     )
                     RETURNING id
