@@ -168,7 +168,8 @@ def clean_campaign_text(raw_text: str) -> str:
     ]
     
     final_text = '\n'.join(cleaned_lines)
-    text_lower = final_text.lower()
+    # Türkçe İ/I harfleri Python .lower() tarafından bozulabilir, önden düzeltiyoruz
+    text_lower = final_text.replace('İ', 'i').replace('I', 'ı').lower()
     earliest_noise_idx = len(final_text)
     
     # Minimum position guard: ignore noise markers in the first 300 chars
