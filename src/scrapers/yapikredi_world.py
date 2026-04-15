@@ -139,10 +139,15 @@ class YapikrediWorldScraper:
             if browser_html:
                 from bs4 import BeautifulSoup
                 inner_soup = BeautifulSoup(browser_html, 'html.parser')
-                # Target all potential content areas - expanded to include .campaign-terms and .campaign-detail-box
-                main_content_div = inner_soup.select_one('.campaign-terms, .campaign-detail-content, .campaign-detail, .campaign-detail-tab-details, .campaign-detail-box, main')
-                if main_content_div:
-                    content_html = str(main_content_div)
+                # Target all potential content areas - capture multiple if present (tabs, terms, etc)
+                content_parts = []
+                for selector in ['.campaign-terms', '.campaign-detail-content', '.campaign-detail', '.campaign-detail-tab-details', '.campaign-detail-box']:
+                    elements = inner_soup.select(selector)
+                    for el in elements:
+                        content_parts.append(str(el))
+                
+                if content_parts:
+                    content_html = "\n".join(content_parts)
                 else:
                     content_html = browser_html
         except Exception as e:

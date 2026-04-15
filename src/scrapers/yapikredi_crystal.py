@@ -8,6 +8,7 @@ if project_root not in sys.path:
 import requests  # type: ignore # pyre-ignore[21]
 import time  # type: ignore # pyre-ignore[21]
 from datetime import datetime  # type: ignore # pyre-ignore[21]
+from playwright.sync_api import sync_playwright
 from typing import Dict, Any, List, Optional  # type: ignore # pyre-ignore[21]
 from sqlalchemy.orm import Session  # type: ignore # pyre-ignore[21]
 
@@ -100,19 +101,52 @@ class YapikrediCrystalScraper:
             api_image_url = f"{self.BASE_URL}{api_image_url}"
         
         short_description = item.get('ShortDescription') or ''
-        content_html = item.get('Content') or ''
-        start_date_str = item.get('StartDate')
-        end_date_str = item.get('EndDate')
-        
-        start_date = self._parse_iso_date(start_date_str)
-        end_date = self._parse_iso_date(end_date_str)
-        
+        # NEW: Fetch detail page for full content using a browser for dynamic content
+        print(f"      🌐 Fetching detail page (Browser Mode) for full content: {full_url}")
+        browser_html = ""
+        try:
+            with sync_playwright() as p:
+                browser = p.firefox.launch(headless=True)
+                context = browser.new_context(user_agent="Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
+                page = context.new_page()
+                page.goto(full_url, wait_until="networkidle", timeout=30000)
+                page.evaluate("window.scrollTo(0, document.body.scrollHeight)")
+                page.wait_for_timeout(2000)
+                try:
+                    page.wait_for_selector(".campaign-terms, .campaign-detail-content, .campaign-detail-tab-details", timeout=5000)
+                except:
+                    pass
+                browser_html = page.content()
+                browser.close()
+            
+            if browser_html:
+                from bs4 import BeautifulSoup
+                inner_soup = BeautifulSoup(browser_html, 'html.parser')
+                content_parts = []
+                for selector in ['.campaign-terms', '.campaign-detail-content', '.campaign-detail', '.campaign-detail-tab-details', '.campaign-detail-box']:
+                    elements = inner_soup.select(selector)
+                    for el in elements:
+                        content_parts.append(str(el))
+                
+                if content_parts:
+                    content_html = "\n".join(content_parts)
+                else:
+                    content_html = browser_html
+        except Exception as e:
+            print(f"      ⚠️ Browser fetch failed, falling back to API content: {e}")
+            content_html = item.get('Content') or ''
+
+        # COMBINE: API data is usually cleaner than the dynamic detail page.
+        # We combine API description with the detail content to give AI best of both worlds.
+        api_desc = item.get('Description') or ''
+        combined_content = f"--- API DATA ---\n{api_desc}\n\n--- DETAIL PAGE ---\n{content_html}"
+
         scraper_sector = item.get('Category') or item.get('Type') or item.get('SectorName') or None
         
         ai_result = parse_api_campaign(
             title=title,
             short_description=short_description,
-            content_html=content_html,
+            content_html=combined_content,
             bank_name=self.BANK_NAME,
             scraper_sector=scraper_sector
         )

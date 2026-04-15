@@ -102,10 +102,10 @@ BANK_RULES = {
     - Metinde ne geçiyorsa aynen al: "Worldcard", "Yapı Kredi Kredi Kartları", "Mastercard logolu kartlar", "Business", "World Eko", "Adios" vb.
     - ❌ NO DEFAULTING: If the text says "Mastercard", write "Mastercard". DO NOT write "Worldcard" unless it's in the text.
 - PARTICIPATION (katilim_sekli):
-    - 🚨 PRIORITY ORDER:
-      1. App: "World Mobil" or "Yapı Kredi Mobil". Look for "Hemen Katıl" button.
-      2. SMS: Look for a keyword + "4402" (e.g., "KAZAN yazıp 4402'ye SMS gönderin").
-    - 🚨 FORMAT: "World Mobil uygulamasından Hemen Katıl butonuna tıklayarak veya [KEYWORD] yazıp 4402'ye SMS göndererek katılabilirsiniz."
+    - 🚨 EXTRACTION RULE: Extract exactly what is found in the text. DO NOT use generic templates.
+    - 📱 APP: Look for "World Mobil" or "Yapı Kredi Mobil" and "Hemen Katıl" instructions.
+    - 📩 SMS: Look for keyword + **"4454"** shortcode.
+    - 🚨 FORMAT: Use a samimi and clear sentence like "World Mobil uygulamasından Hemen Katıl butonuna tıklayarak katılabilirsiniz" or specify the SMS details IF they exist. IF NOT in text, write "Otomatik katılım". 
 - 🚨 REDUNDANCY ALERT: DO NOT repeat card names or dates in 'conditions'.
 """,
     'garanti': """
@@ -1636,11 +1636,12 @@ KURALLAR:
    - ✅ SADECE teknik kuralları yaz: "Harcama alt sınırı", "Maksimum ödül limitleri", "İade/iptal durumları" vb.
 9. cards: 🚨 METİNE HARFİYEN SADIK KAL: SADECE metinde birebir okuduğun kart isimlerini veya özel kategorilerini yaz. Metinde "Paraf, Parafly, Paraf Business" yazıyorsa AYNEN ["Paraf", "Parafly", "Paraf Business"] listele. Metinde "Ticari" geçiyorsa "Ticari" yaz. Hiçbir ismi standartlaştırma veya başka bir isme çevirme! Varsayım yapma, uydurma!
 10. participation: 🚨 KRİTİK — Detay İçerik'te "SMS", "4454", "Mobil", "Katıl", "Jüzdan", "World Mobil", "ON Mobil" gibi ifadeleri ARA.
-   - Katılım adımlarını buraya açık ve net yaz. Örn: "ON Mobil üzerinden Hemen Katıl butonuna tıklayarak katılın."
-   - SMS varsa: "KEYWORD yazıp NUMARA'ya SMS gönderin" formatında yaz.
-   - Mobil uygulama varsa: "World Mobil uygulamasından Kampanyalar bölümünde Katıl butonuna tıklayın" yaz.
-   - Her ikisi de varsa: "World Mobil'den Katıl butonuna tıklayın veya KEYWORD yazıp NUMARA'ya SMS gönderin" yaz.
-   - Hiçbiri yoksa: "Otomatik katılım" yaz.
+    - Katılım adımlarını buraya açık ve net yaz. Örn: "ON Mobil üzerinden Hemen Katıl butonuna tıklayarak katılın."
+    - SMS varsa: "KEYWORD yazıp NUMARA'ya SMS gönderin" formatında yaz.
+    - Mobil uygulama varsa: "World Mobil uygulamasından Kampanyalar bölümünde Katıl butonuna tıklayın" yaz.
+    - Her ikisi de varsa: "World Mobil'den Katıl butonuna tıklayarak veya KEYWORD yazıp 4454'e SMS göndererek katılın" yaz.
+    - 🚨 KESİN KURAL (NO HALLUCINATION): Eğer metinde SMS katılımı yazmıyorsa ASLA SMS katılımı ekleme. "KAZAN", "KATIL" gibi kelimeler uydurma.
+    - Hiçbiri yoksa: Eğer metinde katılım için bir SMS numarası veya uygulama adı kesinlikle geçmiyorsa "Otomatik katılım" yaz. Ama önce mutlaka metni iyice tara.
 10. dates: Metinde geçen başlangıç ve bitiş tarihlerini bul. Format: "YYYY-MM-DD". Bulamazsan null yap. 🚨 EĞER TARİHLER AÇIKÇA YOKSA ASLA BUGÜNÜN TARİHİNİ (<current_date>) KULLANMA. UYDURMA YASAKTIR. KESİNLİKLE `null` OLARAK BIRAK.
 11. PAZARLAMA ÖZETİ (ai_marketing_text):
     - Kampanyanın avantajını özetleyen, kullanıcıyı heyecanlandıran, enerjik ve samimi 2-3 cümlelik bir metin oluştur.
