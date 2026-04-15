@@ -510,7 +510,7 @@ BANK_RULES = {
 from google.genai import types # type: ignore
 from src.utils.gemini_client import get_gemini_client, generate_with_rotation # type: ignore
 
-_GEMINI_MODEL_NAME = os.getenv("GEMINI_MODEL", "gemini-3.1-flash-lite-preview")
+_GEMINI_MODEL_NAME = os.getenv("GEMINI_MODEL", "gemma-4-31b-it-preview")
 try:
     _gemini_client = get_gemini_client()
     print(f"[DEBUG] Gemini AI initialized via gemini_client module (Model: {_GEMINI_MODEL_NAME}).")
@@ -737,11 +737,22 @@ class AIParser:
 
     def _clean_text(self, text: str, title: Optional[str] = None) -> str:
         """
-        Clean and normalize text before sending to AI.
-        Relaxed strategy to prevent stripping critical reward/participation data.
+        Clean and normalize text using the central cleaner service.
         """
         if not text:
             return ""
+
+        # Use the central cleaner service (pre-import at line 19)
+        text = clean_campaign_text(text)
+        
+        # ── Step 2.6: LEADER NOISE REMOVAL (Header/Nav) ──
+        if title:
+            title_pos = text.lower().find(title.lower())
+            if title_pos > 800 and title_pos < len(text) * 0.8:
+                text = text[title_pos:].strip()
+        
+        return text
+
 
         # ── Step 0: HTML parsing and decomposing ─────────────────────
         try:
@@ -1003,7 +1014,9 @@ VALID- SECTOR (CRITICAL):
 1. **DİL**: Tamamı TÜRKÇE olmalı.
 2. **BRANDS**: Metinde geçen markayı TAM OLARAK al. 
     - 🚨 **ILLUSION PROTECTION (CRITICAL)**: Metnin sonu veya yan kolonlarında geçen "İLGİNİZİ ÇEKEBİLECEK DİĞER KAMPANYALAR" veya "Benzer Kampanyalar" bölümlerindeki markaları (Örn: Beymen, Avva vb.) KESİNLİKLE EKLEME! Sadece ana kampanya metninde asıl konu olarak geçen markayı belirt.
-    - 🚨 **HALÜSİNASYON YASAĞI (ÇOK ÖNEMLİ)**: Sadece metin içinde AÇIKÇA okuduğun marka isimlerini ekle. Eğer kampanya tüm e-ticaret siteleri gibi "Genel Sektör" kampanyasıysa (ve açıkça marka listesi verilmemişse), asla kafandan tahmini markalar (Trendyol, Hepsiburada, Opet, THY vb.) UYDURMA! Metinde marka yoksa 'brands' listesini boş bırak veya sadece ["Genel"] yaz.
+    - 🚨 **HALÜSİNASYON YASAĞI (ÇOK ÖNEMLİ)**: Sadece metin içinde AÇIKÇA okuduğun marka isimlerini ekle. 
+    - 🚨 **ZERO INFERENCE RULE**: Kendi iç bilgini kullanarak marka TAHMİN ETME. Eğer marka ismi başlıkta veya metinde karakter karakter yazmıyorsa, o marka senin için yoktur. 
+    - 🛡️ **KARA LİSTE (Uydurma Yasaktır)**: Metinde açıkça her birinin adı geçmiyorsa şu markaları ASLA ekleme: "Trendyol", "Hepsiburada", "Amazon", "N11", "Getir", "Opet", "Shell", "THY", "Migros", "Carrefour", "A101", "BIM", "ŞOK". Metaetiket veya yan kolonlardan gelen gürültüyü ayıkla.
     - 🚨 **ÖNEMLİ YASAK**: Asla kampanya sahibi bankayı ({bank_name or 'Banka'}), kart programını (Maximum, Axess, Bonus, World, Wings, Paraf, Maximiles vb.) veya banka uygulamalarını/ödeme sistemlerini ({dynamic_blocklist}) MARKA olarak ekleme. Sadece ortak markayı (ör. Trendyol, Migros, THY) ekle.
     - 🚨 **FORMAT KURALI**: Marka veya kart isimlerini asla "P, a, r, a, f" veya "A, x, e, s, s" gibi her harfi virgülle ayrılmış şekilde yazma. Sadece tam ve okunabilir ismi yaz ("Paraf", "Axess").
     - 🚨 **GENEL KAMPANYALAR KURALI (ŞART!)**: Eğer kampanya kredi başvurusu, nakit avans, limit artırımı, ek taksit gibi SADECE bankanın kendi genel kampanyasıysa ve ortada dışarıdan başka bir ortak marka (Trendyol, Migros, THY vb.) YOKSA, markayı KESİNLİKLE BOŞ bırak. ["Genel"] yazma! Sadece [] yaz!
@@ -1085,7 +1098,8 @@ VALID- SECTOR (CRITICAL):
     - `reward_value`: Harcanması gereken miktar veya kazanılacak miktar değil, sadece KAZANILAN sayısal NET DEĞER (örn: 100, 150). Sadece float olmalı.
     - `min_spend`: Gereken minimum harcama tutarı. Yoksa 0.0.
 
-12. **MARKA (BRANDS) ETİKETLEME - 🚨 KATI KURALLAR (SMART GUARD V4.9)**:
+12. **MARKA (BRANDS) ETİKETLEME - 🚨 KATI KURALLAR (SMART GUARD V5.0 - SIFIR ÇIKARIM)**:
+    - 🛡️ **KATI METİN BAĞLILIĞI**: Markaları tahmin etme. Eğer girdi metninde yoksa, çıktıda da olamaz.
     - ⛔ NEGATION TRAP (HAYATİ): Eğer bir marka isminin yakınlarında "dahil değildir", "hariçtir", "geçerli değildir", "kapsam dışıdır" ibaresi geçiyorsa o markayı ASLA 'brands' listesine EKLEME. (Örn: "Google, Facebook, SGK ödemeleri dahil değildir" -> Bunlar ASLA marka olamaz).
     - ⛔ ILLUSION TRAP: Kampanyanın en altındaki "Benzer Fırsatlar", "İlginizi çekebilecek diğer kampanyalar" veya "Sizin için seçtiklerimiz" gibi başlıkların altındaki markaları ASLA 'brands' listesine EKLEME.
     - ⛔ APP/PAYMENT TRAP: Ödeme/Uygulama aracıları marka DEĞİLDİR. "Hepsipay", "Vodafone Yanımda", "Maximum Mobil", "Jüzdan", "GarantiPay", "Passo", "Privia" gibi banka veya cüzdan kelimelerini ASLA marka listesine ekleme. Sadece ana kurum (Örn: Vodafone) markadır.

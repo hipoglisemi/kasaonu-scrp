@@ -7,7 +7,7 @@ load_dotenv()
 
 DB_URL = os.getenv("DATABASE_URL")
 # Use the requested lite model for efficient bulk processing
-MODEL = os.getenv("GEMINI_MODEL", "gemini-3.1-flash-lite-preview")
+MODEL = os.getenv("GEMINI_MODEL", "gemma-4-31b-it")
 
 def get_connection():
     return psycopg2.connect(DB_URL)

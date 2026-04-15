@@ -12,7 +12,7 @@ models_to_try = [
     "gemini-1.5-flash-latest",
     "gemini-1.5-flash-002",
     "gemini-2.0-flash-exp",
-    "gemini-3.1-flash-lite-preview"
+    "gemma-4-31b-it"
 ]
 
 for model in models_to_try:

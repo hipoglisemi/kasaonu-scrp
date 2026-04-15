@@ -55,7 +55,7 @@ jobs:
         GEMINI_API_KEY_5: ${{ secrets.GEMINI_API_KEY_5 }}
         GEMINI_API_KEY_6: ${{ secrets.GEMINI_API_KEY_6 }}
         GEMINI_API_KEY_7: ${{ secrets.GEMINI_API_KEY_7 }}
-        GEMINI_MODEL: "gemini-3.1-flash-lite-preview"
+        GEMINI_MODEL: "gemma-4-31b-it"
         USE_VERTEX_AI: "False"
         PYTHONPATH: ${{ github.workspace }}
         PYTHONUNBUFFERED: '1'

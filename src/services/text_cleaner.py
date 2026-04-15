@@ -45,6 +45,34 @@ def clean_campaign_text(raw_text: str) -> str:
         r"anında şifre",
         r"en \| ar",
         r"juzdan'ı indir",
+        r"Setur Servis Turistik A\.Ş\. web sitesine yönlendiriliyorsunuz",
+        r"Shop&Fly Kolay Seyahat Hattı ile iletişime geçmeniz gerekmektedir",
+        r"\d+ Mart \d+ tarihi itibariyle HES Kodu ve PCR Uygulaması zorunluluğu kaldırılmıştır",
+        r"Hisse Senedi VIOP Halka Arz Yatırım Fonu",
+        r"Altın Hesabı Gümüş Hesabı Platin Hesabı Paladyum Hesabı",
+        r"Fatura Ödemeleri Ödeme İste Şans Oyunu Ödemeleri",
+        r"EFT - FAST - Havale Güvenli Ödeme",
+        r"Kripto Platform Ödemeleri Yurt Dışı Para Transferi",
+        r"Vade Faiz Oranı Aylık Ödeme Toplam Geri Ödeme",
+        r"Vadeli Hesap Hesaplama Aracı",
+        r"İnternet Bankacılığı Ara",
+        r"Bizi Takip Edin Sosyal Medya",
+        r"Tüm Hakları Saklıdır",
+        r"Hepsiburada Alışveriş Kredisi",
+        r"Migros Alışveriş Kredisi",
+        r"Hızlı Limit Kartlar ON Kredisi",
+        r"tr Ayrıcalıklar Fırsatlar Tanıyın Destek Kartlarımız",
+        r"Mevduat Krediler Kartlar Yatırım Sigorta Altın",
+        r"Giriş Yap Üye Ol Bireysel Kurumsal",
+        r"İnternet Bankacılığı Ara",
+        r"Sigorta Araç Sigortaları Kasko Sigortası",
+        r"Zorunlu Trafik Sigortası Konut Sigortaları",
+        r"Zorunlu Deprem Sigortası - DASK",
+        r"Tamamlayıcı Sağlık Sigortası \(TSS\)",
+        r"Yurt Dışı Seyahat Sağlık Sigortası",
+        r"Tehlikeli Hastalıklar Sigortası",
+        r"Pembe Kurdele Hayat Sigortası",
+        r"Cep Telefonu Sigortası",
     ]
 
     # Split text into sentences and filter
@@ -96,7 +124,9 @@ def clean_campaign_text(raw_text: str) -> str:
         r"kart şifresi al",
         r"faiz ve ücretler",
         r"hesap özeti açıklamaları",
-        r"kişisel verilerin korunması",
+        r"kişisel verilerin işlenmesi aydınlatma metni",
+        r"bireysel müşteri aydınlatma metni",
+        r"veri sorumlusu sıfatıyla",
         r"e-?mail toplama ve gönderim",
         # İşbankası footer patterns
         r"kampanyayı paylaş",
@@ -125,9 +155,16 @@ def clean_campaign_text(raw_text: str) -> str:
         # Generic cross-campaign / sidebar navigation
         r"prev\s+next\s+\w+\s+servis",
         r"detaylı\s+bilgi\s+prev\s+next",
+        r"ilginizi çekebilecek diğer kampanyalar",
+        r"benzer fırsatları kaçırmayın",
+        r"diğer kampanyalara göz atın",
         # Vodafone/Turkcell footer
         r"vodafone\s+yanımda.*indir",
         r"turkcell\s+dijital\s+operatör",
+        r"444 0 333 shop&fly kolay seyahat hattı",
+        r"çeşitli markalardaki dilediğiniz ayrıcalığı keşfedin",
+        r"popüler aramalar",
+        r"bize ulaşın sosyal medya",
     ]
     
     final_text = '\n'.join(cleaned_lines)

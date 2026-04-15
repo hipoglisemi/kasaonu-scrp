@@ -69,7 +69,7 @@ def generate_with_rotation(
     if not HAS_GENAI:
         raise ImportError("google-genai kütüphanesi yüklü değil.")
 
-    model_name = model or os.getenv("GEMINI_MODEL", "gemini-3.1-flash-lite-preview")
+    model_name = model or os.getenv("GEMINI_MODEL", "gemma-4-31b-it-preview")
     
     if "config" in kwargs:
         config = kwargs.pop("config")

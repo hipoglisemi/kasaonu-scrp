@@ -29,6 +29,7 @@ logging.getLogger("google_genai.models").setLevel(logging.WARNING)
 from src.models import Campaign, Sector, Brand, CampaignBrand, Card, Bank # type: ignore
 from src.database import get_db_session # type: ignore
 from src.services.ai_parser import parse_campaign, AIParser # type: ignore
+from src.services.text_cleaner import clean_campaign_text # type: ignore
 from src.services.point_blank_matcher import get_point_blank_matcher, _GLOBAL_BRAND_EXCLUSIONS # type: ignore
 from sqlalchemy.orm import joinedload # type: ignore
 
@@ -151,14 +152,14 @@ def fetch_html(url: str) -> str:
             # Fallback to whole body if no specific containers found
             text = soup.get_text(separator=' ', strip=True)
             
-        # Remove multiple spaces and newlines
-        text = re.sub(r'\s+', ' ', text)
+        # 🛡️ Use Central Text Cleaner (Standard Scraper Logic)
+        text = clean_campaign_text(text)
         return text
     except Exception as e:
         print(f"      ⚠️ Failed to fetch HTML for {url}: {e}")
         return ""
 
-def run_autofix(limit: int = 250, campaign_id: Optional[int] = None, force_all: bool = False, ids_file: Optional[str] = None, ui_mode: bool = False):
+def run_autofix(limit: int = 250, campaign_id: Optional[int] = None, force_all: bool = False, ids_file: Optional[str] = None, ui_mode: bool = False, pending: bool = False):
     print(f"🚀 Starting Data Quality Auto-Fixer (Limit: {limit})...")
     
     try:
@@ -169,16 +170,18 @@ def run_autofix(limit: int = 250, campaign_id: Optional[int] = None, force_all: 
         with get_db_session() as db:
             print("\n🔍 Scanning for defective campaigns...")
 
-            # Find active campaigns
             query = db.query(Campaign).options(
                 joinedload(Campaign.sector),
                 joinedload(Campaign.brands)
-            ).filter(
-                Campaign.is_active == True
             )
             
             if campaign_id:
                 query = query.filter(Campaign.id == campaign_id)
+            elif pending:
+                print("🔍 Focusing on PENDING (unapproved) campaigns...")
+                query = query.filter(Campaign.is_approved == False)
+            else:
+                query = query.filter(Campaign.is_active == True)
             
             defective_campaigns = query.all()
             print(f"   📊 Checking {len(defective_campaigns)} active campaigns for defects.")
@@ -421,12 +424,12 @@ def run_autofix(limit: int = 250, campaign_id: Optional[int] = None, force_all: 
                 is_truncated = any("Short/Truncated Source Text" in r for r in reasons_list)
                 text_to_parse = ""
                 
-                if c.clean_text and len(c.clean_text) >= 600 and not is_truncated and not mojibake_pattern.search(c.clean_text):
+                if c.clean_text and len(c.clean_text) >= 600 and not is_truncated and not mojibake_pattern.search(c.clean_text) and not FORCE_ALL:
                     print(f"   ⚡ Using pre-cleaned text from DB ({len(c.clean_text)} chars)")
                     text_to_parse = c.clean_text
                 else:
-                    # Fresh fetch required for short or corrupted text
-                    print(f"   🌐 Logic: RESCUE! (Text is short/truncated or corrupted). Fetching fresh HTML...")
+                    # Fresh fetch required
+                    print(f"   🌐 Logic: RESCUE! (Force mode or text issue). Fetching fresh HTML...")
                     html_text = fetch_html(c.tracking_url)
                     
                     if html_text and len(html_text) >= 50:
@@ -806,11 +809,12 @@ def run_autofix(limit: int = 250, campaign_id: Optional[int] = None, force_all: 
 if __name__ == "__main__":
     import argparse
     parser = argparse.ArgumentParser()
-    parser.add_argument("--limit", type=int, default=1000, help="Max campaigns to fix in one run")
+    parser.add_argument("--limit", type=int, default=250, help="Max campaigns to fix in one run")
     parser.add_argument("--id", type=int, help="Fix a specific campaign ID")
     parser.add_argument("--ids-file", type=str, help="Fix a list of IDs from a text file")
     parser.add_argument("--force", action="store_true", help="Force AI re-parse even if data exists")
     parser.add_argument("--ui-mode", action="store_true", help="Output JSON for UI bridge")
+    parser.add_argument("--pending", action="store_true", help="Process only unapproved (pending) campaigns")
     args = parser.parse_args()
     
     # In UI mode, we don't want sleep and we want a limit of 1
@@ -818,4 +822,4 @@ if __name__ == "__main__":
     if args.ui_mode:
         limit = 1
         
-    run_autofix(limit=limit, campaign_id=args.id, force_all=args.force, ids_file=args.ids_file, ui_mode=args.ui_mode)
+    run_autofix(limit=limit, campaign_id=args.id, force_all=args.force, ids_file=args.ids_file, ui_mode=args.ui_mode, pending=args.pending)

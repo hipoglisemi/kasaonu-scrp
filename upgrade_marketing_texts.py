@@ -34,7 +34,7 @@ load_dotenv()
 logging.basicConfig(level=logging.INFO, format="%(message)s")
 logger = logging.getLogger("MarketingUpgrader")
 
-MODEL = "gemini-3.1-flash-lite-preview"
+MODEL = "gemma-4-31b-it"
 
 MARKETING_PROMPT = """\
 Sen uzman bir pazarlama metni yazarısın. Aşağıdaki kampanya bilgilerini kullanarak \

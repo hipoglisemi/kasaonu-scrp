@@ -24,9 +24,6 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
-      - name: Create Vertex Key File
-        run: echo "${{ secrets.GCP_SERVICE_ACCOUNT_KEY }}" > vertex-key.json
-
       - name: Run Autonomous SEO Pillar Generator
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
@@ -38,11 +35,8 @@ jobs:
           GEMINI_API_KEY_5: ${{ secrets.GEMINI_API_KEY_5 }}
           GEMINI_API_KEY_6: ${{ secrets.GEMINI_API_KEY_6 }}
           GEMINI_API_KEY_7: ${{ secrets.GEMINI_API_KEY_7 }}
-          USE_VERTEX_AI: "True"
-          GOOGLE_CLOUD_PROJECT: ${{ vars.GOOGLE_CLOUD_PROJECT }}
-          GOOGLE_CLOUD_LOCATION: ${{ vars.GOOGLE_CLOUD_LOCATION }}
-          GOOGLE_APPLICATION_CREDENTIALS: "vertex-key.json"
-          GEMINI_MODEL: "gemini-2.5-flash"
+          USE_VERTEX_AI: "False"
+          GEMINI_MODEL: "gemma-4-31b-it"
         run: |
           python auto_seo_pillar_generator.py
 
