@@ -370,6 +370,7 @@ class PaycellScraper:
 
             campaign.title = ai_data.get("title") or original_title
             campaign.description = ai_data.get("description") or campaign.title
+            campaign.ai_marketing_text = ai_data.get("ai_marketing_text") or campaign.description
             campaign.reward_text = ai_data.get("reward_text")
             campaign.reward_value = ai_data.get("reward_value")
             campaign.reward_type = ai_data.get("reward_type")

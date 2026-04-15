@@ -294,7 +294,7 @@ class DunyaKatilimScraper:
                 reward_type=data.get("reward_type"),
                 reward_value=data.get("reward_value"),
                 reward_text=data.get("reward_text"),
-                ai_marketing_text=data.get("description"),
+                ai_marketing_text=data.get("ai_marketing_text") or data.get("description"),
                 eligible_cards=eligible_cards_text,
                 category=participation_text,
                 badge_color=data.get("badge_color"),

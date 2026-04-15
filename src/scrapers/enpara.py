@@ -291,6 +291,7 @@ class EnparaScraper:
                 reward_text=ai_data.get('reward_text', 'Detayları İnceleyin'),
                 clean_text=ai_data.get('_clean_text', ''),
                 description=ai_data.get('description') or details_text,
+                ai_marketing_text=ai_data.get("ai_marketing_text") or ai_data.get('description') or details_text,
                 participation=participation,
                 conditions=conditions_text, # Updated
                 start_date=start_date,

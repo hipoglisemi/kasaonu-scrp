@@ -393,7 +393,7 @@ class KuveytTurkScraper:
         campaign.reward_type = parsed_data.get("reward_type")
         campaign.reward_value = parsed_data.get("reward_value")
         
-        campaign.ai_marketing_text = f"📱 Katılım: {parsed_data.get('participation', 'Otomatik')}"
+        campaign.ai_marketing_text = parsed_data.get("ai_marketing_text") or parsed_data.get("description") or campaign.title
 
         try:
             self.db.flush()  # type: ignore # pyre-ignore[16]

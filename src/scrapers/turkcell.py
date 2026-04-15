@@ -300,7 +300,7 @@ class TurkcellScraper:
                     image_url=image_url or ai_data.get("image_url") or "/logos/banks/turkcell.png",
                     tracking_url=url,
                     is_active=True,
-                    ai_marketing_text=ai_data.get("marketing_text"),
+                    ai_marketing_text=ai_data.get("ai_marketing_text"),
                     clean_text=ai_data.get("_clean_text"),
                     eligible_cards=", ".join(ai_data.get("cards", [])) if isinstance(ai_data.get("cards"), list) and ai_data.get("cards") else "Turkcell"
                 )

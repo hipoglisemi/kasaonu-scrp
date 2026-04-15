@@ -175,7 +175,7 @@ class QNBScraper:
                     image_url=image_url or "https://www.qnbcard.com.tr/Content/images/logo.png",
                     tracking_url=url,
                     is_active=True,
-                    ai_marketing_text=ai_data.get("marketing_text"),
+                    ai_marketing_text=ai_data.get("ai_marketing_text"),
                     clean_text=ai_data.get("_clean_text"),
                     participation=ai_data.get("participation"),
                     eligible_cards=", ".join(ai_data.get("cards", [])) if isinstance(ai_data.get("cards"), list) and ai_data.get("cards") else "QNBCard"

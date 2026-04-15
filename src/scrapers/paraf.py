@@ -284,7 +284,7 @@ class ParafScraper:
         
         # Prepare marketing text with participation method
         participation = data.get("participation", "")
-        marketing_text = data.get("description", "")
+        marketing_text = data.get("ai_marketing_text") or data.get("description", "")
         if participation:
             marketing_text = f"{marketing_text}\n\n📱 Katılım: {participation}"
         

@@ -299,6 +299,7 @@ class HSBCScraper:
             if existing:
                 existing.title = formatted_title
                 existing.description = ai_data.get("description")
+                existing.ai_marketing_text = ai_data.get("ai_marketing_text") or existing.description
                 existing.reward_text = ai_data.get("reward_text")
                 existing.reward_value = ai_data.get("reward_value")
                 existing.reward_type = ai_data.get("reward_type")
@@ -318,6 +319,7 @@ class HSBCScraper:
                     slug=slug,
                     title=formatted_title,
                     description=ai_data.get("description"),
+                    ai_marketing_text=ai_data.get("ai_marketing_text") or ai_data.get("description"),
                     reward_text=ai_data.get("reward_text"),
                     reward_value=ai_data.get("reward_value"),
                     reward_type=ai_data.get("reward_type"),

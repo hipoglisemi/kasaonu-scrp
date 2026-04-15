@@ -382,6 +382,7 @@ class AmericanExpressScraper:
             is_active=True,  # type: ignore
             conditions=final_conditions,  # type: ignore
             tracking_url=url,  # type: ignore
+            ai_marketing_text=ai_data.get('ai_marketing_text') or ai_data.get('description') or final_title,  # type: ignore
         )
 
         self.db.add(campaign)  # type: ignore # pyre-ignore[16]

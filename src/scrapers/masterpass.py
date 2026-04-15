@@ -357,6 +357,7 @@ class MasterpassScraper:
                 existing.sector_id = sector.id if sector else None  # type: ignore # pyre-ignore[16]
                 existing.title = formatted_title
                 existing.description = ai_data.get("description") or formatted_title
+                existing.ai_marketing_text = ai_data.get("ai_marketing_text") or existing.description
                 existing.reward_text = ai_data.get("reward_text")
                 existing.reward_value = ai_data.get("reward_value")
                 existing.reward_type = ai_data.get("reward_type")
@@ -377,6 +378,7 @@ class MasterpassScraper:
                     slug=slug,  # type: ignore
                     title=formatted_title,  # type: ignore
                     description=ai_data.get("description") or formatted_title,  # type: ignore
+                    ai_marketing_text=ai_data.get("ai_marketing_text") or ai_data.get("description") or formatted_title,  # type: ignore,
                     reward_text=ai_data.get("reward_text"),  # type: ignore
                     reward_value=ai_data.get("reward_value"),  # type: ignore
                     reward_type=ai_data.get("reward_type"),  # type: ignore

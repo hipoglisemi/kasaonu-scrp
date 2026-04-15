@@ -310,7 +310,7 @@ class TotalEnergiesScraper:
                         reward_value=campaign_data.get('reward_value'),
                         reward_type=campaign_data.get('reward_type'),
                         description=campaign_data.get('description', ''),
-                        ai_marketing_text=campaign_data.get('description'),
+                        ai_marketing_text=campaign_data.get('ai_marketing_text') or campaign_data.get('description'),
                         conditions="\n".join(campaign_data.get('conditions', [])),
                         participation=campaign_data.get('participation'),
                         eligible_cards=", ".join(campaign_data.get('cards', [])),

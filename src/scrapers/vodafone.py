@@ -253,7 +253,7 @@ class VodafoneScraper:
         
         # Format for CampaignDetailClient.tsx
         participation = data.get("participation", "")
-        ai_description = data.get("marketing_text") or data.get("description", "")
+        ai_description = data.get("ai_marketing_text") or data.get("description", "")
         
         if participation.strip():
             clean_part = re.sub(r'\[[^\]]+\]:\s*', '', participation.strip()).strip()  # type: ignore # pyre-ignore[16,6]
