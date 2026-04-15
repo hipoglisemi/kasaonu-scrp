@@ -1117,6 +1117,7 @@ JSON Formatı:
   "brands": ["Marka1", "Marka2"],
   "cards": ["Kart1", "Kart2"], // 🚨 METİNE HARFİYEN SADIK KAL: Sadece metinde birebir okuduğun kart isimlerini veya kategorilerini yaz. Hiçbir ismi standartlaştırma veya başka bir isme çevirme.
   "participation": "Katılım talimatı (SMS/App)",
+  "ai_marketing_text": "2-3 cümlelik enerjik, emojili pazarlama özeti",
   "conditions": ["Madde 1", "Madde 2"] // 🚨 ASLA madde işareti (- , * , •) kullanma, sadece metni yaz.
 }}
 
@@ -1478,6 +1479,7 @@ ANALİZ EDİLECEK METİN:
             "brands": [],
             "cards": [],
             "participation": "",
+            "ai_marketing_text": "",
             "conditions": []
         }
 
@@ -1640,6 +1642,9 @@ KURALLAR:
    - Her ikisi de varsa: "World Mobil'den Katıl butonuna tıklayın veya KEYWORD yazıp NUMARA'ya SMS gönderin" yaz.
    - Hiçbiri yoksa: "Otomatik katılım" yaz.
 10. dates: Metinde geçen başlangıç ve bitiş tarihlerini bul. Format: "YYYY-MM-DD". Bulamazsan null yap. 🚨 EĞER TARİHLER AÇIKÇA YOKSA ASLA BUGÜNÜN TARİHİNİ (<current_date>) KULLANMA. UYDURMA YASAKTIR. KESİNLİKLE `null` OLARAK BIRAK.
+11. PAZARLAMA ÖZETİ (ai_marketing_text):
+    - Kampanyanın avantajını özetleyen, kullanıcıyı heyecanlandıran, enerjik ve samimi 2-3 cümlelik bir metin oluştur.
+    - Mutlaka emojili ve ilgi çekici olsun.
 
 KAMPANYA BİLGİLERİ:
 Başlık: "{title}"
@@ -1659,6 +1664,7 @@ JSON olarak cevap ver:
   "conditions": ["Madde 1", "Madde 2"],
   "cards": ["Kart1"],
   "participation": "Katılım talimatı",
+  "ai_marketing_text": "2-3 cümlelik enerjik, emojili pazarlama özeti",
   "start_date": "YYYY-MM-DD",
   "end_date": "YYYY-MM-DD"
 }}}}"""
@@ -1715,6 +1721,7 @@ JSON olarak cevap ver:
             "conditions": [],
             "cards": [],
             "participation": "",
+            "ai_marketing_text": "",
             "start_date": None,
             "end_date": None
         }

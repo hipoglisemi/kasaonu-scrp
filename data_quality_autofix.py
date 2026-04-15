@@ -552,6 +552,7 @@ def run_autofix(limit: int = 50, campaign_id: Optional[int] = None, force_all: b
                 # --- AI Marketing Text (Marketing Summary) update ---
                 if ai_data.get("ai_marketing_text"):
                     # We always update this to get fresh summaries
+                    print(f"   ✨ Repaired Marketing Summary!")
                     c.ai_marketing_text = ai_data["ai_marketing_text"]
                     updated = True
 
