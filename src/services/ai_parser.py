@@ -105,8 +105,8 @@ BANK_RULES = {
     - 🚨 EXTRACTION RULE: Extract exactly what is found in the text. DO NOT use generic templates.
     - 📱 APP: Look for "World Mobil" or "Yapı Kredi Mobil" and "Hemen Katıl" instructions.
     - 📩 SMS: Look for keyword + **"4454"** shortcode.
-    - 🚨 FORMAT: Use a samimi and clear sentence like "World Mobil uygulamasından Hemen Katıl butonuna tıklayarak katılabilirsiniz" or specify the SMS details IF they exist. IF NOT in text, write "Otomatik katılım". 
-- 🚨 REDUNDANCY ALERT: DO NOT repeat card names or dates in 'conditions'.
+    - 🚨 NO SMS HALLUCINATION: If the text doesn't mention 4454 or an SMS keyword, write "Otomatik katılım" or detail the App instructions. NEVER invent SMS keywords.
+- 🚨 REDUNDANCY ALERT: DO NOT repeat card names, dates, or participation instructions in 'conditions'.
 """,
     'garanti': """
 🚨 GARANTI BBVA / BONUS / MILES&SMILES / SHOP&FLY SPECIFIC RULES:
@@ -1100,7 +1100,7 @@ VALID- SECTOR (CRITICAL):
   "end_date": "YYYY-MM-DD",
   "sector": "Sektör Slug'ı",
   "brands": ["Marka1", "Marka2"], // 🚨 KATI KURAL: Sadece geçerli, kısıtlanmamış ana markaları yaz. SGK, Youtube, Privia, Hepsipay yasak.
-  "cards": ["Kart1", "Kart2"],    // 🚨 METİNE HARFİYEN SADIK KAL: Sadece metinde birebir okuduğun kart isimlerini yaz.
+  "cards": ["Kart1", "Kart2"],    // 🚨 METİNE HARFİYEN SADIK KAL: Sadece metinde birebir okuduğun kart isimlerini yaz. Hiçbir ismi standartlaştırma veya başka bir isme çevirme.
  
 JSON Formatı:
 {{

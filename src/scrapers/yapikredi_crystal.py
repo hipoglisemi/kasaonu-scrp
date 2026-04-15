@@ -101,6 +101,12 @@ class YapikrediCrystalScraper:
             api_image_url = f"{self.BASE_URL}{api_image_url}"
         
         short_description = item.get('ShortDescription') or ''
+        start_date_str = item.get('StartDate')
+        end_date_str = item.get('EndDate')
+        
+        start_date = self._parse_iso_date(start_date_str)
+        end_date = self._parse_iso_date(end_date_str)
+        
         # NEW: Fetch detail page for full content using a browser for dynamic content
         print(f"      🌐 Fetching detail page (Browser Mode) for full content: {full_url}")
         browser_html = ""
@@ -212,7 +218,7 @@ class YapikrediCrystalScraper:
                 print(f"   ✅ Saved: {campaign.title}")
 
                 # Brands via brand_matcher
-                from src.services.brand_matcher import get_or_create_brands_list
+                from src.services.brand_matcher import get_or_create_brands_list  # type: ignore
                 brand_ids = get_or_create_brands_list(
                     db_session=db,
                     brand_names=ai_data.get("brands", []),

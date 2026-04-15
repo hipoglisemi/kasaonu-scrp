@@ -20,6 +20,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import re
 import uuid
 import logging
+import json
 
 # Suppress noisy INFO logs from underlying AI libraries
 logging.getLogger("httpx").setLevel(logging.WARNING)
@@ -108,19 +109,56 @@ def fetch_html(url: str) -> str:
             response.encoding = response.apparent_encoding
             
         # Simple cleanup
-        soup = BeautifulSoup(response.text, 'html.parser')
-        for script in soup(["script", "style", "nav", "footer", "header"]):
-            script.extract()
+        # Determine bank context from URL if possible
+        is_yapi_kredi = "worldcard.com.tr" in url or "yapikredi.com.tr" in url
         
+        soup = BeautifulSoup(response.text, 'html.parser')
+        
+        # 🛡️ NOISE REMOVAL (Global)
+        for script in soup(["script", "style", "nav", "footer", "header", "noscript"]):
+            script.extract()
+            
+        # 🛡️ NOISE REMOVAL (Specific)
+        noise_selectors = [
+            '.other-campaigns', '.featured-campaigns', '.similar-campaigns', 
+            '.campaign-recommendations', 'section.news-carousel', 
+            '#related-campaigns', '.campaignDetail-others'
+        ]
+        for selector in noise_selectors:
+            for element in soup.select(selector):
+                element.extract()
+        
+        # 🎯 CONTENT TARGETING
+        # If we find specific content containers, only use those.
+        target_selectors = [
+            '.campaign-terms', '.campaign-detail-content', '.campaign-detail', 
+            '.campaign-detail-tab-details', '.campaign-detail-box', 
+            'article.campaign-detail', '.cmsContent'
+        ]
+        
+        content_found = []
+        for selector in target_selectors:
+            elements = soup.select(selector)
+            for el in elements:
+                # Double check: ignore elements that contain mostly noise headers
+                if any(x in el.get_text().lower() for x in ["öne çıkan kampanyalar", "benzer kampanyalar"]):
+                    continue
+                content_found.append(el.get_text(separator=' ', strip=True))
+        
+        if content_found:
+            text = " ".join(content_found)
+        else:
+            # Fallback to whole body if no specific containers found
+            text = soup.get_text(separator=' ', strip=True)
+            
         # Remove multiple spaces and newlines
-        text = soup.get_text(separator=' ', strip=True)
         text = re.sub(r'\s+', ' ', text)
         return text
     except Exception as e:
         print(f"      ⚠️ Failed to fetch HTML for {url}: {e}")
         return ""
 
-def run_autofix(limit: int = 50, campaign_id: Optional[int] = None, force_all: bool = False, ids_file: Optional[str] = None):
+def run_autofix(limit: int = 250, campaign_id: Optional[int] = None, force_all: bool = False, ids_file: Optional[str] = None, ui_mode: bool = False):
     print(f"🚀 Starting Data Quality Auto-Fixer (Limit: {limit})...")
     
     try:
@@ -728,6 +766,25 @@ def run_autofix(limit: int = 50, campaign_id: Optional[int] = None, force_all: b
                 # ALWAYS mark as auto_corrected so we don't try again forever (even if Gemini failed to find missing data)
                 c.auto_corrected = True
                 c.repair_count = (c.repair_count or 0) + 1
+                
+                # --- UI MODE JSON OUTPUT (FINAL STATE) ---
+                if ui_mode:
+                    print("\n---AIPARSER_JSON_START---")
+                    # We send back the full ai_data but ensured it has the final state from DB fields if they were updated
+                    ui_response = dict(ai_data)
+                    ui_response["title"] = c.title
+                    ui_response["description"] = c.description
+                    ui_response["reward_text"] = c.reward_text
+                    ui_response["reward_value"] = c.reward_value
+                    ui_response["reward_type"] = c.reward_type
+                    ui_response["cards"] = c.eligible_cards.split(", ") if c.eligible_cards else []
+                    ui_response["participation"] = c.participation
+                    ui_response["conditions"] = c.conditions.split("\n") if c.conditions else []
+                    ui_response["sector"] = final_sector_slug
+                    ui_response["_clean_text"] = text_to_parse
+                    print(json.dumps(ui_response, ensure_ascii=False))
+                    print("---AIPARSER_JSON_END---")
+
                 db.commit()
                 fixed_count += 1
                 
@@ -753,6 +810,12 @@ if __name__ == "__main__":
     parser.add_argument("--id", type=int, help="Fix a specific campaign ID")
     parser.add_argument("--ids-file", type=str, help="Fix a list of IDs from a text file")
     parser.add_argument("--force", action="store_true", help="Force AI re-parse even if data exists")
+    parser.add_argument("--ui-mode", action="store_true", help="Output JSON for UI bridge")
     args = parser.parse_args()
     
-    run_autofix(limit=args.limit, campaign_id=args.id, force_all=args.force, ids_file=args.ids_file)
+    # In UI mode, we don't want sleep and we want a limit of 1
+    limit = args.limit
+    if args.ui_mode:
+        limit = 1
+        
+    run_autofix(limit=limit, campaign_id=args.id, force_all=args.force, ids_file=args.ids_file, ui_mode=args.ui_mode)
