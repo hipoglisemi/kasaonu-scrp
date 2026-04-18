@@ -102,6 +102,11 @@ class IsbankMaximumScraper:
                 print(f"[DEBUG] AIParser import FAILED: {e}")  # type: ignore # pyre-ignore[16,6]
                 raise
         print("[DEBUG] AIParser initialized")
+        
+        self.page = None
+        self.browser = None
+        self.playwright = None
+
 
     def _get_or_create_bank(self) -> int:
         bank = self.session.query(Bank).filter(  # type: ignore # pyre-ignore[16]
@@ -144,6 +149,40 @@ class IsbankMaximumScraper:
         if card and hasattr(card, 'id'):
             return card.id  # type: ignore # pyre-ignore[7]
         return 0 # Or handle as error  # type: ignore # pyre-ignore[7]
+
+    def _start_browser(self):
+        from playwright.sync_api import sync_playwright  # type: ignore # pyre-ignore[21]
+        self.playwright = sync_playwright().start()
+        
+        # Consistent with Maximiles stealth pattern
+        self.browser = self.playwright.chromium.launch(
+            headless=True,
+            args=["--no-sandbox", "--disable-setuid-sandbox",
+                  "--disable-dev-shm-usage", "--disable-gpu", "--window-size=1920,1080",
+                  "--disable-blink-features=AutomationControlled",
+                  "--disable-extensions", "--disable-web-security"]
+        )
+        context = self.browser.new_context(
+            viewport={"width": 1920, "height": 1080},
+            user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
+            locale="tr-TR",
+            timezone_id="Europe/Istanbul",
+            extra_http_headers={"Accept-Language": "tr-TR,tr;q=0.9,en;q=0.8"}
+        )
+        context.add_init_script("Object.defineProperty(navigator, 'webdriver', {get: () => undefined})")
+        self.page = context.new_page()
+        self.page.set_default_timeout(60000)
+        print("✅ Playwright browser started for Maximum Scraper.")
+
+    def _stop_browser(self):
+        try:
+            if self.browser:
+                self.browser.close()
+            if self.playwright:
+                self.playwright.stop()
+        except Exception:
+            pass
+
 
     def _fetch_campaign_urls(self, limit: Optional[int] = None) -> tuple[List[str], List[str]]:  # type: ignore # pyre-ignore[16,6]
         print(f"📥 Fetching campaign list from {self.CAMPAIGNS_URL}...")
@@ -256,28 +295,30 @@ class IsbankMaximumScraper:
     def _extract_campaign_data(self, url: str) -> Optional[Dict[str, Any]]:  # type: ignore # pyre-ignore[16,6]
         try:
             success = False
-            html_content = ""
             for attempt in range(3):
                 try:
-                    import requests  # type: ignore # pyre-ignore[21]
-                    time.sleep(1.5 + attempt) # modest delay
-                    response = requests.get(
-                        url, 
-                        headers=self.headers,
-                        timeout=15,
-                        verify=False # avoid SSL certificate verify errors just in case
-                    )
-                    response.raise_for_status()
-                    html_content = response.text
+                    if not self.page:
+                        print("      ❌ self.page is None")
+                        return None
+                    
+                    self.page.goto(url, wait_until="domcontentloaded", timeout=60000)
+                    # Simple scroll to ensure lazy content loads
+                    self.page.evaluate("window.scrollTo(0, document.body.scrollHeight/2)")
+                    time.sleep(1)
+                    self.page.evaluate("window.scrollTo(0, document.body.scrollHeight)")
+                    time.sleep(1)
+                    
+                    html_content = self.page.content()
                     success = True
                     break
                 except Exception as e:
-                    print(f"      ⚠️ Detail load attempt {attempt+1}/3 failed (requests): {e}. Retrying...")
+                    print(f"      ⚠️ Detail load attempt {attempt+1}/3 failed: {e}. Retrying...")
                     time.sleep(3 + attempt * 2)
             
             if not success:
                 print(f"      ❌ Could not load detail page after 3 attempts: {url}")
                 return None  # type: ignore # pyre-ignore[7]
+
                 
             import urllib3  # type: ignore # pyre-ignore[21]
             urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
@@ -502,9 +543,8 @@ class IsbankMaximumScraper:
 
             conds = data.get("conditions", [])
             part = data.get("participation")
-            if part and "Detayları İnceleyin" not in part:
-                pass  # participation field written separately to DB
             final_conditions = "\n".join(conds)
+
 
             eligible = ", ".join(data.get("cards", [])) or None
 
@@ -520,8 +560,9 @@ class IsbankMaximumScraper:
                 reward_type=data.get("reward_type"),  # type: ignore
                 conditions=final_conditions,  # type: ignore
                 eligible_cards=eligible,
-                participation=participation,  # type: ignore
+                participation=part,  # type: ignore
                 clean_text=data.get("_clean_text"),  # type: ignore
+
                 image_url=data["image_url"],  # type: ignore
                 start_date=start_date,  # type: ignore
                 end_date=end_date,  # type: ignore
@@ -597,7 +638,10 @@ class IsbankMaximumScraper:
 
         print(f"✅ Bank: {self.BANK_NAME} (ID: {bank_id}, slug: isbankasi)")
         print(f"✅ Card: Maximum (ID: {card_id}, slug: {self.CARD_SLUG})")
-        print("🚀 Starting İşbankası Maximum Scraper (Requests)...")
+        print("🚀 Starting İşbankası Maximum Scraper (Requests + Playwright)...")
+        
+        self._start_browser()
+
 
         try:
             if urls:
@@ -771,6 +815,8 @@ class IsbankMaximumScraper:
             raise
         finally:
             self.session.close()  # type: ignore # pyre-ignore[16]
+            self._stop_browser()
+
 
 
 if __name__ == "__main__":
