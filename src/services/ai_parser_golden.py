@@ -348,8 +348,8 @@ Kampanya Sahibi Banka/Kurum: {bank_name}
 
 5. **KOŞULLAR**: 
     - En fazla 8 madde.
-    - 🚨 MAĞAZA/SİTE KURALI: Eğer metinde 'şu mağazalarda, şu web sitelerinde, şu şubelerde geçerlidir' gibi geçerlilik lokasyonları/noktaları varsa, bunu DİREKT OLARAK maddelerden biri yap.
-    - 🚨 ULTRA KRİTİK - YASAK: Tarih, Geçerli Kartlar ve Katılım adımlarını 'conditions' içerisine KESİNLİKLE YAZMA (Tepede zaten var). Sadece harcama alt sınırı, ödül limitleri, şirket kuralları gibi teknik şartları özetle.
+    - 🚨 MAĞAZA/POS KURALI: Eğer metinde 'şu mağazalarda, şu web sitelerinde geçerlidir' veya 'sadece İş Bankası POS cihazlarından geçen işlemler' gibi fiziksel/altyapı şartları varsa, bunu DİREKT OLARAK maddelerden biri yap.
+    - 🚨 ULTRA KRİTİK - YASAK: Tarih, Geçerli Kartlar ve Katılım adımlarını 'conditions' içerisine KESİNLİKLE YAZMA (Tepede zaten var). Sadece harcama alt sınırı, POS şartları, ödül limitleri gibi işlemsel koşulları özetle.
     - 🚨 JURIDICAL BOILERPLATE REMOVAL (ULTRA STRICT): Aşağıdaki jenerik hukuki metinleri KESİNLİKLE SİL, ASLA MADDE OLARAK YAZMA:
       * "Taksit sayısı ürün gruplarına göre yasal mevzuat çerçevesinde belirlenir."
       * "Bireysel kredi kartlarıyla.. BDDK kuralları gereği..."
