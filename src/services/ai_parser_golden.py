@@ -373,7 +373,7 @@ JSON FORMATI:
   "sector": "sektor-slug",
   "brands": ["Marka1", "Marka2"], // ⛔ NEGATION TRAP: Metinde 'hariçtir','dahil değildir', 'geçerli değildir', 'kapsam dışıdır' gibi kelimelerin 10-15 kelime yakınında geçen markaları (Örn: Migros, Şok, A101 hariç) KESİNLİKLE LİSTEYE EKLEME.
   "cards": ["Kart1"],
-  "participation": "Katılım şeklini kullanıcıyı sıkmayacak ama net bir dille özetle. Şirket/uygulama mağazası isimlerini at, net ve sadece eylemi yaz. Örn: 'Çek Kazan uygulamasından faturanızı 5 gün içinde okutun.', 'World Mobil uygulamasından Katıl butonuna tıklayarak katılın.', 'Fiat servislerindeki faturanızı okutarak puanlarınızı alın.' Hiçbiri yoksa '-' ile BOŞ BIRAK.",
+  "participation": "Kampanyadan nasıl faydalanılacağını net bir dille özetle. Şirket/uygulama mağazası isimlerini at, doğrudan eylemi yaz. Açıkça 'Katıl' butonu/SMS'i YOKSA BİLE, kampanyadan yararlanmak için yapılması gereken 'ödeme adımında kasada veya internet sitesinde taksit seçilmesi gerekmektedir' gibi ödeme sırası işlemleri de BURAYA YAZ (Özetleyerek: 'Ödeme sayfasında taksit seçeneğini işaretleyin' vs). Örn: 'İşCep'ten Katıl butonuna tıklayın.', 'Kasada kampanyadan yararlanmak istediğinizi belirtin.', 'Faturanızı uygulamadan okutun.' Hiçbir eylem cümlesi yoksa '-' ile BOŞ BIRAK.",
   "conditions": ["Önemli Şart 1", "Önemli Şart 2"]
 }}
 
