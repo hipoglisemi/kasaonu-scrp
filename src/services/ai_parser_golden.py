@@ -570,15 +570,17 @@ ANALİZ EDİLECEK METİN:
         """
         Card Hallucination Guard V3:
         1. Passthrough generic terms
-        2. Core word matching (not naive substring)
-        3. Bank-specific card sniper (recovery)
+        2. Core word matching (majority, not all — respects long descriptive names)
+        3. Bank-specific card sniper (ONLY when AI returned zero cards)
         """
         if not text_lower:
             return cards
 
         text_normalized = self._normalize(text_lower)
         validated = []
-        stop_words = {"ve", "ile", "için", "&", "and", "the", "logolu", "özellikli"}
+        stop_words = {"ve", "ile", "için", "&", "and", "the", "logolu", "özellikli",
+                       "temassız", "bireysel", "ticari", "ödemeli", "kartları", "kartlarla",
+                       "kartlarıyla", "sahipleri", "müşterileri"}
 
         for card in cards:
             if not card or not card.strip():
@@ -600,7 +602,7 @@ ANALİZ EDİLECEK METİN:
                 validated.append(card)
                 continue
 
-            # 3. Core word matching
+            # 3. Core word matching (majority threshold — accepts long descriptive names)
             core_words = []
             for w in card_norm.split():
                 if len(w) > 2 and w not in stop_words:
@@ -608,25 +610,27 @@ ANALİZ EDİLECEK METİN:
                         w = 'kart'
                     core_words.append(w)
 
-            if core_words and all(w in text_normalized for w in core_words):
-                validated.append(card)
-            else:
-                logger.debug(f"Card Guard: Rejected '{card}' (not verified in text)")
+            if core_words:
+                matched = sum(1 for w in core_words if w in text_normalized)
+                # Accept if at least 60% of core words are found in text
+                threshold = max(1, int(len(core_words) * 0.6))
+                if matched >= threshold:
+                    validated.append(card)
+                    continue
 
-        # 4. BANK-SPECIFIC CARD SNIPER (Recovery for known cards AI missed)
-        if bank_key and bank_key in BANK_CARD_KEYWORDS:
+            logger.debug(f"Card Guard: Rejected '{card}' (not verified in text)")
+
+        # 4. BANK-SPECIFIC CARD SNIPER (Recovery ONLY when AI returned ZERO valid cards)
+        if not validated and bank_key and bank_key in BANK_CARD_KEYWORDS:
             known_cards = BANK_CARD_KEYWORDS[bank_key]
             for kc in known_cards:
                 kc_norm = self._normalize(kc)
-                # Check if this known card appears in text but AI didn't catch it
-                already_found = any(kc_norm in self._normalize(v) for v in validated)
-                if not already_found and kc_norm in text_normalized:
-                    # Capitalize properly
+                if kc_norm in text_normalized:
                     validated.append(kc.title() if len(kc) > 3 else kc.upper())
-                    logger.info(f"Card Sniper: Recovered '{kc}' for {bank_key}")
+                    logger.info(f"Card Sniper: Recovered '{kc}' for {bank_key} (AI returned empty)")
 
-        # Ziraat-specific sniper
-        if "bankkart" in text_normalized:
+        # Ziraat-specific sniper (also only when empty)
+        if not validated and "bankkart" in text_normalized:
             for variant in ["bankkart başak", "bankkart genç", "bankkart prestij", "bankkart business"]:
                 variant_norm = self._normalize(variant)
                 if variant_norm in text_normalized and not any(variant_norm in self._normalize(v) for v in validated):
