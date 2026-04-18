@@ -606,14 +606,18 @@ class AIParser:
             "description": res.get("description", ""),
             "reward_text": res.get("reward_text", ""),
             "reward_value": res.get("reward_value"),
+            "reward_type": res.get("reward_type"),
             "sector": res.get("sector") or "diger",
             "participation": res.get("participation", ""),
+            "cards": res.get("cards", []),
             "brands": res.get("brands", []),
-            "ai_marketing_text": res.get("ai_marketing_text", "")
+            "ai_marketing_text": res.get("ai_marketing_text", ""),
+            "conditions": res.get("conditions", [])
         }
         
         from src.services.text_cleaner import clean_campaign_text
-        normalized["clean_text"] = clean_campaign_text(raw_text)
+        normalized["_clean_text"] = clean_campaign_text(raw_text, title)
+        normalized["clean_text"] = normalized["_clean_text"]
 
         return normalized
 
