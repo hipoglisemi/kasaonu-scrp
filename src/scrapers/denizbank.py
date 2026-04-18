@@ -502,6 +502,7 @@ class DenizbankScraper:
         campaign_data = {
             "title": ai_data.get('title') or title,
             "description": ai_data.get('description'),
+            "ai_marketing_text": ai_data.get('ai_marketing_text') or ai_data.get('description') or title,
             "image_url": image_url,
             "tracking_url": url,
             "slug": slug,

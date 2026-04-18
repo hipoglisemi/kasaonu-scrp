@@ -243,7 +243,7 @@ class OpetScraper:
                     # Visit Detail Page
                     print(f"   [{(processed_count+1)}] Processing: {detail_url}")
                     self.driver.get(detail_url)
-                    time.sleep(2)
+                    time.sleep(6) # Increased to allow React SPA to fully render campaign conditions
                     
                     detail_soup = BeautifulSoup(self.driver.page_source, "html.parser")
                     # Main content area - Opet details are usually in .bg-light or .detail-content

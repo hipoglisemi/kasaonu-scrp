@@ -572,6 +572,61 @@ class AIParser:
         force: bool = False,
         campaign_id: Optional[int] = None
     ) -> Dict[str, Any]:
+        if tracking_url and not force:
+            cached_data = self._check_db_cache(tracking_url)
+            if cached_data:
+                return cached_data
+
+        print(f"   🤖 [LEGACY PROXY] Routing to Golden Parser V3...")
+        
+        from src.services.ai_parser_golden import AIParserGolden
+        from src.utils.gemini_client import generate_with_rotation
+        from google.genai import types
+        import os
+
+        class _ScraperGeminiClient:
+            def __init__(self):
+                self.model = os.getenv("GEMINI_MODEL", "gemini-3.1-flash-lite-preview")
+            def generate_content(self, prompt):
+                config = types.GenerateContentConfig(
+                    temperature=0.0, top_p=0.1, top_k=1, 
+                    response_mime_type="application/json", 
+                    max_output_tokens=6000
+                )
+                res = generate_with_rotation(prompt, model=self.model, config=config)
+                return str(res) if res else "{}"
+
+        parser = AIParserGolden(_ScraperGeminiClient())
+        
+        res = parser.parse_campaign(raw_html=raw_text, bank_name=bank_name or "", title=title or "")
+        if not res: res = {}
+        
+        normalized = {
+            "title": res.get("title") or title,
+            "description": res.get("description", ""),
+            "reward_text": res.get("reward_text", ""),
+            "reward_value": res.get("reward_value"),
+            "sector": res.get("sector") or "diger",
+            "participation": res.get("participation", ""),
+            "brands": res.get("brands", []),
+            "ai_marketing_text": res.get("ai_marketing_text", "")
+        }
+        
+        from src.services.text_cleaner import clean_campaign_text
+        normalized["clean_text"] = clean_campaign_text(raw_text)
+
+        return normalized
+
+    def _LEGACY_parse_campaign_data(
+        self,
+        raw_text: str,
+        title: Optional[str] = None,
+        bank_name: Optional[str] = None,
+        card_name: Optional[str] = None,
+        tracking_url: Optional[str] = None,
+        force: bool = False,
+        campaign_id: Optional[int] = None
+    ) -> Dict[str, Any]:
         """
         Parse campaign data using Gemini AI
         
@@ -1101,6 +1156,7 @@ VALID- SECTOR (CRITICAL):
 12. **MARKA (BRANDS) ETİKETLEME - 🚨 KATI KURALLAR (SMART GUARD V5.0 - SIFIR ÇIKARIM)**:
     - 🛡️ **KATI METİN BAĞLILIĞI**: Markaları tahmin etme. Eğer girdi metninde yoksa, çıktıda da olamaz.
     - ⛔ NEGATION TRAP (HAYATİ): Eğer bir marka isminin yakınlarında "dahil değildir", "hariçtir", "geçerli değildir", "kapsam dışıdır" ibaresi geçiyorsa o markayı ASLA 'brands' listesine EKLEME. (Örn: "Google, Facebook, SGK ödemeleri dahil değildir" -> Bunlar ASLA marka olamaz).
+    - ⛔ COMMON NOUN TRAP (HAYATİ): "bilet", "lastik", "sigorta", "market", "puan", "bakkal" gibi jenerik kelimeleri, eğer kampanya BAŞLIĞINDA (title) bir marka ismi olarak açıkça geçmiyorsa ASLA 'brands' listesine EKLEME. Bunlar genellikle harcama kategorisidir, marka değil.
     - ⛔ ILLUSION TRAP: Kampanyanın en altındaki "Benzer Fırsatlar", "İlginizi çekebilecek diğer kampanyalar" veya "Sizin için seçtiklerimiz" gibi başlıkların altındaki markaları ASLA 'brands' listesine EKLEME.
     - ⛔ APP/PAYMENT TRAP: Ödeme/Uygulama aracıları marka DEĞİLDİR. "Hepsipay", "Vodafone Yanımda", "Maximum Mobil", "Jüzdan", "GarantiPay", "Passo", "Privia" gibi banka veya cüzdan kelimelerini ASLA marka listesine ekleme. Sadece ana kurum (Örn: Vodafone) markadır.
     - ⛔ PUBLIC/GOVERNMENT TRAP: "SGK", "GİB", "Gelir İdaresi", "Duty Free" gibi devlet veya genel şemsiye kurumları marka DEĞİLDİR. ASLA ekleme.
@@ -1438,7 +1494,23 @@ ANALİZ EDİLECEK METİN:
             clean_context = _clean_ws(full_context_lower)
             clean_brand = _clean_ws(brand_norm)
 
+            negation_keywords = ["dahil değildir", "hariçtir", "geçerli değildir", "kapsam dışıdır", "dahil edilmeyecektir", "sayılmamaktadır"]
+            common_noun_keywords = ["bilet", "lastik", "sigorta", "market", "puan", "bakkal", "indirim", "taksit", "faiz", "kredi"]
+
             if clean_brand in clean_context:
+                # 🛡️ 1. NEGATIVE CONTEXT CHECK (150-char window)
+                idx = clean_context.find(clean_brand)
+                window_start = max(0, idx - 150)
+                window_end = min(len(clean_context), idx + len(brand_norm) + 150)
+                context_window = clean_context[window_start:window_end]
+                
+                is_negative = any(neg in context_window for neg in negation_keywords)
+                
+                if is_negative and brand_norm not in title_plain:
+                    rejected.append(brand)
+                    print(f"   🛡️ Negative Context Guard: Rejected '{brand}' (found near exclusion words)")
+                    continue
+
                 validated.append(brand)
             else:
                 rejected.append(brand)

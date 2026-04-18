@@ -28,13 +28,33 @@ logging.getLogger("google_genai.models").setLevel(logging.WARNING)
 
 from src.models import Campaign, Sector, Brand, CampaignBrand, Card, Bank # type: ignore
 from src.database import get_db_session # type: ignore
-from src.services.ai_parser import parse_campaign, AIParser # type: ignore
+from src.services.ai_parser_golden import AIParserGolden # type: ignore
 from src.services.text_cleaner import clean_campaign_text # type: ignore
 from src.services.point_blank_matcher import get_point_blank_matcher, _GLOBAL_BRAND_EXCLUSIONS # type: ignore
 from sqlalchemy.orm import joinedload # type: ignore
+from src.utils.gemini_client import generate_with_rotation # type: ignore
+from google.genai import types # type: ignore
 
-# Shared cleaner — same preprocessing scrapers use (filters boilerplate, dedup, 6K limit)
-_clean_text = AIParser._clean_text
+# Golden Parser AI Client Wrapper
+class _AutofixGeminiClient:
+    """Wraps generate_with_rotation for AIParserGolden compatibility."""
+    def __init__(self):
+        self.model = os.getenv("GEMINI_MODEL", "gemini-3.1-flash-lite-preview")
+    def generate_content(self, prompt):
+        config = types.GenerateContentConfig(
+            temperature=0.0, top_p=0.1, top_k=1,
+            response_mime_type="application/json",
+            max_output_tokens=6000
+        )
+        result = generate_with_rotation(prompt=prompt, model=self.model, config=config)
+        return str(result) if result else "{}"
+
+_golden_parser = None
+def _get_golden_parser():
+    global _golden_parser
+    if _golden_parser is None:
+        _golden_parser = AIParserGolden(_AutofixGeminiClient())
+    return _golden_parser
 
 SECTOR_MAP = {
     # Türkçe isim → slug
@@ -51,15 +71,15 @@ SECTOR_MAP = {
     "Ulaşım": "ulasim",
     "Dijital Platform & Oyun": "dijital-platform",
     "Dijital Platform": "dijital-platform",
-    "Kültür, Sanat & Spor": "kultur-sanat",
-    "Kültür & Sanat": "kultur-sanat",
+    "Kültür, Sanat & Spor": "kultur-sanat-spor",
+    "Kültür & Sanat": "kultur-sanat-spor",
     "Eğitim": "egitim",
     "Sigorta": "sigorta",
     "Otomotiv": "otomotiv",
     "Vergi & Kamu": "vergi-kamu",
     "Turizm, Konaklama & Seyahat": "turizm-konaklama",
     "Turizm & Konaklama": "turizm-konaklama",
-    "Mücevherat, Optik & Saat": "kuyum-optik-ve-saat",
+    "Mücevherat, Optik & Saat": "mucevherat-optik-saat",
     "Fatura & Telekomünikasyon": "fatura-telekomunikasyon",
     "Anne, Bebek & Oyuncak": "anne-bebek-oyuncak",
     "Kitap, Kırtasiye & Ofis": "kitap-kirtasiye-ofis",
@@ -78,13 +98,15 @@ SECTOR_MAP = {
     "e-ticaret": "e-ticaret",
     "ulasim": "ulasim",
     "dijital-platform": "dijital-platform",
-    "kultur-sanat": "kultur-sanat",
+    "kultur-sanat": "kultur-sanat-spor",
+    "kultur-sanat-spor": "kultur-sanat-spor",
     "egitim": "egitim",
     "sigorta": "sigorta",
     "otomotiv": "otomotiv",
     "vergi-kamu": "vergi-kamu",
     "turizm-konaklama": "turizm-konaklama",
-    "kuyum-optik-ve-saat": "kuyum-optik-ve-saat",
+    "kuyum-optik-ve-saat": "mucevherat-optik-saat",
+    "mucevherat-optik-saat": "mucevherat-optik-saat",
     "fatura-telekomunikasyon": "fatura-telekomunikasyon",
     "anne-bebek-oyuncak": "anne-bebek-oyuncak",
     "kitap-kirtasiye-ofis": "kitap-kirtasiye-ofis",
@@ -96,37 +118,66 @@ SECTOR_MAP = {
 
 def fetch_html(url: str) -> str:
     """Attempts to fetch the HTML content of a URL."""
-    try:
-        headers = {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36'
-        }
-        import urllib3 # type: ignore
-        urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
-        response = requests.get(url, headers=headers, timeout=15, verify=False)
-        response.raise_for_status()
+    spa_domains = ["opet.com.tr", "naysapp.com.tr", "chippin.com"]
+    is_spa = any(domain in url for domain in spa_domains)
+
+    if is_spa:
+        print(f"   🚀 SPA Detected ({url}). Booting Headless Chrome...")
+        import time
+        from selenium import webdriver
+        options = webdriver.ChromeOptions()
+        options.add_argument('--disable-blink-features=AutomationControlled')
+        options.add_argument('--no-sandbox')
+        options.add_argument('--disable-dev-shm-usage')
+        options.add_argument('--disable-gpu')
+        options.add_argument('--headless=new')
+        options.page_load_strategy = 'eager'
         
-        # Ensure correct encoding (often ISO-8859-9 or UTF-8 for Turkish sites)
-        if response.encoding == 'ISO-8859-1':
-            response.encoding = response.apparent_encoding
+        try:
+            driver = webdriver.Chrome(options=options)
+            driver.set_page_load_timeout(30)
+            driver.get(url)
+            # Give React/JS time to load content
+            time.sleep(5) 
+            raw_html = driver.page_source
+            driver.quit()
+        except Exception as e:
+            print(f"   ⚠️ SPA fetch failed: {e}. Falling back to requests.")
+            raw_html = ""
+    else:
+        raw_html = ""
+        
+    if not raw_html:
+        try:
+            headers = {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36'
+            }
+            import urllib3 # type: ignore
+            urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+            response = requests.get(url, headers=headers, timeout=15, verify=False)
+            response.raise_for_status()
             
-        # Simple cleanup
-        # Determine bank context from URL if possible
-        is_yapi_kredi = "worldcard.com.tr" in url or "yapikredi.com.tr" in url
+            if response.encoding == 'ISO-8859-1':
+                response.encoding = response.apparent_encoding
+            raw_html = response.text
+        except Exception as e:
+            print(f"   ⚠️ Request failed: {e}")
+            return ""
+
+    soup = BeautifulSoup(raw_html, 'html.parser')
+
+    # 🛡️ NOISE REMOVAL (Global)
+    for script in soup(["script", "style", "nav", "footer", "header", "noscript"]):
+        script.extract()
         
-        soup = BeautifulSoup(response.text, 'html.parser')
-        
-        # 🛡️ NOISE REMOVAL (Global)
-        for script in soup(["script", "style", "nav", "footer", "header", "noscript"]):
-            script.extract()
-            
-        # 🛡️ NOISE REMOVAL (Specific)
-        noise_selectors = [
-            '.other-campaigns', '.featured-campaigns', '.similar-campaigns', 
-            '.campaign-recommendations', 'section.news-carousel', 
-            '#related-campaigns', '.campaignDetail-others'
-        ]
-        for selector in noise_selectors:
-            for element in soup.select(selector):
+    # 🛡️ NOISE REMOVAL (Specific)
+    noise_selectors = [
+        '.other-campaigns', '.featured-campaigns', '.similar-campaigns', 
+        '.campaign-recommendations', 'section.news-carousel', 
+        '#related-campaigns', '.campaignDetail-others'
+    ]
+    for selector in noise_selectors:
+        for element in soup.select(selector):
                 element.extract()
         
         # 🎯 CONTENT TARGETING
@@ -155,9 +206,6 @@ def fetch_html(url: str) -> str:
         # 🛡️ Use Central Text Cleaner (Standard Scraper Logic)
         text = clean_campaign_text(text)
         return text
-    except Exception as e:
-        print(f"      ⚠️ Failed to fetch HTML for {url}: {e}")
-        return ""
 
 def run_autofix(limit: int = 250, campaign_id: Optional[int] = None, force_all: bool = False, ids_file: Optional[str] = None, ui_mode: bool = False, pending: bool = False):
     print(f"🚀 Starting Data Quality Auto-Fixer (Limit: {limit})...")
@@ -433,8 +481,20 @@ def run_autofix(limit: int = 250, campaign_id: Optional[int] = None, force_all: 
                     html_text = fetch_html(c.tracking_url)
                     
                     if html_text and len(html_text) >= 50:
-                        # Clean text with the same preprocessor scrapers use
-                        text_to_parse = _clean_text(None, html_text)
+                        # Extract og:title from raw HTML before cleaning (reliable title source)
+                        og_title = None
+                        if "<" in html_text:
+                            try:
+                                from bs4 import BeautifulSoup as _BS
+                                _soup = _BS(html_text, "html.parser")
+                                _og = _soup.find("meta", property="og:title")
+                                if _og and _og.get("content"):
+                                    og_title = _og["content"].strip()
+                                    print(f"   🏷️ og:title: {og_title}")
+                            except Exception:
+                                pass
+                        # Clean text with the central text cleaner
+                        text_to_parse = clean_campaign_text(html_text, og_title=og_title)
                         print(f"   ✅ URL fetch successful ({len(text_to_parse)} chars)")
                     else:
                         # SECOND FALLBACK: Use description and conditions if URL fetching fails (likely bot protection or dead link)
@@ -457,12 +517,22 @@ def run_autofix(limit: int = 250, campaign_id: Optional[int] = None, force_all: 
                 if c.card and c.card.bank:
                     bank_name = c.card.bank.name
                 
-                print(f"   🤖 Sending {len(text_to_parse)} characters to AI for re-parsing... (Bank: {bank_name or 'Unknown'})")
-                ai_data = parse_campaign(
-                    raw_text=text_to_parse,
-                    title=c.title,
-                    bank_name=bank_name,
-                    campaign_id=c.id
+                # ── HASH / CONTENT MATCHING (Adım 5) ──
+                # If running automatically (no human 'Tamir Et' button clicked: not campaign_id and not FORCE_ALL)
+                # and the text hasn't changed from what we already stored, DO NOT hit Gemini again. 
+                # It will give the same defective result. Save API costs!
+                if not FORCE_ALL and not campaign_id:
+                    if c.clean_text and text_to_parse == c.clean_text:
+                        print(f"   ⏸️ Banka metni değişmemiş. Boşuna AI çağrısı yapılmıyor (Hash Match). Atlandı.")
+                        continue
+
+                print(f"   🤖 [GOLDEN V3] Sending {len(text_to_parse)} characters to AI... (Bank: {bank_name or 'Unknown'})")
+                parser = _get_golden_parser()
+                ai_data = parser.parse_campaign(
+                    raw_html=text_to_parse,
+                    bank_name=bank_name or '',
+                    title=c.title or '',
+                    og_title=og_title if 'og_title' in dir() else None
                 )
                 
                 if not ai_data:
@@ -485,6 +555,16 @@ def run_autofix(limit: int = 250, campaign_id: Optional[int] = None, force_all: 
                 # Update logic
                 updated = False
                 
+                generic_titles = ["nays'ın kazandıran özellikleri", "opet kampanyası", "ayrıcalıklar", "kampanyalar", "fırsatlar", "akaryakıt standartları bilgilendirmesi"]
+                is_title_generic = c.title and c.title.lower().strip() in generic_titles
+                
+                # Update Title
+                if not c.title or is_title_generic or FORCE_ALL:
+                    if ai_data.get("title") and ai_data["title"] != c.title:
+                        print(f"   ✨ Repaired Title: {c.title} -> {ai_data['title']}")
+                        c.title = ai_data["title"]
+                        updated = True
+
                 # Update Description
                 if not c.description or len(c.description.strip()) < 15 or FORCE_ALL:
                     if ai_data.get("description"):
@@ -518,8 +598,8 @@ def run_autofix(limit: int = 250, campaign_id: Optional[int] = None, force_all: 
                 is_cards_incomplete = any("Incomplete Cards" in r for r in reasons_list)
                 
                 if is_cards_empty or is_cards_corrupted or is_cards_incomplete or FORCE_ALL:
-                    if ai_data.get("cards") and len(ai_data["cards"]) > 0:
-                        cards_str = ", ".join(ai_data["cards"])
+                    if ai_data.get("cards") is not None:
+                        cards_str = ", ".join(ai_data["cards"]) if len(ai_data["cards"]) > 0 else "-"
                         if is_cards_incomplete:
                             print(f"   ✨ Upgraded Incomplete Cards: {c.eligible_cards} → {cards_str}")
                         else:
@@ -642,6 +722,8 @@ def run_autofix(limit: int = 250, campaign_id: Optional[int] = None, force_all: 
                     any(k in title_lower or k in text_lower for k in travel_keywords)
                 )
                 
+                has_pb_override = pb_sector_candidates and pb_sector_candidates[0] == final_sector_slug and final_sector_slug != "diger"
+
                 should_update_sector = False
                 if final_sector_slug == "diger":
                     # AI "diger" diyorsa hiçbir zaman güncelleme (downgrade etme)
@@ -651,6 +733,9 @@ def run_autofix(limit: int = 250, campaign_id: Optional[int] = None, force_all: 
                     pass  # Aynı sektör, güncelleme gerekmez
                 elif is_current_diger:
                     should_update_sector = True  # Upgrade: diger → spesifik
+                elif has_pb_override or FORCE_ALL:
+                    should_update_sector = True  # PBE kuralı her zaman AI'ı ve mevcut sektörü ezer
+                    print(f"   🎯 Forcing Sector Update: PBE or FORCE flag is active!")
                 elif has_travel_conflict:
                     should_update_sector = True  # Bilinen çelişki düzeltmesi
                     print(f"   🔧 Sector conflict detected: travel keywords + kultur-sanat")
@@ -686,44 +771,17 @@ def run_autofix(limit: int = 250, campaign_id: Optional[int] = None, force_all: 
                     new_brand_names = ai_data["brands"]
                     if not isinstance(new_brand_names, list):
                         new_brand_names = [new_brand_names] if new_brand_names else []
-
-                    # 🎯 AI-FIRST BRAND STRATEGY (AI Parser = primary, PB = supplement)
-                    # AI Parser is our main brand extractor. PB adds brands it found via regex.
-                    # Hallucination control: brand must exist in title or clean_text.
-                    pb_matcher = get_point_blank_matcher(db)
-                    pb_matches = pb_matcher.match_campaign(c.title, text_to_parse or "")
-                    pb_brand_names = [m["brand"] for m in pb_matches if m.get("brand")]
+                        
+                    # 🎯 AI-FIRST BRAND STRATEGY (GOLDEN PARSER = SOURCE OF TRUTH)
+                    # We no longer manually merge PointBlank brands here because AIParserGolden 
+                    # natively integrates PBE rules, validates them, and strictly filters out
+                    # illusions and self-brands (like Opet, Apple, Google).
                     
-                    # Merge: Start with AI brands, add PB brands that AI missed
-                    merged_brands = list(new_brand_names)  # AI is primary
-                    for pb_b in pb_brand_names:
-                        if pb_b not in merged_brands:
-                            merged_brands.append(pb_b)
-                    
-                    # 🛡️ NEGATIVE CONTEXT CHECK — "hariç", "geçerli değil" gibi bağlamları yakala
-                    # AI Parser zaten text-match validasyonu yaptı, PB zaten verified kurallar.
-                    # Burada sadece negatif bağlam kontrolü yapıyoruz.
-                    title_lower = (c.title or "").lower()
-                    text_lower = (text_to_parse or "").lower()
-                    validated_brands = []
-                    for b_name in merged_brands:
-                        if not b_name or b_name == "Genel":
-                            continue
-                        b_lower = b_name.lower()
-                        is_negative = False
-                        for text_src in [title_lower, text_lower]:
-                            if b_lower in text_src:
-                                idx = text_src.find(b_lower)
-                                context = text_src[max(0, idx-40):min(len(text_src), idx+40)]
-                                if any(neg in context for neg in ["hariç", "geçerli değil", "değildir", "kapsamaz", "dahil değil"]):
-                                    is_negative = True
-                                    break
-                        if is_negative:
-                            print(f"   🛡️ Negative Context: Rejected '{b_name}' (found near exclusion words)")
-                        else:
-                            validated_brands.append(b_name)
-                    
-                    new_brand_names = validated_brands
+                    validated_brands = list(new_brand_names)
+                    new_brand_names = []
+                    for b_name in validated_brands:
+                        if b_name and b_name != "Genel":
+                            new_brand_names.append(b_name)
                     
                     # If we are in force/id-file mode, we PURGE all old brands to ensure clean slate
                     # Otherwise, we only purge the ones identified as bank brands

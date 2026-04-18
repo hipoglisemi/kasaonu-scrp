@@ -24,6 +24,18 @@ _STATIC_BRAND_EXCLUSIONS = {
     # Kart Programları
     "Maximum", "Axess", "Bonus", "World", "Wings", "Paraf", "Parafly",
     "Maximiles", "Miles&Smiles", "CardFinans", "Free",
+    # Devlet / Kamu Kurumları — ASLA marka olamazlar
+    "SGK", "GİB", "Gelir İdaresi Başkanlığı", "Gelir İdaresi",
+    "Hazine", "Bakanlık", "Belediye", "Vergi Dairesi", "Vergi",
+    "Sosyal Güvenlik Kurumu", "E-Devlet", "e-Devlet", "TÜRKSAT",
+    "BTK", "BDDK", "SPK", "TCMB", "Merkez Bankası",
+    # Duty Free / Havalimanı genel şemsiye (markaya özel kurallar PBE'de)
+    "Duty Free", "Havalimanı", "Havaalanı",
+}
+
+# Keywords that are common nouns and should only be matched in the title
+_TITLE_ONLY_KEYWORDS = {
+    "bilet", "lastik", "sigorta", "market", "puan", "bakkal", "indirim", "taksit", "faiz", "kredi"
 }
 
 class PointBlankMatcher:
@@ -136,6 +148,13 @@ class PointBlankMatcher:
             in_title = bool(re.search(pattern, title_str))
             in_body = bool(re.search(pattern, body_str)) if body_str else False
             
+            # --- 🛡️ COMMON NOUN GUARD ---
+            # If the keyword is a common noun, ONLY trust it if it's in the TITLE.
+            # This prevents "bilet" in body matching "bilet.com".
+            if keyword_lower in _TITLE_ONLY_KEYWORDS:
+                if not in_title:
+                    continue
+
             if in_title or in_body:
                 is_short = len(rule.keyword) <= _SHORT_KW_THRESHOLD
                 

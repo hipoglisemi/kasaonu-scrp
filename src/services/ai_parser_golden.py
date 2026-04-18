@@ -1,0 +1,793 @@
+"""
+AI Parser Service - GOLDEN STANDARD V3 🏆
+Model-independent parser with Python-enforced business logic.
+Prompt = short & literal extraction only.
+Guards = Python post-processing (Card, Brand, Sector, Date).
+"""
+import os
+import re
+import json
+import logging
+from typing import Dict, Any, Optional, List
+from datetime import datetime, timedelta
+from src.database import SessionLocal  # type: ignore
+from src.models import Brand, CampaignBrand, Sector  # type: ignore
+from .text_cleaner import clean_campaign_text  # type: ignore
+from .point_blank_matcher import get_point_blank_matcher, _STATIC_BRAND_EXCLUSIONS  # type: ignore
+
+logger = logging.getLogger(__name__)
+
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+#  BANK TERMINOLOGY DICTIONARY (Post-Processing, NOT in prompt)
+#  Used to VALIDATE AI output, not to instruct the AI.
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+BANK_CARD_KEYWORDS = {
+    "akbank": ["axess", "wings", "free", "bank'o card", "ticari"],
+    "işbankası": ["maximum", "maximiles", "privia"],
+    "yapı kredi": ["worldcard", "world", "play", "adios"],
+    "garanti": ["bonus", "miles&smiles", "shop&fly", "bonus flexi", "bonus genç", "paracard"],
+    "ziraat": ["bankkart", "bankkart başak", "bankkart genç", "bankkart prestij", "bankkart business", "bankkart lira"],
+    "vakıfbank": ["worldcard", "world", "bankomat", "platinum"],
+    "halkbank": ["paraf", "parafly", "paraf business", "halkcard"],
+    "denizbank": ["denizbonus", "net kart", "denizbank bonus"],
+    "qnb": ["cardfinans", "troy"],
+    "teb": ["teb bonus", "cepteteb"],
+    "kuveyt türk": ["sağlam kart"],
+    "türkiye finans": ["happy card", "âlâ kart", "happy zero"],
+    "enpara": ["enpara.com kredi kartı", "enpara kredi kartı"],
+    "hsbc": ["hsbc premier"],
+    "şekerbank": ["şekerbank bonus", "şekerbank diamond"],
+    "burgan": ["on kredi kartı", "on banka kartı"],
+    "albaraka": ["albaraka worldcard"],
+    "türk telekom": ["türk telekom müşterileri", "prime", "selfy"],
+    "turkcell": ["turkcell müşterileri", "paycell kart"],
+    "vodafone": ["vodafone red", "vodafone freezone", "vodafone müşterileri"],
+    "chippin": ["chippin"],
+    "param": ["paramkart"],
+    "paycell": ["paycell kart"],
+    "tami": ["tami kart"],
+    "uption": ["uption kart"],
+    "masterpass": ["masterpass"],
+    "opet": ["opet kart", "opet müşterileri"],
+    "nays": ["nays kart", "nays kullanıcıları"],
+}
+
+BANK_APP_NAMES = {
+    "akbank": "Jüzdan",
+    "işbankası": "İşCep / Maximum Mobil",
+    "yapı kredi": "World Mobil",
+    "garanti": "BonusFlaş",
+    "ziraat": "Bankkart Mobil",
+    "vakıfbank": "Cepte Kazan / VakıfBank Mobil",
+    "halkbank": "Paraf Mobil / Halkbank Mobil",
+    "denizbank": "MobilDeniz / DenizKartım",
+    "qnb": "QNB Mobil",
+    "teb": "TEB Mobil / CEPTETEB",
+    "kuveyt türk": "Kuveyt Türk Mobil",
+    "türkiye finans": "Mobil Şube",
+    "türk telekom": "Türk Telekom Online İşlemler",
+    "turkcell": "Vodafone Yanımda",
+    "vodafone": "Vodafone Yanımda",
+}
+
+BANK_SMS_NUMBERS = {
+    "akbank": "4566",
+    "işbankası": "4402",
+    "yapı kredi": "4454",
+    "halkbank": "3404",
+    "denizbank": "3280",
+    "ziraat": "4757",
+    "kuveyt türk": "2044",
+    "türkiye finans": "2442",
+    "teb": "5350",
+    "şekerbank": "1953",
+    "hsbc": "4477",
+    "türk telekom": "6262",
+}
+
+# Self-tagging prevention: bank names that should NEVER appear in brands
+BANK_SELF_NAMES = {
+    "akbank": ["akbank", "axess", "wings", "free", "chip-para"],
+    "işbankası": ["iş bankası", "türkiye iş bankası", "işbank", "maximum", "maximiles"],
+    "yapı kredi": ["yapı kredi", "world", "worldcard"],
+    "garanti": ["garanti", "garanti bbva", "bonus", "bonusflaş"],
+    "ziraat": ["ziraat", "ziraat bankası", "bankkart"],
+    "vakıfbank": ["vakıfbank", "vakıf bank"],
+    "halkbank": ["halkbank", "halk bankası", "paraf"],
+    "denizbank": ["denizbank", "deniz bank"],
+    "qnb": ["qnb", "qnb finansbank", "finansbank"],
+    "teb": ["teb", "türk ekonomi bankası"],
+    "kuveyt türk": ["kuveyt türk"],
+    "türkiye finans": ["türkiye finans"],
+    "türk telekom": ["türk telekom", "turk telekom", "tivibu", "selfy", "prime"],
+    "turkcell": ["turkcell"],
+    "vodafone": ["vodafone", "vodafone red"],
+    "enpara": ["enpara"],
+    "hsbc": ["hsbc"],
+    "şekerbank": ["şekerbank", "şeker bank"],
+    "burgan": ["burgan", "burgan bank"],
+    "albaraka": ["albaraka"],
+    "opet": ["opet", "opet kart", "yakıt puan"],
+    "nays": ["nays", "nays kart"],
+}
+
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+#  AUTHORITATIVE SECTOR SLUGS (from DB)
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+VALID_SECTOR_SLUGS = [
+    "kitap-kirtasiye-ofis", "fatura-telekomunikasyon", "diger",
+    "hizmet-bireysel-gelisim", "giyim-aksesuar", "restoran-kafe",
+    "e-ticaret", "ulasim", "egitim", "sigorta", "turizm-konaklama",
+    "finans-yatirim", "market-gida", "elektronik", "akaryakit",
+    "mobilya-dekorasyon", "kozmetik-saglik", "dijital-platform",
+    "otomotiv", "vergi-kamu", "mucevherat-optik-saat", "kultur-sanat-spor",
+    "anne-bebek-oyuncak", "evcil-hayvan-petshop",
+]
+
+# Legacy slug → correct slug mapping
+SECTOR_SLUG_FIXES = {
+    "kultur-sanat": "kultur-sanat-spor",
+    "kuyum-optik-ve-saat": "mucevherat-optik-saat",
+}
+
+# Condition boilerplate patterns to remove
+CONDITION_BOILERPLATE = [
+    "kampanyayı durdurma hakkı", "yasal mevzuat", "geçersizdir",
+    "tüm hakları saklıdır", "bddk kuralları", "yasal düzenleme",
+    "kampanya koşullarına uygun olmayan", "harcama itirazı durumunda",
+    "ödüller nakde çevrilemez", "zamanaşımına uğrayan",
+    "kullanılmayan puanlar geri alınacaktır",
+]
+
+# Passthrough card terms (generic categories that are always valid)
+CARD_PASSTHROUGH_TERMS = {
+    "tüm kartlar", "tüm kredi kartları", "tüm banka kartları", "tüm müşteriler",
+    "sanal ve ek kartlar", "sanal kartlar", "ek kartlar",
+    "türk telekom müşterileri", "vodafone müşterileri", "turkcell müşterileri",
+    "bireysel müşteriler", "faturalı müşteriler", "ticari kartlar",
+}
+
+# Point/reward system names that are NOT cards (AI often confuses these)
+CARD_EXCLUSION_TERMS = {
+    "worldpuan", "maxipuan", "chip-para", "chippuan", "chip puan",
+    "parafpara", "paraf para", "bonus puan", "bonuspuan",
+    "mil", "miles", "nakitpuan", "nakit puan",
+    "altın puan", "altınpuan", "parapuan",
+}
+
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+
+class AIParserGolden:
+    """
+    Golden Standard V3 Parser.
+    
+    Architecture:
+    1. text_cleaner → Clean raw HTML
+    2. PBE → Pre-scan for known brands (DB-verified)
+    3. Short Prompt → AI extracts literal data
+    4. Python Guards → Validate & enrich AI output
+       - Card Guard (core word + sniper)
+       - Brand Guard (title/illusion/negative)
+       - Sector Guard (slug normalization)
+       - Date Guard (today/month-end fallback)
+       - Condition Guard (boilerplate removal, max 8)
+       - Bank Terminology Guard (app/SMS validation)
+    """
+
+    def __init__(self, model_client=None):
+        self.model_client = model_client
+        self.valid_sectors = VALID_SECTOR_SLUGS
+
+    # ── TURKISH HELPERS ──────────────────────────────────────────────
+    @staticmethod
+    def _tr_lower(text: str) -> str:
+        if not text:
+            return ""
+        tr_map = {ord('I'): 'ı', ord('İ'): 'i', ord('Ş'): 'ş', ord('Ğ'): 'ğ',
+                  ord('Ç'): 'ç', ord('Ö'): 'ö', ord('Ü'): 'ü'}
+        return text.translate(tr_map).lower()
+
+    @staticmethod
+    def _normalize(s: str) -> str:
+        """Normalize ampersands and Turkish characters for comparison."""
+        s = s.lower().replace("&", " & ").replace("  ", " ")
+        s = s.replace('ı', 'i').replace('ş', 's').replace('ğ', 'g')
+        s = s.replace('ü', 'u').replace('ö', 'o').replace('ç', 'c')
+        return s.strip()
+
+    # ── SAFE TYPE CONVERTERS ─────────────────────────────────────────
+    @staticmethod
+    def _safe_date(value) -> Optional[str]:
+        if not value:
+            return None
+        if isinstance(value, str) and re.match(r'^\d{4}-\d{2}-\d{2}$', value):
+            return value
+        return None
+
+    @staticmethod
+    def _safe_decimal(value) -> Optional[float]:
+        if value is None:
+            return None
+        try:
+            return float(value)
+        except (ValueError, TypeError):
+            return None
+
+    @staticmethod
+    def _to_clean_list(val) -> list:
+        if not val:
+            return []
+        bullet_pattern = re.compile(r'^[\s\-_•*\\.]+ *')
+        if isinstance(val, list):
+            cleaned = []
+            for x in val:
+                if x and str(x).strip():
+                    item = bullet_pattern.sub('', str(x).strip()).strip()
+                    if item:
+                        cleaned.append(item)
+            return cleaned
+        cleaned = str(val).strip()
+        if cleaned:
+            cleaned = bullet_pattern.sub('', cleaned).strip()
+        return [cleaned] if cleaned else []
+
+    @staticmethod
+    def _to_clean_string(val, separator: str = "\n") -> str:
+        if not val:
+            return ""
+        if isinstance(val, list):
+            items = [str(x).strip() for x in val if x]
+            return separator.join(items) if len(items) > 1 else (items[0] if items else "")
+        return str(val).strip()
+
+    # ── PROMPT (SHORT & MODEL-INDEPENDENT) ───────────────────────────
+    def _get_golden_prompt(self, cleaned_text: str, bank_name: str = "", pb_matches: list = None, title: str = "", og_title: str = None) -> str:
+        current_date = datetime.now().strftime("%Y-%m-%d")
+        bank_info = f" ({bank_name})" if bank_name else ""
+
+        # 1. PBE INSTRUCTIONS
+        pb_hint = ""
+        if pb_matches:
+            brand_names = [m["brand"] for m in pb_matches if m.get("brand")]
+            pb_hint = f"""
+🔒 POINT-BLANK (POTANSİYEL MARKA ADAYLARI):
+- METİNDE GEÇEN MARKALAR: {', '.join(brand_names)}
+
+1. 🧠 ANALİZ ET: Yukarıdaki markalar gerçek bir kampanya ORTAĞI mı (örn: Trendyol, Migros) yoksa sadece alt yapı/katılım kanalı mı (örn: Tivibu, Online İşlemler)?
+2. 🛡️ FİLTRELE: Sadece gerçek partnerleri 'brands' listesine ekle. Bankanın veya kurumun kendi servislerini partner olarak YAZMA.
+   - Kampanya SMS adımlarında gecen GSM operatörlerini (Türk Telekom, Turkcell, Vodafone) ASLA marka olarak secme.
+3. 🚫 SEKTÖR YASAKLARI: 'satis', 'odul', 'puan' gibi geçersiz sektör ID'lerini ASLA kullanma.
+4. 🚨 SEKTÖR HİYERARŞİSİ (ÇOK KRİTİK): Eğer kampanya belirli bir dikey sektöre (Giyim, Elektronik, Kozmetik vb.) ait uzman bir markada ise işlem internetten yapılsa dahi sektörü o DİKEY SEKTÖR olarak belirle. 'e-ticaret' SADECE pazar yerleri (Trendyol, Hepsiburada vb.) içindir. Ödeme kanalına değil harcamanın YERİNE odaklan.
+5. ⛔ NEGATİF BAĞLAM (HARİÇTİR): Metinde bu markaların 10-15 kelime yakınında 'hariçtir', 'dahil değildir', 'kapsam dışıdır' yazıyorsa (Örn: Bim, Şok, A101 hariç), O MARKALARI KESİNLİKLE 'brands' LİSTESİNE ALMA.
+"""
+
+        # GENERIC_TITLE_WORDS: kelime çıkarımı için sabit set (regex yok)
+        GENERIC_TITLE_WORDS = {
+            "kampanya", "kampanyası", "fırsat", "fırsatlar", "fırsatı",
+            "ayrıcalık", "ayrıcalıklar", "ayrıcalıkları", "özel",
+            "detay", "detaylar", "duyuru", "duyurusu", "bilgilendirme",
+            "akaryakıt", "standartları"
+        }
+        title_instruction = ""
+
+        # Öncelik 1: og_title — meta tag'den gelen başlık her zaman güvenilir
+        if og_title and og_title.strip():
+            title_instruction = f"""
+🏷️ META BAŞLIK (GÜVENİLİR): Sayfanın meta tag'inden alındı: "{og_title.strip()}"
+Bu başlığı veya metnin içindeki daha spesifik halini 'title' alanına yaz.
+"""
+        elif title and title.strip() and title.strip() != "Başlık Yok":
+            title_clean = title.strip()
+            # Dinamik jenerik tespit: banka adı + genel kelimeler çıkarıldıktan sonra anlamlı birşey kalıyor mu?
+            bank_words = set((bank_name or "").lower().split())
+            title_words = set(title_clean.lower().split())
+            meaningful = title_words - bank_words - GENERIC_TITLE_WORDS
+            is_generic = len(meaningful) == 0
+
+            if is_generic:
+                title_instruction = f"""
+🔓 BAŞLIK GÜNCELLEME: Mevcut başlık "{title_clean}" jenerik (banka adı + genel kelime). Metindeki gerçek ve spesifik kampanya başlığını bul, 'title' alanına yaz.
+"""
+            else:
+                title_instruction = f"""
+🔒 BAŞLIK KİLİDİ: Bu kampanyanın resmi başlığı: "{title_clean}"
+'title' alanına SADECE bu başlığı yaz. Anlamı değiştirmeden veya yeni başlık türetmeden kullan.
+"""
+
+        # 3. BANK SPECIFIC RULES (Terminology Injection)
+        bank_instructions = ""
+        if bank_name:
+            try:
+                from .bank_rules import BANK_RULES
+                bank_name_lower = bank_name.lower()
+                for bank_key, rules in BANK_RULES.items():
+                    if bank_key in bank_name_lower:
+                        bank_instructions = rules
+                        break
+            except Exception as e:
+                logger.error(f"Failed to load bank rules: {e}")
+
+        return f"""
+Sen uzman bir kampanya veri analistisin. Aşağıdaki metni analiz et ve KESİN JSON formatında çıktı ver.
+Bugünün tarihi: {current_date}
+Kampanya Sahibi Banka/Kurum: {bank_name}
+
+{bank_instructions}
+{title_instruction}
+{pb_hint}
+
+⭐ ALTIN STANDART KURALLARI ⭐
+
+1. **MARKA GÜVENLİĞİ**:
+   - 🛡️ SADECE metinde açıkça partner/ortağı olarak geçen markayı al.
+   - ⛔ UYGULAMA YASAĞI: Kampanyanın kendisi dijital market harcamalarına yönelik DEĞİLSE (sadece "uygulamamızı App Store/Google Play'den indirin" yazıyorsa), 'App Store', 'Google Play', 'Apple' gibi kelimeleri ASLA marka yapma. Ancak kampanya özel olarak "App Store Harcamalarına İndirim" ise bunları ekleyebilirsin.
+   - ⛔ UYDURMA YASAĞI: Kampanya sahibi bankayı{bank_info}, kart programlarını (World, Bonus, Axess, vb.) veya cüzdan uygulamasını (Juzdan vb.) ASLA marka olarak yazma.
+   - ⛔ PUBLIC/GOVERNMENT TRAP: "SGK", "GİB", "Gelir İdaresi", "Duty Free", "Belediye", "Vergi" gibi devlet veya genel şemsiye kurumları marka DEĞİLDİR. ASLA ekleme.
+   - 🛡️ Sayfanın altındaki "İlginizi çekebilen diğer kampanyalar" yan markalarını ASLA ekleme.
+
+2. **SEKTÖR**: Aşağıdaki slug listesinden birini seç:
+   {self.valid_sectors}
+   - Markanın dikey uzmanlığı (Giyim, Elektronik) HER ZAMAN satış kanalından (e-ticaret) önce gelir.
+   - 'e-ticaret' SADECE çok kategorili pazar yerleri (Trendyol, Hepsiburada, Amazon) içindir.
+   - 🚨 ÖDEME YÖNTEMİ VS ÜRÜN AYRIMI (ÇOK ÖNEMLİ): Eğer metinde "Faturana Yansıt", "Hopi", "Masterpass" geçiyorsa, sektörü 'fatura-telekom' veya 'finans-yatirim' SEÇME. Ödeme yöntemi kampanya sektörünü değiştirmez. Harcamanın YAPILDIĞI YERE odaklan.
+
+3. **KARTLAR ve KATILIM**: 
+   - Metinde ne yazıyorsa birebir (LITERAL) al. 
+   - 🚨 PARTNER BANKALAR (CRITICAL): Eğer metinde "Anadolu Bank", "Albaraka", "Vakıfbank" veya "Worldcard lisanslı bankalar" geçiyorsa, MUTLAKA 'cards' alanına KURTARARAK ekle.
+   - ⛔ YASAK: Eğer metinde geçerli kart/müşteri adı (örn: 'Opet Kart', 'Türk Telekom müşterileri') geçmiyorsa ASLA uydurarak ekleme. Yoksa boş bırak `[-]`.
+
+4. **TARİHLER**: 
+    - Tüm tarihleri 'YYYY-MM-DD' formatında ver.
+    - 🚨 YIL KURALI: Eğer yıl belirtilmemişse:
+      * Bugünün tarihi: {current_date}
+      * Kampanya ayı < Bugünün ayı → Sonraki yıl olarak al.
+      * Kampanya ayı >= Bugünün ayı → İçinde bulunduğumuz yıl olarak al.
+    - Sadece bitiş tarihi varsa, başlangıç tarihi olarak bugünü ({current_date}) al.
+    - 🚨 BULUNAMAYAN TARİH KURALI: Eğer metinde başlangıç veya bitiş tarihi AÇIKÇA BELİRTİLMEMİŞSE (veya süresiz vb. ise), o alanı KESİNLİKLE null olarak bırak. Asla bugünün tarihini tahmini olarak yazma. Uydurma tarih üretmek veya mevcut günün tarihini ezbere eklemek YASAKTIR.
+
+5. **KOŞULLAR**: 
+    - En fazla 8 madde.
+    - 🚨 MAĞAZA/SİTE KURALI: Eğer metinde 'şu mağazalarda, şu web sitelerinde, şu şubelerde geçerlidir' gibi geçerlilik lokasyonları/noktaları varsa, bunu DİREKT OLARAK maddelerden biri yap.
+    - 🚨 ULTRA KRİTİK - YASAK: Tarih, Geçerli Kartlar ve Katılım adımlarını 'conditions' içerisine KESİNLİKLE YAZMA (Tepede zaten var). Sadece harcama alt sınırı, ödül limitleri, şirket kuralları gibi teknik şartları özetle.
+    - 🚨 JURIDICAL BOILERPLATE REMOVAL (ULTRA STRICT): Aşağıdaki jenerik hukuki metinleri KESİNLİKLE SİL, ASLA MADDE OLARAK YAZMA:
+      * "Taksit sayısı ürün gruplarına göre yasal mevzuat çerçevesinde belirlenir."
+      * "Bireysel kredi kartlarıyla.. BDDK kuralları gereği..."
+      * "Yasal mevzuat gereği azami taksit sayısı..."
+      * "Kampanya farklı kampanyalarla birleştirilemez."
+    - Sıkıcı hukuki detayları silebilirsin, odak sadece müşteri kazancı.
+
+6. **PAZARLAMA**: 2-3 cümle, emojili, enerjik. Somut rakamları belirt. Metin SEO dostu olmalı; kampanyanın avantajını kullanıcıya coşkulu bir dille sun.
+
+JSON FORMATI:
+{{
+  "title": "Metnin en üstündeki doğal ve spesifik başlığı bul. Aksi kanıtlanmadıkça 'Opet Kampanyası' gibi sonradan atanmış jenerik/sıkıcı başlık isimlerini GÖRMEZDEN GEL, sadece asıl içeriği yansıtan resmî başlığı (Örn: Çek Kazan Superfresh Fırsatı) kullan.",
+  "description": "2 cümlelik samimi özet",
+  "ai_marketing_text": "2-3 cümlelik enerjik, emojili pazarlama metni. Somut rakamları belirt. Metin SEO dostu olmalı.",
+  "reward_value": 0.0,
+  "reward_type": "puan/indirim/taksit/mil",
+  "reward_text": "Kısa ve Çarpıcı. Peşin fiyatına gibi detayları yazma. Örn: '150 TL Yakıt Puan' veya '%20 İndirim'",
+  "min_spend": 0.0,
+  "start_date": "YYYY-MM-DD",
+  "end_date": "YYYY-MM-DD",
+  "sector": "sektor-slug",
+  "brands": ["Marka1", "Marka2"], // ⛔ NEGATION TRAP: Metinde 'hariçtir','dahil değildir', 'geçerli değildir', 'kapsam dışıdır' gibi kelimelerin 10-15 kelime yakınında geçen markaları (Örn: Migros, Şok, A101 hariç) KESİNLİKLE LİSTEYE EKLEME.
+  "cards": ["Kart1"],
+  "participation": "Katılım şeklini kullanıcıyı sıkmayacak ama net bir dille özetle. Şirket/uygulama mağazası isimlerini at, net ve sadece eylemi yaz. Örn: 'Çek Kazan uygulamasından faturanızı 5 gün içinde okutun.', 'World Mobil uygulamasından Katıl butonuna tıklayarak katılın.', 'Fiat servislerindeki faturanızı okutarak puanlarınızı alın.' Hiçbiri yoksa '-' ile BOŞ BIRAK.",
+  "conditions": ["Önemli Şart 1", "Önemli Şart 2"]
+}}
+
+ANALİZ EDİLECEK METİN:
+"{cleaned_text}"
+"""
+
+    # ── MAIN PARSE FLOW ──────────────────────────────────────────────
+    def parse_campaign(self, raw_html: str, bank_name: str = "", title: str = "", og_title: str = None) -> Dict[str, Any]:
+        """Golden Standard V3 parse flow."""
+        # 1. Clean text (og_title enables header trimming for SPA sites)
+        cleaned_text = clean_campaign_text(raw_html, og_title=og_title)
+
+        # 2. PBE Pre-scan (find known brands before AI call)
+        pb_brands = []
+        pb_matches = []
+        try:
+            db = SessionLocal()
+            matcher = get_point_blank_matcher(db)
+            exclude_list = [bank_name] if bank_name else []
+            pb_matches = matcher.match_campaign(title or "", cleaned_text, exclude_terms=exclude_list)
+            pb_brands = [m["brand"] for m in pb_matches if m.get("brand")]
+            db.close()
+        except Exception as e:
+            logger.warning(f"PBE scan failed: {e}")
+
+        # 3. AI Call
+        if not self.model_client:
+            raise ValueError("Model client not provided")
+
+        prompt = self._get_golden_prompt(cleaned_text, bank_name, pb_matches, title, og_title)
+        ai_response = self.model_client.generate_content(prompt)
+        parsed_data = self._extract_json(ai_response)
+
+        # 4. Apply ALL Python Guards
+        result = self._apply_business_logic(parsed_data, cleaned_text, bank_name, title, pb_matches)
+
+        # Inject clean text for downstream consumers
+        result["_clean_text"] = cleaned_text
+        return result
+
+    # ── JSON EXTRACTOR ───────────────────────────────────────────────
+    def _extract_json(self, text: str) -> Dict[str, Any]:
+        """Robust JSON extractor with bracket counting."""
+        try:
+            start = text.find('{')
+            if start == -1:
+                return json.loads(text)
+
+            depth = 0
+            in_string = False
+            escape_next = False
+            end = start
+
+            for i in range(start, len(text)):
+                c = text[i]
+                if escape_next:
+                    escape_next = False
+                    continue
+                if c == '\\' and in_string:
+                    escape_next = True
+                    continue
+                if c == '"' and not escape_next:
+                    in_string = not in_string
+                    continue
+                if in_string:
+                    continue
+                if c == '{':
+                    depth += 1
+                elif c == '}':
+                    depth -= 1
+                    if depth == 0:
+                        end = i
+                        break
+
+            return json.loads(text[start:end + 1])
+        except Exception as e:
+            logger.error(f"JSON Parsing failed: {e}")
+            return {}
+
+    # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    #  THE HARD GUARD: All Python-enforced business logic
+    # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    def _apply_business_logic(self, data: Dict[str, Any], raw_text: str,
+                               bank_name: str = "", title: str = "",
+                               pb_matches: list = None) -> Dict[str, Any]:
+        today = datetime.now()
+        raw_text_lower = self._tr_lower(raw_text)
+        title_lower = self._tr_lower(title or "")
+        bank_key = self._resolve_bank_key(bank_name)
+
+        # ── 1. DATE GUARD ────────────────────────────────────────────
+        parsed_start = self._safe_date(data.get("start_date"))
+        parsed_end = self._safe_date(data.get("end_date"))
+
+        if not parsed_start and not parsed_end:
+            parsed_start = today.strftime("%Y-%m-%d")
+            next_month = today.replace(day=28) + timedelta(days=4)
+            parsed_end = (next_month - timedelta(days=next_month.day)).strftime("%Y-%m-%d")
+        elif not parsed_start and parsed_end:
+            parsed_start = today.strftime("%Y-%m-%d")
+        elif parsed_start and not parsed_end:
+            try:
+                start_dt = datetime.strptime(parsed_start, "%Y-%m-%d")
+                next_m = start_dt.replace(day=28) + timedelta(days=4)
+                parsed_end = (next_m - timedelta(days=next_m.day)).strftime("%Y-%m-%d")
+            except:
+                next_month = today.replace(day=28) + timedelta(days=4)
+                parsed_end = (next_month - timedelta(days=next_month.day)).strftime("%Y-%m-%d")
+
+        data["start_date"] = parsed_start
+        data["end_date"] = parsed_end
+
+        # ── 2. SECTOR GUARD ──────────────────────────────────────────
+        sector = data.get("sector", "diger")
+        if isinstance(sector, list):
+            sector = sector[0] if sector else "diger"
+        # Fix legacy slugs
+        sector = SECTOR_SLUG_FIXES.get(sector, sector)
+        if sector not in self.valid_sectors:
+            sector = "diger"
+        # PBE sector override
+        if pb_matches:
+            pb_sectors = [m.get("sector") for m in pb_matches if m.get("sector") and m.get("sector") != "diger"]
+            if pb_sectors:
+                pbe_sector = SECTOR_SLUG_FIXES.get(pb_sectors[0], pb_sectors[0])
+                if pbe_sector in self.valid_sectors and pbe_sector != "diger":
+                    sector = pbe_sector
+        data["sector"] = sector
+
+        # ── 3. CARD GUARD (Core Word Matching + Sniper) ──────────────
+        cards = self._to_clean_list(data.get("cards"))
+        cards = self._validate_cards(cards, raw_text_lower, bank_key)
+        data["cards"] = cards if cards else []
+
+        # ── 4. BRAND GUARD (Title / Illusion / Negative Context) ─────
+        brands = data.get("brands", [])
+        if not isinstance(brands, list):
+            brands = [brands] if brands else []
+        # Collect PBE-verified brand names (these bypass text-verification)
+        pbe_brand_names = set()
+        if pb_matches:
+            for m in pb_matches:
+                if m.get("brand"):
+                    pbe_brand_names.add(m["brand"])
+                    if m["brand"] not in brands:
+                        brands.append(m["brand"])
+        brands = self._validate_brands(brands, raw_text_lower, title_lower, bank_key, pbe_trusted=pbe_brand_names)
+        data["brands"] = brands
+
+        # ── 5. CONDITION GUARD ───────────────────────────────────────
+        conditions = self._to_clean_list(data.get("conditions"))
+        conditions = [c for c in conditions
+                      if not any(bp in c.lower() for bp in CONDITION_BOILERPLATE)]
+        data["conditions"] = conditions[:8]
+
+        # ── 6. REWARD GUARD ──────────────────────────────────────────
+        data["reward_value"] = self._safe_decimal(data.get("reward_value")) or 0.0
+
+        # ── 7. PARTICIPATION GUARD ───────────────────────────────────
+        participation = self._to_clean_string(data.get("participation"))
+        data["participation"] = participation
+
+        # ── 8. NORMALIZE remaining fields ────────────────────────────
+        data["title"] = data.get("title") or "Kampanya"
+        data["description"] = data.get("description") or ""
+        data["ai_marketing_text"] = data.get("ai_marketing_text") or ""
+        data["reward_type"] = data.get("reward_type")
+        data["reward_text"] = data.get("reward_text") or "Kampanya Fırsatı"
+        data["min_spend"] = self._safe_decimal(data.get("min_spend")) or 0.0
+
+        return data
+
+    # ── BANK KEY RESOLVER ────────────────────────────────────────────
+    @staticmethod
+    def _resolve_bank_key(bank_name: str) -> str:
+        """Resolve bank name to dictionary key. Handles Turkish chars and spacing."""
+        if not bank_name:
+            return ""
+        # Must replace Turkish İ/I BEFORE .lower() — Python's lower() turns İ→i̇ (with combining dot)
+        bn = bank_name.replace("İ", "i").replace("I", "ı").lower()
+        # ASCII-folded version for fuzzy matching
+        def _ascii_fold(s):
+            return s.replace(" ", "").replace("ı", "i").replace("ş", "s").replace("ğ", "g").replace("ü", "u").replace("ö", "o").replace("ç", "c")
+        bn_folded = _ascii_fold(bn)
+        for key in BANK_CARD_KEYWORDS:
+            key_folded = _ascii_fold(key)
+            if key in bn or key_folded in bn_folded:
+                return key
+        return ""
+
+    # ── CARD VALIDATION (from old parser, improved) ──────────────────
+    def _validate_cards(self, cards: list, text_lower: str, bank_key: str) -> list:
+        """
+        Card Hallucination Guard V3:
+        1. Passthrough generic terms
+        2. Core word matching (not naive substring)
+        3. Bank-specific card sniper (recovery)
+        """
+        if not text_lower:
+            return cards
+
+        text_normalized = self._normalize(text_lower)
+        validated = []
+        stop_words = {"ve", "ile", "için", "&", "and", "the", "logolu", "özellikli"}
+
+        for card in cards:
+            if not card or not card.strip():
+                continue
+            card_norm = self._normalize(card)
+
+            # 0. EXCLUSION: Reject point/reward system names (not cards)
+            if card_norm in CARD_EXCLUSION_TERMS:
+                logger.debug(f"Card Guard: Rejected reward system '{card}'")
+                continue
+
+            # 1. Passthrough generic terms
+            if card_norm in CARD_PASSTHROUGH_TERMS or any(pt in card_norm for pt in CARD_PASSTHROUGH_TERMS):
+                validated.append(card)
+                continue
+
+            # 2. Direct substring match
+            if card_norm in text_normalized:
+                validated.append(card)
+                continue
+
+            # 3. Core word matching
+            core_words = []
+            for w in card_norm.split():
+                if len(w) > 2 and w not in stop_words:
+                    if w == 'karti':
+                        w = 'kart'
+                    core_words.append(w)
+
+            if core_words and all(w in text_normalized for w in core_words):
+                validated.append(card)
+            else:
+                logger.debug(f"Card Guard: Rejected '{card}' (not verified in text)")
+
+        # 4. BANK-SPECIFIC CARD SNIPER (Recovery for known cards AI missed)
+        if bank_key and bank_key in BANK_CARD_KEYWORDS:
+            known_cards = BANK_CARD_KEYWORDS[bank_key]
+            for kc in known_cards:
+                kc_norm = self._normalize(kc)
+                # Check if this known card appears in text but AI didn't catch it
+                already_found = any(kc_norm in self._normalize(v) for v in validated)
+                if not already_found and kc_norm in text_normalized:
+                    # Capitalize properly
+                    validated.append(kc.title() if len(kc) > 3 else kc.upper())
+                    logger.info(f"Card Sniper: Recovered '{kc}' for {bank_key}")
+
+        # Ziraat-specific sniper
+        if "bankkart" in text_normalized:
+            for variant in ["bankkart başak", "bankkart genç", "bankkart prestij", "bankkart business"]:
+                variant_norm = self._normalize(variant)
+                if variant_norm in text_normalized and not any(variant_norm in self._normalize(v) for v in validated):
+                    validated.append(variant.title())
+                    logger.info(f"Card Sniper: Recovered '{variant}'")
+
+        return validated
+
+    # ── BRAND VALIDATION (from old parser, improved) ─────────────────
+    def _validate_brands(self, brands: list, text_lower: str, title_lower: str, bank_key: str, pbe_trusted: set = None) -> list:
+        """
+        Brand Hallucination Guard V3:
+        1. Self-tagging prevention (bank/card names as brands)
+        2. Blocklist check (payment networks etc.)
+        3. PBE Bypass (database-verified brands skip text checks)
+        4. Title Guard (brands in title are always safe)
+        5. Illusion Guard (sidebar/footer brands)
+        6. Negative Context Guard ("dahil değildir" nearby)
+        7. Common Noun Guard
+        """
+        if not brands:
+            return []
+        if pbe_trusted is None:
+            pbe_trusted = set()
+
+        # Load dynamic blocklist
+        blocklist = set(_STATIC_BRAND_EXCLUSIONS)
+        try:
+            db = SessionLocal()
+            from .point_blank_matcher import get_point_blank_matcher
+            matcher = get_point_blank_matcher(db)
+            blocklist = matcher.blocklist
+            db.close()
+        except:
+            pass
+            
+        # Hardcoded App Store Trap Guard
+        app_store_traps = {"apple", "google", "google play", "play store", "app store", "huawei", "appgallery", "huawei appgallery", "gallery store"}
+        blocklist = blocklist.union(app_store_traps)
+
+        # Self-tag names for this bank
+        self_names = set()
+        if bank_key and bank_key in BANK_SELF_NAMES:
+            self_names = {self._tr_lower(n) for n in BANK_SELF_NAMES[bank_key]}
+
+        # Strip symbols for title matching
+        def _strip_symbols(t):
+            return re.sub(r"[^a-z0-9ıişğüç ]", " ", t)
+
+        title_plain = _strip_symbols(title_lower)
+
+        # Noise markers for illusion detection
+        noise_markers = [
+            r"ilginizi çekebilecek diğer kampanyalar",
+            r"benzer fırsatlar", r"benzer kampanyalar",
+            r"diğer kampanyalar", r"sizin için seçtiklerimiz",
+        ]
+
+        negation_keywords = [
+            "dahil değildir", "hariçtir", "hariç", "geçerli değildir",
+            "kapsam dışıdır", "dahil edilmeyecektir", "sayılmamaktadır",
+        ]
+
+        common_nouns = {"bilet", "lastik", "sigorta", "market", "puan", "bakkal",
+                        "indirim", "taksit", "faiz", "kredi"}
+
+        full_context = text_lower + " " + title_lower
+        validated = []
+
+        for brand in brands:
+            if not brand or len(brand) < 2:
+                continue
+            brand_norm = self._tr_lower(brand)
+            brand_plain = _strip_symbols(brand_norm)
+
+            # 1. SELF-TAGGING CHECK (applies to ALL brands, including PBE)
+            is_trap = any(trap in brand_norm for trap in app_store_traps)
+            is_in_title = brand_plain and brand_plain in title_plain
+            if brand_norm in self_names or brand in blocklist or (is_trap and not is_in_title):
+                logger.debug(f"Brand Guard: Rejected self-tag/blocklist/trap '{brand}'")
+                continue
+
+            # 2. TITLE GUARD — brands in title are always safe
+            if brand_plain in title_plain:
+                validated.append(brand)
+                continue
+
+            # 3. ILLUSION GUARD — only found after "benzer kampanyalar" etc.
+            is_illusion = False
+            for marker_pat in noise_markers:
+                match = re.search(marker_pat, full_context, re.IGNORECASE)
+                if match:
+                    marker_pos = match.start()
+                    brand_pat = rf"(?i)\b{re.escape(brand_norm)}\b"
+                    found_before = re.search(brand_pat, full_context[:marker_pos])
+                    found_after = re.search(brand_pat, full_context[marker_pos:])
+                    if found_after and not found_before and brand_norm not in title_plain:
+                        is_illusion = True
+                        break
+            if is_illusion:
+                logger.debug(f"Brand Guard: Rejected illusion '{brand}'")
+                continue
+
+            # 4. NEGATIVE CONTEXT GUARD
+            # Scans ALL occurrences of brand in text + sentence-level "hariç" detection
+            def _is_negated(brand_n: str, context: str, neg_kws: list, title_p: str) -> bool:
+                if brand_n in title_p:
+                    return False
+                # Check every occurrence (handles "Bim, ..., Migros hariç" long lists)
+                start = 0
+                while True:
+                    idx = context.find(brand_n, start)
+                    if idx == -1:
+                        break
+                    # Wide 300-char window
+                    window = context[max(0, idx - 300): idx + len(brand_n) + 300]
+                    if any(neg in window for neg in neg_kws):
+                        return True
+                    # Sentence-level: find the sentence containing the brand
+                    sent_start = max(0, context.rfind(".", 0, idx) + 1)
+                    sent_end = context.find(".", idx + len(brand_n))
+                    if sent_end == -1:
+                        sent_end = len(context)
+                    sentence = context[sent_start:sent_end]
+                    if any(neg in sentence for neg in neg_kws):
+                        return True
+                    start = idx + 1
+                return False
+
+            if brand_norm in full_context:
+                if _is_negated(brand_norm, full_context, negation_keywords, title_plain):
+                    logger.debug(f"Brand Guard: Rejected negative context '{brand}'")
+                    continue
+            
+            # 5. PBE BYPASS — database-verified brands skip the remaining heuristic text checks
+            if brand in pbe_trusted:
+                validated.append(brand)
+                continue
+
+            # 6. COMMON NOUN GUARD
+            is_generic = any(cn in brand_norm for cn in common_nouns)
+            if is_generic and brand_norm not in title_lower:
+                logger.debug(f"Brand Guard: Rejected common noun '{brand}'")
+                continue
+
+            if brand_norm in full_context:
+                validated.append(brand)
+            else:
+                # Brand not found in text at all — hallucination
+                logger.debug(f"Brand Guard: Rejected hallucination '{brand}' (not in text)")
+
+        return validated
+
+    # ── STATIC HELPERS ───────────────────────────────────────────────
+    @staticmethod
+    def _get_last_day_of_month(date_obj: datetime) -> datetime:
+        import calendar
+        last_day = calendar.monthrange(date_obj.year, date_obj.month)[1]
+        return date_obj.replace(day=last_day)
+
+
+def get_golden_parser(client):
+    """Factory function for AIParserGolden."""
+    return AIParserGolden(client)

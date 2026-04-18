@@ -1,13 +1,27 @@
 import re
+from bs4 import BeautifulSoup
 
-def clean_campaign_text(raw_text: str) -> str:
+def clean_campaign_text(raw_text: str, og_title: str = None) -> str:
     """
     Simple text cleaner to remove boilerplate banking legal terms.
     Works sentence-by-sentence to avoid deleting useful content
     that happens to be on the same line as boilerplate.
+    
+    og_title: If provided (from <meta og:title>), used to trim SPA header
+              navigation noise by finding the real campaign title in the text.
     """
     if not raw_text:
         return ""
+
+    # If the text contains HTML tags, extract clean text first
+    if "<" in raw_text and ">" in raw_text:
+        try:
+            soup = BeautifulSoup(raw_text, "html.parser")
+            for element in soup(["script", "style", "nav", "noscript", "header", "footer"]):
+                element.decompose()
+            raw_text = soup.get_text(separator="\n", strip=True)
+        except Exception:
+            pass
 
     # Patterns that identify PURELY boilerplate sentences.
     # IMPORTANT: Only match sentences that are exclusively legal/technical boilerplate.
@@ -145,10 +159,11 @@ def clean_campaign_text(raw_text: str) -> str:
         # Şekerbank sidebar (benzer kampanya link listesi)
         r"şekerbank\s+troy\s+thy\s+kampanyası",
         r"kampanyası\s+\w+\s+kampanyası\s+\w+\s+kampanyası",
-        # Nays navigation menu
-        r"al/sat\s+biriktir\s+otomatik\s+para",
-        r"paribu.ya\s+para\s+gönder",
-        r"faturasız\s+hatta.*tl\s+yükl",
+        r"retreat kampanyası\s+restoran kampanyası",
+        # Türk Telekom footer / masonry
+        r"bi\s+dünya\s+fırsat\s+şimdi\s+koçtaş",
+        r"tümü\s*\(\d+\)\s*eğitim\s*\(\d+\)",
+        r"ilk bakışta türk telekom",
         # Akbank HEMEN İNDİR footer
         r"hemen\s+indir\s+veya\s+app\s+store",
         r"jüzdan.*ı\s+indir",
@@ -165,6 +180,18 @@ def clean_campaign_text(raw_text: str) -> str:
         r"çeşitli markalardaki dilediğiniz ayrıcalığı keşfedin",
         r"popüler aramalar",
         r"bize ulaşın sosyal medya",
+        r"incelemek için tıklayın",
+        r"hemen giriş yapın",
+        r"daha fazla kampanya",
+        r"giriş yaptıktan sonra",
+        r"kampanya detayına geri dön",
+        r"ödeme kanallarını göster",
+        # Nays footer patterns
+        r"çok nays şeyler paylaşıyoruz",
+        r"neler yapabilirisin, nasıl kazanırsın",
+        r"nays dünyasını keşfet",
+        r"altın al/sat biriktir",
+        r"sevdiklerini nays'a davet et",
     ]
     
     final_text = '\n'.join(cleaned_lines)
@@ -184,5 +211,26 @@ def clean_campaign_text(raw_text: str) -> str:
     
     if earliest_noise_idx < len(final_text):
         final_text = final_text[:earliest_noise_idx].strip()
+
+    # ── Yapı Kredi Header Cleaning ──
+    # worldcard.com.tr pages have nav menus before campaign content
+    yapi_header_markers = ["world nedir?", "worldcard kredi kartı başvurusu", "world'e özel hizmetler"]
+    final_lower = final_text.lower()
+    for marker in yapi_header_markers:
+        m_pos = final_lower.find(marker)
+        if 0 <= m_pos < 1000:
+            restart_pos = final_lower.find("ana sayfa", m_pos)
+            if restart_pos != -1 and restart_pos < 2500:
+                final_text = final_text[restart_pos:].strip()
+                break
+
+    # ── og:title Header Sniper ──
+    # For SPA sites (e.g. Opet), the rendered text starts with nav menu noise.
+    # If the real campaign title (from <meta og:title>) is found in the text,
+    # trim everything before it so only campaign content reaches the AI.
+    if og_title and og_title.strip():
+        og_pos = final_text.find(og_title.strip())
+        if og_pos > 50:  # Only trim if there's actual noise before it
+            final_text = final_text[og_pos:].strip()
 
     return final_text
