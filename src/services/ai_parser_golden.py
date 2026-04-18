@@ -787,7 +787,200 @@ ANALİZ EDİLECEK METİN:
         last_day = calendar.monthrange(date_obj.year, date_obj.month)[1]
         return date_obj.replace(day=last_day)
 
+    # ── DB CACHE ─────────────────────────────────────────────────────
+    @staticmethod
+    def _check_db_cache(tracking_url: str) -> Optional[Dict[str, Any]]:
+        """Check database if this URL was already parsed successfully."""
+        try:
+            from src.database import SessionLocal as _SL  # type: ignore
+            from src.models import Campaign, Sector  # type: ignore
+            db = _SL()
+            try:
+                existing = db.query(Campaign).filter(
+                    Campaign.tracking_url == tracking_url,
+                    Campaign.description.isnot(None),
+                    Campaign.reward_text.isnot(None)
+                ).first()
+                if existing:
+                    sector_name = "Diğer"
+                    if existing.sector_id:
+                        sec = db.query(Sector).filter(Sector.id == existing.sector_id).first()
+                        if sec:
+                            sector_name = sec.name
+                    return {
+                        "title": existing.title,
+                        "description": existing.description,
+                        "reward_text": existing.reward_text,
+                        "reward_value": float(existing.reward_value) if existing.reward_value else None,
+                        "reward_type": existing.reward_type,
+                        "conditions": existing.conditions.split("\n") if existing.conditions else [],
+                        "cards": existing.eligible_cards.split(", ") if existing.eligible_cards else [],
+                        "participation": existing.participation or "",
+                        "start_date": existing.start_date.strftime("%Y-%m-%d") if existing.start_date else None,
+                        "end_date": existing.end_date.strftime("%Y-%m-%d") if existing.end_date else None,
+                        "sector": sector_name,
+                        "brands": [],
+                        "_cached": True,
+                        "_clean_text": existing.description or ""
+                    }
+            finally:
+                db.close()
+        except Exception as e:
+            logger.warning(f"Cache check failed: {e}")
+        return None
 
-def get_golden_parser(client):
-    """Factory function for AIParserGolden."""
-    return AIParserGolden(client)
+    # ── COMPATIBILITY: parse_campaign_data (eski AIParser imzası) ────
+    def parse_campaign_data(
+        self,
+        raw_text: str,
+        title: Optional[str] = None,
+        bank_name: Optional[str] = None,
+        card_name: Optional[str] = None,
+        tracking_url: Optional[str] = None,
+        force: bool = False,
+        campaign_id: Optional[int] = None
+    ) -> Dict[str, Any]:
+        """
+        Backward-compatible wrapper. Same signature as old AIParser.parse_campaign_data().
+        Routes directly to parse_campaign() with DB cache support.
+        """
+        if tracking_url and not force:
+            cached = self._check_db_cache(tracking_url)
+            if cached:
+                safe_url = str(tracking_url)
+                print(f"   ✨ Using cached AI data for: {safe_url[:60]}...")
+                return cached
+
+        return self.parse_campaign(raw_html=raw_text, bank_name=bank_name or "", title=title or "")
+
+
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+#  MODULE-LEVEL FACTORY & STANDALONE FUNCTIONS
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+def _create_default_client():
+    """Create a Gemini model client using the standard rotation system."""
+    from google.genai import types as _types  # type: ignore
+    from src.utils.gemini_client import generate_with_rotation  # type: ignore
+    import signal
+
+    class TimeoutException(Exception):
+        pass
+
+    def timeout_handler(signum, frame):
+        raise TimeoutException("Gemini API call timed out")
+
+    _model = os.getenv("GEMINI_MODEL", "gemini-3.1-flash-lite-preview")
+
+    class _GeminiClient:
+        def __init__(self):
+            self.model = _model
+
+        def generate_content(self, prompt):
+            import time
+            time.sleep(1.0)  # Rate-limit protection
+            config = _types.GenerateContentConfig(
+                temperature=0.0, top_p=0.1, top_k=1,
+                response_mime_type="application/json",
+                max_output_tokens=6000
+            )
+            old_handler = signal.signal(signal.SIGALRM, timeout_handler)
+            signal.alarm(65)
+            try:
+                res = generate_with_rotation(prompt, model=self.model, config=config)
+                return str(res) if res else "{}"
+            except TimeoutException:
+                logger.error("Gemini API call timed out (65s)")
+                return "{}"
+            finally:
+                signal.alarm(0)
+                signal.signal(signal.SIGALRM, old_handler)
+
+    return _GeminiClient()
+
+
+# Singleton instance
+_parser_instance: Optional[AIParserGolden] = None
+
+
+def get_golden_parser(client=None) -> AIParserGolden:
+    """Get or create singleton Golden Parser instance."""
+    global _parser_instance
+    if _parser_instance is None:
+        if client is None:
+            client = _create_default_client()
+        _parser_instance = AIParserGolden(client)
+    return _parser_instance
+
+
+def parse_api_campaign(
+    title: str,
+    short_description: str,
+    content_html: str,
+    bank_name: Optional[str] = None,
+    scraper_sector: Optional[str] = None,
+    tracking_url: Optional[str] = None,
+    force: bool = False
+) -> Dict[str, Any]:
+    """
+    API-First Lightweight Parser (used by Garanti, Akbank, Yapı Kredi, QNB, etc.).
+    Now routes through Golden Parser for consistent processing.
+    """
+    parser = get_golden_parser()
+
+    # 1. Check Cache
+    if tracking_url and not force:
+        cached = parser._check_db_cache(tracking_url)
+        if cached:
+            print(f"   ✨ [API] Using cached AI data for: {str(tracking_url)[:60]}...")
+            return cached
+
+    # 2. Clean HTML content (same as Yol 2 used to do inline - now centralized)
+    import re as _re
+    import html as _html
+
+    content_html = content_html or ''
+    temp = _re.sub(r'<script.*?>.*?</script>', ' ', content_html, flags=_re.DOTALL | _re.IGNORECASE)
+    temp = _re.sub(r'<style.*?>.*?</style>', ' ', temp, flags=_re.DOTALL | _re.IGNORECASE)
+    clean_content = _re.sub(r'<[^>]+>', '\n', temp)
+    clean_content = _html.unescape(clean_content)
+    clean_content = _re.sub(r'\n+', '\n', clean_content).strip()
+
+    # Combine title + description + body for full context
+    raw_text = f"{title}\n{short_description}\n{clean_content}"
+
+    # 3. Parse through Golden Parser (single pipeline)
+    result = parser.parse_campaign(raw_html=raw_text, bank_name=bank_name or "", title=title or "")
+    if not result:
+        result = {}
+
+    # 4. Apply short_description fallback
+    if not result.get("description") and short_description:
+        result["description"] = short_description
+
+    # 5. Ensure short_title exists
+    if "short_title" not in result:
+        result["short_title"] = result.get("title", title)
+
+    # 6. Fallback error object
+    if result.get("_ai_failed"):
+        return {
+            "_ai_failed": True,
+            "title": title,
+            "short_title": title,
+            "description": short_description,
+            "reward_value": None,
+            "reward_type": None,
+            "reward_text": "",
+            "sector": "diger",
+            "brands": [],
+            "conditions": [],
+            "cards": [],
+            "participation": "",
+            "ai_marketing_text": "",
+            "start_date": None,
+            "end_date": None
+        }
+
+    return result
+
