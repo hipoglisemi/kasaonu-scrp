@@ -579,8 +579,8 @@ class AIParser:
 
         print(f"   🤖 [LEGACY PROXY] Routing to Golden Parser V3...")
         
-        from src.services.ai_parser_golden import AIParserGolden
-        from src.utils.gemini_client import generate_with_rotation
+        from .ai_parser_golden import AIParserGolden
+        from ..utils.gemini_client import generate_with_rotation
         from google.genai import types
         import os
 
@@ -615,7 +615,7 @@ class AIParser:
             "conditions": res.get("conditions", [])
         }
         
-        from src.services.text_cleaner import clean_campaign_text
+        from .text_cleaner import clean_campaign_text
         normalized["_clean_text"] = clean_campaign_text(raw_text, title)
         normalized["clean_text"] = normalized["_clean_text"]
 
