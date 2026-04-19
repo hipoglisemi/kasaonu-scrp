@@ -11,6 +11,7 @@
   "venv": "venv",
   "extraPaths": ["."],
   "pythonVersion": "3.9",
+  "autoSearchPaths": false,
   "typeCheckingMode": "off",
   "reportMissingImports": false,
   "reportMissingModuleSource": false,

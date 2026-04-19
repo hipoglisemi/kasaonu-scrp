@@ -90,7 +90,7 @@ BANK_SELF_NAMES = {
     "akbank": ["akbank", "axess", "wings", "free", "chip-para"],
     "işbankası": ["iş bankası", "türkiye iş bankası", "işbank", "maximum", "maximiles"],
     "yapı kredi": ["yapı kredi", "world", "worldcard"],
-    "garanti": ["garanti", "garanti bbva", "bonus", "bonusflaş"],
+    "garanti": ["garanti", "garanti bbva", "bonus", "bonusflaş", "miles&smiles", "shop&fly"],
     "ziraat": ["ziraat", "ziraat bankası", "bankkart"],
     "vakıfbank": ["vakıfbank", "vakıf bank"],
     "halkbank": ["halkbank", "halk bankası", "paraf"],
@@ -361,7 +361,7 @@ Kampanya Sahibi Banka/Kurum: {bank_name}
 
 JSON FORMATI:
 {{
-  "title": "Metnin en üstündeki doğal ve spesifik başlığı bul. Aksi kanıtlanmadıkça 'Opet Kampanyası' gibi sonradan atanmış jenerik/sıkıcı başlık isimlerini GÖRMEZDEN GEL, sadece asıl içeriği yansıtan resmî başlığı (Örn: Çek Kazan Superfresh Fırsatı) kullan.",
+  "title": "Metnin en üstündeki doğal ve spesifik başlığı bul. BAŞLIĞA KESİNLİKLE BANKA VEYA KART ADI ŞEMSİYESİ EKLEME (Örn: 'Shop&Fly -', 'Bonus -', 'Maximum:' gibi ön ekleri sil). Sadece asıl içeriği yansıtan resmî başlığı (Örn: 'Enza Home\\'da taksit fırsatları!') kullan.",
   "description": "2 cümlelik samimi özet",
   "ai_marketing_text": "2-3 cümlelik enerjik, emojili pazarlama metni. Somut rakamları belirt. Metin SEO dostu olmalı.",
   "reward_value": 0.0,
@@ -537,8 +537,25 @@ ANALİZ EDİLECEK METİN:
         participation = self._to_clean_string(data.get("participation"))
         data["participation"] = participation
 
-        # ── 8. NORMALIZE remaining fields ────────────────────────────
-        data["title"] = data.get("title") or "Kampanya"
+        # ── 8. TITLE NORMALIZE & PREFIX GUARD ────────────────────────
+        raw_title = data.get("title") or title or "Kampanya"
+        
+        # Hard strip known prefixes that banks inject to og:title like "Shop&Fly - ", "Garanti BBVA - "
+        prefixes_to_strip = [
+            "Shop&Fly", "Garanti Bonus", "Garanti BBVA", "Maximum", "Maximiles", 
+            "Axess", "Wings", "Worldcard", "World", "Ziraat Bankkart", "Paraf",
+            "CardFinans", "QNB", "Türkiye Finans", "Kuveyt Türk"
+        ]
+        
+        for prefix in prefixes_to_strip:
+            # Matches "Shop&Fly - " or "Shop&Fly | " or "Shop&Fly: "
+            pattern = rf"^(?i)\s*{re.escape(prefix)}\s*[\-\|\:]\s*(.*)$"
+            match = re.match(pattern, raw_title)
+            if match:
+                raw_title = match.group(1).strip()
+                break # stripped the main prefix
+        
+        data["title"] = raw_title
         data["description"] = data.get("description") or ""
         data["ai_marketing_text"] = data.get("ai_marketing_text") or ""
         data["reward_type"] = data.get("reward_type")

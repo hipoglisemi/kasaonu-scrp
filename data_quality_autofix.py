@@ -761,7 +761,7 @@ def run_autofix(limit: int = 250, campaign_id: Optional[int] = None, force_all: 
                             needs_brand_fix = True
                             break
 
-                if needs_brand_fix and ai_data.get("brands"):
+                if needs_brand_fix and "brands" in ai_data:
                     from src.services.brand_matcher import get_or_create_brand  # type: ignore
                     brand_cache = {} 
                     

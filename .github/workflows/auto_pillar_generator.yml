@@ -36,7 +36,7 @@ jobs:
           GEMINI_API_KEY_6: ${{ secrets.GEMINI_API_KEY_6 }}
           GEMINI_API_KEY_7: ${{ secrets.GEMINI_API_KEY_7 }}
           USE_VERTEX_AI: "False"
-          GEMINI_MODEL: "gemma-4-31b-it"
+          GEMINI_MODEL: "gemini-2.5-flash"
         run: |
           python auto_seo_pillar_generator.py
 

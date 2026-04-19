@@ -580,15 +580,8 @@ class TurkTelekomScraper:
         base_slug = generate_slug(data.get("title", ""))
         slug = f"{base_slug}-{url_hash}"
         
-        # Format for CampaignDetailClient.tsx
-        participation = data.get("participation", "")
-        ai_description = data.get("ai_marketing_text") or data.get("description", "")
-        
-        if participation.strip():
-            clean_part = re.sub(r'\[[^\]]+\]:\s*', '', participation.strip()).strip()  # type: ignore # pyre-ignore[16,6]
-            ai_marketing_text = f"📱 Katılım: {clean_part}\n\n{ai_description}" if ai_description else f"📱 Katılım: {clean_part}"
-        else:
-            ai_marketing_text = ai_description
+        ai_marketing_text = data.get("ai_marketing_text") or data.get("description", "")
+        participation_text = data.get("participation", "")
             
         campaign = Campaign(
             card_id=card.id,  # type: ignore # pyre-ignore[16]
@@ -606,6 +599,7 @@ class TurkTelekomScraper:
             tracking_url=url,
             is_active=True,
             ai_marketing_text=ai_marketing_text,
+            participation=participation_text,
             eligible_cards=data.get("eligible_cards") or "Türk Telekom Müşterileri",
             category=data.get("category"),
             badge_color=data.get("badge_color"),

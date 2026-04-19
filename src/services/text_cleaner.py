@@ -28,6 +28,7 @@ def clean_campaign_text(raw_text: str, og_title: str = None, title: str = None) 
                 '#related-campaigns', '.campaignDetail-others', '.campaign-recommendations-box',
                 '.footer-bottom', '.social-links', '.navigation-wrapper', '.cookie-banner',
                 '.top-menu', '.sidebar', '.ad-panel', '.social-share',
+                '.slider-container', '.camp-slider', '.camp-slider-container', '.swiper-container',
                 
                 # Bank Specifics (Research based)
                 '#headerUp', '#headerDown', '#headerMain', '#headerSrc', '#headerLoginPanelNew', # TEB
@@ -227,6 +228,26 @@ def clean_campaign_text(raw_text: str, og_title: str = None, title: str = None) 
     # For now, we only snip if the noise marker is very close to the end (Footer).
     min_cut_pos = max(len(final_text) * 0.8, 1500) # Only CUT if it's in the last 20%
     earliest_noise_idx = len(final_text)
+    
+    # Severe cross-sale sections that explicitly indicate end of main content
+    HARD_CUT_MARKERS = [
+        r"öne çıkan ayrıcalıklar", r"ilginizi çekebilecek diğer kampanyalar", 
+        r"ilginizi çekebilecek kampanyalar", r"benzer kampanyalar", 
+        r"benzer fırsatlar", r"sizin için seçtiklerimiz",
+        r"diğer kampanyalar", r"diğer fırsatlar", r"benzer fırsatları kaçırmayın",
+        r"diğer kampanyalara göz atın", r"miles&smiles dünyası ayrıcalıklarınız",
+        r"mıl programı mıl kazanımı", r"mil programı mil kazanımı",
+        r"türk hava yolları ayrıcalıkları"
+    ]
+    
+    # 1. First evaluate hard cuts (no minimum percentage threshold required)
+    for marker in HARD_CUT_MARKERS:
+        for match in re.finditer(marker, text_lower):
+            # Only apply if it's not literally the first sentence of the page (safeguard)
+            if match.start() >= 150 and match.start() < earliest_noise_idx:
+                earliest_noise_idx = match.start()
+                
+    # 2. Then evaluate standard soft noise markers
     for marker in noise_markers:
         for match in re.finditer(marker, text_lower):
             if match.start() >= min_cut_pos and match.start() < earliest_noise_idx:
