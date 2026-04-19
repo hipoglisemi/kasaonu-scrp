@@ -20,6 +20,7 @@ from sqlalchemy import func
 from src.database import engine, get_db_session
 from src.models import Bank, Card, Sector, Campaign, CampaignBrand
 from src.services.brand_matcher import get_or_create_brands_list
+from src.services.ai_parser_golden import parse_api_campaign  # type: ignore
 from src.utils.scraper_utils import is_url_blocked
 
 class HSBCScraper:
@@ -195,7 +196,7 @@ class HSBCScraper:
             
             return {
                 "title": title,
-                "full_text": full_text,
+                "raw_html": self.page.content(),  # Return raw HTML for parse_api_campaign
                 "image_url": image_url,
                 "source_url": url
             }
@@ -255,13 +256,15 @@ class HSBCScraper:
         # 4. AI Parse
         ai_data = {}
         try:
-            ai_data = self.parser.parse_campaign_data(
-                raw_text=data["full_text"],
-                bank_name=self.BANK_NAME,
+            ai_data = parse_api_campaign(
                 title=data["title"],
+                short_description=None,
+                content_html=data.get("raw_html", ""),
+                bank_name=self.BANK_NAME,
+                scraper_sector=None,
                 tracking_url=url,
-                force=force
-            )
+                og_title=None
+            ) or {}
         except Exception as e:
             print(f"   ⚠️ AI Parse error: {e}")
 

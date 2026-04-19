@@ -11,7 +11,15 @@ from urllib.parse import urljoin
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..')))
 
 from sqlalchemy.orm import Session # type: ignore
-from bs4 import BeautifulSoup # type: ignore
+from bs4 import BeautifulSoup
+
+import os
+import sys
+project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+if project_root not in sys.path:
+    sys.path.insert(0, project_root)
+
+from src.services.ai_parser_golden import parse_api_campaign  # type: ignore # type: ignore
 from dotenv import load_dotenv # type: ignore
 from selenium import webdriver # type: ignore
 from selenium.webdriver.chrome.webdriver import WebDriver # type: ignore
@@ -250,12 +258,19 @@ class OpetScraper:
                     content_area = detail_soup.select_one("main, .container, .detail-content")
                     raw_html = str(content_area) if content_area else self.driver.page_source
 
+                    # og:title for Header Sniper
+                    og_title_el = detail_soup.find("meta", property="og:title")
+                    og_title = og_title_el.get("content", "").strip() if og_title_el else title
+
                     # AI Parsing
-                    ai_data = self.parser.parse_campaign_data(
-                        raw_text=raw_html,
+                    ai_data = parse_api_campaign(
                         title=title,
+                        short_description=None,
+                        content_html=raw_html,
                         bank_name="Genel",
-                        tracking_url=detail_url
+                        scraper_sector=None,
+                        tracking_url=detail_url,
+                        og_title=og_title
                     )
 
                     if not ai_data or ai_data.get("_ai_failed"):

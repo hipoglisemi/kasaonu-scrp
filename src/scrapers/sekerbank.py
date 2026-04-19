@@ -30,6 +30,7 @@ from selenium.webdriver.support import expected_conditions as EC # type: ignore
 from src.database import get_db_session # type: ignore
 from src.models import Bank, Card, Sector, Brand, Campaign, CampaignBrand # type: ignore
 from src.services.ai_parser import AIParser # type: ignore
+from src.services.ai_parser_golden import parse_api_campaign  # type: ignore
 from src.utils.logger_utils import log_scraper_execution # type: ignore
 from src.utils.scraper_utils import should_skip_campaign # type: ignore
 
@@ -455,14 +456,24 @@ class SekerbankScraper:
             return "skipped"
 
         # AI Parse
-        print(f"      🧠 AI Parsing details ({len(raw_text)} chars collected)...")
-        ai_data = self.parser.parse_campaign_data(
-            raw_text=raw_text,
+        print(f"      🧠 AI Parsing details...")
+
+        # og:title for Header Sniper
+        og_title_el = soup.find("meta", property="og:title")
+        og_title = og_title_el.get("content", "").strip() if og_title_el else title
+
+        # Full body HTML → parse_api_campaign centralised pipeline
+        body_el = soup.find("body")
+        raw_html = str(body_el) if body_el else driver.page_source
+
+        ai_data = parse_api_campaign(
             title=title,
+            short_description=None,
+            content_html=raw_html,
             bank_name="sekerbank",
-            card_name=source['default_card'],
+            scraper_sector=None,
             tracking_url=url,
-            force=force
+            og_title=og_title
         )
 
         if not ai_data:

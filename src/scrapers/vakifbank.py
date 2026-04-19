@@ -144,23 +144,24 @@ class VakifbankScraper:
                 print(f"   🚫 Skipped (Blocklisted): {title}")
                 return "skipped"  # type: ignore # pyre-ignore[7]
 
-            # --- ISOLATE MAIN CONTENT ---
-            soup = BeautifulSoup(html, 'html.parser')
-            detail_container = soup.select_one('.kampanyaDetay')
-            if detail_container:
-                # Remove 'İlginizi Çekebilecek Kampanyalar' from within if nested (unlikely but safe)
-                for other in detail_container.select('.otherCampaigns'):
-                    other.decompose()
-                processed_html = str(detail_container)
-            else:
-                # Fallback to full HTML if selector fails (shouldn't happen on standard pages)
-                processed_html = html
+            # Extract og:title for better cleaning anchors
+            og_title_el = soup.find("meta", property="og:title")
+            og_title = og_title_el.get("content") if og_title_el else None
             
-            # --- USE CENTRALIZED AI PARSER ---
-            # It handles JSON extraction, normalization, and safety checks internally
-            ai_data = self.parser.parse_campaign_data(
-                raw_text=processed_html,
-                bank_name="VakıfBank" # Trigger specific rules
+            # Extract FULL BODY for Autofix-standard global cleaning
+            body_el = soup.find("body")
+            raw_html = str(body_el) if body_el else html
+            
+            # --- USE CENTRALIZED AI PARSER (Autofix-standard) ---
+            from src.services.ai_parser import parse_api_campaign
+            ai_data = parse_api_campaign(
+                title=title_el.get_text(strip=True) if title_el else "Kampanya",
+                short_description=None,
+                content_html=raw_html,
+                bank_name="VakıfBank",
+                scraper_sector=None,
+                tracking_url=url,
+                og_title=og_title
             )
             
             if not ai_data:

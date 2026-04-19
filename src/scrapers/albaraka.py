@@ -24,6 +24,7 @@ from src.utils.logger_utils import log_scraper_execution  # type: ignore
 from src.utils.scraper_utils import is_url_blocked  # type: ignore
 from src.database import SessionLocal  # type: ignore
 from src.services.brand_matcher import get_or_create_brands_list  # type: ignore
+from src.services.ai_parser_golden import parse_api_campaign  # type: ignore
 
 # Load Env
 try:
@@ -214,22 +215,9 @@ class AlbarakaScraper:
             for s in soup(["script", "style", "nav", "footer", "header", "noscript"]):  # type: ignore # pyre-ignore[16,6]
                 s.extract()
             
-            # Extract text from the main container or the whole body
-            # We found that Albaraka content is in the SSR even if JS moves it later
-            main_text = soup.get_text(separator="\n", strip=True)
-            
-            # AI Helper: If we see "Katılım Adımları", make it more obvious
-            if "Katılım Adımları" in main_text:
-                main_text = main_text.replace("Katılım Adımları", "\n\n### KAMPANYAYA KATILIM ADIMLARI:\n")
-            
-            # Helper to find date in raw HTML via regex to aid AI
-            # Looking for DD.MM.YYYY - DD.MM.YYYY
-            date_match = re.search(r'(\d{2}\.\d{2}\.\d{4}\s*[-–]\s*\d{2}\.\d{2}\.\d{4})', html_content)
-            date_info = ""
-            if date_match:
-                date_info = f"\n\nKAMPANYA TARIHI (KESIN): {date_match.group(1)}\n"
-            
-            return self._clean(main_text) + date_info  # type: ignore # pyre-ignore[7]
+            # Return raw HTML string for centralised parse_api_campaign pipeline
+            body_el = soup.find("body")
+            return str(body_el) if body_el else html_content  # type: ignore # pyre-ignore[7]
 
         except Exception as e:
             print(f"   ⚠️ Error extracting details from {url} via requests: {e}")
@@ -366,12 +354,12 @@ class AlbarakaScraper:
                 slug=slug,
                 title=formatted_title,
                 description=data.get("description") or data["title"][:200],
-                ai_marketing_text=ai_data.get("ai_marketing_text") or data.get("description") or data["title"][:200],
+                ai_marketing_text=data.get("ai_marketing_text") or data.get("description") or data["title"][:200],
                 reward_text=data.get("reward_text"),
                 reward_value=data.get("reward_value"),
                 reward_type=data.get("reward_type"),
                 conditions=final_conditions,
-                participation=participation,
+                participation=data.get("participation"),
                 eligible_cards=eligible,
                 image_url=data.get("image_url"),
                 start_date=start_date,
@@ -461,11 +449,14 @@ class AlbarakaScraper:
                     
                     combined_text = f"{camp['title']}\n{camp['summary']}\n{full_text}"
                     
-                    ai_data = self.parser.parse_campaign_data(
-                        raw_text=combined_text[:6000], # Limit to 6k chars  # type: ignore # pyre-ignore[16,6]
+                    ai_data = parse_api_campaign(
                         title=camp["title"],
+                        short_description=camp.get("summary") or None,
+                        content_html=full_text,  # raw HTML returned by _extract_campaign_details
                         bank_name=self.BANK_NAME,
-                        card_name="Albaraka Kredi Kartı"
+                        scraper_sector=None,
+                        tracking_url=url,
+                        og_title=None
                     )
                     
                     res_data = {

@@ -210,23 +210,25 @@ class GarantiMilesAndSmilesScraper:
                     except:
                         pass
 
-            # Content for AI
-            main_content = ""
+            # Extract og:title for better cleaning anchors
+            og_title_el = soup.find("meta", property="og:title")
+            og_title = og_title_el.get("content") if og_title_el else None
             
-            # Try to find the container holding headers like "Başlangıç - Bitiş Tarihleri"
-            # It seems they are in a standard container.
-            # Convert soup to text preserving newlines
-            main_content = soup.get_text(separator='\n') 
+            # Extract FULL BODY for Autofix-standard global cleaning
+            body_el = soup.find("body")
+            raw_html = str(body_el) if body_el else str(soup)
             
             print(f"   📄 {title[:60]}...")  # type: ignore # pyre-ignore[16,6]
             
             # AI Parsing
             ai_data = parse_api_campaign(
                 title=title,
-                short_description=title, # Let AI generate better one
-                content_html=main_content, # Sending full text works well for Gemini
+                short_description=title, 
+                content_html=raw_html,
                 bank_name="Garanti BBVA",
-                scraper_sector=None
+                scraper_sector=None,
+                tracking_url=url,
+                og_title=og_title
             )
             
             # Dates Fallback (Use AI data only if HTML extraction failed)

@@ -35,6 +35,7 @@ try:
     from src.models import Campaign, Bank, Card, Sector, Brand, CampaignBrand # type: ignore
     from src.database import get_db_session # type: ignore
     from src.services.ai_parser import AIParser # type: ignore
+    from src.services.ai_parser_golden import parse_api_campaign  # type: ignore
     from src.utils.slug_generator import get_unique_slug # type: ignore
     from src.utils.scraper_utils import should_skip_campaign, is_url_blocked # type: ignore
     from src.utils.logger_utils import log_scraper_execution # type: ignore
@@ -196,19 +197,23 @@ class PaycellScraper:
                         else:
                             image_url = self.DEFAULT_IMAGE_URL
 
-                    # Body content
-                    # Based on research, Next.js might use 'main' or specific card-body
-                    content_part = soup.select_one("main") or soup.select_one(".card-body")
-                    if not content_part:
-                        content_part = soup.body
-                    
-                    raw_text = content_part.get_text(separator="\n", strip=True) if content_part else ""
+                    # og:title for Header Sniper
+                    og_title_el = soup.find("meta", property="og:title")
+                    og_title = og_title_el.get("content", "").strip() if og_title_el else title
+
+                    # Full body HTML → parse_api_campaign centralised pipeline
+                    body_el = soup.find("body")
+                    raw_html = str(body_el) if body_el else dr.page_source
 
                     # 4. AI Parse
-                    ai_data = self.parser.parse_campaign_data(
-                        raw_text=raw_text,
+                    ai_data = parse_api_campaign(
+                        title=title,
+                        short_description=None,
+                        content_html=raw_html,
                         bank_name=self.BANK_NAME,
-                        title=title
+                        scraper_sector=None,
+                        tracking_url=url,
+                        og_title=og_title
                     )
 
                     if not ai_data:
@@ -217,7 +222,7 @@ class PaycellScraper:
                         continue
 
                     # 5. Save
-                    status = self._save_campaign(title, str(image_url) if image_url else self.DEFAULT_IMAGE_URL, url, ai_data, raw_text, force=force)
+                    status = self._save_campaign(title, str(image_url) if image_url else self.DEFAULT_IMAGE_URL, url, ai_data, raw_html, force=force)
                     if status == "saved":
                         ts = total_saved
                         total_saved = ts + 1 # type: ignore

@@ -13,6 +13,7 @@ if project_root not in sys.path:
 
 from sqlalchemy import create_engine, text  # type: ignore # pyre-ignore[21]
 from src.services.ai_parser import AIParser  # type: ignore # pyre-ignore[21]
+from src.services.ai_parser_golden import parse_api_campaign  # type: ignore # pyre-ignore[21]
 from src.services.brand_normalizer import cleanup_brands  # type: ignore # pyre-ignore[21]
 from src.utils.scraper_utils import is_url_blocked  # type: ignore # pyre-ignore[21]
 
@@ -361,17 +362,19 @@ class TurkiyeFinansScraper:
                     if len(body_text) > max_len:
                         content_text = body_text
 
-            # AI Parsing
+            # AI Parsing — pass raw Playwright HTML for centralised BS4 cleaning
             ai_data = {}
-            if self.ai_parser and content_text:
+            if self.ai_parser:
                 try:
-                    parser: Any = self.ai_parser
-                    ai_data = parser.parse_campaign_data(  # type: ignore
-                        raw_text=content_text,
+                    ai_data = parse_api_campaign(
                         title=title,
+                        short_description=None,
+                        content_html=html,  # Raw Playwright-rendered HTML
                         bank_name=BANK_NAME,
-                        card_name=card_def["name"],
-                    )
+                        scraper_sector=None,
+                        tracking_url=url,
+                        og_title=None
+                    ) or {}
                 except Exception as e:
                     print(f"      ⚠️ AI Error: {e}")
 

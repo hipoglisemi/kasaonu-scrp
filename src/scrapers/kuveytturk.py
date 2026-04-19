@@ -24,6 +24,7 @@ if project_root not in sys.path:
 from src.database import get_db_session  # type: ignore # pyre-ignore[21]
 from src.models import Bank, Card, Sector, Brand, Campaign, CampaignBrand  # type: ignore # pyre-ignore[21]
 from src.services.ai_parser import AIParser  # type: ignore # pyre-ignore[21]
+from src.services.ai_parser_golden import parse_api_campaign  # type: ignore # pyre-ignore[21]
 from src.utils.logger_utils import log_scraper_execution  # type: ignore # pyre-ignore[21]
 from src.utils.scraper_utils import is_url_blocked  # type: ignore
 
@@ -306,15 +307,24 @@ class KuveytTurkScraper:
                 if img_el:
                     image_url = urljoin(self.BASE_URL, img_el.get("src") or img_el.get("data-src")) # type: ignore # pyre-ignore[16]
 
-            # Text for AI
-            full_raw_text = f"BAŞLIK: {title}\n\n"
-            full_raw_text += f"KAMPANYA ANA ÖZETİ (AÇIKLAMA): {main_description}\n\n"  # type: ignore # pyre-ignore[58]
-            full_raw_text += f"TÜM KAMPANYA KOŞULLARI VE KATILIM DETAYLARI:\n{conditions_text}\n\n"  # type: ignore # pyre-ignore[58]
-            
             print("   🤖 Parsing with AI...")
-            parsed_data = self.parser.parse_campaign_data(
-                raw_text=full_raw_text, bank_name=self.BANK_NAME
-            )
+            # og:title for Header Sniper
+            og_title_el = soup.find("meta", property="og:title")
+            og_title = og_title_el.get("content", "").strip() if og_title_el else title
+
+            # Full body HTML → parse_api_campaign centralised pipeline
+            body_el = soup.find("body")
+            raw_html = str(body_el) if body_el else html_content
+
+            parsed_data = parse_api_campaign(
+                title=title,
+                short_description=None,
+                content_html=raw_html,
+                bank_name=self.BANK_NAME,
+                scraper_sector=None,
+                tracking_url=url,
+                og_title=og_title
+            ) or {}
             
             if not parsed_data:
                 print("   ❌ AI Parse failed")
@@ -325,7 +335,7 @@ class KuveytTurkScraper:
                 "title": title,
                 "image_url": image_url,
                 "description": main_description,
-                "raw_text": full_raw_text,
+                "raw_text": raw_html,
                 "source_url": url,
                 "date_text": conditions_text # Fallback for date extraction
             }

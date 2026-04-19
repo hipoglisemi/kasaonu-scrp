@@ -384,8 +384,8 @@ ANALİZ EDİLECEK METİN:
     # ── MAIN PARSE FLOW ──────────────────────────────────────────────
     def parse_campaign(self, raw_html: str, bank_name: str = "", title: str = "", og_title: str = None) -> Dict[str, Any]:
         """Golden Standard V3 parse flow."""
-        # 1. Clean text (og_title enables header trimming for SPA sites)
-        cleaned_text = clean_campaign_text(raw_html, og_title=og_title)
+        # 1. Clean text (og_title/title enables header trimming for SPA sites)
+        cleaned_text = clean_campaign_text(raw_html, og_title=og_title, title=title)
 
         # 2. PBE Pre-scan (find known brands before AI call)
         pb_brands = []
@@ -842,7 +842,8 @@ ANALİZ EDİLECEK METİN:
         card_name: Optional[str] = None,
         tracking_url: Optional[str] = None,
         force: bool = False,
-        campaign_id: Optional[int] = None
+        campaign_id: Optional[int] = None,
+        og_title: Optional[str] = None
     ) -> Dict[str, Any]:
         """
         Backward-compatible wrapper. Same signature as old AIParser.parse_campaign_data().
@@ -855,7 +856,7 @@ ANALİZ EDİLECEK METİN:
                 print(f"   ✨ Using cached AI data for: {safe_url[:60]}...")
                 return cached
 
-        return self.parse_campaign(raw_html=raw_text, bank_name=bank_name or "", title=title or "")
+        return self.parse_campaign(raw_html=raw_text, bank_name=bank_name or "", title=title or "", og_title=og_title)
 
 
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -924,7 +925,8 @@ def parse_api_campaign(
     bank_name: Optional[str] = None,
     scraper_sector: Optional[str] = None,
     tracking_url: Optional[str] = None,
-    force: bool = False
+    force: bool = False,
+    og_title: Optional[str] = None
 ) -> Dict[str, Any]:
     """
     API-First Lightweight Parser (used by Garanti, Akbank, Yapı Kredi, QNB, etc.).
@@ -939,22 +941,139 @@ def parse_api_campaign(
             print(f"   ✨ [API] Using cached AI data for: {str(tracking_url)[:60]}...")
             return cached
 
-    # 2. Clean HTML content (same as Yol 2 used to do inline - now centralized)
-    import re as _re
-    import html as _html
+    # 2. Clean HTML content — AUTOFIX-PARITY STRATEGY
+    # This mirrors what data_quality_autofix.py does: remove structural noise
+    # from the DOM (nav/footer/header) BEFORE converting to text.
+    # The old regex-only approach left all these tags as plain text → AI confusion.
+    from bs4 import BeautifulSoup as _BS
 
     content_html = content_html or ''
-    temp = _re.sub(r'<script.*?>.*?</script>', ' ', content_html, flags=_re.DOTALL | _re.IGNORECASE)
-    temp = _re.sub(r'<style.*?>.*?</style>', ' ', temp, flags=_re.DOTALL | _re.IGNORECASE)
-    clean_content = _re.sub(r'<[^>]+>', '\n', temp)
+
+    # 2a. Parse DOM and surgically remove noise tags
+    _soup = _BS(content_html, 'html.parser')
+    for _tag in _soup(["script", "style", "nav", "footer", "header", "noscript", "aside"]):
+        _tag.decompose()
+
+    # 2b. GENEL gürültü selector'ları — tüm bankalar için
+    _noise_selectors = [
+        '.other-campaigns', '.featured-campaigns', '.similar-campaigns',
+        '.campaign-recommendations', 'section.news-carousel',
+        '#related-campaigns', '.campaignDetail-others',
+        '.related-campaigns', '.other-campaign-list',
+        '[class*="sidebar"]', '[class*="footer"]', '[class*="header"]',
+        '[class*="navigation"]', '[id*="navigation"]',
+    ]
+
+    # 2b-extra. BANKA-ÖZEL ek gürültü selector'ları
+    # Her bankanın sayfasındaki banka-özgü gürültüler buraya eklenir.
+    # Yeni bir banka eklendiğinde sadece burası güncellenir, scraper'a dokunulmaz.
+    _bank_noise_map = {
+        "akbank":        ['.headerContent', '.logoBox', '.verisign', '.push',
+                          '.campaignOtherCampaigns', '.footer-banner'],
+        "axess":         ['.headerContent', '.logoBox', '.verisign', '.push',
+                          '.campaignOtherCampaigns', '.footer-banner'],
+        "garanti":       ['.header-v2', '.footer-v2', '.nav-v2', '.sidebar-v2',
+                          '.online-islemler'],
+        "garanti bbva":  ['.header-v2', '.footer-v2', '.nav-v2', '.sidebar-v2',
+                          '.online-islemler'],
+        "qnb":           ['.Header-navigation-top', '.Header-navigation-main',
+                          '.Header-navigation-bottom', '.Header-navigation-mobil'],
+        "teb":           ['#headerUp', '#headerDown', '#headerMain',
+                          '#headerSrc', '#headerLoginPanelNew'],
+        "ziraat bankası": ['.subpage-breadcrumb', '.subpage-sidebar',
+                            '.subpage-related', '.other-content'],
+        "vakıfbank":     ['.otherCampaigns', '.similarCampaigns', '.footer-campaign'],
+        "yapı kredi":    ['.yk-header', '.yk-footer', '.banner-area',
+                          '.related-campaigns-wrapper'],
+        "işbankası":     ['.other-links', '.menu-wrapper', '.sticky-cta'],
+        "maximum":       ['.other-links', '.menu-wrapper', '.sticky-cta'],
+        "maximiles":     ['.other-links', '.menu-wrapper', '.sticky-cta'],
+    }
+    _bank_key = (bank_name or "").lower()
+    for _key, _selectors in _bank_noise_map.items():
+        if _key in _bank_key:
+            _noise_selectors = _noise_selectors + _selectors
+            break
+
+    for _sel in _noise_selectors:
+        for _el in _soup.select(_sel):
+            _el.decompose()
+
+    # 2c. BANKA-ÖZEL içerik selector öncelik listesi
+    # Her bankanın gerçek içerik alanını bilen targetlama.
+    # Genel liste sonunda fallback olarak devreye girer.
+    _bank_content_map = {
+        "akbank":        ['.campaign-detail-content', '.campaign-terms',
+                          '.campaign-detail', '.campaign-detail-tab-details'],
+        "axess":         ['.campaign-detail-content', '.campaign-terms',
+                          '.campaign-detail', '.campaign-detail-tab-details'],
+        "garanti":       ['.campaignDetailBody', '.campaign-detail__info',
+                          '.campaign-detail', '.cmsContent'],
+        "garanti bbva":  ['.campaignDetailBody', '.campaign-detail__info',
+                          '.campaign-detail', '.cmsContent'],
+        "qnb":           ['.campaign-detail-tab-details', '.campaign-detail',
+                          '.cmsContent', '.how-to-win'],
+        "ziraat bankası": ['.subpage-detail', '#tab-1', '#tab-2', '#tab-3', '#tab-4',
+                            '.tabs-content .tab-content', '.campaign-detail'],
+        "vakıfbank":     ['.kampanyaDetay', '.kampanyaDetayIcerik',
+                          '.campaign-detail'],
+        "yapı kredi":    ['.campaign-detail-tab-details', '.campaign-detail-box',
+                          '.campaign-detail-content', '.campaign-detail'],
+        "işbankası":     ['.campaign-detail-content', '.campaign-detail',
+                          '.cmsContent', '#campaignDetailContent'],
+        "maximum":       ['.campaign-detail-content', '.campaign-detail',
+                          '.cmsContent', '#campaignDetailContent'],
+        "maximiles":     ['.campaign-detail-content', '.campaign-detail',
+                          '.cmsContent', '#campaignDetailContent'],
+        "paraf":         ['.campaign-detail', '.campaign-content',
+                          '.paraf-campaign-detail'],
+        "denizbank":     ['.kampanya-detay', '.campaign-detail', '.cmsContent'],
+        "chippin":       ['.campaign-body', '.campaign-detail'],
+    }
+
+    # Genel fallback selector listesi (banka eşleşmezse veya boş çıkarsa)
+    _general_content_selectors = [
+        '.campaign-terms', '.campaign-detail-content', '.campaign-detail',
+        '.campaign-detail-tab-details', '.campaign-detail-box',
+        'article.campaign-detail', '.cmsContent', '.how-to-win',
+        '.campaign-description', '#tab-details', '.campaign-detail__info',
+        '.info-content', 'main', '[role="main"]',
+    ]
+
+    # Banka-özel önce, genel sonra
+    _priority_selectors = []
+    for _key, _selectors in _bank_content_map.items():
+        if _key in _bank_key:
+            _priority_selectors = _selectors
+            break
+    _target_selectors = _priority_selectors + [
+        s for s in _general_content_selectors if s not in _priority_selectors
+    ]
+
+    _content_parts = []
+    for _sel in _target_selectors:
+        for _el in _soup.select(_sel):
+            _t = _el.get_text(separator='\n', strip=True)
+            if _t and len(_t) > 80:  # küçük/boş container'ları atla
+                _content_parts.append(_t)
+
+    if _content_parts:
+        clean_content = '\n\n'.join(_content_parts)
+    else:
+        # 2d. Fallback: tüm temizlenmiş body metni
+        clean_content = _soup.get_text(separator='\n', strip=True)
+
+    import re as _re, html as _html
     clean_content = _html.unescape(clean_content)
-    clean_content = _re.sub(r'\n+', '\n', clean_content).strip()
+    clean_content = _re.sub(r'\n{3,}', '\n\n', clean_content).strip()
 
     # Combine title + description + body for full context
-    raw_text = f"{title}\n{short_description}\n{clean_content}"
+    raw_text = f"{title}\n{short_description or ''}\n{clean_content}"
 
     # 3. Parse through Golden Parser (single pipeline)
-    result = parser.parse_campaign(raw_html=raw_text, bank_name=bank_name or "", title=title or "")
+    # NOTE: og_title MUST be passed here so text_cleaner's Header Sniper can trim
+    # any remaining navigation noise that slipped through the BS4 pre-clean step.
+    result = parser.parse_campaign(raw_html=raw_text, bank_name=bank_name or "", title=title or "", og_title=og_title)
     if not result:
         result = {}
 

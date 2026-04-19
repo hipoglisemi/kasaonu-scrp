@@ -110,6 +110,7 @@ class YapikrediAdiosScraper:
         # NEW: Fetch detail page for full content using a browser for dynamic content
         print(f"      🌐 Fetching detail page (Browser Mode) for full content: {full_url}")
         browser_html = ""
+        og_title = None
         try:
             with sync_playwright() as p:
                 browser = p.firefox.launch(headless=True)
@@ -118,26 +119,15 @@ class YapikrediAdiosScraper:
                 page.goto(full_url, wait_until="networkidle", timeout=30000)
                 page.evaluate("window.scrollTo(0, document.body.scrollHeight)")
                 page.wait_for_timeout(2000)
-                try:
-                    page.wait_for_selector(".campaign-terms, .campaign-detail-content, .campaign-detail-tab-details", timeout=5000)
-                except:
-                    pass
+                
+                # Extract og:title
+                og_title = page.locator('meta[property="og:title"]').get_attribute('content')
+                
                 browser_html = page.content()
                 browser.close()
             
             if browser_html:
-                from bs4 import BeautifulSoup
-                inner_soup = BeautifulSoup(browser_html, 'html.parser')
-                content_parts = []
-                for selector in ['.campaign-terms', '.campaign-detail-content', '.campaign-detail', '.campaign-detail-tab-details', '.campaign-detail-box']:
-                    elements = inner_soup.select(selector)
-                    for el in elements:
-                        content_parts.append(str(el))
-                
-                if content_parts:
-                    content_html = "\n".join(content_parts)
-                else:
-                    content_html = browser_html
+                content_html = browser_html
         except Exception as e:
             print(f"      ⚠️ Browser fetch failed, falling back to API content: {e}")
             content_html = item.get('Content') or ''
@@ -154,7 +144,9 @@ class YapikrediAdiosScraper:
             short_description=short_description,
             content_html=combined_content,
             bank_name=self.BANK_NAME,
-            scraper_sector=scraper_sector
+            scraper_sector=scraper_sector,
+            tracking_url=full_url,
+            og_title=og_title
         )
         
         display_title = ai_result.get('short_title') or title

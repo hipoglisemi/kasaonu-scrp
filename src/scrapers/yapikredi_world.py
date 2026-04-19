@@ -113,6 +113,7 @@ class YapikrediWorldScraper:
         # NEW: Fetch detail page for full content using a browser for dynamic content
         print(f"      🌐 Fetching detail page (Browser Mode) for full content: {full_url}")
         browser_html = ""
+        og_title = None
         try:
             with sync_playwright() as p:
                 # Use Firefox because Chromium is unstable in this terminal environment
@@ -120,42 +121,26 @@ class YapikrediWorldScraper:
                 context = browser.new_context(user_agent="Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
                 page = context.new_page()
                 
-                # Go to URL and wait for the specific content tab or just network idle
+                # Go to URL and wait for network idle
                 page.goto(full_url, wait_until="networkidle", timeout=30000)
                 
-                # SCROLL to load lazy elements (Crucial for the technical details at the bottom)
+                # SCROLL to load lazy elements
                 page.evaluate("window.scrollTo(0, document.body.scrollHeight)")
                 page.wait_for_timeout(2000)
                 
-                # Wait for campaign detail tabs if they exist
-                try:
-                    page.wait_for_selector(".campaign-detail-tab-details, .campaign-detail-content, .campaign-detail-box", timeout=5000)
-                except:
-                    pass
+                # Extract og:title
+                og_title = page.locator('meta[property="og:title"]').get_attribute('content')
                 
                 browser_html = page.content()
                 browser.close()
             
             if browser_html:
-                from bs4 import BeautifulSoup
-                inner_soup = BeautifulSoup(browser_html, 'html.parser')
-                # Target all potential content areas - capture multiple if present (tabs, terms, etc)
-                content_parts = []
-                for selector in ['.campaign-terms', '.campaign-detail-content', '.campaign-detail', '.campaign-detail-tab-details', '.campaign-detail-box']:
-                    elements = inner_soup.select(selector)
-                    for el in elements:
-                        content_parts.append(str(el))
-                
-                if content_parts:
-                    content_html = "\n".join(content_parts)
-                else:
-                    content_html = browser_html
+                content_html = browser_html
         except Exception as e:
             print(f"      ⚠️ Browser fetch failed, falling back to API content: {e}")
             content_html = item.get('Content') or ''
 
-        # COMBINE: API data is usually cleaner than the dynamic detail page.
-        # We combine API description with the detail content to give AI best of both worlds.
+        # COMBINE: API data is usually cleaner, so we keep that context for AI too.
         api_desc = item.get('Description') or ''
         combined_content = f"--- API DATA ---\n{api_desc}\n\n--- DETAIL PAGE ---\n{content_html}"
 
@@ -164,7 +149,9 @@ class YapikrediWorldScraper:
             short_description=short_description,
             content_html=combined_content,
             bank_name=self.BANK_NAME,
-            scraper_sector=None  # Yapı Kredi API serves all sectors in one list
+            scraper_sector=None,
+            tracking_url=full_url,
+            og_title=og_title
         )
         
         display_title = ai_result.get('short_title') or title

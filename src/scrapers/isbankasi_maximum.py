@@ -93,11 +93,15 @@ class IsbankMaximumScraper:
         # Lazy import of AIParser to avoid google.generativeai hanging at module import time
         try:
             from src.services.ai_parser import AIParser  # type: ignore # pyre-ignore[21]
+            from src.services.ai_parser_golden import parse_api_campaign as _parse_api_campaign  # type: ignore # pyre-ignore[21]
             self.parser = AIParser()
+            self.parse_api_campaign = _parse_api_campaign
         except ImportError:
             try:
                 from services.ai_parser import AIParser  # type: ignore # pyre-ignore[21]
+                from src.services.ai_parser_golden import parse_api_campaign as _parse_api_campaign  # type: ignore # pyre-ignore[21]
                 self.parser = AIParser()
+                self.parse_api_campaign = _parse_api_campaign
             except ImportError as e:
                 print(f"[DEBUG] AIParser import FAILED: {e}")  # type: ignore # pyre-ignore[16,6]
                 raise
@@ -324,6 +328,11 @@ class IsbankMaximumScraper:
             urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
             soup = BeautifulSoup(html_content, "html.parser")
+            
+            # Extract og:title for AI sniper logic
+            og_title_el = soup.find("meta", property="og:title")
+            og_title = og_title_el.get("content").strip() if og_title_el and og_title_el.get("content") else None
+            
             title_el = soup.select_one("h1.gradient-title-text") or soup.find("h1")
             title = self._clean(title_el.text) if title_el else "Başlık Yok"
 
@@ -423,12 +432,37 @@ class IsbankMaximumScraper:
                             image_url = urljoin(self.BASE_URL, match.group(1))
                             break
 
-            return {  # type: ignore # pyre-ignore[7]
-                "title": title, "image_url": image_url,
-                "date_text": date_text, "full_text": full_text,
-                "source_url": url,
-                "raw_text": full_text # Feed clean text to AI, not entire HTML
-            }
+            # Extract og:title for better cleaning anchors
+            og_title_el = soup.find("meta", property="og:title")
+            og_title = og_title_el.get("content").strip() if og_title_el and og_title_el.get("content") else None
+
+            # Extract FULL BODY for Autofix-standard global cleaning
+            body_el = soup.find("body")
+            raw_html = str(body_el) if body_el else html_content
+
+            # AI Parse (Autofix-standard)
+            from src.services.ai_parser import parse_api_campaign  # type: ignore
+            ai_data = parse_api_campaign(
+                title=title,
+                short_description=None,
+                content_html=raw_html,
+                bank_name="İşbankası",
+                scraper_sector=None,
+                tracking_url=url,
+                og_title=og_title
+            )
+
+            if not ai_data:
+                print(f"      ❌ AI parsing failed for {url}")
+                return None
+
+            # Add source_url and og_title to ai_data for compatibility with existing _save_campaign
+            ai_data["source_url"] = url
+            ai_data["og_title"] = og_title
+            ai_data["image_url"] = image_url
+            ai_data["date_text"] = date_text
+            
+            return ai_data
         except Exception as e:
             print(f"   ⚠️ Error extracting {url}: {e}")
             return None  # type: ignore # pyre-ignore[7]
@@ -743,17 +777,24 @@ class IsbankMaximumScraper:
                         continue
                         
                     try:
-                        ai_data = self.parser.parse_campaign_data(
-                            raw_text=res_data["raw_text"],
-                            title=res_data["title"],
-                            bank_name=self.BANK_NAME,
-                            card_name="Maximum Card",
-                            tracking_url=url, # for global cache
-                            force=force
-                        )
-                        if ai_data:
-                            print("   ✅ AI parsed successfully")
-                            res_data.update(ai_data)
+                        # If _extract_campaign_data already ran parse_api_campaign (Autofix-standard),
+                        # res_data already contains all AI fields — skip the redundant second parse.
+                        if res_data.get("reward_text") is not None:
+                            print("   ✅ AI data already parsed by extract step — skipping redundant re-parse.")
+                        else:
+                            raw_html = res_data.get("raw_html") or res_data.get("raw_text") or res_data.get("full_text") or ""
+                            ai_data = self.parse_api_campaign(
+                                title=res_data["title"],
+                                short_description=None,
+                                content_html=raw_html,
+                                bank_name=self.BANK_NAME,
+                                scraper_sector=None,
+                                tracking_url=url,
+                                og_title=res_data.get("og_title") or res_data["title"]
+                            )
+                            if ai_data:
+                                print("   ✅ AI parsed successfully (fallback path)")
+                                res_data.update(ai_data)
                     except Exception as ai_e:
                         print(f"   ⚠️ AI parse error: {ai_e}")
                         

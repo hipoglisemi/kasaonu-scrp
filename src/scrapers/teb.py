@@ -15,6 +15,7 @@ if project_root not in sys.path:
 
 from sqlalchemy import create_engine, text  # type: ignore # pyre-ignore[21]
 from src.services.ai_parser import AIParser  # type: ignore # pyre-ignore[21]
+from src.services.ai_parser_golden import parse_api_campaign  # type: ignore # pyre-ignore[21]
 from src.services.brand_normalizer import cleanup_brands  # type: ignore # pyre-ignore[21]
 from src.utils.scraper_utils import is_url_blocked  # type: ignore # pyre-ignore[21]
 
@@ -323,17 +324,20 @@ class TEBScraper:
         # Sector hint from API
         api_sector = (item.get("sectors") or "").replace(";", "").strip()
 
-        # AI Parsing
+        # AI Parsing — pass raw HTML directly for centralized BS4 cleaning
         ai_data = {}
-        if self.ai_parser and content_text:
+        if self.ai_parser and content_html:
             try:
-                print(f"      🧠 AI parsing ({len(content_text)} chars)...")
-                ai_data = self.ai_parser.parse_campaign_data(
-                    raw_text=content_text,
+                print(f"      🧠 AI parsing ({len(content_html)} chars HTML)...")
+                ai_data = parse_api_campaign(
                     title=title,
+                    short_description=None,
+                    content_html=content_html,
                     bank_name=BANK_NAME,
-                    card_name=card_name,
-                )
+                    scraper_sector=api_sector or None,
+                    tracking_url=tracking_url,
+                    og_title=None
+                ) or {}
             except Exception as e:
                 print(f"      ⚠️  AI Error: {e}")
                 ai_data = {}

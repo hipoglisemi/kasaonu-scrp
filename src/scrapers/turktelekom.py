@@ -26,6 +26,7 @@ if project_root not in sys.path:
 from src.database import get_db_session  # type: ignore # pyre-ignore[21]
 from src.models import Bank, Card, Sector, Brand, Campaign, CampaignBrand  # type: ignore # pyre-ignore[21]
 from src.services.ai_parser import AIParser  # type: ignore # pyre-ignore[21]
+from src.services.ai_parser_golden import parse_api_campaign  # type: ignore # pyre-ignore[21]
 from src.utils.scraper_utils import is_url_blocked  # type: ignore # pyre-ignore[21]
 from src.services.brand_matcher import get_or_create_brands_list  # type: ignore # pyre-ignore[21]
 from src.utils.logger_utils import log_scraper_execution  # type: ignore # pyre-ignore[21]
@@ -513,28 +514,27 @@ class TurkTelekomScraper:
                         if any(x in lower_header for x in ["katılım", "nasil", "faydalan", "detay"]):  # type: ignore # pyre-ignore[16,6]
                             participation_text += f"\n[{header_text}]: {text}"  # type: ignore # pyre-ignore[58,16,6]
 
-            if not content_parts:
-                # Fallback: check for .detail-page text
-                detail_page = soup.select_one(".detail-page")
-                raw_text = detail_page.get_text(separator="\n", strip=True) if detail_page else soup.get_text(separator="\n", strip=True)
-            else:
-                raw_text = "\n\n".join(content_parts)
+            # og:title for Header Sniper
+            og_title_el = soup.find("meta", property="og:title")
+            og_title = og_title_el.get("content", "").strip() if og_title_el else title
 
-            # Special Participation metadata
-            if participation_text:
-                raw_text = f"--- TÜRK TELEKOM DETAYLAR ---\n{participation_text}\n\n--- TÜM İÇERİK ---\n{raw_text}"
+            # Full body HTML → parse_api_campaign centralised pipeline
+            body_el = soup.find("body")
+            raw_html = str(body_el) if body_el else response.text
 
             # AI Parsing
             print(f"      🧠 Sending to AI Parser...")
-            ai_data = self.parser.parse_campaign_data(
-                raw_text=raw_text,
+            ai_data = parse_api_campaign(
                 title=title,
-                bank_name="Genel",
-                card_name="Türk Telekom",
-                force=True  # Force re-parsing to apply new participation rules
-            )
+                short_description=None,
+                content_html=raw_html,
+                bank_name="Türk Telekom",
+                scraper_sector=None,
+                tracking_url=url,
+                og_title=og_title
+            ) or {}
 
-            if not ai_data:
+            if not ai_data or ai_data.get("_ai_failed"):
                 print(f"      ❌ AI parsing failed for {url}")
                 return False  # type: ignore # pyre-ignore[7]
 

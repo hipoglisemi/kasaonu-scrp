@@ -104,6 +104,7 @@ class YapikrediPlayScraper:
         # NEW: Fetch detail page for full content using a browser for dynamic content
         print(f"      🌐 Fetching detail page (Browser Mode) for full content: {full_url}")
         browser_html = ""
+        og_title = None
         try:
             with sync_playwright() as p:
                 browser = p.firefox.launch(headless=True)
@@ -112,26 +113,15 @@ class YapikrediPlayScraper:
                 page.goto(full_url, wait_until="networkidle", timeout=30000)
                 page.evaluate("window.scrollTo(0, document.body.scrollHeight)")
                 page.wait_for_timeout(2000)
-                try:
-                    page.wait_for_selector(".campaign-terms, .campaign-detail-content, .campaign-detail-tab-details", timeout=5000)
-                except:
-                    pass
+                
+                # Extract og:title
+                og_title = page.locator('meta[property="og:title"]').get_attribute('content')
+                
                 browser_html = page.content()
                 browser.close()
             
             if browser_html:
-                from bs4 import BeautifulSoup
-                inner_soup = BeautifulSoup(browser_html, 'html.parser')
-                content_parts = []
-                for selector in ['.campaign-terms', '.campaign-detail-content', '.campaign-detail', '.campaign-detail-tab-details', '.campaign-detail-box']:
-                    elements = inner_soup.select(selector)
-                    for el in elements:
-                        content_parts.append(str(el))
-                
-                if content_parts:
-                    content_html = "\n".join(content_parts)
-                else:
-                    content_html = browser_html
+                content_html = browser_html
         except Exception as e:
             print(f"      ⚠️ Browser fetch failed, falling back to API content: {e}")
             content_html = item.get('Content') or ''
@@ -148,9 +138,28 @@ class YapikrediPlayScraper:
             short_description=short_description,
             content_html=combined_content,
             bank_name=self.BANK_NAME,
-            scraper_sector=scraper_sector
+            scraper_sector=scraper_sector,
+            tracking_url=full_url,
+            og_title=og_title
         )
         
+        start_date_str = item.get('StartDate')
+        end_date_str = item.get('EndDate')
+        
+        from datetime import datetime
+        def parse_date(date_str):
+            if not date_str: return None
+            # e.g., /Date(1711929600000)/ or normal format
+            if '/Date(' in date_str:
+                import re
+                m = re.search(r'\d+', date_str)
+                if m:
+                    return datetime.fromtimestamp(int(m.group(0))/1000)
+            return None
+
+        start_date = parse_date(start_date_str) or ai_result.get('start_date')
+        end_date = parse_date(end_date_str) or ai_result.get('end_date')
+
         display_title = ai_result.get('short_title') or title
         
         return self._save_campaign(  # type: ignore # pyre-ignore[7]
@@ -212,7 +221,7 @@ class YapikrediPlayScraper:
                 print(f"   ✅ Saved: {campaign.title}")
 
                 # Brands via brand_matcher
-                from src.services.brand_matcher import get_or_create_brands_list
+                from src.services.brand_matcher import get_or_create_brands_list  # type: ignore
                 brand_ids = get_or_create_brands_list(
                     db_session=db,
                     brand_names=ai_data.get("brands", []),

@@ -64,11 +64,12 @@ def parse_campaign(
     card_name: Optional[str] = None,
     tracking_url: Optional[str] = None,
     force: bool = False,
-    campaign_id: Optional[int] = None
+    campaign_id: Optional[int] = None,
+    og_title: Optional[str] = None
 ) -> Dict:
     """Main entry point for AI parsing."""
     parser = get_ai_parser()
-    return parser.parse_campaign_data(raw_text, title, bank_name, card_name, tracking_url, force, campaign_id)
+    return parser.parse_campaign_data(raw_text, title, bank_name, card_name, tracking_url, force, campaign_id, og_title=og_title)
 
 
 # parse_api_campaign is already imported from ai_parser_golden at module level

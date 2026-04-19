@@ -40,6 +40,7 @@ from src.database import engine, get_db_session  # type: ignore # pyre-ignore[21
 from src.models import Bank, Card, Sector, Brand, Campaign, CampaignBrand  # type: ignore # pyre-ignore[21]
 from src.utils.logger_utils import log_scraper_execution  # type: ignore # pyre-ignore[21]
 from src.utils.scraper_utils import is_url_blocked  # type: ignore
+from src.services.ai_parser_golden import parse_api_campaign  # type: ignore
 
 # AIParser is lazy-imported in __init__ to avoid google.generativeai hang
 AIParser = None
@@ -293,12 +294,17 @@ class MasterpassScraper:
             return "skipped"  # type: ignore # pyre-ignore[7]
 
         try:
-            ai_data = self.parser.parse_campaign_data(
-                raw_text=data["full_text"], 
-                bank_name="Masterpass", 
-                title=data["title"],
+            # Get raw HTML directly from Playwright page (already loaded by _extract_campaign_data)
+            raw_html = self.page.content()
+
+            ai_data = parse_api_campaign(
+                title=title,
+                short_description=None,
+                content_html=raw_html,
+                bank_name="Masterpass",
+                scraper_sector=None,
                 tracking_url=url,
-                force=force
+                og_title=title  # og_title fallback = title
             ) or {}
         except Exception as e:
             self.db.rollback()  # type: ignore # pyre-ignore[16]
@@ -384,7 +390,7 @@ class MasterpassScraper:
                     reward_type=ai_data.get("reward_type"),  # type: ignore
                     conditions=final_conditions,  # type: ignore
                     eligible_cards=eligible_cards_str,
-                    participation=participation,  # type: ignore
+                    participation=ai_data.get("participation"),  # type: ignore
                     clean_text=ai_data.get("_clean_text"),  # type: ignore
                     image_url=data.get("image_url"),  # type: ignore
                     start_date=start_date,  # type: ignore

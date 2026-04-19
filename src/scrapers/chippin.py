@@ -27,6 +27,7 @@ from src.utils.scraper_utils import is_url_blocked  # type: ignore # pyre-ignore
 from src.utils.logger_utils import log_scraper_execution  # type: ignore # pyre-ignore[21]
 from src.services.brand_normalizer import normalize_brand_name, cleanup_brands  # type: ignore # pyre-ignore[21]
 from src.services.ai_parser import AIParser  # type: ignore # pyre-ignore[21]
+from src.services.ai_parser_golden import parse_api_campaign  # type: ignore # pyre-ignore[21]
 
 load_dotenv()
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
@@ -293,17 +294,19 @@ class ChippinScraper:
                 content_raw = c.get("webDescription") or ""
                 content_text = html_to_text(content_raw)
                 
-                # AI Parsing
+                # AI Parsing — pass raw HTML from API JSON directly
                 ai_data = {}
                 parser = self.ai_parser
-                if parser and content_text:
+                if parser and content_raw:
                     try:
-                        ai_data = parser.parse_campaign_data(
-                            raw_text=content_text,
+                        ai_data = parse_api_campaign(
                             title=title,
+                            short_description=None,
+                            content_html=content_raw,
                             bank_name=BANK_NAME,
-                            card_name=card_def["name"],
-                            tracking_url=tracking_url
+                            scraper_sector=None,
+                            tracking_url=tracking_url,
+                            og_title=None
                         ) or {}
                     except Exception as e:
                         print(f"      ⚠️  AI Error: {e}")

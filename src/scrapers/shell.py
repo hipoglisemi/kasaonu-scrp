@@ -25,6 +25,7 @@ from src.database import get_db_session # type: ignore
 from src.models import Bank, Card, Sector, Brand, Campaign, CampaignBrand # type: ignore
 from src.services.ai_parser import AIParser # type: ignore
 from src.services.brand_matcher import get_or_create_brands_list # type: ignore
+from src.services.ai_parser_golden import parse_api_campaign  # type: ignore
 from src.utils.logger_utils import log_scraper_execution # type: ignore
 from src.utils.scraper_utils import should_skip_campaign # type: ignore
 from src.utils.slug_generator import get_unique_slug # type: ignore
@@ -263,12 +264,19 @@ class ShellScraper:
                     content_area = detail_soup.select_one("main, .main-content, .campaign-detail-content")
                     raw_html = str(content_area) if content_area else self.driver.page_source
 
+                    # og:title for Header Sniper
+                    og_title_el = detail_soup.find("meta", property="og:title")
+                    og_title = og_title_el.get("content", "").strip() if og_title_el else title
+
                     # AI Parsing
-                    ai_data = self.parser.parse_campaign_data(
-                        raw_text=raw_html,
+                    ai_data = parse_api_campaign(
                         title=title,
+                        short_description=None,
+                        content_html=raw_html,
                         bank_name="Genel",
-                        tracking_url=detail_url
+                        scraper_sector=None,
+                        tracking_url=detail_url,
+                        og_title=og_title
                     )
 
                     if not ai_data or ai_data.get("_ai_failed"):

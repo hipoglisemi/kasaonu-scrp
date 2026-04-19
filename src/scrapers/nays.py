@@ -25,6 +25,7 @@ except Exception:
 from src.models import Campaign, Bank, Card, Sector, Brand, CampaignBrand
 from src.database import get_db_session
 from src.services.ai_parser import AIParser
+from src.services.ai_parser_golden import parse_api_campaign  # type: ignore
 from src.utils.slug_generator import get_unique_slug
 from src.utils.scraper_utils import should_skip_campaign, is_url_blocked
 from src.utils.logger_utils import log_scraper_execution
@@ -210,17 +211,23 @@ class NaysScraper:
                 if not image_url or "logo.png" in image_url:
                     image_url = self.DEFAULT_IMAGE_URL
 
-                # Body content for AI
-                content_part = detail_soup.select_one(".page-detail-content") or detail_soup.select_one("article")
-                if not content_part:
-                    content_part = detail_soup.body
-                
-                raw_text = content_part.get_text(separator="\n", strip=True) if content_part else ""
+                # og:title for Header Sniper (nav noise trimming)
+                og_title_el = detail_soup.find("meta", property="og:title")
+                og_title = og_title_el.get("content", "").strip() if og_title_el else title
 
-                # 4. AI Parse
-                ai_data = self.parser.parse_campaign_data(
-                    raw_text=raw_text,
-                    bank_name=self.BANK_NAME
+                # Full body HTML → centralized parse_api_campaign handles all cleaning
+                body_el = detail_soup.find("body")
+                raw_html = str(body_el) if body_el else detail_resp.text
+
+                # 4. AI Parse (Autofix-standard pipeline)
+                ai_data = parse_api_campaign(
+                    title=title,
+                    short_description=None,
+                    content_html=raw_html,
+                    bank_name=self.BANK_NAME,
+                    scraper_sector=None,
+                    tracking_url=url,
+                    og_title=og_title
                 )
 
                 if not ai_data:
@@ -229,7 +236,7 @@ class NaysScraper:
                     continue
 
                 # 5. Save
-                status = self._save_campaign(title, image_url, url, ai_data, raw_text, force=force)
+                status = self._save_campaign(title, image_url, url, ai_data, raw_html, force=force)
                 if status == "saved":
                     total_saved += 1
                 elif status == "skipped":
@@ -341,7 +348,7 @@ class NaysScraper:
                 from src.services.brand_matcher import get_or_create_brands_list
                 brand_ids = get_or_create_brands_list(
                     db_session=db,
-                    brand_names=data.get("brands", []),
+                    brand_names=ai_data.get("brands", []),
                     brand_cache=getattr(self, 'brand_cache', {}),
                     sector_id=sector.id if sector else None
                 )

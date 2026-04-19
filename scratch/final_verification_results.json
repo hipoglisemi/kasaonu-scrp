@@ -1,0 +1,64 @@
+[
+  {
+    "test_name": "Samsung Maximum Campaign",
+    "url": "https://www.maximum.com.tr/kampanyalar/samsung-comda-secili-telefon-tablet-saat-ve-kulakliklarda-indirim-firsati",
+    "result": {
+      "title": "Samsung.com'da Seçili Telefon, Tablet, Saat Ve Kulaklıklarda %5 İndirim!",
+      "description": "Samsung.com üzerinden yapacağınız seçili teknoloji alışverişlerinizde %5 indirim fırsatı sizi bekliyor. İşCep veya Maximum Mobil üzerinden katılarak indirim kodunuzu hemen alabilirsiniz.",
+      "reward_text": "%5 İndirim",
+      "reward_value": 5.0,
+      "reward_type": "indirim",
+      "conditions": [
+        "Kampanya samsung.com üzerinden yapılan seçili telefon, tablet, saat ve kulaklık alışverişlerinde geçerlidir.",
+        "İndirim kodu 140 bin adet ile sınırlıdır.",
+        "Kampanya kodu tek kullanımlıktır.",
+        "Ticari Bankamatik Kartları, Vadematik Kart ve Aidatsız Kartlar kampanya dışıdır.",
+        "Maximum Fırsat ve MaxiPuan kullanılarak yapılan alışverişler kampanyaya dahil değildir.",
+        "Galaxy S26 ve Buds4 Ailesi ürünleri kampanya kapsamı dışındadır."
+      ],
+      "cards": [
+        "Maximum",
+        "Maximiles",
+        "Privia",
+        "Bankamatik Kartlar"
+      ],
+      "participation": "İşCep veya Maximum Mobil uygulamalarındaki kampanya sayfasından 'KATIL' butonuna tıklayın, SMS ile gelen indirim kodunu samsung.com ödeme adımında 'Kupon Kodunu Girin' alanına uygulayın.",
+      "start_date": "2026-04-08",
+      "end_date": "2026-04-30",
+      "sector": "Elektronik",
+      "brands": [],
+      "_cached": true,
+      "_clean_text": "Samsung.com üzerinden yapacağınız seçili teknoloji alışverişlerinizde %5 indirim fırsatı sizi bekliyor. İşCep veya Maximum Mobil üzerinden katılarak indirim kodunuzu hemen alabilirsiniz."
+    }
+  },
+  {
+    "test_name": "Garanti Miles&Smiles Campaign",
+    "url": "https://milesandsmilesgarantibbva.com/kampanyalar/yurt-disi-giyim-harcamalariniza-1-500-tlye-varan-indirim-ayricaligi-nisan",
+    "result": {
+      "title": "Yurt dışı giyim harcamalarınıza 1.500 TL’ye varan indirim ayrıcalığı!",
+      "description": "Yurt dışındaki giyim alışverişlerinizde Miles&Smiles Garanti BBVA Amex kartınızla indirim kazanın. Tek seferlik harcamalarınızla toplam 1.500 TL'ye kadar avantaj yakalayın.",
+      "reward_text": "1.500 TL İndirim",
+      "reward_value": 1500.0,
+      "reward_type": "indirim",
+      "conditions": [
+        "Tek seferde 15.000 TL ve üzeri yurt dışı giyim harcamasına %5 indirim uygulanır.",
+        "Bir müşteri toplamda en fazla 1.500 TL indirim kazanabilir.",
+        "Sadece yurt dışı fiziki işlemler dahildir; sanal mağaza harcamaları kapsam dışıdır.",
+        "KKTC’de yapılan işlemler kampanyaya dahil değildir.",
+        "Mail Order / Telephone Order (MO/TO) işlemleri geçerli değildir.",
+        "Dijital cüzdan yüklemeleri ve dijital cüzdan ile yapılan harcamalar kapsam dışıdır.",
+        "Peşin işlemler kampanyaya dahildir."
+      ],
+      "cards": [
+        "Miles&Smiles Garanti BBVA Amex Bireysel kredi kartları"
+      ],
+      "participation": "BonusFlaş uygulamasındaki “Hemen Katıl” butonuna tıklayın.",
+      "start_date": "2026-04-17",
+      "end_date": "2026-05-03",
+      "sector": "Ulaşım",
+      "brands": [],
+      "_cached": true,
+      "_clean_text": "Yurt dışındaki giyim alışverişlerinizde Miles&Smiles Garanti BBVA Amex kartınızla indirim kazanın. Tek seferlik harcamalarınızla toplam 1.500 TL'ye kadar avantaj yakalayın."
+    }
+  }
+]

@@ -18,6 +18,7 @@ if project_root not in sys.path:
 
 # Internal Imports
 from src.services.ai_parser import AIParser  # type: ignore
+from src.services.ai_parser_golden import parse_api_campaign  # type: ignore
 from src.services.brand_normalizer import cleanup_brands  # type: ignore
 from src.utils.scraper_utils import is_url_blocked  # type: ignore
 
@@ -455,12 +456,15 @@ class DenizbankScraper:
         # AI Parsing
         if self.ai_parser:
             print("   🧠 Analyzing with Gemini AI...")
-            ai_data = self.ai_parser.parse_campaign_data(
-                raw_text=raw_text,
+            ai_data = parse_api_campaign(
                 title=title,
+                short_description=None,
+                content_html=html,  # Full fetched HTML for centralized BS4 cleaning
                 bank_name="Denizbank",
-                card_name="DenizBonus"
-            )
+                scraper_sector=None,
+                tracking_url=url,
+                og_title=title  # og:title already extracted as title above
+            ) or {}
         else:
             print("   ⚠️ AI Parser unavailable, using basic extraction.")
             ai_data = {

@@ -68,16 +68,21 @@ class IsbankMaximilesScraper:
         
         # Lazy import of AIParser to avoid google.generativeai hanging at module import time
         try:
-            from src.services.ai_parser import AIParser as _AIParser  # type: ignore # pyre-ignore[21]
+            from src.services.ai_parser import AIParser  # type: ignore # pyre-ignore[21]
+            from src.services.ai_parser_golden import parse_api_campaign as _parse_api_campaign  # type: ignore # pyre-ignore[21]
             print("[DEBUG] AIParser lazy-imported via src.services")
+            self.parser = AIParser()
+            self.parse_api_campaign = _parse_api_campaign
         except ImportError:
             try:
-                from services.ai_parser import AIParser as _AIParser  # type: ignore # pyre-ignore[21]
+                from services.ai_parser import AIParser as _FallbackParser  # type: ignore # pyre-ignore[21]
+                from src.services.ai_parser_golden import parse_api_campaign as _parse_api_campaign  # type: ignore # pyre-ignore[21]
                 print("[DEBUG] AIParser lazy-imported via services")
+                self.parser = _FallbackParser()
+                self.parse_api_campaign = _parse_api_campaign
             except ImportError as e:
                 print(f"[DEBUG] AIParser import FAILED: {e}")  # type: ignore # pyre-ignore[16,6]
                 raise
-        self.parser = _AIParser()
         print("[DEBUG] AIParser initialized")
 
         self.page = None
@@ -397,19 +402,9 @@ class IsbankMaximilesScraper:
                 return None
 
             soup = BeautifulSoup(pg.content(), "html.parser")
+            
             title_el = soup.select_one("h1")
             title = self._clean(title_el.text) if title_el else "Başlık Yok"
-
-            if "gecmis" in url or "geçmiş" in title.lower() or "bulunamadı" in title.lower():
-                print(f"   ⏭️ Skipped (Broken/Expired title): {title}")
-                return None  # type: ignore # pyre-ignore[7]
-
-            # Blocklist check
-            from src.database import get_db_session  # type: ignore
-            with get_db_session() as db:
-                 if is_url_blocked(db, url):
-                      print(f"   🚫 Skipped (Blocklisted): {url}")
-                      return None
 
             # Image — multiple fallback strategies
             image_url = None
@@ -451,67 +446,37 @@ class IsbankMaximilesScraper:
                         date_text = self._clean(el.text)
                         break
 
-            # Content Extraction Logic
-            content_parts = []
-            
-            # Find all containers that might have content
-            # Added '.content' and '.content-part' based on browser inspection
-            selectors = [".page-content", "section div.container", ".detail-text", ".campaign-content", ".text-area", ".content", ".content-part", "table"]
-            
-            for sel in selectors:
-                containers = soup.select(sel)
-                for container in containers:
-                    text = container.get_text(separator="\n", strip=True)
-                    if any(phrase in text for phrase in ["Üzgünüz, aradığınız sayfayı bulamadık.", "Aradığınız sayfa sitemizden kaldırılmış", "Kampanya Bulunamadı", "Kampanya bulunamadı"]):
-                        print(f"      ⚠️ 404 Page Detected (Üzgünüz/Bulunamadı): {url}")
-                        return None  # type: ignore # pyre-ignore[7]
-                        
-                    if len(text) > 150 and "Ana Sayfa" not in text[:80] and "Maximum Mobil" not in text[:50]:  # type: ignore # pyre-ignore[16,6]
-                        # Check if this part is already substantially covered
-                        is_duplicate = False
-                        for existing_part in content_parts:
-                            if text[:100] in existing_part or existing_part[:100] in text:  # type: ignore # pyre-ignore[16,6]
-                                is_duplicate = True
-                                break
-                        if not is_duplicate:
-                            content_parts.append(text)
+            # Extract og:title for AI sniper logic
+            og_title_el = soup.find("meta", property="og:title")
+            og_title = og_title_el.get("content").strip() if og_title_el and og_title_el.get("content") else None
 
-            # Fallback to all sections/divs if nothing significant found
-            if not content_parts:
-                candidate_tags = soup.find_all(["section", "div"], recursive=False)
-                if not candidate_tags:
-                    # If recursive false finds nothing, try deeper
-                    candidate_tags = soup.find_all(["section", "div"])
-                    
-                for tag in candidate_tags:
-                    t = tag.get_text(separator="\n", strip=True)
-                    if "Üzgünüz, aradığınız sayfayı bulamadık." in t or "Aradığınız sayfa sitemizden kaldırılmış" in t:
-                        print(f"      ⚠️ 404 Page Detected (Üzgünüz): {url}")
-                        return None  # type: ignore # pyre-ignore[7]
-                        
-                    if len(t) > 200 and "Üzgünüz" not in t and "Ana Sayfa" not in t[:50]:  # type: ignore # pyre-ignore[16,6]
-                        content_parts.append(t)
+            # Extract FULL BODY for Autofix-standard global cleaning
+            body_el = soup.find("body")
+            raw_html = str(body_el) if body_el else soup.get_text()
 
-            # Join all parts
-            full_text = "\n\n".join(content_parts)
+            # AI Parse (Autofix-standard)
+            from src.services.ai_parser import parse_api_campaign  # type: ignore
+            ai_data = parse_api_campaign(
+                title=title,
+                short_description=None,
+                content_html=raw_html,
+                bank_name="İşbankası",
+                scraper_sector=None,
+                tracking_url=url,
+                og_title=og_title
+            )
+
+            if not ai_data:
+                print(f"      ❌ AI parsing failed for {url}")
+                return None
+
+            # Add metadata fields to ai_data for compatibility with existing _save_campaign
+            ai_data["source_url"] = url
+            ai_data["og_title"] = og_title
+            ai_data["image_url"] = image_url
+            ai_data["date_text"] = date_text
             
-            # Clean up conditions by splitting into lines
-            # Ensure we don't accidentally join everything into one line in _clean
-            lines = full_text.split("\n")
-            conditions = []
-            for line in lines:
-                cleaned = self._clean(line)
-                if len(cleaned) > 20 and not cleaned.startswith("Copyright"):
-                    conditions.append(cleaned)
-
-            return {  # type: ignore # pyre-ignore[7]
-                "title": title, 
-                "image_url": image_url,
-                "date_text": date_text, 
-                "full_text": full_text,
-                "conditions": conditions, 
-                "source_url": url,
-            }
+            return ai_data
         except Exception as e:
             print(f"   ⚠️ Error extracting {url}: {e}")
             return None  # type: ignore # pyre-ignore[7]
@@ -598,13 +563,22 @@ class IsbankMaximilesScraper:
             return "skipped"  # type: ignore # pyre-ignore[7]
 
         try:
-            ai_data = self.parser.parse_campaign_data(
-                raw_text=data["full_text"], 
-                bank_name=self.BANK_NAME, 
-                title=data["title"],
-                tracking_url=url, # for global cache
-                force=force
-            ) or {}
+            # If _extract_campaign_data already ran parse_api_campaign (Autofix-standard),
+            # data already contains all AI fields — skip the redundant second parse.
+            if data.get("reward_text") is not None:
+                print("   ✅ AI data already parsed by extract step — skipping redundant re-parse.")
+                ai_data = data
+            else:
+                raw_html = data.get("raw_html") or data.get("raw_text") or data.get("full_text") or ""
+                ai_data = self.parse_api_campaign(
+                    title=data["title"],
+                    short_description=None,
+                    content_html=raw_html,
+                    bank_name=self.BANK_NAME,
+                    scraper_sector=None,
+                    tracking_url=url,
+                    og_title=data.get("og_title") or data["title"]
+                ) or {}
         except Exception as e:
             self.db.rollback()  # type: ignore # pyre-ignore[16]
             print(f"   ⚠️ AI parse error: {e}")

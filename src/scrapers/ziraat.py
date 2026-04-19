@@ -184,29 +184,16 @@ class ZiraatScraper:
                 print(f"   🚫 Skipped (Blocklisted): {title}")
                 return "skipped"  # type: ignore # pyre-ignore[7]
 
-            # --- ENHANCED CONTENT EXTRACTION ---
-            # Ziraat puts conditions in Tabs (#tab-1, #tab-2 etc)
-            # We need to explicitly fetch them
+            # Extract og:title for better cleaning anchors
+            og_title_el = soup.find("meta", property="og:title")
+            og_title = og_title_el.get("content") if og_title_el else None
             
-            main_content = soup.select_one('.subpage-detail')
-            content_text = main_content.get_text(separator='\n', strip=True) if main_content else ""
-
-            # Append Tab Contents (Conditions, Cards)
-            tabs = soup.select('.tabs-content .tab-content')
-            for tab in tabs:
-                content_text += "\n" + tab.get_text(separator='\n', strip=True)  # type: ignore # pyre-ignore[58]
-
-            # Fallback: specific IDs used by Ziraat
-            if "Katılım Koşulları" not in content_text:
-                 specific_tabs = soup.select('#tab-1, #tab-2, #tab-3, #tab-4')
-                 for st in specific_tabs:
-                     content_text += "\n" + st.get_text(separator='\n', strip=True)  # type: ignore # pyre-ignore[58]
-            
-            # -----------------------------------
+            # Extract FULL BODY for Autofix-standard global cleaning
+            body_el = soup.find("body")
+            raw_html = str(body_el) if body_el else str(soup)
 
             # 1. Try to get High-Res Image from Detail Page
             detail_img = None
-            # Try #firstImg (Legacy scraper used this)
             img_el = soup.select_one('#firstImg')
             if not img_el:
                 img_el = soup.select_one('.subpage-detail figure img')
@@ -215,26 +202,34 @@ class ZiraatScraper:
                 detail_img = urljoin(self.BASE_URL, img_el['src'])
             
             final_image = detail_img if detail_img else campaign_data.get('image_url')
-
-            # 2. Inject Date Hint to AI
-            date_hint = ""
-            if campaign_data.get('list_end_date'):
-                date_hint = f"\nİPUCU: Kampanya Bitiş Tarihi: {campaign_data['list_end_date']} (Bunu referans al, yılı buradan doğrulayabilirsin)"  # type: ignore # pyre-ignore[16,6]
-
-            # 3. Inject Sector Hint from URL
-            # URL: .../kampanyalar/market-ve-gida/...
+            
+            # Restore sector hint from URL (Ziraat URLs contain category: .../kampanyalar/market-ve-gida/...)
             sector_hint = ""
             try:
                 parts = url.split('/kampanyalar/')
                 if len(parts) > 1:
                     category_slug = parts[1].split('/')[0]
-                    sector_hint = f"\nİPUCU: Kampanya Kategorisi Linkte '{category_slug}' olarak geçiyor. Buna uygun Sektör seç."
-            except: pass
+                    sector_hint = f"İPUCU: Kampanya Kategorisi URL'de '{category_slug}' olarak geçiyor."
+            except Exception:
+                pass
 
-            # AI PARSING
-            ai_data = self.parser.parse_campaign_data(
-                raw_text=content_text + date_hint + sector_hint, # Use ENHANCED content + HINTS
-                bank_name="ziraat"
+            # Restore date hint (Ziraat list page has end_date, detail page often doesn't)
+            date_hint = ""
+            if campaign_data.get('list_end_date'):
+                date_hint = f"İPUCU: Kampanya Bitiş Tarihi: {campaign_data['list_end_date']}"
+
+            hints = "\n".join(filter(None, [date_hint, sector_hint]))
+
+            # AI PARSING (Autofix-standard)
+            from src.services.ai_parser import parse_api_campaign  # type: ignore
+            ai_data = parse_api_campaign(
+                title=title,
+                short_description=hints or title,  # hints act as AI context
+                content_html=raw_html,
+                bank_name="Ziraat Bankası",
+                scraper_sector=None,
+                tracking_url=url,
+                og_title=og_title
             )
             
             if not ai_data:

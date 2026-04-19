@@ -129,6 +129,10 @@ class AkbankBaseScraper:
             title_elm = soup.select_one('h2.pageTitle')
             title = title_elm.get_text(strip=True) if title_elm else "Kampanya"
             
+            # Extract og:title for better cleaning anchors
+            og_title_el = soup.find("meta", property="og:title")
+            og_title = og_title_el.get("content") if og_title_el else None
+            
             img_elm = soup.select_one('.campaingDetailImage img')
             image_url = None
             if img_elm:
@@ -136,25 +140,20 @@ class AkbankBaseScraper:
                 if src:
                     image_url = urljoin(self.base_url, src)
             
-            detail_container = soup.select_one('.cmsContent.clearfix')
-            details_text = ""
-            if detail_container:
-                # Remove scripts and styles
-                for script in detail_container(["script", "style"]):  # type: ignore # pyre-ignore[16,6]
-                    script.decompose()
-                details_text = detail_container.get_text(separator="\n", strip=True)
-            else:
-                details_text = title
+            # Extract FULL BODY for Autofix-standard global cleaning
+            body_el = soup.find("body")
+            raw_html = str(body_el) if body_el else str(soup)
                 
             # --- 2. AI Parsing (Using Global Cache) ---
             ai_data = parse_api_campaign(
                 title=title,
                 short_description=title, 
-                content_html=details_text,
+                content_html=raw_html,
                 bank_name="Akbank",
                 scraper_sector=None,
                 tracking_url=url,
-                force=force
+                force=force,
+                og_title=og_title
             )
             
             # --- 3. Save to DB ---

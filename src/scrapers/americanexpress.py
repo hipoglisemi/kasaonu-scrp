@@ -23,6 +23,7 @@ if project_root not in sys.path:
     sys.path.insert(0, project_root)
 
 from src.services.brand_matcher import get_or_create_brands_list  # type: ignore
+from src.services.ai_parser_golden import parse_api_campaign  # type: ignore
 from src.database import get_db_session  # type: ignore
 
 try:
@@ -296,14 +297,22 @@ class AmericanExpressScraper:
         if header_info:
             full_conditions = f"--- KAMPANYA ÖZET BİLGİLERİ ---\n{header_info}\n--- DETAYLAR ---\n" + full_conditions
 
+        # og:title for Header Sniper
+        og_title_el = soup.find("meta", property="og:title")
+        og_title = og_title_el.get("content", "").strip() if og_title_el else raw_title
+
         # ─── 4. AI Parsing ───────────────────────────────────────────────────────
         print(f"  -> Title: {raw_title}")
         print("  -> Sending to AI for parsing...")
-        ai_data = self.ai_parser.parse_campaign_data(
-            raw_text=full_conditions,
+        ai_data = parse_api_campaign(
             title=raw_title,
-            bank_name=self.BANK_NAME
-        )
+            short_description=None,
+            content_html=html,  # Full response HTML for centralized BS4 cleaning
+            bank_name=self.BANK_NAME,
+            scraper_sector=None,
+            tracking_url=url,
+            og_title=og_title
+        ) or {}
 
         if not ai_data or 'title' not in ai_data:
             raise ValueError("AI parsing yielded no data")

@@ -192,36 +192,24 @@ class ParafScraper:
             response.raise_for_status()
             soup = BeautifulSoup(response.text, 'html.parser')
             
-            # Extract title
-            title_el = soup.select_one('h1')
-            title = title_el.get_text(strip=True) if title_el else campaign_data.get('title', 'Kampanya')
+            # Extract og:title for better cleaning anchors
+            og_title_el = soup.find("meta", property="og:title")
+            og_title = og_title_el.get("content") if og_title_el else None
             
-            # Extract full conditions text
-            content_div = soup.select_one('.text--use-ulol .cmp-text')
-            if not content_div:
-                content_div = soup.select_one('.text-area')
+            # Extract FULL BODY for Autofix-standard global cleaning
+            body_el = soup.find("body")
+            raw_html = str(body_el) if body_el else response.text
             
-            raw_text = content_div.get_text(separator='\n', strip=True) if content_div else ""
-            
-            # Validation
-            if len(raw_text) < 50:
-                print("      ❌ Content too short")
-                return "skipped"  # type: ignore # pyre-ignore[7]
-
-            # Fix image URL
-            image_url = self._fix_image_url(
-                campaign_data.get('teaserImage') or campaign_data.get('logoImage'),
-                source['base']
-            )
-            
-            # AI Parse with enhanced extraction
-            ai_data = self.parser.parse_campaign_data(
-                raw_text=raw_text,
+            # AI Parse (Autofix-standard)
+            from src.services.ai_parser import parse_api_campaign
+            ai_data = parse_api_campaign(
                 title=title,
-                bank_name="halkbank",
-                card_name=source['default_card'],
+                short_description=None,
+                content_html=raw_html,
+                bank_name="Halkbank",
+                scraper_sector=None,
                 tracking_url=url,
-                force=force
+                og_title=og_title
             )
             
             if not ai_data:

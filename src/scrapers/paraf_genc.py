@@ -25,6 +25,7 @@ from sqlalchemy.orm import Session  # type: ignore # pyre-ignore[21]
 from src.database import get_db_session  # type: ignore # pyre-ignore[21]
 from src.models import Bank, Card, Sector, Brand, Campaign, CampaignBrand  # type: ignore # pyre-ignore[21]
 from src.services.ai_parser import AIParser  # type: ignore # pyre-ignore[21]
+from src.services.ai_parser_golden import parse_api_campaign  # type: ignore # pyre-ignore[21]
 from src.utils.scraper_utils import is_url_blocked  # type: ignore
 
 class ParafGencScraper:
@@ -207,12 +208,23 @@ class ParafGencScraper:
                 source['base']
             )
             
+            # og:title for Header Sniper
+            og_title_el = soup.find("meta", property="og:title")
+            og_title = og_title_el.get("content", "").strip() if og_title_el else title
+
+            # Full body HTML → parse_api_campaign centralised pipeline
+            body_el = soup.find("body")
+            raw_html = str(body_el) if body_el else response.text
+
             # AI Parse
-            ai_data = self.parser.parse_campaign_data(
-                raw_text=raw_text,
+            ai_data = parse_api_campaign(
                 title=title,
+                short_description=None,
+                content_html=raw_html,
                 bank_name="halkbank",
-                card_name=source['default_card']
+                scraper_sector=None,
+                tracking_url=url,
+                og_title=og_title
             )
             
             if not ai_data:

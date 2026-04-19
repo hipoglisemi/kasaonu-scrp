@@ -230,54 +230,24 @@ class GarantiBonusScraper:
             
             print(f"   📄 {title[:60]}...")  # type: ignore # pyre-ignore[16,6]
             
-            # 🧠 GEMINI AI - Only for complex parsing
-            # Extract ALL campaign content for AI
-            content_parts = []
+            # Extract og:title for better cleaning anchors
+            og_title_el = soup.find("meta", property="og:title")
+            og_title = og_title_el.get("content") if og_title_el else None
             
-            # 1. Info Boxes (Left & Right) 
-            info_boxes = soup.select('.campaign-detail__info, .campaign-detail__others, .info-content')
-            if info_boxes:
-                for box in info_boxes:
-                    content_parts.append(box.get_text(separator='\n'))
-            
-            # 2. Main content areas - "Nasıl Kazanırım?" and "Diğer Bilgiler"
-            # Explicitly adding common Garanti detail containers
-            detail_selectors = [
-                '.how-to-win', 
-                '.campaign-detail__content', 
-                '.campaign-detail-tab-content',
-                '.campaign-description',
-                '#tab-details'
-            ]
-            for selector in detail_selectors:
-                elements = soup.select(selector)
-                for el in elements:
-                    text = el.get_text(separator='\n', strip=True)
-                    if text and text not in content_parts:
-                        content_parts.append(text)
-            
-            # 3. Fallback: If still too short, take more from main
-            if len('\n'.join(content_parts)) < 300:
-                main_body = soup.select_one('main, .main-container, #main-content')
-                if main_body:
-                    content_parts.append(main_body.get_text(separator='\n', strip=True))
-            
-            # Combine all content
-            content_text = '\n\n'.join(content_parts)
-            
-            # Provide sector hint from category if available
-            scraper_sector = None
-            category_elm = soup.select_one('.campaign-category, .category-tag')
-            if category_elm:
-                scraper_sector = category_elm.get_text().strip()
+            # Extract FULL BODY for Autofix-standard global cleaning
+            # This ensures we don't miss any detail boxes or card lists
+            body_el = soup.find("body")
+            raw_html = str(body_el) if body_el else str(soup)
             
             # AI parses only: reward_text, reward_value, reward_type, brands, sector, conditions, dates
             ai_data = parse_api_campaign(
                 title=title,
                 short_description=description,
-                content_html=content_text,
+                content_html=raw_html,
                 bank_name="Garanti BBVA",
-                scraper_sector=scraper_sector
+                scraper_sector=scraper_sector,
+                tracking_url=url,
+                og_title=og_title
             )
             
             # Fallback for dates if HTML parsing failed

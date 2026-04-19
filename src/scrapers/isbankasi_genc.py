@@ -81,16 +81,21 @@ class IsbankMaximumGencScraper:
         
         # Lazy import of AIParser to avoid google.generativeai hanging at module import time
         try:
-            from src.services.ai_parser import AIParser as _AIParser  # type: ignore # pyre-ignore[21]
+            from src.services.ai_parser import AIParser  # type: ignore # pyre-ignore[21]
+            from src.services.ai_parser_golden import parse_api_campaign as _parse_api_campaign  # type: ignore # pyre-ignore[21]
             print("[DEBUG] AIParser lazy-imported via src.services")
+            self.parser = AIParser()
+            self.parse_api_campaign = _parse_api_campaign
         except ImportError:
             try:
-                from services.ai_parser import AIParser as _AIParser  # type: ignore # pyre-ignore[21]
+                from services.ai_parser import AIParser as _FallbackParser  # type: ignore # pyre-ignore[21]
+                from src.services.ai_parser_golden import parse_api_campaign as _parse_api_campaign  # type: ignore # pyre-ignore[21]
                 print("[DEBUG] AIParser lazy-imported via services")
+                self.parser = _FallbackParser()
+                self.parse_api_campaign = _parse_api_campaign
             except ImportError as e:
                 print(f"[DEBUG] AIParser import FAILED: {e}")  # type: ignore # pyre-ignore[16,6]
                 raise
-        self.parser = _AIParser()
         print("[DEBUG] AIParser initialized")
 
         self.page = None
@@ -305,19 +310,8 @@ class IsbankMaximumGencScraper:
             title_el = soup.select_one("h1.color-purple, h1")
             title = self._clean(title_el.text) if title_el else "Başlık Yok"
 
-            if "gecmis" in url or "geçmiş" in title.lower():
-                return None  # type: ignore # pyre-ignore[7]
-
-            # Blocklist check
-            from src.database import get_db_session  # type: ignore
-            with get_db_session() as db:
-                 if is_url_blocked(db, url):
-                      print(f"   🚫 Skipped (Blocklisted): {url}")
-                      return None
-
             # Image — multiple fallback strategies
             image_url = None
-            # 1. Dedicated campaign image containers
             img_el = (
                 soup.select_one(".detail-img img")
                 or soup.select_one(".campaign-banner img")
@@ -339,17 +333,6 @@ class IsbankMaximumGencScraper:
                         if match and "logo" not in match.group(1).lower():
                             image_url = urljoin(self.BASE_URL, match.group(1))
                             break
-            # 3. Any img on page that looks like a campaign image (not a logo/icon)
-            if not image_url:
-                for img in soup.find_all("img"):
-                    src = img.get("data-src") or img.get("src") or ""
-                    if src and not src.startswith("data:") and "logo" not in src.lower() and "icon" not in src.lower():
-                        candidate = urljoin(self.BASE_URL, src)
-                        # Prefer campaign/opportunity images
-                        if any(k in src.lower() for k in ["kampanya", "campaign", "opportunity", "firsatlar", "firsat", "uploa"]):
-                            image_url = candidate
-                            break
-            # No fallback to logo — leave None if no real image found
 
             # Date
             date_text = ""
@@ -367,24 +350,37 @@ class IsbankMaximumGencScraper:
                 if m:
                     date_text = m.group(0)
 
-            # Content
-            content_div = soup.select_one("div.content-part, .detail-text, .campaign-content, section .container")
-            conditions = []
-            full_text = ""
-            if content_div:
-                raw = content_div.get_text("\n", strip=True)
-                conditions = [self._clean(l) for l in raw.split("\n") if len(self._clean(l)) > 20]
-                full_text = " ".join(conditions)
-            else:
-                full_text = self._clean(soup.get_text())[:1000]  # type: ignore # pyre-ignore[16,6]
+            # Extract og:title for AI sniper logic
+            og_title_el = soup.find("meta", property="og:title")
+            og_title = og_title_el.get("content").strip() if og_title_el and og_title_el.get("content") else None
 
-            conditions = [c for c in conditions if not c.startswith("Copyright")]
+            # Extract FULL BODY for Autofix-standard global cleaning
+            body_el = soup.find("body")
+            raw_html = str(body_el) if body_el else soup.get_text()
 
-            return {  # type: ignore # pyre-ignore[7]
-                "title": title, "image_url": image_url,
-                "date_text": date_text, "full_text": full_text,
-                "conditions": conditions, "source_url": url,
-            }
+            # AI Parse (Autofix-standard)
+            from src.services.ai_parser import parse_api_campaign
+            ai_data = parse_api_campaign(
+                title=title,
+                short_description=None,
+                content_html=raw_html,
+                bank_name="İşbankası",
+                scraper_sector=None,
+                tracking_url=url,
+                og_title=og_title
+            )
+
+            if not ai_data:
+                print(f"      ❌ AI parsing failed for {url}")
+                return None
+
+            # Add metadata fields to ai_data for compatibility with existing _process_campaign/_save_campaign logic
+            ai_data["source_url"] = url
+            ai_data["og_title"] = og_title
+            ai_data["image_url"] = image_url
+            ai_data["date_text"] = date_text
+            
+            return ai_data
         except Exception as e:
             print(f"   ⚠️ Error extracting {url}: {e}")
             return None  # type: ignore # pyre-ignore[7]
@@ -461,8 +457,16 @@ class IsbankMaximumGencScraper:
             return "skipped"  # type: ignore # pyre-ignore[7]
 
         try:
-            ai_data = self.parser.parse_campaign_data(
-                raw_text=data["full_text"], bank_name=self.BANK_NAME
+            # Use raw HTML from extract step if available, else fall back
+            raw_html = data.get("raw_html") or data.get("full_text") or ""
+            ai_data = self.parse_api_campaign(
+                title=data.get("title", ""),
+                short_description=None,
+                content_html=raw_html,
+                bank_name=self.BANK_NAME,
+                scraper_sector=None,
+                tracking_url=url,
+                og_title=data.get("og_title") or data.get("title", "")
             ) or {}
         except Exception as e:
             self.db.rollback()  # type: ignore # pyre-ignore[16]
