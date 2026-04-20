@@ -450,10 +450,14 @@ class TurkiyeFinansScraper:
                     clean_brands = cleanup_brands(ai_data["brands"])
                     for brand_name in clean_brands:
                         brand_res = conn.execute(
-                            text("SELECT id FROM brands WHERE name=:name"),
+                            text("SELECT id, is_active FROM brands WHERE name=:name"),
                             {"name": brand_name}
                         ).fetchone()
                         if brand_res:
+                            # 🛡️ Bloklist kontrolü: is_active=False olan markalar atlanır
+                            if not brand_res[1]:
+                                print(f"      🚫 Skipped blacklisted brand: {brand_name}")
+                                continue
                             bid = brand_res[0]
                         else:
                             bslug = f"{slugify(brand_name)}-{int(time.time())}"

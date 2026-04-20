@@ -236,10 +236,14 @@ class TEBScraper:
                     clean_brands = cleanup_brands(brands)
                     for brand_name in clean_brands:
                         brand_result = conn.execute(
-                            text("SELECT id FROM brands WHERE name = :name"),
+                            text("SELECT id, is_active FROM brands WHERE name = :name"),
                             {"name": brand_name}
                         ).fetchone()
                         if brand_result:
+                            # 🛡️ Bloklist kontrolü: is_active=False olan markalar atlanır
+                            if not brand_result[1]:
+                                print(f"      🚫 Skipped blacklisted brand: {brand_name}")
+                                continue
                             brand_id = brand_result[0]
                         else:
                             brand_slug = f"{slugify(brand_name)}-{int(time.time())}"

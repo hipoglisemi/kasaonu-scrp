@@ -385,12 +385,15 @@ class ChippinScraper:
                         campaign_id = row[0] if row else None
                         success_count += 1  # type: ignore # pyre-ignore[58]
 
-                        # Brands
                         if ai_data.get("brands") and campaign_id:
                             clean_brands = cleanup_brands(ai_data["brands"])
                             for brand_name in clean_brands:
-                                brand_res = conn.execute(text("SELECT id FROM brands WHERE name=:name"), {"name": brand_name}).fetchone()
+                                brand_res = conn.execute(text("SELECT id, is_active FROM brands WHERE name=:name"), {"name": brand_name}).fetchone()
                                 if brand_res:
+                                    # 🛡️ Bloklist kontrolu: is_active=False olan markalar atlanır
+                                    if not brand_res[1]:
+                                        print(f"      �deab Skipped blacklisted brand: {brand_name}")
+                                        continue
                                     bid = brand_res[0]
                                 else:
                                     bslug = f"{slugify(brand_name)}-{int(time.time())}"

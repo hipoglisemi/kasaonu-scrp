@@ -782,15 +782,17 @@ ANALİZ EDİLECEK METİN:
                     logger.debug(f"Brand Guard: Rejected negative context '{brand}'")
                     continue
             
-            # 5. PBE BYPASS — database-verified brands skip the remaining heuristic text checks
-            if brand in pbe_trusted:
-                validated.append(brand)
-                continue
-
-            # 6. COMMON NOUN GUARD
+            # 5. COMMON NOUN GUARD (runs BEFORE PBE bypass — common nouns are NEVER valid brands)
+            # "bilet", "sigorta", "market" etc. should never be tagged even if PBE has a rule for them,
+            # UNLESS the brand name is explicitly in the title (e.g. title = "Bilete.com Kampanyası").
             is_generic = any(cn in brand_norm for cn in common_nouns)
             if is_generic and brand_norm not in title_lower:
-                logger.debug(f"Brand Guard: Rejected common noun '{brand}'")
+                logger.debug(f"Brand Guard: Rejected common noun (pre-PBE) '{brand}'")
+                continue
+
+            # 6. PBE BYPASS — database-verified brands skip the remaining heuristic text checks
+            if brand in pbe_trusted:
+                validated.append(brand)
                 continue
 
             if brand_norm in full_context:
