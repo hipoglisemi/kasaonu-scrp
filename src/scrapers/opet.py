@@ -237,7 +237,7 @@ class OpetScraper:
                     title = link_tag.get_text(strip=True)
                     if not title or len(title) < 5:
                         title_tag = card_soup.select_one("h3, h4, .title, .card-title")
-                        title = title_tag.get_text(strip=True) if title_tag else "Opet Kampanyası"
+                        title = title_tag.get_text(strip=True) if title_tag else None
                     
                     # Image
                     img_tag = card_soup.select_one("img")
@@ -258,17 +258,21 @@ class OpetScraper:
                     content_area = detail_soup.select_one("main, .container, .detail-content")
                     raw_html = str(content_area) if content_area else self.driver.page_source
 
-                    # og:title for Header Sniper
-                    og_title_el = detail_soup.find("meta", property="og:title")
-                    og_title = og_title_el.get("content", "").strip() if og_title_el else title
+                    # H1 for Header Sniper — og:title on Opet is often a generic site name
+                    _h1_el = detail_soup.select_one("h1")
+                    if _h1_el and _h1_el.get_text(strip=True):
+                        og_title = _h1_el.get_text(strip=True)
+                    else:
+                        og_title_el = detail_soup.find("meta", property="og:title")
+                        og_title = og_title_el.get("content", "").strip() if og_title_el else None
 
                     # AI Parsing
                     ai_data = parse_api_campaign(
                         title=title,
                         short_description=None,
                         content_html=raw_html,
-                        bank_name="Genel",
-                        scraper_sector=None,
+                        bank_name="Opet",
+                        scraper_sector="akaryakit",
                         tracking_url=detail_url,
                         og_title=og_title
                     )

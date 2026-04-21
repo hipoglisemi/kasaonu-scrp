@@ -48,7 +48,7 @@ BANK_CARD_KEYWORDS = {
     "tami": ["tami kart"],
     "uption": ["uption kart"],
     "masterpass": ["masterpass"],
-    "opet": ["opet kart", "opet müşterileri"],
+    "opet": ["opet kart", "yakıt puan", "opet mobil"],
     "nays": ["nays kart", "nays kullanıcıları"],
 }
 
@@ -107,7 +107,7 @@ BANK_SELF_NAMES = {
     "şekerbank": ["şekerbank", "şeker bank"],
     "burgan": ["burgan", "burgan bank"],
     "albaraka": ["albaraka"],
-    "opet": ["opet", "opet kart", "yakıt puan"],
+    "opet": ["opet", "opet kart", "yakıt puan", "opet kampanyası", "opet mobil"],
     "nays": ["nays", "nays kart"],
 }
 
@@ -257,9 +257,14 @@ class AIParserGolden:
 1. 🧠 ANALİZ ET: Yukarıdaki markalar gerçek bir kampanya ORTAĞI mı (örn: Trendyol, Migros) yoksa sadece alt yapı/katılım kanalı mı (örn: Tivibu, Online İşlemler)?
 2. 🛡️ FİLTRELE: Sadece gerçek partnerleri 'brands' listesine ekle. Bankanın veya kurumun kendi servislerini partner olarak YAZMA.
    - Kampanya SMS adımlarında gecen GSM operatörlerini (Türk Telekom, Turkcell, Vodafone) ASLA marka olarak secme.
-3. 🚫 SEKTÖR YASAKLARI: 'satis', 'odul', 'puan' gibi geçersiz sektör ID'lerini ASLA kullanma.
-4. 🚨 SEKTÖR HİYERARŞİSİ (ÇOK KRİTİK): Eğer kampanya belirli bir dikey sektöre (Giyim, Elektronik, Kozmetik vb.) ait uzman bir markada ise işlem internetten yapılsa dahi sektörü o DİKEY SEKTÖR olarak belirle. 'e-ticaret' SADECE pazar yerleri (Trendyol, Hepsiburada vb.) içindir. Ödeme kanalına değil harcamanın YERİNE odaklan.
+3. 🚨 **AMAZON AYRIMI (KRİTİK)**: Metin genel bir alışveriş veya kargo kampanyasıysa sektörü 'e-ticaret' seç. SADECE 'Amazon Prime' üyeliği, aboneliği veya Prime Video/Müzik ödemesi ise 'dijital-platform' seç.
+4. 🚨 **SEKTÖR HİYERARŞİSİ (ÇOK KRİTİK)**:
+   - Eğer kampanya belirli bir dikey sektöre (Giyim, Elektronik, Kitap, Kozmetik, Akaryakıt, Turizm vb.) ait uzman bir markada ise (örn: Altınyıldız, Teknosa, İdefix, Gratis, ETS Tur), işlem web sitesinden/mobil uygulamadan yapılsa dahi sektörü o **DİKEY SEKTÖR** (Giyim, Elektronik vb.) olarak belirle.
+   - 'e-ticaret' sektörü SADECE çok kategorili "Pazar Yerleri" (Marketplace) içindir: Trendyol, Hepsiburada, Amazon (Shopping), Pazarama, Çiçeksepeti, n11.
+   - Bir marka hem dikey bir uzmanlığa sahipse hem de internetten satılıyorsa, dikey uzmanlık (Giyim, Elektronik vb.) HER ZAMAN kazanır.
 5. ⛔ NEGATİF BAĞLAM (HARİÇTİR): Metinde bu markaların 10-15 kelime yakınında 'hariçtir', 'dahil değildir', 'kapsam dışıdır' yazıyorsa (Örn: Bim, Şok, A101 hariç), O MARKALARI KESİNLİKLE 'brands' LİSTESİNE ALMA.
+6. 🛡️ **SIFIR ÇIKARIM (ZERO INFERENCE)**: Kendi iç bilgini kullanarak marka TAHMİN ETME. Eğer marka ismi başlıkta veya metinde karakter karakter yazmıyorsa, o marka senin için yoktur. Marka adı uydurmak KESİNLİKLE YASAKTIR.
+
 """
 
         # GENERIC_TITLE_WORDS: kelime çıkarımı için sabit set (regex yok)
@@ -271,14 +276,15 @@ class AIParserGolden:
         }
         title_instruction = ""
 
-        # Öncelik 1: og_title — meta tag'den gelen başlık her zaman güvenilir
+        # Öncelik 1: og_title — H1 veya meta tag'den gelen başlık her zaman güvenilir
         if og_title and og_title.strip():
             title_instruction = f"""
-🏷️ META BAŞLIK (GÜVENİLİR): Sayfanın meta tag'inden alındı: "{og_title.strip()}"
-Bu başlığı veya metnin içindeki daha spesifik halini 'title' alanına yaz.
+🔒 BAŞLIK KİLİDİ (H1/META): Sayfanın H1 veya meta tag'inden alındı: "{og_title.strip()}"
+'title' alanına SADECE bu başlığı aynen yaz. Kısaltma, değiştirme veya yorum katma.
 """
         elif title and title.strip() and title.strip() != "Başlık Yok":
             title_clean = title.strip()
+            
             # Dinamik jenerik tespit: banka adı + genel kelimeler çıkarıldıktan sonra anlamlı birşey kalıyor mu?
             bank_words = set((bank_name or "").lower().split())
             title_words = set(title_clean.lower().split())
@@ -359,6 +365,10 @@ Kampanya Sahibi Banka/Kurum: {bank_name}
 
 6. **PAZARLAMA**: 2-3 cümle, emojili, enerjik. Somut rakamları belirt. Metin SEO dostu olmalı; kampanyanın avantajını kullanıcıya coşkulu bir dille sun.
 
+7. **FORMT KURALI (HARF DÜZENİ)**: 
+   - 🚨 **ALL CAPS ÇEVİRİSİ**: Eğer girdi metninde veya başlıkta TAMAMI BÜYÜK HARFLE (KAMPANYA DETAYI) yazılmış kısımlar varsa, çıktıdaki ilgili alanlarda bunları normal Cümle Düzenine (Sentence case) veya Başlık Düzenine (Title case) TERCÜME ET. Asla tamamı büyük harfli kelime gruplarını olduğu gibi bırakma.
+
+
 JSON FORMATI:
 {{
   "title": "Metnin en üstündeki doğal ve spesifik başlığı bul. BAŞLIĞA KESİNLİKLE BANKA VEYA KART ADI ŞEMSİYESİ EKLEME (Örn: 'Shop&Fly -', 'Bonus -', 'Maximum:' gibi ön ekleri sil). Sadece asıl içeriği yansıtan resmî başlığı (Örn: 'Enza Home\\'da taksit fırsatları!') kullan.",
@@ -395,6 +405,17 @@ ANALİZ EDİLECEK METİN:
             matcher = get_point_blank_matcher(db)
             exclude_list = [bank_name] if bank_name else []
             pb_matches = matcher.match_campaign(title or "", cleaned_text, exclude_terms=exclude_list)
+            
+            # 🛡️ HOST PROTECTION (Sector Priority)
+            # If we have multiple matches and one of them is a "Host" (Shell, Opet, etc.),
+            # and another is a "Guest" (Partner brand), prioritizing the guest for sector.
+            if pb_matches and len(pb_matches) > 1:
+                host_slugs = {'turk-telekom', 'vodafone', 'turkcell', 'shell', 'opet', 'petrol-ofisi', 'totalenergies'}
+                guest_matches = [m for m in pb_matches if m.get('sector') not in ['fatura-telekomunikasyon', 'akaryakit']]
+                if guest_matches:
+                    # Move guest matches to front to dictate dominant sector
+                    pb_matches = guest_matches + [m for m in pb_matches if m not in guest_matches]
+
             pb_brands = [m["brand"] for m in pb_matches if m.get("brand")]
             db.close()
         except Exception as e:
@@ -410,6 +431,23 @@ ANALİZ EDİLECEK METİN:
 
         # 4. Apply ALL Python Guards
         result = self._apply_business_logic(parsed_data, cleaned_text, bank_name, title, pb_matches)
+
+        # ── 5. REPORT CANDIDATES BACK TO PBE ──
+        # If AI found a validated brand that isn't in PBE yet, report it for admin approval.
+        try:
+            db = SessionLocal()
+            matcher = get_point_blank_matcher(db)
+            existing_pb_brands = set(pb_brands)
+            
+            validated_brands = result.get("brands", [])
+            for b in validated_brands:
+                if b and b != "Genel" and b not in existing_pb_brands:
+                    # Only report if it's NOT already in our point-blank list for this campaign
+                    # Use the determined sector for the new candidate
+                    matcher.report_new_candidate(b, b, result.get("sector", "diger"), campaign_id=None)
+            db.close()
+        except Exception as e:
+            logger.warning(f"Failed to report PBE candidates: {e}")
 
         # Inject clean text for downstream consumers
         result["_clean_text"] = cleaned_text
@@ -637,22 +675,24 @@ ANALİZ EDİLECEK METİN:
 
             logger.debug(f"Card Guard: Rejected '{card}' (not verified in text)")
 
-        # 4. BANK-SPECIFIC CARD SNIPER (Recovery ONLY when AI returned ZERO valid cards)
-        if not validated and bank_key and bank_key in BANK_CARD_KEYWORDS:
+        # 4. BANK-SPECIFIC CARD SNIPER (Recovery logic)
+        # We also recover specific sub-branded cards even if AI found generic ones (e.g. Ziraat case)
+        if bank_key and bank_key in BANK_CARD_KEYWORDS:
             known_cards = BANK_CARD_KEYWORDS[bank_key]
             for kc in known_cards:
                 kc_norm = self._normalize(kc)
-                if kc_norm in text_normalized:
+                # If AI missed this specific sub-brand card but it's clearly in text
+                if kc_norm in text_normalized and not any(kc_norm in self._normalize(c) for c in validated):
                     validated.append(kc.title() if len(kc) > 3 else kc.upper())
-                    logger.info(f"Card Sniper: Recovered '{kc}' for {bank_key} (AI returned empty)")
+                    logger.info(f"Card Sniper: Recovered '{kc}' for {bank_key}")
 
-        # Ziraat-specific sniper (also only when empty)
-        if not validated and "bankkart" in text_normalized:
+        # Ziraat-specific sniper (extra safety for common variants)
+        if "bankkart" in text_normalized:
             for variant in ["bankkart başak", "bankkart genç", "bankkart prestij", "bankkart business"]:
-                variant_norm = self._normalize(variant)
-                if variant_norm in text_normalized and not any(variant_norm in self._normalize(v) for v in validated):
+                v_norm = self._normalize(variant)
+                if v_norm in text_normalized and not any(v_norm in self._normalize(c) for c in validated):
                     validated.append(variant.title())
-                    logger.info(f"Card Sniper: Recovered '{variant}'")
+                    logger.info(f"Card Sniper: Recovered Ziraat variant '{variant}'")
 
         return validated
 

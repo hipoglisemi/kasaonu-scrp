@@ -178,34 +178,35 @@ def fetch_html(url: str) -> str:
     ]
     for selector in noise_selectors:
         for element in soup.select(selector):
-                element.extract()
+            element.extract()
+    
+    # 🎯 CONTENT TARGETING
+    # If we find specific content containers, only use those.
+    target_selectors = [
+        '.sub-header', '.campaign-terms', '.campaign-detail-content', '.campaign-detail', 
+        '.campaign-detail-tab-details', '.campaign-detail-box', 
+        'article.campaign-detail', '.cmsContent'
+    ]
+    
+    content_found = []
+    for selector in target_selectors:
+        elements = soup.select(selector)
+        for el in elements:
+            # Double check: ignore elements that contain mostly noise headers
+            el_text_lower = el.get_text().lower()
+            if any(x in el_text_lower for x in ["öne çıkan kampanyalar", "benzer kampanyalar"]):
+                continue
+            content_found.append(el.get_text(separator=' ', strip=True))
+    
+    if content_found:
+        text = " ".join(content_found)
+    else:
+        # Fallback to whole body if no specific containers found
+        text = soup.get_text(separator=' ', strip=True)
         
-        # 🎯 CONTENT TARGETING
-        # If we find specific content containers, only use those.
-        target_selectors = [
-            '.campaign-terms', '.campaign-detail-content', '.campaign-detail', 
-            '.campaign-detail-tab-details', '.campaign-detail-box', 
-            'article.campaign-detail', '.cmsContent'
-        ]
-        
-        content_found = []
-        for selector in target_selectors:
-            elements = soup.select(selector)
-            for el in elements:
-                # Double check: ignore elements that contain mostly noise headers
-                if any(x in el.get_text().lower() for x in ["öne çıkan kampanyalar", "benzer kampanyalar"]):
-                    continue
-                content_found.append(el.get_text(separator=' ', strip=True))
-        
-        if content_found:
-            text = " ".join(content_found)
-        else:
-            # Fallback to whole body if no specific containers found
-            text = soup.get_text(separator=' ', strip=True)
-            
-        # 🛡️ Use Central Text Cleaner (Standard Scraper Logic)
-        text = clean_campaign_text(text)
-        return text
+    # 🛡️ Use Central Text Cleaner (Standard Scraper Logic)
+    text = clean_campaign_text(text)
+    return text
 
 def run_autofix(limit: int = 250, campaign_id: Optional[int] = None, force_all: bool = False, ids_file: Optional[str] = None, ui_mode: bool = False, pending: bool = False):
     print(f"🚀 Starting Data Quality Auto-Fixer (Limit: {limit})...")
@@ -478,22 +479,39 @@ def run_autofix(limit: int = 250, campaign_id: Optional[int] = None, force_all: 
                 else:
                     # Fresh fetch required
                     print(f"   🌐 Logic: RESCUE! (Force mode or text issue). Fetching fresh HTML...")
+                    
+                    # Step 1: Fetch raw HTML to extract H1 title (before text cleaning strips HTML tags)
+                    og_title = None
+                    try:
+                        import urllib3
+                        urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+                        _raw_resp = requests.get(c.tracking_url, headers={'User-Agent': 'Mozilla/5.0'}, timeout=15, verify=False)
+                        _raw_resp.raise_for_status()
+                        _raw_html = _raw_resp.text
+                        from bs4 import BeautifulSoup as _BS
+                        _raw_soup = _BS(_raw_html, "html.parser")
+                        # Priority 1: H1 (most reliable on bank campaign pages like Yapı Kredi)
+                        _h1 = _raw_soup.select_one('h1')
+                        if _h1 and _h1.get_text(strip=True):
+                            og_title = _h1.get_text(strip=True)
+                            print(f"   🏷️ H1 title: {og_title}")
+                        else:
+                            # Priority 2: og:title (fallback for sites without H1)
+                            _og = _raw_soup.find("meta", property="og:title")
+                            if _og and _og.get("content"):
+                                _og_content = _og["content"].strip()
+                                # Only use og:title if it's specific (>2 words), not a generic site name
+                                if len(_og_content.split()) > 2:
+                                    og_title = _og_content
+                                    print(f"   🏷️ og:title: {og_title}")
+                    except Exception as _e:
+                        print(f"   ⚠️ Raw HTML fetch for title failed: {_e}")
+                    
+                    # Step 2: Clean text via full pipeline (fetch_html does BeautifulSoup + text_cleaner)
                     html_text = fetch_html(c.tracking_url)
                     
                     if html_text and len(html_text) >= 50:
-                        # Extract og:title from raw HTML before cleaning (reliable title source)
-                        og_title = None
-                        if "<" in html_text:
-                            try:
-                                from bs4 import BeautifulSoup as _BS
-                                _soup = _BS(html_text, "html.parser")
-                                _og = _soup.find("meta", property="og:title")
-                                if _og and _og.get("content"):
-                                    og_title = _og["content"].strip()
-                                    print(f"   🏷️ og:title: {og_title}")
-                            except Exception:
-                                pass
-                        # Clean text with the central text cleaner
+                        # Run text_cleaner again with the H1 title so the Header Sniper can cut menu noise correctly
                         text_to_parse = clean_campaign_text(html_text, og_title=og_title)
                         print(f"   ✅ URL fetch successful ({len(text_to_parse)} chars)")
                     else:
@@ -526,12 +544,19 @@ def run_autofix(limit: int = 250, campaign_id: Optional[int] = None, force_all: 
                         print(f"   ⏸️ Banka metni değişmemiş. Boşuna AI çağrısı yapılmıyor (Hash Match). Atlandı.")
                         continue
 
+                # Eğer DB'den gelen başlık çok uzunsa (Açıklama metni yanlışlıkla başlık olmuşsa), 
+                # AI bu metne BAŞLIK KİLİDİ atmasın diye boş gönderiyoruz. AI metnin en üstündeki H1'i bularak kendisi atayacak.
+                ai_title_pass = c.title or ''
+                if len(ai_title_pass.split()) > 15:
+                    print(f"   🔓 DB Title is too long ({len(ai_title_pass.split())} words) - Erasing lock to let AI find the real title from HTML.")
+                    ai_title_pass = ''
+
                 print(f"   🤖 [GOLDEN V3] Sending {len(text_to_parse)} characters to AI... (Bank: {bank_name or 'Unknown'})")
                 parser = _get_golden_parser()
                 ai_data = parser.parse_campaign(
                     raw_html=text_to_parse,
                     bank_name=bank_name or '',
-                    title=c.title or '',
+                    title=ai_title_pass,
                     og_title=og_title if 'og_title' in dir() else None
                 )
                 
@@ -693,15 +718,23 @@ def run_autofix(limit: int = 250, campaign_id: Optional[int] = None, force_all: 
                 if final_sector_slug not in SECTOR_MAP.values():
                     final_sector_slug = "diger"
                 
-                # 🎯 PBE SEKTÖR OVERRIDE — PBE doğrulanmış veri, AI tahmin.
-                # PBE bir marka-sektör eşleşmesi bulduysa, AI'nın sektörünü ez.
+                # 🎯 PBE SEKTÖR OVERRIDE — PBE doğrulanmış veri, AI tahmininden üstündür.
+                # Ancak Opet, Shell, Vodafone gibi "Host" markaların sektörünün, iş ortağı markanın sektörünü ezmesini engelliyoruz.
                 pb_matcher = get_point_blank_matcher(db)
                 pb_matches = pb_matcher.match_campaign(c.title, text_to_parse or "")
+                
+                if pb_matches:
+                    # 🛡️ HOST PROTECTION: Eğer birden fazla eşleşme varsa ve biri partner (Guest) ise ona öncelik ver.
+                    host_slugs = {'turk-telekom', 'vodafone', 'turkcell', 'shell', 'opet', 'petrol-ofisi', 'totalenergies'}
+                    guest_matches = [m for m in pb_matches if m.get('sector') not in ['fatura-telekomunikasyon', 'akaryakit']]
+                    if guest_matches:
+                        pb_matches = guest_matches + [m for m in pb_matches if m not in guest_matches]
+
                 pb_sector_candidates = [m.get("sector") for m in pb_matches if m.get("sector") and m.get("brand")]
                 if pb_sector_candidates:
-                    pb_sector = pb_sector_candidates[0]  # İlk marka eşleşmesinin sektörü
+                    pb_sector = pb_sector_candidates[0]  # Önceliklendirilmiş ilk marka eşleşmesinin sektörü
                     if pb_sector != final_sector_slug and pb_sector != "diger":
-                        print(f"   🎯 PBE Override: AI said '{final_sector_slug}', PBE says '{pb_sector}' → using PBE")
+                        print(f"   🎯 PBE Override (Partner Priority): AI said '{final_sector_slug}', PBE says '{pb_sector}' → using PBE")
                         final_sector_slug = pb_sector
                     
                 current_sector_slug = c.sector.slug if c.sector else None

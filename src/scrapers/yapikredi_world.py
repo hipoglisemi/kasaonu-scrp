@@ -128,8 +128,12 @@ class YapikrediWorldScraper:
                 page.evaluate("window.scrollTo(0, document.body.scrollHeight)")
                 page.wait_for_timeout(2000)
                 
-                # Extract og:title
-                og_title = page.locator('meta[property="og:title"]').get_attribute('content')
+                # Extract the campaign title from the H1 — og:title is useless on this site (returns just "Worldcard")
+                h1_element = page.locator('h1').first
+                if h1_element.count() > 0:
+                    og_title = h1_element.inner_text().strip() or None
+                else:
+                    og_title = None
                 
                 browser_html = page.content()
                 browser.close()
@@ -144,6 +148,9 @@ class YapikrediWorldScraper:
         api_desc = item.get('Description') or ''
         combined_content = f"--- API DATA ---\n{api_desc}\n\n--- DETAIL PAGE ---\n{content_html}"
 
+        # Yapi Kredi World API often returns long sentences in the title field (e.g. "Bellona'da 9 aya varan taksit!")
+        # If the title is too long, it's actually a description. We don't want to pass it as 'title' or 'og_title'
+        # to the AI parser because:
         ai_result = parse_api_campaign(
             title=title,
             short_description=short_description,
@@ -154,7 +161,7 @@ class YapikrediWorldScraper:
             og_title=og_title
         )
         
-        display_title = ai_result.get('short_title') or title
+        display_title = ai_result.get('title') or ai_result.get('short_title') or title
         
         return self._save_campaign(  # type: ignore # pyre-ignore[7]
             title=display_title,

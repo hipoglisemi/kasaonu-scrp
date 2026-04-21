@@ -114,6 +114,11 @@ def clean_campaign_text(raw_text: str, og_title: str = None, title: str = None) 
         r"Tehlikeli Hastalıklar Sigortası",
         r"Pembe Kurdele Hayat Sigortası",
         r"Cep Telefonu Sigortası",
+        r"al/sat\s+biriktir\s+otomatik\s+para",
+        r"paribu.ya\s+para\s+gönder",
+        r"faturasız\s+hatta.*tl\s+yükl",
+        r"prev\s+next\s+\w+\s+servis",
+        r"detaylı\s+bilgi\s+prev\s+next",
     ]
 
     # ── Step 2: Line-Level Navigation Filter ──────────────────
@@ -193,6 +198,9 @@ def clean_campaign_text(raw_text: str, og_title: str = None, title: str = None) 
         r"ödeme kanallarını göster", r"çok nays şeyler paylaşıyoruz",
         r"neler yapabilirisin, nasıl kazanırsın", r"nays dünyasını keşfet",
         r"altın al/sat biriktir", r"sevdiklerini nays'a davet et",
+        r"şekerbank.*troy.*thy.*kampanyası",
+        r"retreat kampanyası.*restoran kampanyası",
+        r"bi dünya fırsat şimdi koçtaş",
     ]
 
     # 🛑 THE SANDWICH END (Yasal Limit): 
@@ -207,6 +215,14 @@ def clean_campaign_text(raw_text: str, og_title: str = None, title: str = None) 
         r"tüm hakları saklıdır"
     ]
 
+    # 🛑 BOILERPLATE CHOP (KVKK/Cookie Policy etc.)
+    # These often contain third-party brand names (Facebook, Google, etc.) causing hallucinations
+    BOILERPLATE_CHOP_MARKERS = [
+        "çerez politikası", "cookie policy", "aydınlatma metni", 
+        "kişisel verilerin korunması", "legal caution", "yasal bilgilendirme",
+        "gizlilik politikası", "çerezleri yönet", "cookies settings"
+    ]
+
     final_text = '\n'.join(cleaned_lines)
     tr_map = {ord('I'): 'ı', ord('İ'): 'i', ord('Ş'): 'ş', ord('Ğ'): 'ğ', ord('Ç'): 'ç', ord('Ö'): 'ö', ord('Ü'): 'ü'}
     text_lower = final_text.translate(tr_map).lower()
@@ -216,8 +232,15 @@ def clean_campaign_text(raw_text: str, og_title: str = None, title: str = None) 
     for p in LEGAL_END_PATTERNS:
         match = re.search(p, text_lower)
         if match:
-            # We add some slack to keep the full sentence
             legal_limit_idx = min(legal_limit_idx, match.end() + 10)
+    
+    # 🎯 Apply high-confidence boilerplate chopping
+    for marker in BOILERPLATE_CHOP_MARKERS:
+        marker_pos = text_lower.find(marker)
+        # Only trip if it's deep in the text (don't accidentally cut main content if mentioned early)
+        if marker_pos != -1 and marker_pos > 800:
+            legal_limit_idx = min(legal_limit_idx, marker_pos)
+            break
     
     # Prune everything after the legal limit
     if legal_limit_idx < len(final_text):
