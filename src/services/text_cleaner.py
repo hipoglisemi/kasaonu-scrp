@@ -260,7 +260,13 @@ def clean_campaign_text(raw_text: str, og_title: str = None, title: str = None) 
         r"diğer kampanyalar", r"diğer fırsatlar", r"benzer fırsatları kaçırmayın",
         r"diğer kampanyalara göz atın", r"miles&smiles dünyası ayrıcalıklarınız",
         r"mıl programı mıl kazanımı", r"mil programı mil kazanımı",
-        r"türk hava yolları ayrıcalıkları"
+        r"türk hava yolları ayrıcalıkları",
+        # Şekerbank Yandal Menüsü Silecekleri
+        r"kampanyalar\s+kart kampanyaları\s+mobilya kampanyası",
+        r"şeker bonus kart market kampanyası",
+        r"ramazan bereketi market kampanyası",
+        r"beyaz eşya ve elektronik kampanyası\s+muhteşem kasım",
+        r"yurt dışı fiziki alışveriş kampanyası"
     ]
     
     # 1. First evaluate hard cuts (no minimum percentage threshold required)

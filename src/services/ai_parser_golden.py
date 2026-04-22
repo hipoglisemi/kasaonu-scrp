@@ -24,7 +24,7 @@ logger = logging.getLogger(__name__)
 BANK_CARD_KEYWORDS = {
     "akbank": ["axess", "wings", "free", "bank'o card", "ticari"],
     "işbankası": ["maximum", "maximiles", "privia"],
-    "yapı kredi": ["worldcard", "world", "play", "adios"],
+    "yapı kredi": ["worldcard", "world", "play", "adios", "crystal"],
     "garanti": ["bonus", "miles&smiles", "shop&fly", "bonus flexi", "bonus genç", "paracard"],
     "ziraat": ["bankkart", "bankkart başak", "bankkart genç", "bankkart prestij", "bankkart business", "bankkart lira"],
     "vakıfbank": ["worldcard", "world", "bankomat", "platinum"],
@@ -371,7 +371,7 @@ Kampanya Sahibi Banka/Kurum: {bank_name}
 
 JSON FORMATI:
 {{
-  "title": "Metnin en üstündeki doğal ve spesifik başlığı bul. BAŞLIĞA KESİNLİKLE BANKA VEYA KART ADI ŞEMSİYESİ EKLEME (Örn: 'Shop&Fly -', 'Bonus -', 'Maximum:' gibi ön ekleri sil). Sadece asıl içeriği yansıtan resmî başlığı (Örn: 'Enza Home\\'da taksit fırsatları!') kullan.",
+  "title": "Kampanyanın kısa, resmi BAŞLIĞINI bul. (Maksimum 10-12 kelime). Eğer bulduğun başlık çok uzun bir kampanya açıklamasıysa veya tarih içeriyorsa (Örn: '20 Nisan - 19 Mayıs arasında...'), onu BAŞLIK OLARAK KULLANMA. Onun yerine içinden en odak noktayı özetle (Örn: 'Çevrimiçi Platformlarda 300 TL İndirim'). BAŞLIĞA KESİNLİKLE BANKA/KART ADI ŞEMSİYESİ EKLEME (Örn: 'Shop&Fly -', 'Bonus -', 'Maximum:' gibi ön ekleri sil). Sadece asıl içeriği yansıtan resmî başlığı (Örn: 'Enza Home\\'da taksit fırsatları!') kullan.",
   "description": "2 cümlelik samimi özet",
   "ai_marketing_text": "2-3 cümlelik enerjik, emojili pazarlama metni. Somut rakamları belirt. Metin SEO dostu olmalı.",
   "reward_value": 0.0,
@@ -382,7 +382,7 @@ JSON FORMATI:
   "end_date": "YYYY-MM-DD",
   "sector": "sektor-slug",
   "brands": ["Marka1", "Marka2"], // ⛔ NEGATION TRAP: Metinde 'hariçtir','dahil değildir', 'geçerli değildir', 'kapsam dışıdır' gibi kelimelerin 10-15 kelime yakınında geçen markaları (Örn: Migros, Şok, A101 hariç) KESİNLİKLE LİSTEYE EKLEME.
-  "cards": ["Kart1"],
+  "cards": ["Kart1", "Kart2"], // 🚨 METİNE HARFİYEN SADIK KAL: Sadece metinde birebir okuduğun kart isimlerini veya kategorilerini yaz. Hiçbir ismi standartlaştırma veya başka bir isme çevirme.
   "participation": "Kampanyadan nasıl faydalanılacağını net bir dille özetle. Şirket/uygulama mağazası isimlerini at, doğrudan eylemi yaz. Açıkça 'Katıl' butonu/SMS'i YOKSA BİLE, kampanyadan yararlanmak için yapılması gereken ödeme sırası işlemlerini (örn: 'Ödemenizi ilgili banka POS cihazından yapın', 'İnternet sitesinde taksit seçeneğini işaretleyin', 'Kasada şifreyi söyleyin') BURAYA YAZ. Örn: 'İşCep'ten Katıl butonuna tıklayın.', 'Kasada kampanyadan yararlanmak istediğinizi belirtin.', 'Ödemeyi bankamız POS'undan yapın.', 'Faturanızı uygulamadan okutun.' Hiçbir eylem cümlesi yoksa '-' ile BOŞ BIRAK.",
   "conditions": ["Önemli Şart 1", "Önemli Şart 2"]
 }}
@@ -535,7 +535,11 @@ ANALİZ EDİLECEK METİN:
             sector = "diger"
         # PBE sector override
         if pb_matches:
-            pb_sectors = [m.get("sector") for m in pb_matches if m.get("sector") and m.get("sector") != "diger"]
+            pb_sectors = [
+                m.get("sector") for m in pb_matches 
+                if m.get("sector") and m.get("sector") != "diger"
+                and (m.get("brand") or m.get("title_match") is True)
+            ]
             if pb_sectors:
                 pbe_sector = SECTOR_SLUG_FIXES.get(pb_sectors[0], pb_sectors[0])
                 if pbe_sector in self.valid_sectors and pbe_sector != "diger":
@@ -683,7 +687,20 @@ ANALİZ EDİLECEK METİN:
                 kc_norm = self._normalize(kc)
                 # If AI missed this specific sub-brand card but it's clearly in text
                 if kc_norm in text_normalized and not any(kc_norm in self._normalize(c) for c in validated):
-                    validated.append(kc.title() if len(kc) > 3 else kc.upper())
+                    # Check negative context & illusion
+                    kc_pat = rf"(?i)\b{re.escape(kc_norm)}\b"
+                    match = re.search(kc_pat, text_normalized)
+                    if match:
+                        idx = match.end()
+                        next_words = text_normalized[idx:idx+25]
+                        if "mobil" in next_words or "uygulama" in next_words:
+                            continue
+                        
+                        window = text_normalized[max(0, match.end()-30):min(len(text_normalized), match.end()+50)]
+                        if any(neg in window for neg in ["dahil degil", "dahil değil", "haric", "hariç", "gecerli degil", "geçerli değil"]):
+                            continue
+                            
+                        validated.append(kc.title() if len(kc) > 3 else kc.upper())
                     logger.info(f"Card Sniper: Recovered '{kc}' for {bank_key}")
 
         # Ziraat-specific sniper (extra safety for common variants)
