@@ -34,8 +34,14 @@ _STATIC_BRAND_EXCLUSIONS = {
 }
 
 # Keywords that are common nouns and should only be matched in the title
+# 🚨 SECTOR HALLUCINATION GUARD: Generic Turkish nouns that appear in taksit campaign
+# condition texts (e.g. "restoran kategorisinde 3 taksit geçerlidir") must NOT trigger
+# a sector override. These only make sense when they appear in the campaign TITLE itself.
 _TITLE_ONLY_KEYWORDS = {
-    "bilet", "lastik", "sigorta", "market", "puan", "bakkal", "indirim", "taksit", "faiz", "kredi"
+    # Finans / genel
+    "bilet", "lastik", "sigorta", "market", "puan", "bakkal", "indirim", "taksit", "faiz", "kredi",
+    # Yemek-içecek sektörü — taksit kampanyalarının koşullarında sıkça geçen generic isimler
+    "restoran", "restaurant", "yemek", "kafe", "cafe", "lokanta", "bistro",
 }
 
 class PointBlankMatcher:
