@@ -145,6 +145,7 @@ class VakifbankScraper:
                 return "skipped"  # type: ignore # pyre-ignore[7]
 
             soup = BeautifulSoup(html, 'html.parser')
+            title_el = soup.select_one('h1')
 
             # Extract og:title for better cleaning anchors
             og_title_el = soup.find("meta", property="og:title")
