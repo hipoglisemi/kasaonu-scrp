@@ -24,6 +24,9 @@ def generate_slug(title: str) -> str:
         "Play ile Market Alışverişine 300 TL'ye Varan Worldpuan!"
         → "play-ile-market-alisverisine-300-tlye-varan-worldpuan"
     """
+    if not title:
+        return "kampanya"
+        
     slug = title
     
     # Replace Turkish characters BEFORE lowering (İ.lower() = i̇, not i)

@@ -157,13 +157,13 @@ class AkbankBaseScraper:
             )
             
             # --- 3. Save to DB ---
-            return self._save_campaign(title, details_text, image_url, ai_data, url)  # type: ignore # pyre-ignore[7]
+            return self._save_campaign(title, image_url, ai_data, url)  # type: ignore # pyre-ignore[7]
             
         except Exception as e:
             print(f"❌ Failed to process {url}: {e}")
             return "error"  # type: ignore # pyre-ignore[7]
 
-    def _save_campaign(self, title, details_text, image_url, ai_data, source_url) -> str:
+    def _save_campaign(self, title, image_url, ai_data, source_url) -> str:
         with get_db_session() as db:
             from src.models import Sector  # type: ignore # pyre-ignore[21]
             from src.utils.slug_generator import get_unique_slug  # type: ignore # pyre-ignore[21]

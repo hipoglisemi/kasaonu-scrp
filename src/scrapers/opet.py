@@ -283,7 +283,8 @@ class OpetScraper:
                         continue
 
                     # Create Campaign & Slug
-                    campaign_slug = get_unique_slug(title, self.db, Campaign)
+                    final_title = ai_data.get("short_title") or ai_data.get("title") or title or "kampanya"
+                    campaign_slug = get_unique_slug(final_title, self.db, Campaign)
                     
                     # Convert dates safely
                     s_date = ai_data.get('start_date')
@@ -302,7 +303,7 @@ class OpetScraper:
                     new_campaign = Campaign(
                         card_id=card.id,
                         slug=campaign_slug,
-                        title=ai_data.get("title", title),
+                        title=final_title,
                         reward_text=ai_data.get("reward_text"),
                         reward_value=ai_data.get("reward_value"),
                         reward_type=ai_data.get("reward_type"),
