@@ -660,7 +660,7 @@ ANALİZ EDİLECEK METİN:
             def is_in_negative_context(card_name: str, text: str) -> bool:
                 match = re.search(rf"(?i)\b{re.escape(card_name)}\b", text)
                 if match:
-                    window = text[max(0, match.end()-30):min(len(text), match.end()+50)]
+                    window = text[max(0, match.end()-200):min(len(text), match.end()+200)]
                     if any(neg in window for neg in ["dahil degil", "dahil değil", "haric", "hariç", "gecerli degil", "geçerli değil", "kazanamaz", "kapsaminda degildir", "kapsamında değildir"]):
                         return True
                 return False
