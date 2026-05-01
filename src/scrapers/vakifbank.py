@@ -96,29 +96,48 @@ class VakifbankScraper:
             if limit_pages and page > limit_pages: break
             print(f"📄 Fetching page {page}...")
             url = self.LIST_URL_TEMPLATE.format(page)
-            try:
-                response = self.session.get(url, timeout=30)
-                if response.status_code == 404: break
-                soup = BeautifulSoup(response.text, 'html.parser')
-                items = soup.select("div.mainKampanyalarDesktop:not(.eczk) .list a.item")
-                if not items: break
-                
-                new_found = False
-                for item in items:
-                    href = item.get('href')
-                    if href:
-                        full_url = urljoin(self.BASE_URL, href)
-                        if full_url not in campaign_urls:
-                            campaign_urls.append(full_url)
-                            new_found = True
-                print(f"   -> Found {len(items)} items.")
-                if not new_found: break
-                page += 1  # type: ignore # pyre-ignore[58]
-                time.sleep(1)
-            except Exception as e:
-                print(f"   ❌ Error fetching page {page}: {e}")
+            
+            # Retry mechanism for network timeouts
+            max_retries = 3
+            for attempt in range(max_retries):
+                try:
+                    response = self.session.get(url, timeout=60)
+                    if response.status_code == 404: 
+                        break
+                    soup = BeautifulSoup(response.text, 'html.parser')
+                    items = soup.select("div.mainKampanyalarDesktop:not(.eczk) .list a.item")
+                    if not items: 
+                        break
+                    
+                    new_found = False
+                    for item in items:
+                        href = item.get('href')
+                        if href:
+                            full_url = urljoin(self.BASE_URL, href)
+                            if full_url not in campaign_urls:
+                                campaign_urls.append(full_url)
+                                new_found = True
+                    print(f"   -> Found {len(items)} items.")
+                    if not new_found: 
+                        break
+                        
+                    page += 1
+                    time.sleep(2)
+                    break # Break retry loop on success
+                    
+                except Exception as e:
+                    if attempt < max_retries - 1:
+                        print(f"   ⚠️ Timeout/Error on page {page}, retrying in 5s (Attempt {attempt+1}/{max_retries})... Error: {e}")
+                        time.sleep(5)
+                    else:
+                        print(f"   ❌ Final error fetching page {page} after {max_retries} attempts: {e}")
+                        return campaign_urls
+                        
+            # If we broke out of the outer while loop (404 or no items), we should break completely
+            if response.status_code == 404 or not items or not new_found: # type: ignore
                 break
-        return campaign_urls  # type: ignore # pyre-ignore[7]
+                
+        return campaign_urls
 
     def _process_campaign(self, url):
         # Database Pre-check (Skip Logic)
@@ -133,8 +152,20 @@ class VakifbankScraper:
 
         print(f"🔍 Processing (Via AI Parser): {url}")
         try:
-            response = self.session.get(url, timeout=30)
-            html = response.text
+            # Retry mechanism for campaign details
+            max_retries = 3
+            for attempt in range(max_retries):
+                try:
+                    response = self.session.get(url, timeout=60)
+                    html = response.text
+                    break # Break retry loop on success
+                except Exception as e:
+                    if attempt < max_retries - 1:
+                        print(f"   ⚠️ Timeout/Error on details, retrying in 5s (Attempt {attempt+1}/{max_retries})... Error: {e}")
+                        time.sleep(5)
+                    else:
+                        print(f"   ❌ Final error fetching details after {max_retries} attempts: {e}")
+                        return "error"
             
             # --- Blocklist check ---
             if is_url_blocked(self.db, url):
