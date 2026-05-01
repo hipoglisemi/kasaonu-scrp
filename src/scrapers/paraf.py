@@ -181,9 +181,12 @@ class ParafScraper:
                 print(f"      ⏭️ Skipped (Already exists): {existing.title[:40]}")
                 return "skipped"  # type: ignore # pyre-ignore[7]
 
+        # Get title
+        title = campaign_data.get('title')
+
         # Final blocklist check
         if is_url_blocked(self.db, url):
-            print(f"      🚫 Skipped (Safety Check: Blocklisted): {title if 'title' in locals() else url}")
+            print(f"      🚫 Skipped (Safety Check: Blocklisted): {title if title else url}")
             return "skipped"  # type: ignore # pyre-ignore[7]
 
         try:
@@ -215,6 +218,10 @@ class ParafScraper:
             if not ai_data:
                 print("      ❌ AI parsing failed")
                 return "error"  # type: ignore # pyre-ignore[7]
+                
+            # Get Image
+            image_path = campaign_data.get('teaserImage') or campaign_data.get('image')
+            image_url = self._fix_image_url(image_path, source['base'])
                 
             # Save
             self._save_campaign(ai_data, url, image_url, source['default_card'])

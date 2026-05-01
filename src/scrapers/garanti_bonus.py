@@ -245,7 +245,7 @@ class GarantiBonusScraper:
                 short_description=description,
                 content_html=raw_html,
                 bank_name="Garanti BBVA",
-                scraper_sector=scraper_sector,
+                scraper_sector=None,
                 tracking_url=url,
                 og_title=og_title
             )

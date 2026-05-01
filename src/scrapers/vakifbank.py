@@ -144,6 +144,8 @@ class VakifbankScraper:
                 print(f"   🚫 Skipped (Blocklisted): {title}")
                 return "skipped"  # type: ignore # pyre-ignore[7]
 
+            soup = BeautifulSoup(html, 'html.parser')
+
             # Extract og:title for better cleaning anchors
             og_title_el = soup.find("meta", property="og:title")
             og_title = og_title_el.get("content") if og_title_el else None
