@@ -382,7 +382,7 @@ JSON FORMATI:
   "end_date": "YYYY-MM-DD",
   "sector": "sektor-slug",
   "brands": ["Marka1", "Marka2"], // ⛔ NEGATION TRAP: Metinde 'hariçtir','dahil değildir', 'geçerli değildir', 'kapsam dışıdır' gibi kelimelerin 10-15 kelime yakınında geçen markaları (Örn: Migros, Şok, A101 hariç) KESİNLİKLE LİSTEYE EKLEME.
-  "cards": ["Kart1", "Kart2"], // 🚨 METİNE HARFİYEN SADIK KAL: Sadece metinde birebir okuduğun kart isimlerini veya kategorilerini yaz. Hiçbir ismi standartlaştırma veya başka bir isme çevirme.
+  "cards": ["Kart1", "Kart2"], // 🚨 GEÇERLİ KARTLAR: Kampanyaya DAHİL OLAN kartları yaz. Eğer bir kart için "dahil değildir", "geçersizdir", "hariçtir", "puan kazanamaz" deniyorsa (Örn: Bank'O Card Axess dahil değildir), o kartı KESİNLİKLE LİSTEYE EKLEME. Metinde birebir okuduğun şekilde yaz.
   "participation": "Kampanyadan nasıl faydalanılacağını net bir dille özetle. Şirket/uygulama mağazası isimlerini at, doğrudan eylemi yaz. Açıkça 'Katıl' butonu/SMS'i YOKSA BİLE, kampanyadan yararlanmak için yapılması gereken ödeme sırası işlemlerini (örn: 'Ödemenizi ilgili banka POS cihazından yapın', 'İnternet sitesinde taksit seçeneğini işaretleyin', 'Kasada şifreyi söyleyin') BURAYA YAZ. Örn: 'İşCep'ten Katıl butonuna tıklayın.', 'Kasada kampanyadan yararlanmak istediğinizi belirtin.', 'Ödemeyi bankamız POS'undan yapın.', 'Faturanızı uygulamadan okutun.' Hiçbir eylem cümlesi yoksa '-' ile BOŞ BIRAK.",
   "conditions": ["Önemli Şart 1", "Önemli Şart 2"]
 }}
@@ -656,8 +656,20 @@ ANALİZ EDİLECEK METİN:
                 validated.append(card)
                 continue
 
+            # Helper for negative context check
+            def is_in_negative_context(card_name: str, text: str) -> bool:
+                match = re.search(rf"(?i)\b{re.escape(card_name)}\b", text)
+                if match:
+                    window = text[max(0, match.end()-30):min(len(text), match.end()+50)]
+                    if any(neg in window for neg in ["dahil degil", "dahil değil", "haric", "hariç", "gecerli degil", "geçerli değil", "kazanamaz", "kapsaminda degildir", "kapsamında değildir"]):
+                        return True
+                return False
+
             # 2. Direct substring match
             if card_norm in text_normalized:
+                if is_in_negative_context(card_norm, text_normalized):
+                    logger.debug(f"Card Guard: Rejected '{card}' (negative context)")
+                    continue
                 validated.append(card)
                 continue
 
@@ -674,6 +686,11 @@ ANALİZ EDİLECEK METİN:
                 # Accept if at least 60% of core words are found in text
                 threshold = max(1, int(len(core_words) * 0.6))
                 if matched >= threshold:
+                    # Use the first matched core word to roughly check negative context
+                    first_match = next((w for w in core_words if w in text_normalized), card_norm)
+                    if is_in_negative_context(first_match, text_normalized):
+                        logger.debug(f"Card Guard: Rejected '{card}' (negative context via core words)")
+                        continue
                     validated.append(card)
                     continue
 
