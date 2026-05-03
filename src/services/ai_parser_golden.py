@@ -24,7 +24,7 @@ logger = logging.getLogger(__name__)
 #  Used to VALIDATE AI output, not to instruct the AI.
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 BANK_CARD_KEYWORDS = {
-    "akbank": ["axess", "wings", "free", "bank'o card", "ticari"],
+    "akbank": ["axess", "wings", "free", "bank’o card axess", "bank'o card", "ticari kartlar", "ticari", "ek kartlar", "sanal kartlar"],
     "işbankası": ["maximum", "maximiles", "privia"],
     "yapı kredi": ["worldcard", "world", "play", "adios", "crystal", "bireysel kredi kartları", "banka kartları", "tlcard", "vakıfbank worldcard", "albaraka worldcard", "anadolubank worldcard", "opet worldcard"],
     "ziraat": ["bankkart", "bankkart başak", "bankkart genç", "bankkart prestij", "bankkart business", "bankkart lira"],
@@ -328,7 +328,9 @@ Kampanya Sahibi Banka/Kurum: {bank_name}
    - 🚨 ÖDEME YÖNTEMİ VS ÜRÜN AYRIMI (ÇOK ÖNEMLİ): Eğer metinde "Faturana Yansıt", "Hopi", "Masterpass" geçiyorsa, sektörü 'fatura-telekom' veya 'finans-yatirim' SEÇME. Ödeme yöntemi kampanya sektörünü değiştirmez. Harcamanın YAPILDIĞI YERE odaklan.
 
 3. **KARTLAR ve KATILIM**: 
-   - Metinde ne yazıyorsa birebir (LITERAL) al. Kart isimlerini metinde GEÇİŞ SIRASINA göre listele.
+   - 🚨 **ÖDÜL ÖNCELİKLENDİRME (KRİTİK)**: Metinde birden fazla ödül varsa (örn: hem Mil Puan hem Taksit), BAŞLIKTAKİ ödülü ana ödül olarak kabul et. `reward_text`, `reward_value`, `reward_type` ve `cards` alanlarını SADECE BU ANA ÖDÜL için doldur. İkinci ödülü (taksit vb.) ve onun şartlarını 'conditions' kısmında belirt.
+   - 🚨 **KART SEÇİMİ (KRİTİK)**: Eğer metinde bir kart grubu ana ödül için "dahil değildir" (excluded) olarak belirtilmişse, ancak metnin başka bir yerinde (örn: taksit kampanyası için) "dahildir" deniyorsa, o kartı `cards` listesine EKLEME. `cards` listesi sadece ana ödül için TAM YETKİLİ kartları içermelidir.
+   - Metinde geçen kart isimlerini metindeki ORİJİNAL SIRASINI BOZMADAN aynen listele (marka içi sıralama).
    - 🚨 PARTNER BANKALAR (CRITICAL): Eğer metinde "Anadolu Bank", "Albaraka", "Vakıfbank" veya "Worldcard lisanslı bankalar" geçiyorsa, MUTLAKA 'cards' alanına KURTARARAK ekle.
    - ⛔ YASAK: Eğer metinde geçerli kart/müşteri adı (örn: 'Opet Kart', 'Türk Telekom müşterileri') geçmiyorsa ASLA uydurarak ekleme. Yoksa boş bırak `[-]`.
 
@@ -343,6 +345,7 @@ Kampanya Sahibi Banka/Kurum: {bank_name}
 
 5. **KOŞULLAR**: 
     - En fazla 10 madde.
+    - 🚨 İKİNCİL ÖDÜLLER: Ana ödülden farklı olan taksit, ek fayda vb. durumları ve onlara özel geçerli kartları burada belirt (Örn: "Peşin fiyatına 6 taksit fırsatından Axess kartlar da yararlanabilir").
     - 🚨 GEÇERLİ OLDUĞU YERLER (ZORUNLU): Kampanyanın dahil olduğu/geçerli olduğu mağaza, marka, platform veya web siteleri metinde geçiyorsa, bunu EKSİKSİZ VE KESİN OLARAK maddelerden biri yap (Örn: "Kampanya sadece www.ornek.com ve X mağazalarında geçerlidir").
     - 🚨 MAĞAZA/POS KURALI: Eğer 'sadece X Bankası POS cihazlarından geçen işlemler' gibi fiziksel/altyapı şartları varsa, bunu DİREKT OLARAK maddelerden biri yap.
     - 🚨 ULTRA KRİTİK - YASAK: Tarih, Geçerli Kartlar ve Katılım adımlarını 'conditions' içerisine KESİNLİKLE YAZMA (Tepede zaten var). Sadece harcama alt sınırı, POS şartları, ödül limitleri gibi işlemsel koşulları özetle.
@@ -368,9 +371,9 @@ JSON FORMATI:
   "end_date": "YYYY-MM-DD",
   "sector": "sektor-slug",
   "brands": ["Marka1", "Marka2"], // ⛔ NEGATION TRAP: Metinde 'hariçtir','dahil değildir', 'geçerli değildir', 'kapsam dışıdır' gibi kelimelerin 10-15 kelime yakınında geçen markaları (Örn: Migros, Şok, A101 hariç) KESİNLİKLE LİSTEYE EKLEME.
-  "cards": ["Metinde geçen kart isimlerini metindeki ORİJİNAL SIRASINI BOZMADAN aynen listele. Örn: 'Garanti Bonus', 'Ek kartlar'"],
+  "cards": ["Ana ödül için (başlıktaki ödül) %100 geçerli olan kart isimlerini metindeki orijinal sırasıyla listele. Örn: 'Garanti Bonus', 'Ek kartlar'. Eğer bir kart ana ödül için hariç tutulmuşsa buraya EKLEME."],
   "participation": "Kampanyadan nasıl faydalanılacağını net bir dille özetle. Şirket/uygulama mağazası isimlerini at, doğrudan eylemi yaz. Açıkça 'Katıl' butonu/SMS'i YOKSA BİLE, kampanyadan yararlanmak için yapılması gereken ödeme sırası işlemlerini (örn: 'Ödemenizi ilgili banka POS cihazından yapın', 'İnternet sitesinde taksit seçeneğini işaretleyin', 'Kasada şifreyi söyleyin') BURAYA YAZ. Örn: 'İşCep'ten Katıl butonuna tıklayın.', 'Kasada kampanyadan yararlanmak istediğinizi belirtin.', 'Ödemeyi bankamız POS'undan yapın.', 'Faturanızı uygulamadan okutun.' Eğer metinde hiçbir ön katılım şartı (SMS/Buton) veya eylem cümlesi geçmiyorsa, eksi (-) yazmak YERİNE: 'Otomatik Katılım' yaz.",
-  "conditions": ["Önemli Şart 1", "Önemli Şart 2"]
+  "conditions": ["Önemli Şart 1", "İkincil ödül (örn: taksit) varsa ve farklı kartlar için geçerliyse mutlaka belirt.", "Önemli Şart 2"]
 }}
 
 ANALİZ EDİLECEK METİN:
@@ -378,7 +381,7 @@ ANALİZ EDİLECEK METİN:
 """
 
     # ── MAIN PARSE FLOW ──────────────────────────────────────────────
-    def parse_campaign(self, raw_html: str, bank_name: str = "", title: str = "", og_title: str = None) -> Dict[str, Any]:
+    def parse_campaign(self, raw_html: str, bank_name: str = "", title: str = "", og_title: str = None, structured_cards_text: str = None) -> Dict[str, Any]:
         """Golden Standard V3 parse flow."""
         # 1. Clean text (og_title/title enables header trimming for SPA sites)
         cleaned_text = clean_campaign_text(raw_html, og_title=og_title, title=title)

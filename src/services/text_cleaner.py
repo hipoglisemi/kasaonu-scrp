@@ -217,6 +217,7 @@ def clean_campaign_text(raw_text: str, og_title: str = None, title: str = None) 
         r"(?i)(paylaş|yazdır)$",
         r"(?i)kampanyayı (durdurma|değiştirme|değişiklik yapma).*(hakkını saklı tutar|hakkına sahiptir)",
         r"(?i)kampanya (koşullarında|şartlarında) (değişiklik yapma|durdurma).*(hakkını saklı tutar|hakkına sahiptir)",
+        r"(?i)akbank t\.a\.ş\. kampanyayı durdurma",
         r"(?i)miles&smiles dünyası ayrıcalıklarınız",
         r"(?i)mıl programı mıl kazanımı",
         r"(?i)©\s*copyright",
