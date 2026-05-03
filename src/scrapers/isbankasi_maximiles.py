@@ -233,8 +233,6 @@ class IsbankMaximilesScraper:
                 if len(campaign_items) > 10:
                     recent = list(campaign_items)[-10:]  # type: ignore # pyre-ignore[16,6]
                     expired_count: int = 0
-
-                    total_revived: int = 0
                     for a in recent:
                          a_tag: Any = cast(Any, a)
                          parent: Any = a_tag.find_parent("div", class_="campaign-item") or a_tag.find_parent("div", class_="col-xl-4") or a_tag.find_parent("div", class_="card") or a_tag.parent
@@ -663,8 +661,7 @@ class IsbankMaximilesScraper:
                     created_at=func.now(),  # type: ignore
                     updated_at=func.now(),  # type: ignore
                 )
-                from src.utils.scraper_utils import upsert_campaign
-                campaign, _op_status = upsert_campaign(self.db, campaign)
+                self.db.add(campaign)  # type: ignore # pyre-ignore[16]
                 self.db.commit()  # type: ignore # pyre-ignore[16]
                 print(f"   ✅ Saved: {campaign.title[:50]}")  # type: ignore # pyre-ignore[16,6]
 
@@ -688,7 +685,7 @@ class IsbankMaximilesScraper:
                     self.db.rollback()
                     print(f"   ⚠️ CampaignBrand link failed: {e}")
             print(f"   ✅ Saved: {campaign.title[:50]}")  # type: ignore # pyre-ignore[16,6]
-            return locals().get("_op_status", "saved")  # type: ignore # pyre-ignore[7]
+            return "saved"  # type: ignore # pyre-ignore[7]
         except Exception as e:
             self.db.rollback()  # type: ignore # pyre-ignore[16]
             print(f"   ❌ Save failed: {e}")
@@ -741,9 +738,7 @@ class IsbankMaximilesScraper:
                 try:
                     res = self._process_campaign(url, force=force)
                     if res == "saved":
-                        success += 1
-                elif res == "revived":
-                    total_revived += 1  # type: ignore # pyre-ignore[58]
+                        success += 1  # type: ignore # pyre-ignore[58]
                     elif res == "skipped":
                         skipped += 1  # type: ignore # pyre-ignore[58]
                     else:
@@ -771,7 +766,7 @@ class IsbankMaximilesScraper:
                           total_found=len(urls),
                           total_saved=success,
                           total_skipped=skipped,
-                          total_failed=failed, total_revived=total_revived,
+                          total_failed=failed,
                           error_details={"errors": error_details} if error_details else None
                      )
             except Exception as le:

@@ -222,9 +222,6 @@ class IsbankMaximumGencScraper:
         time.sleep(5)
 
         scroll_count = 0
-
-
-        total_revived: int = 0
         while scroll_count < 100:
             if limit:
                 soup = BeautifulSoup(self.page.content(), "html.parser")
@@ -532,8 +529,7 @@ class IsbankMaximumGencScraper:
                 is_active=True, tracking_url=url,
                 created_at=datetime.utcnow(), updated_at=datetime.utcnow(),
             )
-            from src.utils.scraper_utils import upsert_campaign
-            campaign, _op_status = upsert_campaign(self.db, campaign)
+            self.db.add(campaign)  # type: ignore # pyre-ignore[16]
             self.db.commit()  # type: ignore # pyre-ignore[16]
 
             # Brands via brand_matcher
@@ -582,7 +578,7 @@ class IsbankMaximumGencScraper:
 
 
             print(f"   ✅ Saved: {campaign.title[:50]}")  # type: ignore # pyre-ignore[16,6]
-            return locals().get("_op_status", "saved")  # type: ignore # pyre-ignore[7]
+            return "saved"  # type: ignore # pyre-ignore[7]
         except Exception as e:
             self.db.rollback()  # type: ignore # pyre-ignore[16]
             print(f"   ❌ Save failed: {e}")
@@ -633,9 +629,7 @@ class IsbankMaximumGencScraper:
                 try:
                     res = self._process_campaign(url)
                     if res == "saved":
-                        success += 1
-                    elif res == "revived":
-                        total_revived += 1  # type: ignore # pyre-ignore[58]
+                        success += 1  # type: ignore # pyre-ignore[58]
                     elif res == "skipped":
                         skipped += 1  # type: ignore # pyre-ignore[58]
                     else:
@@ -663,7 +657,7 @@ class IsbankMaximumGencScraper:
                           total_found=len(urls),
                           total_saved=success,
                           total_skipped=skipped,
-                          total_failed=failed, total_revived=total_revived,
+                          total_failed=failed,
                           error_details={"errors": error_details} if error_details else None
                      )
             except Exception as le:

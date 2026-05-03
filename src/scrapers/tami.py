@@ -107,7 +107,6 @@ class TamiScraper:
 
         total_found = len(campaigns_list)
         total_saved = 0
-        total_revived = 0
         total_skipped = 0
         total_failed = 0
         error_details = []
@@ -177,8 +176,6 @@ class TamiScraper:
                 status = self._save_campaign(title, image_url, tracking_url, ai_data)
                 if status == "saved":
                     total_saved += 1
-                elif status == "revived":
-                    total_revived += 1
                 elif status == "skipped":
                     total_skipped += 1
                 else:
@@ -191,7 +188,7 @@ class TamiScraper:
 
             time.sleep(random.uniform(0.5, 1.5))
 
-        print(f"🏁 Scraping finished. Found: {total_found}, Saved: {total_saved}, Skipped: {total_skipped}, Revived: {total_revived}, Failed: {total_failed}, Revived: {total_revived}")
+        print(f"🏁 Scraping finished. Found: {total_found}, Saved: {total_saved}, Skipped: {total_skipped}, Failed: {total_failed}")
 
         # Final Log
         status_msg = "SUCCESS" if total_failed == 0 else ("PARTIAL" if total_saved > 0 else "FAILED")
@@ -203,7 +200,7 @@ class TamiScraper:
                 total_found=total_found,
                 total_saved=total_saved,
                 total_skipped=total_skipped,
-                total_failed=total_failed, total_revived=total_revived,
+                total_failed=total_failed,
                 error_details={"errors": error_details} if error_details else None
             )
 
@@ -267,8 +264,7 @@ class TamiScraper:
             )
 
             try:
-                from src.utils.scraper_utils import upsert_campaign
-                campaign, _op_status = upsert_campaign(db, campaign)
+                db.add(campaign)
                 db.commit()
                 db.refresh(campaign)
 
@@ -293,7 +289,7 @@ class TamiScraper:
                         db.rollback()
                         print(f"   ⚠️ CampaignBrand link failed: {e}")
                 print(f"   ✅ Saved: {campaign.title}")
-                return locals().get("_op_status", "saved")
+                return "saved"
             except Exception as e:
                 db.rollback()
                 print(f"   ❌ Save Error: {e}")

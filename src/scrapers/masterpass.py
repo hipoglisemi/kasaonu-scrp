@@ -400,8 +400,7 @@ class MasterpassScraper:
                     created_at=func.now(),  # type: ignore
                     updated_at=func.now(),  # type: ignore
                 )
-                from src.utils.scraper_utils import upsert_campaign
-                campaign, _op_status = upsert_campaign(self.db, campaign)
+                self.db.add(campaign)  # type: ignore # pyre-ignore[16]
                 self.db.commit()  # type: ignore # pyre-ignore[16]
             print(f"      ✅ Saved")
 
@@ -452,7 +451,7 @@ class MasterpassScraper:
 
 
 
-            return locals().get("_op_status", "saved")  # type: ignore # pyre-ignore[7]
+            return "saved"  # type: ignore # pyre-ignore[7]
         except Exception as e:
             self.db.rollback()  # type: ignore # pyre-ignore[16]
             print(f"      ❌ Save failed: {e}")
@@ -477,16 +476,13 @@ class MasterpassScraper:
 
             print(f"   🎯 Processing {len(urls)} campaigns...")
             
-            success, skipped, failed = 0
- total_revived: int = 0, 0, 0
+            success, skipped, failed = 0, 0, 0
             for i, url in enumerate(urls, 1):
                 print(f"\n[{i}/{len(urls)}] {url}")
                 try:
                     res = self._process_campaign(url, force=force)
                     if res == "saved":
-                        success += 1
-                elif res == "revived":
-                    total_revived += 1  # type: ignore # pyre-ignore[58]
+                        success += 1  # type: ignore # pyre-ignore[58]
                     elif res == "skipped":
                         skipped += 1  # type: ignore # pyre-ignore[58]
                     else:
@@ -508,7 +504,7 @@ class MasterpassScraper:
                     total_found=len(urls),
                     total_saved=success,
                     total_skipped=skipped,
-                    total_failed=failed, total_revived=total_revived
+                    total_failed=failed
                 )
                 
         except Exception as e:

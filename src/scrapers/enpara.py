@@ -304,9 +304,7 @@ class EnparaScraper:
                 eligible_cards=", ".join(ai_data.get("cards", [])) if isinstance(ai_data.get("cards"), list) and ai_data.get("cards") else self.CARD_NAME
             )
             
-            from src.utils.scraper_utils import upsert_campaign
-            
-            campaign, _op_status = upsert_campaign(self.db, campaign)
+            self.db.add(campaign)  # type: ignore # pyre-ignore[16]
             self.db.commit()  # type: ignore # pyre-ignore[16]
             print(f"   ✅ Saved: {campaign.title}")
 
@@ -328,7 +326,7 @@ class EnparaScraper:
                 self.db.add(cb)  # type: ignore # pyre-ignore[16]
             
             self.db.commit()  # type: ignore # pyre-ignore[16]
-            return locals().get("_op_status", "saved")  # type: ignore # pyre-ignore[7]
+            return "saved"  # type: ignore # pyre-ignore[7]
 
         except Exception as e:
             self.db.rollback()  # type: ignore # pyre-ignore[16]
@@ -344,11 +342,6 @@ class EnparaScraper:
             print(f"   Using limit: {limit}")
             
         success_count = 0
-
-            
-        total_revived: int = 0
-            
-        total_revived = 0
         skipped_count = 0
         failed_count = 0
         error_details = []
@@ -357,9 +350,7 @@ class EnparaScraper:
             try:
                 result = self._process_campaign(link)
                 if result == "saved":
-                    success_count += 1
-                elif result == "revived":
-                    total_revived += 1  # type: ignore # pyre-ignore[58]
+                    success_count += 1  # type: ignore # pyre-ignore[58]
                 elif result == "skipped" or result is None:
                     skipped_count += 1  # type: ignore # pyre-ignore[58]
                 else:
@@ -369,7 +360,7 @@ class EnparaScraper:
                 error_details.append({"url": link, "error": str(e)})
             time.sleep(1) # Soft rate limiting
             
-        print(f"\n✅ Özet: {len(links)} bulundu, {success_count} eklendi, {skipped_count} atlandı, {total_revived} canlandı, {failed_count} hata aldı.")
+        print(f"\n✅ Özet: {len(links)} bulundu, {success_count} eklendi, {skipped_count} atlandı, {failed_count} hata aldı.")
         
         status = "SUCCESS"
         if failed_count > 0:  # type: ignore # pyre-ignore[58]
@@ -383,7 +374,7 @@ class EnparaScraper:
              total_found=len(links),
              total_saved=success_count,
              total_skipped=skipped_count,
-             total_failed=failed_count, total_revived=total_revived,
+             total_failed=failed_count,
              error_details={"errors": error_details} if error_details else None
         )
         

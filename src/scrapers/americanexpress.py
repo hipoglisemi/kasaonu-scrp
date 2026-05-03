@@ -191,7 +191,7 @@ class AmericanExpressScraper:
                 total_found=self.stats["found"],
                 total_saved=self.stats["saved"],
                 total_skipped=self.stats["skipped"],
-                total_failed=self, total_revived=total_revived.stats["failed"],
+                total_failed=self.stats["failed"],
                 error_details=self.stats["errors"] if self.stats["errors"] else None
             )
             
@@ -205,7 +205,7 @@ class AmericanExpressScraper:
                 total_found=self.stats["found"],
                 total_saved=self.stats["saved"],
                 total_skipped=self.stats["skipped"],
-                total_failed=self, total_revived=total_revived.stats["failed"],
+                total_failed=self.stats["failed"],
                 error_details={"error": error_msg}
             )
         finally:
@@ -394,9 +394,7 @@ class AmericanExpressScraper:
             ai_marketing_text=ai_data.get('ai_marketing_text') or ai_data.get('description') or final_title,  # type: ignore
         )
 
-        from src.utils.scraper_utils import upsert_campaign
-
-        campaign, _op_status = upsert_campaign(self.db, campaign)
+        self.db.add(campaign)  # type: ignore # pyre-ignore[16]
         self.db.commit()  # type: ignore # pyre-ignore[16]
 
         # ─── 6. Brands Linkage ───────────────────────────────────────────────────

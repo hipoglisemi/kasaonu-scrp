@@ -172,11 +172,6 @@ class ChippinScraper:
         print(f"   🌐 Fetching: {url}")
         
         success_count = 0
-
-        
-        total_revived: int = 0
-        
-        total_revived = 0
         skipped_count = 0
         failed_count = 0
         error_details = []
@@ -418,7 +413,7 @@ class ChippinScraper:
             failed_count += 1  # type: ignore # pyre-ignore[58]
             error_details.append({"url": url, "error": str(e)})
             
-        print(f"✅ Özet: {len(campaigns_to_process)} bulundu, {success_count} eklendi, {skipped_count} atlandı, {total_revived} canlandı, {failed_count} hata aldı.")
+        print(f"✅ Özet: {len(campaigns_to_process)} bulundu, {success_count} eklendi, {skipped_count} atlandı, {failed_count} hata aldı.")
 
         status = "SUCCESS"
         if failed_count > 0:  # type: ignore # pyre-ignore[58]
@@ -436,7 +431,7 @@ class ChippinScraper:
                       total_found=len(campaigns_to_process),
                       total_saved=success_count,
                       total_skipped=skipped_count,
-                      total_failed=failed_count, total_revived=total_revived,
+                      total_failed=failed_count,
                       error_details={"errors": error_details} if error_details else None
                   )
         except Exception as log_e:

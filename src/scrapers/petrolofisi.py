@@ -161,8 +161,6 @@ class PetrolOfisiScraper:
             # Handling "Daha Fazla Göster"
             print("   ⏳ Loading all campaigns (Clicking 'Daha Fazla Göster')...")
             click_count = 0
-
-            total_revived: int = 0
             while click_count < 10: # Safety break
                 try:
                     # Selector for Petrol Ofisi 'Daha fazla göster' button
@@ -368,7 +366,7 @@ class PetrolOfisiScraper:
             total_found=len(cards) if 'cards' in locals() else 0,
             total_saved=stats["total_saved"],
             total_skipped=stats["total_skipped"],
-            total_failed=stats, total_revived=total_revived["total_failed"],
+            total_failed=stats["total_failed"],
             error_details={"errors": stats["errors"]} if stats["errors"] else None
         )
         print(f"🏁 Finished {self.SOURCE_NAME}. Saved: {stats['total_saved']}, Skipped: {stats['total_skipped']}, Failed: {stats['total_failed']}")

@@ -212,8 +212,6 @@ class TurkiyeFinansScraper:
             # Scroll to load all lazy-loaded content
             print("   📜 Scrolling to load all campaigns...")
             prev_height = 0
-
-            total_revived: int = 0
             scroll_attempts = 0
             max_attempts = 20
 
@@ -479,7 +477,7 @@ class TurkiyeFinansScraper:
                                 {"cid": campaign_id, "bid": bid}
                             )
 
-            return locals().get("_op_status", "saved")  # type: ignore # pyre-ignore[7]
+            return "saved"  # type: ignore # pyre-ignore[7]
         except Exception as e:
             print(f"   ❌ Error processing {url}: {e}")
             return "error"  # type: ignore # pyre-ignore[7]
@@ -492,7 +490,6 @@ class TurkiyeFinansScraper:
         
         total_found = 0
         total_saved = 0
-        total_revived = 0
         total_skipped = 0
         total_failed = 0
         error_details = []
@@ -529,9 +526,7 @@ class TurkiyeFinansScraper:
                     try:
                         res = self._process_campaign(url, card_key, card_id)
                         if res == "saved":
-                            success_count += 1
-                elif res == "revived":
-                    total_revived += 1  # type: ignore # pyre-ignore[58]
+                            success_count += 1  # type: ignore # pyre-ignore[58]
                             total_saved += 1  # type: ignore # pyre-ignore[58]
                         elif res == "skipped":
                             skipped_count += 1  # type: ignore # pyre-ignore[58]
@@ -568,7 +563,7 @@ class TurkiyeFinansScraper:
                         total_found=total_found,
                         total_saved=total_saved,
                         total_skipped=total_skipped,
-                        total_failed=total_failed, total_revived=total_revived,
+                        total_failed=total_failed,
                         error_details={"errors": error_details} if error_details else None
                     )
             except Exception as le:

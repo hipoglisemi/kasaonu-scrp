@@ -361,7 +361,7 @@ class HSBCScraper:
                         self.db.add(CampaignBrand(campaign_id=campaign_id, brand_id=bid))
                 self.db.commit()
 
-            return locals().get("_op_status", "saved")
+            return "saved"
         except Exception as e:
             self.db.rollback()
             print(f"   ❌ DB error: {e}")
@@ -375,9 +375,6 @@ class HSBCScraper:
             items = self._fetch_campaign_items(limit=limit)
             
             success = 0
-
-            
-            total_revived: int = 0
             skipped = 0
             failed = 0
             
@@ -385,8 +382,6 @@ class HSBCScraper:
                 print(f"\n[{i}/{len(items)}]")
                 res = self._process_campaign(item, force=force)
                 if res == "saved": success += 1
-                elif res == "revived":
-                    total_revived += 1
                 elif res == "skipped": skipped += 1
                 else: failed += 1
                 time.sleep(1)

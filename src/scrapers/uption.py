@@ -161,11 +161,6 @@ class UptionScraper:
                     found_items = list(found_items)[:limit] # type: ignore
 
                 success_count = 0
-
-
-                total_revived: int = 0
-
-                total_revived = 0
                 skipped_count = 0
                 failed_count = 0
 
@@ -176,9 +171,7 @@ class UptionScraper:
                     try:
                         res = self._process_campaign(item, force=force)
                         if res == "saved":
-                            success_count += 1
-                elif res == "revived":
-                    total_revived += 1 # type: ignore
+                            success_count += 1 # type: ignore
                         elif res == "skipped":
                             skipped_count += 1 # type: ignore
                         else:
@@ -196,7 +189,7 @@ class UptionScraper:
                     total_found=len(found_items),
                     total_saved=success_count,
                     total_skipped=skipped_count,
-                    total_failed=failed_count, total_revived=total_revived
+                    total_failed=failed_count
                 )
 
         except Exception as e:
@@ -306,7 +299,7 @@ class UptionScraper:
             return "failed"
 
         self._save_campaign(ai_data, url, image_url)
-        return locals().get("_op_status", "saved")
+        return "saved"
 
     def _save_campaign(self, data: Dict, url: str, image_url: str):
         db = self.db
@@ -366,8 +359,7 @@ class UptionScraper:
                 is_active=True,
                 clean_text=data.get("_clean_text")
             )
-            from src.utils.scraper_utils import upsert_campaign
-            campaign, _op_status = upsert_campaign(db, campaign)
+            db.add(campaign)
             db.flush() # Get campaign.id
 
             # Brands via brand_matcher

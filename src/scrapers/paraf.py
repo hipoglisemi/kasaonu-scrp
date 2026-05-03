@@ -102,9 +102,6 @@ class ParafScraper:
             
             # 2. Process each campaign
             success_count = 0
-
-            total_revived: int = 0
-            total_revived = 0
             skipped_count = 0
             failed_count = 0
             for i, campaign_data in enumerate(campaigns, 1):
@@ -122,9 +119,7 @@ class ParafScraper:
                 try:
                     res = self._scrape_detail(campaign_data, url, source, force=force)
                     if res == "saved":
-                        success_count += 1
-                elif res == "revived":
-                    total_revived += 1  # type: ignore # pyre-ignore[58]
+                        success_count += 1  # type: ignore # pyre-ignore[58]
                     elif res == "skipped":
                         skipped_count += 1  # type: ignore # pyre-ignore[58]
                     else:
@@ -134,7 +129,7 @@ class ParafScraper:
                     print(f"      ❌ Error: {e}")
                     failed_count += 1  # type: ignore # pyre-ignore[58]
                     
-            print(f"   ✅ Özet: {len(campaigns)} bulundu, {success_count} eklendi, {skipped_count} atlandı, {total_revived} canlandı, {failed_count} hata aldı.")
+            print(f"   ✅ Özet: {len(campaigns)} bulundu, {success_count} eklendi, {skipped_count} atlandı, {failed_count} hata aldı.")
             
             # Log execution to Database
             log_scraper_execution(
@@ -144,7 +139,7 @@ class ParafScraper:
                 total_found=len(campaigns),
                 total_saved=success_count,
                 total_skipped=skipped_count,
-                total_failed=failed_count, total_revived=total_revived
+                total_failed=failed_count
             )
             
         except Exception as e:
@@ -231,7 +226,7 @@ class ParafScraper:
             # Save
             self._save_campaign(ai_data, url, image_url, source['default_card'])
             print(f"      ✅ Saved: {ai_data['title']}")  # type: ignore # pyre-ignore[16,6]
-            return locals().get("_op_status", "saved")  # type: ignore # pyre-ignore[7]
+            return "saved"  # type: ignore # pyre-ignore[7]
             
         except Exception as e:
             print(f"      ❌ Page Error: {e}")
@@ -327,8 +322,7 @@ class ParafScraper:
         )
         
         if self.db is None: return
-        from src.utils.scraper_utils import upsert_campaign
-        campaign, _op_status = upsert_campaign(self.db, campaign)
+        self.db.add(campaign)  # type: ignore # pyre-ignore[16]
         self.db.commit()  # type: ignore # pyre-ignore[16]
         
         # Link Brands

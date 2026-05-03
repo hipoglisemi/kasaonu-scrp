@@ -347,9 +347,7 @@ class ONDigitalScraper:
                 eligible_cards=", ".join(data.get("cards", [])) if isinstance(data.get("cards"), list) and data.get("cards") else self.CARD_NAME
             )
 
-            from src.utils.scraper_utils import upsert_campaign
-
-            campaign, _op_status = upsert_campaign(db, campaign)
+            db.add(campaign)
             db.flush()
 
             # Brands
@@ -365,7 +363,7 @@ class ONDigitalScraper:
 
             db.commit()
             print(f"      ✅ Saved: {campaign.title}")
-            return locals().get("_op_status", "saved")
+            return "saved"
 
         except IntegrityError:
             db.rollback()
@@ -391,15 +389,12 @@ class ONDigitalScraper:
                 print(f"   Using limit: {limit}")
 
             saved = skipped = errors = 0
- total_revived: int = 0
             for i, item in enumerate(items, 1):
                 print(f"   [{i}/{len(items)}] {item['url']}")
                 try:
                     res = self._process_campaign(item, force=force)
                     if res == "saved":
                         saved += 1
-                elif res == "revived":
-                    total_revived += 1
                     elif res == "skipped":
                         skipped += 1
                     else:

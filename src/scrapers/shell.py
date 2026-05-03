@@ -196,9 +196,6 @@ class ShellScraper:
             card = self._get_or_create_card(self.db, bank.id)
 
             processed_count = 0
-
-
-            total_revived: int = 0
             for card_soup in cards:
                 if processed_count >= limit:
                     break
@@ -370,7 +367,7 @@ class ShellScraper:
             total_found=len(cards) if 'cards' in locals() else 0,
             total_saved=stats["total_saved"],
             total_skipped=stats["total_skipped"],
-            total_failed=stats, total_revived=total_revived["total_failed"],
+            total_failed=stats["total_failed"],
             error_details={"errors": stats["errors"]} if stats["errors"] else None
         )
         print(f"🏁 Finished {self.SOURCE_NAME}. Saved: {stats['total_saved']}, Skipped: {stats['total_skipped']}, Failed: {stats['total_failed']}")

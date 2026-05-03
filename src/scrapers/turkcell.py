@@ -72,9 +72,6 @@ class TurkcellScraper:
         print(f"🚀 Starting Turkcell Scraper...")
         
         success_count: int = 0
-
-        
-        total_revived: int = 0
         failed_count: int = 0
         total_found: int = 0
         error_details: List[Dict[str, Any]] = []  # type: ignore # pyre-ignore[16,6]
@@ -103,9 +100,7 @@ class TurkcellScraper:
                     try:
                         res = await self._scrape_detail(context, url)
                         if res == "saved":
-                            success_count += 1
-                elif res == "revived":
-                    total_revived += 1  # type: ignore # pyre-ignore[58]
+                            success_count += 1  # type: ignore # pyre-ignore[58]
                         elif res == "skipped":
                             pass
                         else:
@@ -130,7 +125,7 @@ class TurkcellScraper:
                     total_found=total_found,
                     total_saved=success_count,
                     total_skipped=total_found - success_count - failed_count,
-                    total_failed=failed_count, total_revived=total_revived,
+                    total_failed=failed_count,
                     error_details={"errors": error_details} if error_details else None
                 )
 
@@ -310,9 +305,7 @@ class TurkcellScraper:
                     eligible_cards=", ".join(ai_data.get("cards", [])) if isinstance(ai_data.get("cards"), list) and ai_data.get("cards") else "Turkcell"
                 )
                 
-                from src.utils.scraper_utils import upsert_campaign
-                
-                campaign, _op_status = upsert_campaign(db, campaign)
+                db.add(campaign)  # type: ignore # pyre-ignore[16]
                 db.commit()  # type: ignore # pyre-ignore[16]
 
                 # Brands via brand_matcher
@@ -335,7 +328,7 @@ class TurkcellScraper:
                     except Exception as e:
                         db.rollback()
                         print(f"   ⚠️ CampaignBrand link failed: {e}")
-            return locals().get("_op_status", "saved")  # type: ignore # pyre-ignore[7]
+            return "saved"  # type: ignore # pyre-ignore[7]
         except Exception as e:
             print(f"      ❌ DB Save Error: {e}")
             return "error"  # type: ignore # pyre-ignore[7]

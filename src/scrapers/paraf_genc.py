@@ -89,9 +89,6 @@ class ParafGencScraper:
             
             # 2. Process each campaign
             success_count = 0
-
-            total_revived: int = 0
-            total_revived = 0
             skipped_count = 0
             failed_count = 0
             error_details = []
@@ -109,9 +106,7 @@ class ParafGencScraper:
                 try:
                     res = self._scrape_detail(campaign_data, url, source)
                     if res == "saved":
-                        success_count += 1
-                elif res == "revived":
-                    total_revived += 1  # type: ignore # pyre-ignore[58]
+                        success_count += 1  # type: ignore # pyre-ignore[58]
                     elif res == "skipped":
                         skipped_count += 1  # type: ignore # pyre-ignore[58]
                     else:
@@ -139,7 +134,7 @@ class ParafGencScraper:
                      total_found=len(campaigns),
                      total_saved=success_count,
                      total_skipped=skipped_count,
-                     total_failed=failed_count, total_revived=total_revived,
+                     total_failed=failed_count,
                      error_details={"errors": error_details} if error_details else None
                 )
             except Exception as le:
@@ -298,8 +293,7 @@ class ParafGencScraper:
             )
             
             if self.db is None: return "error"
-            from src.utils.scraper_utils import upsert_campaign
-            campaign, _op_status = upsert_campaign(self.db, campaign)
+            self.db.add(campaign)  # type: ignore # pyre-ignore[16]
             self.db.commit()  # type: ignore # pyre-ignore[16]
             
             for bid in brand_ids:
@@ -308,7 +302,7 @@ class ParafGencScraper:
                     self.db.add(cb)  # type: ignore # pyre-ignore[16]
                 except: pass
             self.db.commit()  # type: ignore # pyre-ignore[16]
-            return locals().get("_op_status", "saved")  # type: ignore # pyre-ignore[7]
+            return "saved"  # type: ignore # pyre-ignore[7]
             
         except Exception as e:
             print(f"      ❌ Save error: {e}")

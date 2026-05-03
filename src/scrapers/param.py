@@ -160,8 +160,6 @@ class ParamScraper:
         print("   ⏬ Scrolling down to load all campaigns...")
         last_height = self.page.evaluate("document.body.scrollHeight")
         scroll_count = 0
-
-        total_revived: int = 0
         while scroll_count < 30:
             self.page.evaluate("window.scrollTo(0, document.body.scrollHeight);")
             time.sleep(2.5)
@@ -462,8 +460,7 @@ class ParamScraper:
                     created_at=func.now(),  # type: ignore
                     updated_at=func.now(),  # type: ignore
                 )
-                from src.utils.scraper_utils import upsert_campaign
-                campaign, _op_status = upsert_campaign(self.db, campaign)
+                self.db.add(campaign)  # type: ignore # pyre-ignore[16]
                 self.db.commit()  # type: ignore # pyre-ignore[16]
                 print(f"   ✅ Saved: {campaign.title[:50]}")  # type: ignore # pyre-ignore[16,6]
 
@@ -519,7 +516,7 @@ class ParamScraper:
 
 
 
-            return locals().get("_op_status", "saved")  # type: ignore # pyre-ignore[7]
+            return "saved"  # type: ignore # pyre-ignore[7]
         except Exception as e:
             self.db.rollback()  # type: ignore # pyre-ignore[16]
             print(f"   ❌ Save failed: {e}")
@@ -551,9 +548,7 @@ class ParamScraper:
                 try:
                     res = self._process_campaign(url, force=force)
                     if res == "saved":
-                        success += 1
-                elif res == "revived":
-                    total_revived += 1  # type: ignore # pyre-ignore[58]
+                        success += 1  # type: ignore # pyre-ignore[58]
                     elif res == "skipped":
                         skipped += 1  # type: ignore # pyre-ignore[58]
                     else:
@@ -575,7 +570,7 @@ class ParamScraper:
                     total_found=len(final_urls),
                     total_saved=success,
                     total_skipped=skipped,
-                    total_failed=failed, total_revived=total_revived
+                    total_failed=failed
                 )
         except Exception as e:
             print(f"❌ Scraper error: {e}")

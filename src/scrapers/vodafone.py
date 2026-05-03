@@ -87,9 +87,6 @@ class VodafoneScraper:
             
             # 2. Process Details
             success_count = 0
-
-            total_revived: int = 0
-            total_revived = 0
             for i, url in enumerate(all_links, 1):
                 print(f"   [{i}/{len(all_links)}] {url}")
                 try:
@@ -291,8 +288,7 @@ class VodafoneScraper:
         )
         
         try:
-            from src.utils.scraper_utils import upsert_campaign
-            campaign, _op_status = upsert_campaign(self.db, campaign)
+            self.db.add(campaign)  # type: ignore # pyre-ignore[16]
             self.db.flush()  # type: ignore # pyre-ignore[16]
             
             for bid in brand_ids:

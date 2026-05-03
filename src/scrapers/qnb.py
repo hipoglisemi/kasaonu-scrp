@@ -181,9 +181,7 @@ class QNBScraper:
                     eligible_cards=", ".join(ai_data.get("cards", [])) if isinstance(ai_data.get("cards"), list) and ai_data.get("cards") else "QNBCard"
                 )
                 
-                from src.utils.scraper_utils import upsert_campaign
-                
-                campaign, _op_status = upsert_campaign(db, campaign)
+                db.add(campaign)  # type: ignore # pyre-ignore[16]
                 db.commit()  # type: ignore # pyre-ignore[16]
 
                 if ai_data.get('brands'):
@@ -208,7 +206,7 @@ class QNBScraper:
                         except Exception as e:
                             db.rollback()
                             print(f"   ⚠️ CampaignBrand link failed: {e}")
-            return locals().get("_op_status", "saved")  # type: ignore # pyre-ignore[7]
+            return "saved"  # type: ignore # pyre-ignore[7]
         except Exception as e:
             print(f"      ❌ DB Save Error: {e}")
             return "error"  # type: ignore # pyre-ignore[7]
@@ -218,9 +216,6 @@ class QNBScraper:
         items = self._fetch_campaigns(limit=limit)
         
         success: int = 0
-
-        
-        total_revived: int = 0
         skipped: int = 0
         failed: int = 0
         error_details: List[Dict[str, Any]] = []  # type: ignore # pyre-ignore[16,6]
@@ -229,9 +224,7 @@ class QNBScraper:
             try:
                 res = self._process_item(item)
                 if res == "saved":
-                    success += 1
-                elif res == "revived":
-                    total_revived += 1  # type: ignore # pyre-ignore[58]
+                    success += 1  # type: ignore # pyre-ignore[58]
                 elif res == "skipped":
                     skipped += 1  # type: ignore # pyre-ignore[58]
                 else:
@@ -249,7 +242,7 @@ class QNBScraper:
                 total_found=len(items),
                 total_saved=success,
                 total_skipped=skipped,
-                total_failed=failed, total_revived=total_revived,
+                total_failed=failed,
                 error_details={"errors": error_details} if error_details else None
             )
         

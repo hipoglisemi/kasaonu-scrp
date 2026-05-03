@@ -70,8 +70,6 @@ class ZiraatScraper:
         page = 1
         consecutive_empty = 0
 
-        total_revived: int = 0
-
         while True:
             ajax_url = f"https://www.bankkart.com.tr/api/Campaigns/GetMoreShow?indexNo={page}&type=Bireysel"
             print(f"   -> Fetching API page {page}: {ajax_url}")
@@ -311,8 +309,7 @@ class ZiraatScraper:
                 created_at=datetime.utcnow(),
                 updated_at=datetime.utcnow()
             )
-            from src.utils.scraper_utils import upsert_campaign
-            campaign, _op_status = upsert_campaign(self.db, campaign)
+            self.db.add(campaign)  # type: ignore # pyre-ignore[16]
             
             self.db.commit()  # type: ignore # pyre-ignore[16]
 
@@ -336,7 +333,7 @@ class ZiraatScraper:
                     self.db.rollback()
                     print(f"   ⚠️ CampaignBrand link failed: {e}")
             print(f"   ✅ Saved: {title} | End: {vu}")
-            return locals().get("_op_status", "saved")  # type: ignore # pyre-ignore[7]
+            return "saved"  # type: ignore # pyre-ignore[7]
             
         except Exception as e:
             print(f"   ❌ Error processing {url}: {e}")
@@ -354,7 +351,6 @@ class ZiraatScraper:
         
         count = 0
         success_count = 0
-        total_revived = 0
         skipped_count = 0
         failed_count = 0
         error_details = []
@@ -366,9 +362,7 @@ class ZiraatScraper:
             
             try:
                 res = self._process_campaign(camp)
-                if res == "saved": success_count += 1
-                elif res == "revived":
-                    total_revived += 1  # type: ignore # pyre-ignore[58]
+                if res == "saved": success_count += 1  # type: ignore # pyre-ignore[58]
                 elif res == "skipped": skipped_count += 1  # type: ignore # pyre-ignore[58]
                 else: 
                     failed_count += 1  # type: ignore # pyre-ignore[58]
@@ -379,7 +373,7 @@ class ZiraatScraper:
             
             count += 1  # type: ignore # pyre-ignore[58]
             time.sleep(2)
-        print(f"✅ Özet: {len(campaigns)} bulundu, {success_count} eklendi, {skipped_count} atlandı, {total_revived} canlandı, {failed_count} hata aldı.")
+        print(f"✅ Özet: {len(campaigns)} bulundu, {success_count} eklendi, {skipped_count} atlandı, {failed_count} hata aldı.")
         
         status = "SUCCESS"
         if failed_count > 0:  # type: ignore # pyre-ignore[58]
@@ -394,7 +388,7 @@ class ZiraatScraper:
                  total_found=len(campaigns),
                  total_saved=success_count,
                  total_skipped=skipped_count,
-                 total_failed=failed_count, total_revived=total_revived,
+                 total_failed=failed_count,
                  error_details={"errors": error_details} if error_details else None
             )
         except Exception as le:

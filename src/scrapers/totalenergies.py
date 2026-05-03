@@ -161,9 +161,6 @@ class TotalEnergiesScraper:
             print(f"   🎯 Found {len(card_elements)} total potential campaign cards.")
 
             processed_count = 0
-
-
-            total_revived: int = 0
             for card_soup in card_elements:
                 if limit is not None and processed_count >= limit:
                     break
@@ -334,9 +331,7 @@ class TotalEnergiesScraper:
                         slug=get_unique_slug(final_title, self.db, Campaign)
                     )
                     
-                    from src.utils.scraper_utils import upsert_campaign
-                    
-                    campaign, _op_status = upsert_campaign(self.db, campaign)
+                    self.db.add(campaign)
                     self.db.flush()
                     
                     # Matching Brands
@@ -382,7 +377,7 @@ class TotalEnergiesScraper:
             total_found=results["SAVED"] + results["SKIPPED"] + results["FAILED"],
             total_saved=results["SAVED"],
             total_skipped=results["SKIPPED"],
-            total_failed=results, total_revived=total_revived["FAILED"],
+            total_failed=results["FAILED"],
             error_details={"logs": results["LOGS"]} if results["LOGS"] else None
         )
         return results

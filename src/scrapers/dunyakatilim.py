@@ -54,8 +54,7 @@ class DunyaKatilimScraper:
         self.headers = {
             "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
             "X-Requested-With": "XMLHttpRequest",
-            "Accept": "text/html, */*; q=0
- total_revived: int = 0.01",
+            "Accept": "text/html, */*; q=0.01",
             "Referer": "https://dunyakatilim.com.tr/kampanyalar"
         }
 
@@ -91,8 +90,6 @@ class DunyaKatilimScraper:
                 campaigns = campaigns[:self.max_campaigns]  # type: ignore # pyre-ignore[16,6]
             
             success_count = 0
-            
-            total_revived = 0
             skipped_count = 0
             failed_count = 0
             error_details = []
@@ -111,9 +108,7 @@ class DunyaKatilimScraper:
                 try:
                     res = self._scrape_detail(url, title, base_image, source)
                     if res == "saved":
-                        success_count += 1
-                elif res == "revived":
-                    total_revived += 1  # type: ignore # pyre-ignore[58]
+                        success_count += 1  # type: ignore # pyre-ignore[58]
                     elif res == "skipped":
                         skipped_count += 1  # type: ignore # pyre-ignore[58]
                     else:
@@ -140,7 +135,7 @@ class DunyaKatilimScraper:
                      total_found=len(campaigns),
                      total_saved=success_count,
                      total_skipped=skipped_count,
-                     total_failed=failed_count, total_revived=total_revived,
+                     total_failed=failed_count,
                      error_details={"errors": error_details} if error_details else None
                 )
             except Exception as le:
@@ -322,9 +317,7 @@ class DunyaKatilimScraper:
                 is_active=True
             )
             
-            from src.utils.scraper_utils import upsert_campaign
-            
-            campaign, _op_status = upsert_campaign(self.db, campaign)
+            self.db.add(campaign)  # type: ignore # pyre-ignore[16]
             self.db.commit()  # type: ignore # pyre-ignore[16]
             
             for bid in brand_ids:
@@ -333,7 +326,7 @@ class DunyaKatilimScraper:
                     self.db.add(cb)  # type: ignore # pyre-ignore[16]
                 except: pass
             self.db.commit()  # type: ignore # pyre-ignore[16]
-            return locals().get("_op_status", "saved")  # type: ignore # pyre-ignore[7]
+            return "saved"  # type: ignore # pyre-ignore[7]
             
         except Exception as e:
             print(f"      ❌ Save error: {e}")

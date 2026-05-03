@@ -206,65 +206,41 @@ class AkbankBaseScraper:
             conditions_text = "\n".join(conditions_lines)
             eligible_cards_str = ", ".join(eligible_cards_list) if eligible_cards_list else None
             
+            # Check for existing campaign to handle revival
             existing = db.query(Campaign).filter(Campaign.tracking_url == source_url, Campaign.card_id == self.card_id).first()
-            if existing:
-                if existing.is_active:
-                    print(f"   ⏭️  Skipped (Safety Check: already exists and active): {existing.title}")
-                    return "skipped"  # type: ignore
-                
-                # Revive and update existing passive campaign
-                existing.title = final_title
-                existing.description = ai_data.get('description') or title
-                existing.ai_marketing_text = ai_data.get('ai_marketing_text') or ai_data.get('description') or title
-                existing.reward_text = ai_data.get('reward_text')
-                existing.reward_value = ai_data.get('reward_value')
-                existing.reward_type = ai_data.get('reward_type')
-                existing.conditions = conditions_text
-                existing.eligible_cards = eligible_cards_str
-                existing.participation = participation
-                existing.image_url = image_url
-                existing.start_date = start_date or existing.start_date
-                existing.end_date = end_date
-                existing.is_active = True
-                existing.is_approved = False  # Revived campaigns MUST be reviewed again
-                existing.updated_at = datetime.utcnow()
-                if sector:
-                    existing.sector_id = sector.id
-                
-                campaign = existing
-                print(f"   ♻️  Revived Passive Campaign: {campaign.title}")
-            else:
-                # Ensure slug is unique using the utility
-                slug = get_unique_slug(final_title, db, Campaign)
-                
-                if not slug or slug == "kampanya":
-                    import uuid  # type: ignore # pyre-ignore[21]
-                    u_str = str(uuid.uuid4())
-                    slug = f"kampanya-{u_str[:8]}"  # type: ignore # pyre-ignore[16,6]
+            
+            campaign = Campaign(  # type: ignore
+                card_id=self.card_id,  # type: ignore
+                sector_id=sector.id if sector else None,  # type: ignore
+                slug=get_unique_slug(final_title, db, Campaign),  # type: ignore
+                title=final_title,  # type: ignore
+                description=ai_data.get('description') or title,  # type: ignore
+                ai_marketing_text=ai_data.get('ai_marketing_text') or ai_data.get('description') or title,  # type: ignore
+                reward_text=ai_data.get('reward_text'),  # type: ignore
+                reward_value=ai_data.get('reward_value'),  # type: ignore
+                reward_type=ai_data.get('reward_type'),  # type: ignore
+                conditions=conditions_text,  # type: ignore
+                eligible_cards=eligible_cards_str,
+                participation=participation,  # type: ignore
+                image_url=image_url,  # type: ignore
+                start_date=start_date,  # type: ignore
+                end_date=end_date,  # type: ignore
+                is_active=True,  # type: ignore
+                created_at=datetime.utcnow(),  # type: ignore
+                updated_at=datetime.utcnow(),  # type: ignore
+                tracking_url=source_url  # type: ignore
+            )
 
-                campaign = Campaign(  # type: ignore
-                    card_id=self.card_id,  # type: ignore
-                    sector_id=sector.id if sector else None,  # type: ignore
-                    slug=slug,  # type: ignore
-                    title=final_title,  # type: ignore
-                    description=ai_data.get('description') or title,  # type: ignore
-                    ai_marketing_text=ai_data.get('ai_marketing_text') or ai_data.get('description') or title,  # type: ignore
-                    reward_text=ai_data.get('reward_text'),  # type: ignore
-                    reward_value=ai_data.get('reward_value'),  # type: ignore
-                    reward_type=ai_data.get('reward_type'),  # type: ignore
-                    conditions=conditions_text,  # type: ignore
-                    eligible_cards=eligible_cards_str,
-                    participation=participation,  # type: ignore
-                    image_url=image_url,  # type: ignore
-                    start_date=start_date,  # type: ignore
-                    end_date=end_date,  # type: ignore
-                    is_active=True,  # type: ignore
-                    created_at=datetime.utcnow(),  # type: ignore
-                    updated_at=datetime.utcnow(),  # type: ignore
-                    tracking_url=source_url  # type: ignore
-                )
-                db.add(campaign)  # type: ignore
+            from src.utils.scraper_utils import upsert_campaign
+            campaign, op_status = upsert_campaign(db, campaign)
+            db.commit()
+            
+            if op_status == "revived":
+                print(f"   ♻️  Revived Passive Campaign: {campaign.title}")
+            elif op_status == "saved":
                 print(f"   ✅ Saved New: {campaign.title}")
+            
+            db.refresh(campaign)
 
             db.commit()  # type: ignore # pyre-ignore[16]
 
@@ -289,7 +265,7 @@ class AkbankBaseScraper:
                 except Exception as e:
                     db.rollback()
                     print(f"   ⚠️ CampaignBrand link failed: {e}")
-            return "saved"  # type: ignore # pyre-ignore[7]
+            return op_status
 
     def run(self, limit: Optional[int] = None, urls: Optional[List[str]] = None, force: bool = False):  # type: ignore # pyre-ignore[16,6]
         print(f"🚀 Starting {self.card_name} Scraper...")
@@ -305,6 +281,7 @@ class AkbankBaseScraper:
         
         total_found = len(process_urls)
         total_saved = 0
+        total_revived = 0
         total_skipped = 0
         total_failed = 0
         error_details = []
@@ -333,6 +310,8 @@ class AkbankBaseScraper:
                 # Sub-classes might return None but be successful if they didn't throw
                 if res == "saved" or res is None:
                     total_saved += 1  # type: ignore # pyre-ignore[58]
+                elif res == "revived":
+                    total_revived += 1
                 elif res == "skipped":
                     total_skipped += 1  # type: ignore # pyre-ignore[58]
                 else:
@@ -361,5 +340,6 @@ class AkbankBaseScraper:
                 total_saved=total_saved,
                 total_skipped=total_skipped,
                 total_failed=total_failed,
+                total_revived=total_revived,
                 error_details={"errors": error_details} if error_details else None
             )

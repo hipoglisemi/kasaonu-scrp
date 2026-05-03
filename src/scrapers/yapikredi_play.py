@@ -216,9 +216,7 @@ class YapikrediPlayScraper:
                     updated_at=datetime.utcnow()  # type: ignore
                 )
                 
-                from src.utils.scraper_utils import upsert_campaign
-                
-                campaign, _op_status = upsert_campaign(db, campaign)
+                db.add(campaign)  # type: ignore # pyre-ignore[16]
                 db.commit()  # type: ignore # pyre-ignore[16]
                 print(f"   ✅ Saved: {campaign.title}")
 
@@ -242,7 +240,7 @@ class YapikrediPlayScraper:
                     except Exception as e:
                         db.rollback()
                         print(f"   ⚠️ CampaignBrand link failed: {e}")
-            return locals().get("_op_status", "saved")  # type: ignore # pyre-ignore[7]
+            return "saved"  # type: ignore # pyre-ignore[7]
         except Exception as e:
             print(f"   ❌ Error saving: {e}")
             return "error"  # type: ignore # pyre-ignore[7]
@@ -259,9 +257,6 @@ class YapikrediPlayScraper:
         print(f"🚀 Starting {self.BANK_NAME} {self.CARD_NAME} Scraper...")
         page = 1
         success_count = 0
-
-        total_revived: int = 0
-        total_revived = 0
         skipped_count = 0
         failed_count = 0
         total_found = 0
@@ -291,9 +286,7 @@ class YapikrediPlayScraper:
                 try:
                     res = self._process_item(item)
                     if res == "saved":
-                        success_count += 1
-                elif res == "revived":
-                    total_revived += 1  # type: ignore # pyre-ignore[58]
+                        success_count += 1  # type: ignore # pyre-ignore[58]
                     elif res == "skipped":
                         skipped_count += 1  # type: ignore # pyre-ignore[58]
                     else:
@@ -309,7 +302,7 @@ class YapikrediPlayScraper:
             page += 1  # type: ignore # pyre-ignore[58]
             time.sleep(1)
 
-        print(f"\n✅ Özet: {total_found} bulundu, {success_count} eklendi, {skipped_count} atlandı, {total_revived} canlandı, {failed_count} hata aldı.")
+        print(f"\n✅ Özet: {total_found} bulundu, {success_count} eklendi, {skipped_count} atlandı, {failed_count} hata aldı.")
         
         status = "SUCCESS"
         if failed_count > 0:  # type: ignore # pyre-ignore[58]
@@ -325,7 +318,7 @@ class YapikrediPlayScraper:
                      total_found=total_found,
                      total_saved=success_count,
                      total_skipped=skipped_count,
-                     total_failed=failed_count, total_revived=total_revived,
+                     total_failed=failed_count,
                      error_details={"errors": error_details} if error_details else None
                 )
         except Exception as le:

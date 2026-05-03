@@ -132,8 +132,7 @@ class AkbankWingsScraper(AkbankBaseScraper):
             )
             
             # Save to DB
-            self._save_campaign(title, image_url, ai_data, url)
-            return locals().get("_op_status", "saved")  # type: ignore # pyre-ignore[7]
+            return self._save_campaign(title, image_url, ai_data, url)
             
         except Exception as e:
             print(f"❌ Failed to process {url}: {e}")

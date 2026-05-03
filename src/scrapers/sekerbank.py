@@ -198,8 +198,6 @@ class SekerbankScraper:
         # "Daha Fazla Görüntüle" button logic
         print("   ⏳ Loading all campaigns (Scroll & Click)...")
         click_count = 0
-
-        total_revived: int = 0
         while True:
             try:
                 # Scroll down to make button visible
@@ -349,8 +347,6 @@ class SekerbankScraper:
             found_items = found_items[0:limit] # type: ignore # pyre-ignore[16]
 
         success_count = 0
-
-        total_revived = 0
         skipped_count = 0
         failed_count = 0
 
@@ -362,8 +358,6 @@ class SekerbankScraper:
                 res = self._scrape_detail(url, source, list_image=list_image, force=force)
                 if res == "saved":
                     success_count += 1
-                elif res == "revived":
-                    total_revived += 1
                 elif res == "skipped":
                     skipped_count += 1
                 else:
@@ -382,7 +376,7 @@ class SekerbankScraper:
             total_found=len(found_items),
             total_saved=success_count,
             total_skipped=skipped_count,
-            total_failed=failed_count, total_revived=total_revived
+            total_failed=failed_count
         )
 
     def _scrape_detail(self, url: str, source: Dict, list_image: str = "", force: bool = False) -> str:
@@ -489,7 +483,7 @@ class SekerbankScraper:
         # Save to DB
         self._save_campaign(ai_data, url, image_url, source['default_card'])
         print(f"      ✅ Saved: {ai_data['title']}")
-        return locals().get("_op_status", "saved")
+        return "saved"
 
     def _save_campaign(self, data: Dict, url: str, image_url: str, default_card_name: str):
         """Save structured data and linked entities to the database."""
@@ -553,8 +547,7 @@ class SekerbankScraper:
         
         try:
             if not self.db: return # type: ignore
-            from src.utils.scraper_utils import upsert_campaign
-            campaign, _op_status = upsert_campaign(self.db, campaign)
+            self.db.add(campaign) # type: ignore # pyre-ignore[16]
             self.db.commit() # type: ignore # pyre-ignore[16]
             
             # Map Brands

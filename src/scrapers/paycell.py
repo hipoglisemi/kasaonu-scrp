@@ -129,9 +129,6 @@ class PaycellScraper:
 
             total_found = len(campaign_list)
             total_saved = 0
-
-            total_revived: int = 0
-            total_revived = 0
             total_skipped = 0
             total_failed = 0
             error_details = []
@@ -254,7 +251,7 @@ class PaycellScraper:
                     total_found=total_found,
                     total_saved=total_saved,
                     total_skipped=total_skipped,
-                    total_failed=total_failed, total_revived=total_revived,
+                    total_failed=total_failed,
                     error_details={"errors": error_details} if error_details else None
                 ) # type: ignore
 
@@ -372,8 +369,7 @@ class PaycellScraper:
                     is_active=True,
                     created_at=datetime.utcnow()
                 )
-                from src.utils.scraper_utils import upsert_campaign
-                campaign, _op_status = upsert_campaign(db, campaign)
+                db.add(campaign)
             elif not force:
                 return "skipped"
 
@@ -427,7 +423,7 @@ class PaycellScraper:
                     db.commit()
 
                 print(f"   ✅ {'Saved' if is_new else 'Updated'}: {campaign.title[:50]} (Brands: {len(brand_ids)})")
-                return locals().get("_op_status", "saved")
+                return "saved"
             except Exception as e:
                 db.rollback()
                 print(f"   ❌ Save Error: {e}")

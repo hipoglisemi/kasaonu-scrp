@@ -366,9 +366,7 @@ class GarantiBonusScraper:
                 updated_at=datetime.utcnow()  # type: ignore
             )
             
-            from src.utils.scraper_utils import upsert_campaign
-            
-            campaign, _op_status = upsert_campaign(db, campaign)
+            db.add(campaign)  # type: ignore # pyre-ignore[16]
             db.flush()  # Get campaign ID  # type: ignore # pyre-ignore[16]
             
             # Link brands
@@ -419,7 +417,7 @@ class GarantiBonusScraper:
             
             db.commit()  # type: ignore # pyre-ignore[16]
             print(f"   ✅ Saved: {campaign.title[:50]}... (Reward: {campaign.reward_text})")  # type: ignore # pyre-ignore[16,6]
-            return locals().get("_op_status", "saved")  # type: ignore # pyre-ignore[7]
+            return "saved"  # type: ignore # pyre-ignore[7]
     
     def _generate_slug(self, title: str) -> str:
         """Generate URL-friendly slug from title"""
@@ -490,9 +488,6 @@ class GarantiBonusScraper:
             
             total_found = len(campaign_urls)
             success_count = 0
-
-            total_revived: int = 0
-            total_revived = 0
             skipped_count = 0
             failed_count = 0
             error_details = []
@@ -508,7 +503,7 @@ class GarantiBonusScraper:
                         total_found=0,
                         total_saved=0,
                         total_skipped=0,
-                        total_failed=0, total_revived=total_revived,
+                        total_failed=0,
                         error_details={"error": "No campaigns found"}
                     )
                 return
@@ -520,9 +515,7 @@ class GarantiBonusScraper:
                 try:
                     result = self._process_campaign(url)
                     if result == "saved":
-                        success_count += 1
-                    elif result == "revived":
-                        total_revived += 1  # type: ignore # pyre-ignore[58]
+                        success_count += 1  # type: ignore # pyre-ignore[58]
                     elif result == "skipped":
                         skipped_count += 1  # type: ignore # pyre-ignore[58]
                     else:
@@ -538,7 +531,7 @@ class GarantiBonusScraper:
             
             print(f"\n{'=' * 60}")
             print(f"✅ Scraping complete!")
-            print(f"✅ Özet: {total_found} bulundu, {success_count} eklendi, {skipped_count} atlandı, {total_revived} canlandı, {failed_count} hata aldı.")
+            print(f"✅ Özet: {total_found} bulundu, {success_count} eklendi, {skipped_count} atlandı, {failed_count} hata aldı.")
             
             # Determine status
             status = "SUCCESS"
@@ -554,7 +547,7 @@ class GarantiBonusScraper:
                     total_found=total_found,
                     total_saved=success_count,
                     total_skipped=skipped_count,
-                    total_failed=failed_count, total_revived=total_revived,
+                    total_failed=failed_count,
                     error_details={"errors": error_details} if error_details else None
                 )
             
@@ -573,7 +566,7 @@ class GarantiBonusScraper:
                     total_found=0,
                     total_saved=0,
                     total_skipped=0,
-                    total_failed=1, total_revived=total_revived,
+                    total_failed=1,
                     error_details={"error": str(e)}
                 )
                 

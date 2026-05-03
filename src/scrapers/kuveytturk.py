@@ -129,7 +129,7 @@ class KuveytTurkScraper:
                 status="COMPLETED",
                 total_found=stats['total'],
                 total_saved=stats['new'] + stats['updated'],
-                total_failed=stats, total_revived=total_revived['failed'],
+                total_failed=stats['failed'],
                 total_skipped=stats.get('skipped', 0)
             )
 
@@ -155,8 +155,6 @@ class KuveytTurkScraper:
 
             # Click "Daha Fazla Göster" loop - Exit when count stops increasing
             click_count = 0
-
-            total_revived: int = 0
             MAX_CLICKS = 30
             consecutive_no_growth = 0
             
@@ -367,8 +365,7 @@ class KuveytTurkScraper:
 
         if not campaign:
             campaign = Campaign(tracking_url=source_url, card_id=card_id)
-            from src.utils.scraper_utils import upsert_campaign
-            campaign, _op_status = upsert_campaign(self.db, campaign)
+            self.db.add(campaign)  # type: ignore # pyre-ignore[16]
 
         campaign.slug = slug
         campaign.title = title
