@@ -17,6 +17,8 @@ def normalize_text(s):
     s = s.replace('ı', 'i').replace('ş', 's').replace('ğ', 'g')
     s = s.replace('ü', 'u').replace('ö', 'o').replace('ç', 'c')
     s = s.replace('worlcard', 'worldcard')
+    # Standardize apostrophes
+    s = s.replace('’', "'").replace('‘', "'")
     return s.strip()
 
 NEGATION_KEYWORDS = [

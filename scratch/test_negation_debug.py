@@ -1,21 +1,17 @@
 import sys
 project_root = "/Users/hipoglisemi/Desktop/kartavantaj-scraper"
 sys.path.insert(0, project_root)
-
 from src.services.negation_filter import check_string_negation, normalize_text
 
-text = "Kampanyaya bireysel kartlar, Wings Business, Bank'O Card Axess (Odea Bank) ve banka kartları dahil değildir."
+text = "Artı taksit imkanına bireysel kartlar, Axess Business Free ve Bank’O Card Axess dahil değildir."
 text_norm = normalize_text(text)
 
-target = "Wings Business"
-target_norm = normalize_text(target)
+print(f"TEXT NORM: {text_norm}")
 
-print(f"Text Norm: {text_norm}")
-print(f"Target Norm: {target_norm}")
-
+target = "Bank’O Card Axess"
 is_negated = check_string_negation(target, text_norm, bank_key="akbank")
 print(f"Is '{target}' negated? {is_negated}")
 
-# Test with a simpler one
-text2 = "Wings dahil değildir."
-print(f"Is 'Wings' negated in '{text2}'? {check_string_negation('Wings', normalize_text(text2))}")
+target2 = "Bank'o Card"
+is_negated2 = check_string_negation(target2, text_norm, bank_key="akbank")
+print(f"Is '{target2}' negated? {is_negated2}")

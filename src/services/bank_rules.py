@@ -10,10 +10,13 @@ AKBANK SPECIFIC RULES:
     - For Axess/Free/Akbank Kart: Uses "chip-para" instead of "puan". 1 chip-para = 1 TL.
     - For Wings: Uses "Mil" or "Mil Puan". 100 Mil Puan = 1 TL (domestic) / 2 TL (int).
 - ELIGIBLE CARDS (CRITICAL):
-    - 🚨 **STRICT LITERAL EXTRACTION**: ONLY extract cards mentioned in the CAMPAIGN DESCRIPTION or CONDITIONS.
-    - ⛔ **NO ASSUMPTIONS**: If the text only mentions "Axess Business", then ONLY write ["Axess Business"]. DO NOT add "Wings" or "Free" unless you see them explicitly in the text.
-    - ⛔ **FOOTER TRAP**: Ignore any card names found in navigation menus, footers, or "other campaigns" sections.
-- PARTICIPATION: Primary method is "Jüzdan" app. Always look for "Jüzdan'dan Hemen Katıl" button. If not found, look for "Akbank Axess POS" instructions.
+    - 🚨 **RAW EXTRACTION (LITERAL)**: Extract the EXACT card names or descriptive categories from the text. 
+    - ⛔ **NO MAPPING**: If text says "Axess ve Wings Ticari kartları", write "Axess ve Wings Ticari kartları". 
+- PARTICIPATION (katilim_sekli):
+    - 🚨 **ULTRA-CONCISE**: Use ONLY these 3 options:
+      1. If Jüzdan: "Jüzdan'dan Hemen Katıl butonuna tıklayın."
+      2. If SMS: "[KEYWORD] yazıp 4566'ya SMS gönderin."
+      3. If no registration: "Otomatik Katılım" (ASLA "Ön katılım gerekmez" veya "POS'tan harcama yapın" gibi uzun cümleler yazma).
 - SMS: Usually 4566. SMS keyword is usually a single word (e.g., "A101", "TEKNOSA").
 - REWARD: If it says "8 aya varan taksit", it's an installment campaign. Earning: "Taksit İmkanı". ASLA "Detayları İnceleyin" yazma.
 - AKBANK REDUNDANCY ALERT (CRITICAL):
