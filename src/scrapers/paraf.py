@@ -280,11 +280,8 @@ class ParafScraper:
             url_hash = hashlib.md5(url.encode()).hexdigest()[:8]  # type: ignore # pyre-ignore[16,6]
             slug = f"{slug}-{url_hash}"
         
-        # Prepare marketing text with participation method
-        participation = data.get("participation", "")
+        # Prepare marketing text (participation is now a separate field, no need to duplicate)
         marketing_text = data.get("ai_marketing_text") or data.get("description", "")
-        if participation:
-            marketing_text = f"{marketing_text}\n\n📱 Katılım: {participation}"
         
         # Map card logo URL based on eligible cards
         card_logo_url = None
