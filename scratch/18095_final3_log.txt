@@ -1,0 +1,16 @@
+🚀 Starting Data Quality Auto-Fixer (Limit: 250)...
+
+🔍 Scanning for defective campaigns...
+   📊 Checking 1 active campaigns for defects.
+   📊 Found defects: 0 new, 1 retries. (Skipped permanently or by cooldown: 0)
+⚠️ Total campaigns to process in this run: 1 (FORCE_ALL=True)
+
+🛠️ Fixing: [18095] İnternet Alışverişlerinize 2.000 TL’ye V... (Reasons: Incomplete Cards (Found in text: business, business))
+   🔗 URL: https://www.denizbonus.com/kampanyalar/internet-alisverislerine-2000-tlye-varan-bonus
+   🌐 Logic: RESCUE! (Force mode or text issue). Fetching fresh HTML...
+   🏷️ H1 title: Ä°nternet AlÄ±ÅveriÅlerinize 2.000 TLâye Varan Bonus!
+   🚀 SPA/Tabbed Site Detected (https://www.denizbonus.com/kampanyalar/internet-alisverislerine-2000-tlye-varan-bonus). Booting Headless Chrome...
+   ✅ URL fetch successful (2127 chars)
+   🤖 [GOLDEN V3] Sending 2127 characters to AI... (Bank: Denizbank)
+
+📛 CRITICAL ERROR during auto-fix: name 'recovered_name' is not defined

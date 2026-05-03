@@ -132,7 +132,7 @@ class AkbankWingsScraper(AkbankBaseScraper):
             )
             
             # Save to DB
-            self._save_campaign(title, details_text, image_url, ai_data, url)
+            self._save_campaign(title, image_url, ai_data, url)
             return "saved"  # type: ignore # pyre-ignore[7]
             
         except Exception as e:

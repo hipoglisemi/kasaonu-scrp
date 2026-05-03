@@ -239,6 +239,8 @@ class GarantiBonusScraper:
             body_el = soup.find("body")
             raw_html = str(body_el) if body_el else str(soup)
             
+            import re
+            
             # AI parses only: reward_text, reward_value, reward_type, brands, sector, conditions, dates
             ai_data = parse_api_campaign(
                 title=title,

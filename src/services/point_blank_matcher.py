@@ -42,6 +42,8 @@ _TITLE_ONLY_KEYWORDS = {
     "bilet", "lastik", "sigorta", "market", "puan", "bakkal", "indirim", "taksit", "faiz", "kredi",
     # Yemek-içecek sektörü — taksit kampanyalarının koşullarında sıkça geçen generic isimler
     "restoran", "restaurant", "yemek", "kafe", "cafe", "lokanta", "bistro",
+    # 🚨 TELEKOM GUARD: SMS footer kısımlarında (Türk Telekom, Vodafone vb.) geçtiğinde sektörü bozmasın diye sadece Başlıkta ara.
+    "telekom", "telekomünikasyon", "vodafone", "turkcell", "türk telekom", "avea",
 }
 
 class PointBlankMatcher:
@@ -164,11 +166,6 @@ class PointBlankMatcher:
             if in_title or in_body:
                 is_short = len(rule.keyword) <= _SHORT_KW_THRESHOLD
                 
-                try:
-                    rule.match_count = (rule.match_count or 0) + 1
-                except:
-                    pass
-
                 raw_matches.append({
                     "brand": rule.brand_name,
                     "sector": rule.sector_slug,

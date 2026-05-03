@@ -12,7 +12,10 @@ def clean_campaign_text(raw_text: str, og_title: str = None, title: str = None) 
         return ""
 
     # ── Step 1: HTML DOM Cleanup (Autofix Standard) ──────────
-    if "<" in raw_text and ">" in raw_text:
+    # Sadece GERÇEK html yapıları varsa BeautifulSoup kullan (Trafilatura markdown'ını bozma)
+    is_html = bool(re.search(r'<(html|div|p|body|table|section|article|span|li|ul|ol)', raw_text, re.IGNORECASE))
+    
+    if is_html:
         try:
             soup = BeautifulSoup(raw_text, "html.parser")
             
@@ -44,9 +47,36 @@ def clean_campaign_text(raw_text: str, og_title: str = None, title: str = None) 
                 for element in soup.select(selector):
                     element.decompose()
             
-            # 3. Content Targeting (If we have specific containers, focus but don't limit)
-            # We don't want to over-truncate, so we just return the full cleaned body
+            # 3. Content Targeting
+            # Use space instead of newline to prevent "ladder text" (Vakifbank issue)
             raw_text = soup.get_text(separator="\n", strip=True)
+            
+            # --- INTELLIGENT FLATTENING (The fix for fragmented text) ---
+            # 1. Remove excessive spaces
+            raw_text = re.sub(r'[ \t]+', ' ', raw_text)
+            
+            # 2. Convert "merdiven" structure back to meaningful sentences.
+            # We preserve newlines only for bullet points or numbered lists.
+            # Otherwise, we join lines to form proper paragraphs.
+            lines = raw_text.split('\n')
+            flattened = []
+            current_p = ""
+            
+            for line in lines:
+                l = line.strip()
+                if not l: continue
+                
+                # If it's a bullet point or a new section header, start a new line
+                if re.match(r'^[\s\-_•*]*[A-ZÇĞİÖŞÜ0-9]', l) and len(l) > 1:
+                    if current_p: flattened.append(current_p)
+                    current_p = l
+                else:
+                    if current_p: current_p += " " + l
+                    else: current_p = l
+            
+            if current_p: flattened.append(current_p)
+            raw_text = "\n".join(flattened)
+
         except Exception:
             pass
 
@@ -122,105 +152,27 @@ def clean_campaign_text(raw_text: str, og_title: str = None, title: str = None) 
     ]
 
     # ── Step 2: Line-Level Navigation Filter ──────────────────
-    # Ported from legacy parser to handle plain text gürültüsü
-    NAV_PATTERNS = re.compile(
-        r'^(ana sayfa|şubeler|iletişim|bize ulaşın|hakkımızda|kvkk|gizlilik|'
-        r'çerez|copyright|tüm hakları|instagram|twitter|facebook|linkedin|'
-        r'youtube|bizi takip|site haritası|kariyer|başvuru|indir|download|'
-        r'yardım ve destek|kampanyalarımız|fırsatlarımız|kurumsal|bireysel|'
-        r'şube ve atm|anında şifre|internete özel|hemen indir)$',
-        re.IGNORECASE
-    )
-
+    # Devre dışı bırakıldı - AI artık gürültüyü kendisi temizliyor.
     lines = raw_text.split('\n')
     cleaned_lines = []
-    seen = set()
-
     for line in lines:
         trimmed = line.strip()
-        if not trimmed: continue
-
-        # Filter out short navigation-only lines
-        if len(trimmed) < 40:
-            if NAV_PATTERNS.match(trimmed.lower()) or len(trimmed) < 5:
-                continue
-        
-        # Deduplication to save tokens
-        if trimmed in seen: continue
-        seen.add(trimmed)
-
-        sentences = re.split(r'(?<=\.)\s+', trimmed)
-        clean_sentences = []
-        for sentence in sentences:
-            s = sentence.strip()
-            if not s: continue
-            is_junk = any(re.search(p, s, re.IGNORECASE) for p in junk_patterns)
-            if not is_junk:
-                clean_sentences.append(s)
-        
-        if clean_sentences:
-            cleaned_lines.append(' '.join(clean_sentences))
+        if trimmed:
+            cleaned_lines.append(trimmed)
 
     # ── Step 3: Noise Snipping & Filtering (Footer/Sidebar) ──────
-    # Instead of blindly cutting at keywords like 'indir', we now distinguish 
-    # between 'incidental noise lines' (filter them) and 'footer markers' (cut after them).
-    
-    noise_markers = [
-        r"çerez aydınlatma metni", r"zorunlu çerezler", r"daha fazla bilgi için",
-        r"benzer (kampanyalar|fırsatlar)", r"diğer (kampanyalar|fırsatlar)",
-        r"ilginizi çekebilecek kampanyalar", r"ilginizi çekebilir", r"sizin için seçtiklerimiz",
-        r"popüler markalar", r"bizi takip edin", r"site haritası", r"tüm hakları saklıdır",
-        r"copyright", r"en çok tercih edilen kredi kartlarını keşfedin",
-        r"fırsatlardan hemen yararlanın", r"seveni, kullananı, bedavası en bol",
-        r"başvurunuzu hemen yapın", r"deniz bonus.*en çok tercih edilen",
-        r"axess mobil.*hemen indir", r"app store ile indir", r"google play ile indir",
-        r"mesajınız gönderildi", r"ana sayfaya dön", r"merak ettikleriniz",
-        r"sıkça sorulan sorular", r"başvurum nerede", r"kart şifresi al",
-        r"faiz ve ücretler", r"hesap özeti açıklamaları",
-        r"kişisel verilerin işlenmesi aydınlatma metni",
-        r"bireysel müşteri aydınlatma metni", r"veri sorumlusu sıfatıyla",
-        r"e-?mail toplama ve gönderim", r"kampanyayı paylaş", r"maximum mobil.*indir",
-        r"bonusflaş.*indirmek için", r"bonusflaş.*ı indirin",
-        r"cüzdan\s+kampanyalar\s+ödemeler\s+kartlar", r"qr kod okuyucu",
-        r"sosyal medya\s+her hakkı", r"her hakkı.*\.a\.ş", r"çerez politikası\s+bize ulaşın",
-        r"bize ulaşın\s+sosyal medya", r"biten kampanyalar",
-        r"şekerbank\s+troy\s+thy\s+kampanyası", r"kampanyası\s+\w+\s+kampanyası\s+\w+\s+kampanyası",
-        r"retreat kampanyası\s+restoran kampanyası", r"bi\s+dünya\s+fırsat\s+şimdi\s+koçtaş",
-        r"tümü\s*\(\d+\)\s*eğitim\s*\(\d+\)", r"ilk bakışta türk telekom",
-        r"hemen\s+indir\s+veya\s+app\s+store", r"jüzdan.*ı\s+indir",
-        r"prev\s+next\s+\w+\s+servis", r"detaylı\s+bilgi\s+prev\s+next",
-        r"ilginizi çekebilecek diğer kampanyalar", r"benzer fırsatları kaçırmayın",
-        r"diğer kampanyalara göz atın", r"vodafone\s+yanımda.*indir",
-        r"turkcell\s+dijital\s+operatör", r"444 0 333 shop&fly kolay seyahat hattı",
-        r"çeşitli markalardaki dilediğiniz ayrıcalığı keşfedin", r"popüler aramalar",
-        r"bize ulaşın sosyal medya", r"incelemek için tıklayın", r"hemen giriş yapın",
-        r"daha fazla kampanya", r"giriş yaptıktan sonra", r"kampanya detayına geri dön",
-        r"ödeme kanallarını göster", r"çok nays şeyler paylaşıyoruz",
-        r"neler yapabilirisin, nasıl kazanırsın", r"nays dünyasını keşfet",
-        r"altın al/sat biriktir", r"sevdiklerini nays'a davet et",
-        r"şekerbank.*troy.*thy.*kampanyası",
-        r"retreat kampanyası.*restoran kampanyası",
-        r"bi dünya fırsat şimdi koçtaş",
-    ]
+    # Devre dışı bırakıldı - Önemli detayların silinmesini engelliyoruz.
+    noise_markers = []
 
     # 🛑 THE SANDWICH END (Yasal Limit): 
-    # If we find the final legal disclaimer, we chop EVERYTHING after it 
-    # as high-confidence boilerplate.
-    LEGAL_END_PATTERNS = [
-        r"kampanyayı durdurma ve/veya kampanya koşullarını değiştirme hakkına sahiptir",
-        r"kampanyayı durdurma veya kampanya koşullarını değiştirme hakkını saklı tutar",
-        r"kampanya koşullarında değişiklik yapma hakkını saklı tutar",
-        r"kampanyayı durdurma veya kampanya koşullarını değiştirme hakkına sahiptir",
-        r"banka .* kampanyayı dilediği zaman durdurma",
-        r"tüm hakları saklıdır"
-    ]
+    # Devre dışı bırakıldı çünkü önemli detaylar (Express Card vb.) yasal uyarıların dibinde olabiliyor.
+    LEGAL_END_PATTERNS = []
 
     # 🛑 BOILERPLATE CHOP (KVKK/Cookie Policy etc.)
-    # These often contain third-party brand names (Facebook, Google, etc.) causing hallucinations
     BOILERPLATE_CHOP_MARKERS = [
         "çerez politikası", "cookie policy", "aydınlatma metni", 
         "kişisel verilerin korunması", "legal caution", "yasal bilgilendirme",
-        "gizlilik politikası", "çerezleri yönet", "cookies settings"
+        "gizlilik politikası"
     ]
 
     final_text = '\n'.join(cleaned_lines)
@@ -252,28 +204,29 @@ def clean_campaign_text(raw_text: str, og_title: str = None, title: str = None) 
     min_cut_pos = max(len(final_text) * 0.8, 1500) # Only CUT if it's in the last 20%
     earliest_noise_idx = len(final_text)
     
-    # Severe cross-sale sections that explicitly indicate end of main content
+    # 🛑 HARD CUTS: Metni kökten kesen işaretçiler. 
+    # Markdown listesi (- veya *) olabileceği için başa [\s\-_•*]* ekliyoruz.
     HARD_CUT_MARKERS = [
-        r"öne çıkan ayrıcalıklar", r"ilginizi çekebilecek diğer kampanyalar", 
-        r"ilginizi çekebilecek kampanyalar", r"benzer kampanyalar", 
-        r"benzer fırsatlar", r"sizin için seçtiklerimiz",
-        r"diğer kampanyalar", r"diğer fırsatlar", r"benzer fırsatları kaçırmayın",
-        r"diğer kampanyalara göz atın", r"miles&smiles dünyası ayrıcalıklarınız",
-        r"mıl programı mıl kazanımı", r"mil programı mil kazanımı",
-        r"türk hava yolları ayrıcalıkları",
-        # Şekerbank Yandal Menüsü Silecekleri
-        r"kampanyalar\s+kart kampanyaları\s+mobilya kampanyası",
-        r"şeker bonus kart market kampanyası",
-        r"ramazan bereketi market kampanyası",
-        r"beyaz eşya ve elektronik kampanyası\s+muhteşem kasım",
-        r"yurt dışı fiziki alışveriş kampanyası"
+        r"(?i)ilginizi çekebilecek (diğer )?kampanyalar",
+        r"(?i)ilginizi\s+çekebilir",
+        r"(?i)benzer kampanyalar",
+        r"(?i)benzer fırsatlar",
+        r"(?i)diğer kampanyalara göz atın",
+        r"(?i)sizin için seçtiklerimiz",
+        r"(?i)öne çıkan ayrıcalıklar",
+        r"(?i)(paylaş|yazdır)$",
+        r"(?i)kampanya koşullarını (değiştirme|durdurma|değişiklik yapma).*(hakkını saklı tutar|hakkına sahiptir)",
+        r"(?i)miles&smiles dünyası ayrıcalıklarınız",
+        r"(?i)mıl programı mıl kazanımı",
+        r"(?i)©\s*copyright",
+        r"(?i)tüm hakları saklıdır",
     ]
     
     # 1. First evaluate hard cuts (no minimum percentage threshold required)
     for marker in HARD_CUT_MARKERS:
-        for match in re.finditer(marker, text_lower):
+        for match in re.finditer(marker, text_lower, re.MULTILINE):
             # Only apply if it's not literally the first sentence of the page (safeguard)
-            if match.start() >= 150 and match.start() < earliest_noise_idx:
+            if match.start() >= 300 and match.start() < earliest_noise_idx: 
                 earliest_noise_idx = match.start()
                 
     # 2. Then evaluate standard soft noise markers

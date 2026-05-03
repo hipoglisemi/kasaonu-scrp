@@ -412,11 +412,15 @@ class DenizbankScraper:
         raw_text = ""
         try:
             raw_text_js = self.driver.execute_script("""
-                const el = document.querySelector('.campaign-detail-text');
-                return el ? el.innerText : "";
+                let text = "";
+                const left = document.querySelector('.campaign-detail-text') || document.querySelector('.campaign-detail');
+                const right = document.querySelector('.container-right') || document.querySelector('.campaign-startend-date');
+                if (left) text += left.innerText + "\\n\\n";
+                if (right) text += right.innerText + "\\n\\n";
+                return text;
             """)
             if raw_text_js and len(raw_text_js.strip()) > 100:
-                print(f"   ✨ Extracted {len(raw_text_js)} chars via JS from .campaign-detail-text")
+                print(f"   ✨ Extracted {len(raw_text_js)} chars via JS from .campaign-detail-text and .container-right")
                 raw_text = raw_text_js
             else:
                 # Fallback to BeautifulSoup if JS fails or returns too little

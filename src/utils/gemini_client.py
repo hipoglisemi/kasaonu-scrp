@@ -57,19 +57,25 @@ def _load_keys() -> List[str]:
 def generate_with_rotation(
     prompt: str,
     model: Optional[str] = None,
+    fallback_model: Optional[str] = None,
     retry_delay: float = 5.0, # Linear delay between keys
     **kwargs: Any
 ) -> str:
     """
-    Sends prompt to Gemini API with a simple Linear Loop.
-    1. Tries keys 0 to N in fixed order.
+    Sends prompt to Gemini API with a simple Linear Loop and optional fallback model.
+    1. Tries keys 0 to N in fixed order with the primary model.
     2. Waits 5s between keys if Rate Limited (429/503).
-    3. Gives up if all keys are exhausted in one round.
+    3. If all keys fail and fallback_model is provided, repeats the loop with the fallback model.
     """
     if not HAS_GENAI:
         raise ImportError("google-genai kütüphanesi yüklü değil.")
 
-    model_name = model or os.getenv("GEMINI_MODEL", "gemma-4-31b-it-preview")
+    primary_model_name = model or os.getenv("GEMINI_MODEL", "gemini-3.1-flash-lite-preview")
+    fallback_model_name = fallback_model or os.getenv("FALLBACK_MODEL")
+    
+    models_to_try = [(primary_model_name, "Primary")]
+    if fallback_model_name:
+        models_to_try.append((fallback_model_name, "Fallback"))
     
     if "config" in kwargs:
         config = kwargs.pop("config")
@@ -79,46 +85,50 @@ def generate_with_rotation(
     keys = _load_keys()
     last_error: Optional[Exception] = None
     
-    for idx, key in enumerate(keys):
-        try:
-            client = _sdk.Client(api_key=key)
-            response = client.models.generate_content(
-                model=model_name,
-                contents=prompt,
-                config=config
-            )
+    for current_model, model_role in models_to_try:
+        if model_role == "Fallback":
+            print(f"[KeyLoop] 🔄 Primary model ({primary_model_name}) failed on all keys. Switching to Fallback: {current_model}")
             
-            # Success Log
-            if idx > 0:
-                print(f"[KeyLoop] ✨ Success with Key #{idx + 1} (Total keys: {len(keys)})")
-            return response.text.strip()
-
-        except Exception as e:
-            err_str = str(e).lower()
-            is_retriable = any(
-                token in err_str
-                for token in ["429", "resourceexhausted", "quota", "rate_limit", "500", "502", "503", "504", "deadline_exceeded"]
-            )
-            
-            if is_retriable:
-                # 503 High Demand requires longer wait
-                is_503 = "503" in err_str or "high demand" in err_str
-                current_delay = retry_delay * 2 if is_503 else retry_delay
-                # Add jitter
-                current_delay += random.uniform(0, 2)
+        for idx, key in enumerate(keys):
+            try:
+                client = _sdk.Client(api_key=key)
+                response = client.models.generate_content(
+                    model=current_model,
+                    contents=prompt,
+                    config=config
+                )
                 
-                msg = f"[KeyLoop] ⚠️  Key #{idx + 1} failed ({type(e).__name__})."
-                if idx + 1 < len(keys):
-                    print(f"{msg} {'(MODEL HIGH DEMAND)' if is_503 else ''} Trying next key... ({idx + 2}/{len(keys)}) | Waiting {current_delay:.1f}s...")
-                    time.sleep(current_delay)
+                # Success Log
+                if idx > 0 or model_role == "Fallback":
+                    print(f"[KeyLoop] ✨ Success with Key #{idx + 1} using {model_role} model ({current_model})")
+                return response.text.strip()
+
+            except Exception as e:
+                err_str = str(e).lower()
+                is_retriable = any(
+                    token in err_str
+                    for token in ["429", "resourceexhausted", "quota", "rate_limit", "500", "502", "503", "504", "deadline_exceeded"]
+                )
+                
+                if is_retriable:
+                    # 503 High Demand requires longer wait
+                    is_503 = "503" in err_str or "high demand" in err_str
+                    current_delay = retry_delay * 2 if is_503 else retry_delay
+                    # Add jitter
+                    current_delay += random.uniform(0, 2)
+                    
+                    msg = f"[KeyLoop] ⚠️  Key #{idx + 1} failed for {current_model} ({type(e).__name__})."
+                    if idx + 1 < len(keys):
+                        print(f"{msg} {'(HIGH DEMAND)' if is_503 else ''} Trying next key... ({idx + 2}/{len(keys)}) | Waiting {current_delay:.1f}s...")
+                        time.sleep(current_delay)
+                    else:
+                        print(f"{msg} All {len(keys)} keys exhausted for {current_model}.")
+                    last_error = e
+                    continue # Try next key
                 else:
-                    print(f"{msg} All {len(keys)} keys exhausted.")
-                last_error = e
-                continue # Try next key
-            else:
-                # Fatal error
-                print(f"[KeyLoop] ❌ Fatal Error with Key #{idx + 1}: {e}")
-                raise
+                    # Fatal error
+                    print(f"[KeyLoop] ❌ Fatal Error with Key #{idx + 1} on {current_model}: {e}")
+                    raise
 
     raise RuntimeError(f"Tüm Gemini API anahtarları ({len(keys)} adet) denendi fakat başarısız oldu. Son hata: {last_error}")
 

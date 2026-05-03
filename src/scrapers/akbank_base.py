@@ -171,24 +171,6 @@ class AkbankBaseScraper:
             # Use specific title from AI if available, otherwise fallback
             final_title = ai_data.get('short_title') or ai_data.get('title') or title
             
-            # Check for existing campaign by source_url + card_id and blocklist
-            if should_skip_campaign(db, source_url, card_id=self.card_id):
-                # This should usually be handled by _process_campaign's early check, 
-                # but we keep it here as a safety measure.
-                existing = db.query(Campaign).filter(Campaign.tracking_url == source_url).first()
-                title_log = existing.title if existing else source_url
-                print(f"   ⏭️  Skipped (Safety Check: URL blocked or exists): {title_log}")
-                return "skipped"  # type: ignore # pyre-ignore[7]
-
-            # Ensure slug is unique using the utility
-            slug = get_unique_slug(final_title, db, Campaign)
-            
-            if not slug or slug == "kampanya":
-                # Ultimate fallback if title is too generic
-                import uuid  # type: ignore # pyre-ignore[21]
-                u_str = str(uuid.uuid4())
-                slug = f"kampanya-{u_str[:8]}"  # type: ignore # pyre-ignore[16,6]
-
             # Map sector from AI data
             sector_name = ai_data.get('sector', 'Diğer')
             sector = db.query(Sector).filter((Sector.slug == sector_name) | (Sector.name.ilike(sector_name))).first()  # type: ignore # pyre-ignore[16]
@@ -213,47 +195,79 @@ class AkbankBaseScraper:
 
             # Build conditions text with participation and eligible cards
             conditions_lines = []
-            
-            # Add participation info
             participation = ai_data.get('participation')
             if participation and participation != "Detayları İnceleyin":
-            
                 pass  # participation field written separately to DB
-            # --- USER REQUEST: DO NOT REPEAT ELIGIBLE CARDS IN CONDITIONS ---
+                
             eligible_cards_list = ai_data.get('cards', [])
-            # (Previously added GEÇERLİ KARTLAR here, now removed)
-            
-            # Add AI conditions
             if ai_data.get('conditions'):
                 conditions_lines.extend(ai_data.get('conditions'))
             
             conditions_text = "\n".join(conditions_lines)
             eligible_cards_str = ", ".join(eligible_cards_list) if eligible_cards_list else None
-
-            campaign = Campaign(  # type: ignore
-                card_id=self.card_id,  # type: ignore
-                sector_id=sector.id if sector else None,  # type: ignore
-                slug=slug,  # type: ignore
-                title=ai_data.get('short_title') or ai_data.get('title') or title,  # type: ignore
-                description=ai_data.get('description') or title,  # type: ignore
-                ai_marketing_text=ai_data.get('ai_marketing_text') or ai_data.get('description') or title,  # type: ignore
-                reward_text=ai_data.get('reward_text'),  # type: ignore
-                reward_value=ai_data.get('reward_value'),  # type: ignore
-                reward_type=ai_data.get('reward_type'),  # type: ignore
-                conditions=conditions_text,  # type: ignore
-                eligible_cards=eligible_cards_str,
-                participation=participation,  # type: ignore
-                image_url=image_url,  # type: ignore
-                start_date=start_date,  # type: ignore
-                end_date=end_date,  # type: ignore
-                is_active=True,  # type: ignore
-                created_at=datetime.utcnow(),  # type: ignore
-                updated_at=datetime.utcnow(),  # type: ignore
-                tracking_url=source_url  # type: ignore
-            )
             
-            db.add(campaign)  # type: ignore # pyre-ignore[16]
+            existing = db.query(Campaign).filter(Campaign.tracking_url == source_url, Campaign.card_id == self.card_id).first()
+            if existing:
+                if existing.is_active:
+                    print(f"   ⏭️  Skipped (Safety Check: already exists and active): {existing.title}")
+                    return "skipped"  # type: ignore
+                
+                # Revive and update existing passive campaign
+                existing.title = final_title
+                existing.description = ai_data.get('description') or title
+                existing.ai_marketing_text = ai_data.get('ai_marketing_text') or ai_data.get('description') or title
+                existing.reward_text = ai_data.get('reward_text')
+                existing.reward_value = ai_data.get('reward_value')
+                existing.reward_type = ai_data.get('reward_type')
+                existing.conditions = conditions_text
+                existing.eligible_cards = eligible_cards_str
+                existing.participation = participation
+                existing.image_url = image_url
+                existing.start_date = start_date or existing.start_date
+                existing.end_date = end_date
+                existing.is_active = True
+                existing.updated_at = datetime.utcnow()
+                if sector:
+                    existing.sector_id = sector.id
+                
+                campaign = existing
+                print(f"   ♻️  Revived Passive Campaign: {campaign.title}")
+            else:
+                # Ensure slug is unique using the utility
+                slug = get_unique_slug(final_title, db, Campaign)
+                
+                if not slug or slug == "kampanya":
+                    import uuid  # type: ignore # pyre-ignore[21]
+                    u_str = str(uuid.uuid4())
+                    slug = f"kampanya-{u_str[:8]}"  # type: ignore # pyre-ignore[16,6]
+
+                campaign = Campaign(  # type: ignore
+                    card_id=self.card_id,  # type: ignore
+                    sector_id=sector.id if sector else None,  # type: ignore
+                    slug=slug,  # type: ignore
+                    title=final_title,  # type: ignore
+                    description=ai_data.get('description') or title,  # type: ignore
+                    ai_marketing_text=ai_data.get('ai_marketing_text') or ai_data.get('description') or title,  # type: ignore
+                    reward_text=ai_data.get('reward_text'),  # type: ignore
+                    reward_value=ai_data.get('reward_value'),  # type: ignore
+                    reward_type=ai_data.get('reward_type'),  # type: ignore
+                    conditions=conditions_text,  # type: ignore
+                    eligible_cards=eligible_cards_str,
+                    participation=participation,  # type: ignore
+                    image_url=image_url,  # type: ignore
+                    start_date=start_date,  # type: ignore
+                    end_date=end_date,  # type: ignore
+                    is_active=True,  # type: ignore
+                    created_at=datetime.utcnow(),  # type: ignore
+                    updated_at=datetime.utcnow(),  # type: ignore
+                    tracking_url=source_url  # type: ignore
+                )
+                db.add(campaign)  # type: ignore
+                print(f"   ✅ Saved New: {campaign.title}")
+
             db.commit()  # type: ignore # pyre-ignore[16]
+
+
             
             # Brands via brand_matcher
             brand_ids = get_or_create_brands_list(
@@ -274,7 +288,6 @@ class AkbankBaseScraper:
                 except Exception as e:
                     db.rollback()
                     print(f"   ⚠️ CampaignBrand link failed: {e}")
-            print(f"   ✅ Saved: {campaign.title}")
             return "saved"  # type: ignore # pyre-ignore[7]
 
     def run(self, limit: Optional[int] = None, urls: Optional[List[str]] = None, force: bool = False):  # type: ignore # pyre-ignore[16,6]
@@ -301,10 +314,15 @@ class AkbankBaseScraper:
                 # --- Early DB Check (Moved here to handle sub-class overrides) ---
                 if not force:
                     with get_db_session() as db:
-                        if should_skip_campaign(db, url, card_id=self.card_id):
-                            existing = db.query(Campaign).filter(Campaign.tracking_url == url).first()
-                            title_log = existing.title if existing else url
-                            print(f"⏭️  Skipped (Blocked or already exists): {title_log}")
+                        from src.utils.scraper_utils import is_url_blocked
+                        if is_url_blocked(db, url):
+                            print(f"⏭️  Skipped (Blocked): {url}")
+                            total_skipped += 1
+                            continue
+                            
+                        existing = db.query(Campaign).filter(Campaign.tracking_url == url, Campaign.card_id == self.card_id).first()
+                        if existing and existing.is_active:
+                            print(f"⏭️  Skipped (Already exists & active): {existing.title}")
                             total_skipped += 1  # type: ignore # pyre-ignore[58]
                             continue
 

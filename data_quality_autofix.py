@@ -38,23 +38,26 @@ from google.genai import types # type: ignore
 # Golden Parser AI Client Wrapper
 class _AutofixGeminiClient:
     """Wraps generate_with_rotation for AIParserGolden compatibility."""
-    def __init__(self):
-        self.model = os.getenv("GEMINI_MODEL", "gemini-3.1-flash-lite-preview")
+    def __init__(self, model=None, fallback_model=None):
+        self.model = model or os.getenv("GEMINI_MODEL", "models/gemini-3.1-flash-lite-preview")
+        self.fallback_model = fallback_model or os.getenv("FALLBACK_MODEL")
+        
     def generate_content(self, prompt):
         config = types.GenerateContentConfig(
             temperature=0.0, top_p=0.1, top_k=1,
             response_mime_type="application/json",
             max_output_tokens=6000
         )
-        result = generate_with_rotation(prompt=prompt, model=self.model, config=config)
+        result = generate_with_rotation(
+            prompt=prompt, 
+            model=self.model, 
+            fallback_model=self.fallback_model,
+            config=config
+        )
         return str(result) if result else "{}"
 
-_golden_parser = None
-def _get_golden_parser():
-    global _golden_parser
-    if _golden_parser is None:
-        _golden_parser = AIParserGolden(_AutofixGeminiClient())
-    return _golden_parser
+def _get_golden_parser(model=None, fallback_model=None):
+    return AIParserGolden(_AutofixGeminiClient(model=model, fallback_model=fallback_model))
 
 SECTOR_MAP = {
     # Türkçe isim → slug
@@ -118,35 +121,75 @@ SECTOR_MAP = {
 
 def fetch_html(url: str) -> str:
     """Attempts to fetch the HTML content of a URL."""
-    spa_domains = ["opet.com.tr", "naysapp.com.tr", "chippin.com"]
+    raw_html = ""
+    spa_domains = ["opet.com.tr", "naysapp.com.tr", "chippin.com", "axess.com.tr", "kartfree.com", "wingscard.com.tr", "bonus.com.tr", "denizbonus.com"]
     is_spa = any(domain in url for domain in spa_domains)
 
     if is_spa:
-        print(f"   🚀 SPA Detected ({url}). Booting Headless Chrome...")
+        print(f"   🚀 SPA/Tabbed Site Detected ({url}). Booting Headless Chrome...")
         import time
         from selenium import webdriver
+        from selenium.webdriver.common.by import By
         options = webdriver.ChromeOptions()
         options.add_argument('--disable-blink-features=AutomationControlled')
         options.add_argument('--no-sandbox')
         options.add_argument('--disable-dev-shm-usage')
         options.add_argument('--disable-gpu')
         options.add_argument('--headless=new')
-        options.page_load_strategy = 'eager'
+        
+        options.add_argument('--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36')
         
         try:
             driver = webdriver.Chrome(options=options)
             driver.set_page_load_timeout(30)
             driver.get(url)
-            # Give React/JS time to load content
-            time.sleep(5) 
+            time.sleep(4) # Initial wait
+            # Scroll to bottom to trigger lazy loading
+            driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
+            time.sleep(2)
+            # Scroll slightly up as some lazy loaders need movement
+            driver.execute_script("window.scrollTo(0, document.body.scrollHeight - 500);")
+            time.sleep(2)
+            raw_html = driver.page_source
+
+            # Bonus.com.tr specific: Click on "DİĞER BİLGİLER" or "Nasıl Kazanırım" tabs to reveal cards
+            if "bonus.com.tr" in url:
+                try:
+                    tabs = driver.find_elements(By.CSS_SELECTOR, ".tabs-list li, .how-to-win-tabs li, .tab-item, .nav-tabs li a")
+                    for tab in tabs:
+                        tab_text = tab.text.lower()
+                        if any(txt in tab_text for txt in ["diğer bilgiler", "diger bilgiler", "nasıl kazanırım", "dahil kartlar"]):
+                            driver.execute_script("arguments[0].scrollIntoView();", tab)
+                            driver.execute_script("arguments[0].click();", tab)
+                            time.sleep(2)
+                except:
+                    pass
+
+            time.sleep(2) 
             raw_html = driver.page_source
             driver.quit()
         except Exception as e:
-            print(f"   ⚠️ SPA fetch failed: {e}. Falling back to requests.")
+            print(f"   ⚠️ SPA fetch failed: {e}. Falling back to standard methods.")
             raw_html = ""
-    else:
-        raw_html = ""
-        
+            
+    is_trafilatura_text = False
+    if not raw_html or len(raw_html) < 2000:
+        # Final Fallback: Use Trafilatura (Our robust markdown engine)
+        try:
+            if "vakif" in url:
+                raise Exception("Skip Trafilatura for Vakifbank due to noise issues")
+            import trafilatura
+            downloaded = trafilatura.fetch_url(url)
+            if downloaded:
+                # Extract with all options to get as much text as possible
+                extracted_text = trafilatura.extract(downloaded, include_tables=True, include_links=True, include_comments=True)
+                if extracted_text and len(extracted_text) > 500:
+                    print(f"   ✨ Trafilatura successfully extracted {len(extracted_text)} chars.")
+                    raw_html = extracted_text # Set as raw_html to be processed by clean_campaign_text below
+                    is_trafilatura_text = True
+        except Exception as te:
+            print(f"   ⚠️ Trafilatura failed: {te}")
+
     if not raw_html:
         try:
             headers = {
@@ -164,51 +207,58 @@ def fetch_html(url: str) -> str:
             print(f"   ⚠️ Request failed: {e}")
             return ""
 
-    soup = BeautifulSoup(raw_html, 'html.parser')
+    if not is_trafilatura_text:
+        soup = BeautifulSoup(raw_html, 'html.parser')
 
-    # 🛡️ NOISE REMOVAL (Global)
-    for script in soup(["script", "style", "nav", "footer", "header", "noscript"]):
-        script.extract()
+        # 🛡️ NOISE REMOVAL (Global)
+        for script in soup(["script", "style", "nav", "footer", "header", "noscript"]):
+            script.extract()
+            
+        # 🛡️ NOISE REMOVAL (Specific)
+        noise_selectors = [
+            '.other-campaigns', '.featured-campaigns', '.similar-campaigns', 
+            '.campaign-recommendations', 'section.news-carousel', 
+            '#related-campaigns', '.campaignDetail-others'
+        ]
+        for selector in noise_selectors:
+            for element in soup.select(selector):
+                element.extract()
         
-    # 🛡️ NOISE REMOVAL (Specific)
-    noise_selectors = [
-        '.other-campaigns', '.featured-campaigns', '.similar-campaigns', 
-        '.campaign-recommendations', 'section.news-carousel', 
-        '#related-campaigns', '.campaignDetail-others'
-    ]
-    for selector in noise_selectors:
-        for element in soup.select(selector):
-            element.extract()
-    
-    # 🎯 CONTENT TARGETING
-    # If we find specific content containers, only use those.
-    target_selectors = [
-        '.sub-header', '.campaign-terms', '.campaign-detail-content', '.campaign-detail', 
-        '.campaign-detail-tab-details', '.campaign-detail-box', 
-        'article.campaign-detail', '.cmsContent'
-    ]
-    
-    content_found = []
-    for selector in target_selectors:
-        elements = soup.select(selector)
-        for el in elements:
-            # Double check: ignore elements that contain mostly noise headers
-            el_text_lower = el.get_text().lower()
-            if any(x in el_text_lower for x in ["öne çıkan kampanyalar", "benzer kampanyalar"]):
-                continue
-            content_found.append(el.get_text(separator=' ', strip=True))
-    
-    if content_found:
-        text = " ".join(content_found)
+        # 🎯 CONTENT TARGETING
+        target_selectors = [
+            '.sub-header', '.campaign-terms', '.campaign-detail-content', '.campaign-detail', 
+            '.campaign-detail-tab-details', '.campaign-detail-box', 
+            'article.campaign-detail', '.cmsContent',
+            '.campaingDetail', '.campaing', '.textArea', '.campaingDetail-content',
+            '.how-to-win-content', '.tab-content', '.campaign-detail-content', '.campaign-detail-text',
+            '.campaign-detail-capsule', '.container-right', '.campaign-dates'
+        ]
+        
+        content_found = []
+        for selector in target_selectors:
+            elements = soup.select(selector)
+            for el in elements:
+                el_text_lower = el.get_text().lower()
+                if any(x in el_text_lower for x in ["öne çıkan kampanyalar", "benzer kampanyalar"]):
+                    continue
+                content_found.append(el.get_text(separator=' ', strip=True))
+        
+        if content_found:
+            text = " ".join(content_found)
+        else:
+            text = soup.get_text(separator=' ', strip=True)
     else:
-        # Fallback to whole body if no specific containers found
-        text = soup.get_text(separator=' ', strip=True)
+        # Trafilatura already gave us the text in raw_html
+        text = raw_html
         
+    print(f"🔍 DEBUG RAW EXTRACTED TEXT: {text}")
+    
     # 🛡️ Use Central Text Cleaner (Standard Scraper Logic)
     text = clean_campaign_text(text)
+    print(f"🔍 DEBUG PROCESSED TEXT (Full): {text}")
     return text
 
-def run_autofix(limit: int = 250, campaign_id: Optional[int] = None, force_all: bool = False, ids_file: Optional[str] = None, ui_mode: bool = False, pending: bool = False):
+def run_autofix(limit: int = 250, campaign_id: Optional[int] = None, force_all: bool = False, ids_file: Optional[str] = None, ui_mode: bool = False, pending: bool = False, model: Optional[str] = None, fallback_model: Optional[str] = None):
     print(f"🚀 Starting Data Quality Auto-Fixer (Limit: {limit})...")
     
     try:
@@ -473,7 +523,10 @@ def run_autofix(limit: int = 250, campaign_id: Optional[int] = None, force_all: 
                 is_truncated = any("Short/Truncated Source Text" in r for r in reasons_list)
                 text_to_parse = ""
                 
-                if c.clean_text and len(c.clean_text) >= 600 and not is_truncated and not mojibake_pattern.search(c.clean_text) and not FORCE_ALL:
+                # Force rescue if campaign_id is specifically requested (UI Repair Button)
+                force_rescue = True if campaign_id else FORCE_ALL
+                
+                if c.clean_text and len(c.clean_text) >= 600 and not is_truncated and not mojibake_pattern.search(c.clean_text) and not force_rescue:
                     print(f"   ⚡ Using pre-cleaned text from DB ({len(c.clean_text)} chars)")
                     text_to_parse = c.clean_text
                 else:
@@ -485,7 +538,12 @@ def run_autofix(limit: int = 250, campaign_id: Optional[int] = None, force_all: 
                     try:
                         import urllib3
                         urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
-                        _raw_resp = requests.get(c.tracking_url, headers={'User-Agent': 'Mozilla/5.0'}, timeout=15, verify=False)
+                        headers = {
+                            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36',
+                            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
+                            'Accept-Language': 'tr-TR,tr;q=0.9,en-US;q=0.8,en;q=0.7',
+                        }
+                        _raw_resp = requests.get(c.tracking_url, headers=headers, timeout=15, verify=False)
                         _raw_resp.raise_for_status()
                         _raw_html = _raw_resp.text
                         from bs4 import BeautifulSoup as _BS
@@ -552,7 +610,8 @@ def run_autofix(limit: int = 250, campaign_id: Optional[int] = None, force_all: 
                     ai_title_pass = ''
 
                 print(f"   🤖 [GOLDEN V3] Sending {len(text_to_parse)} characters to AI... (Bank: {bank_name or 'Unknown'})")
-                parser = _get_golden_parser()
+                parser = _get_golden_parser(model=model, fallback_model=fallback_model)
+
                 ai_data = parser.parse_campaign(
                     raw_html=text_to_parse,
                     bank_name=bank_name or '',
@@ -563,7 +622,7 @@ def run_autofix(limit: int = 250, campaign_id: Optional[int] = None, force_all: 
                 if not ai_data:
                     print(f"   ❌ Gemini AI failed to return data. Skipping.")
                     continue
-                
+
                 # 🛡️ REJECT FAILED AI RESPONSES
                 if ai_data.get("_ai_failed"):
                     print(f"   ❌ AI returned fallback/failed data (_ai_failed=True). Skipping.")
@@ -906,11 +965,21 @@ if __name__ == "__main__":
     parser.add_argument("--force", action="store_true", help="Force AI re-parse even if data exists")
     parser.add_argument("--ui-mode", action="store_true", help="Output JSON for UI bridge")
     parser.add_argument("--pending", action="store_true", help="Process only unapproved (pending) campaigns")
+    parser.add_argument("--model", type=str, help="Primary AI model to use")
+    parser.add_argument("--fallback-model", type=str, help="Fallback AI model to use on failure")
     args = parser.parse_args()
     
     # In UI mode, we don't want sleep and we want a limit of 1
     limit = args.limit
     if args.ui_mode:
         limit = 1
-        
-    run_autofix(limit=limit, campaign_id=args.id, force_all=args.force, ids_file=args.ids_file, ui_mode=args.ui_mode, pending=args.pending)
+    run_autofix(
+        limit=limit, 
+        campaign_id=args.id, 
+        force_all=args.force, 
+        ids_file=args.ids_file, 
+        ui_mode=args.ui_mode, 
+        pending=args.pending,
+        model=args.model,
+        fallback_model=args.fallback_model
+    )
