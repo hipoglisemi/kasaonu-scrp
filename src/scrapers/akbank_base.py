@@ -226,6 +226,7 @@ class AkbankBaseScraper:
                 existing.start_date = start_date or existing.start_date
                 existing.end_date = end_date
                 existing.is_active = True
+                existing.is_approved = False  # Revived campaigns MUST be reviewed again
                 existing.updated_at = datetime.utcnow()
                 if sector:
                     existing.sector_id = sector.id
