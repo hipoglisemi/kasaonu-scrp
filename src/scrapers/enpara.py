@@ -304,7 +304,9 @@ class EnparaScraper:
                 eligible_cards=", ".join(ai_data.get("cards", [])) if isinstance(ai_data.get("cards"), list) and ai_data.get("cards") else self.CARD_NAME
             )
             
-            self.db.add(campaign)  # type: ignore # pyre-ignore[16]
+            from src.utils.scraper_utils import upsert_campaign
+            
+            campaign, _op_status = upsert_campaign(self.db, campaign)
             self.db.commit()  # type: ignore # pyre-ignore[16]
             print(f"   ✅ Saved: {campaign.title}")
 
@@ -326,7 +328,7 @@ class EnparaScraper:
                 self.db.add(cb)  # type: ignore # pyre-ignore[16]
             
             self.db.commit()  # type: ignore # pyre-ignore[16]
-            return "saved"  # type: ignore # pyre-ignore[7]
+            return locals().get("_op_status", "saved")  # type: ignore # pyre-ignore[7]
 
         except Exception as e:
             self.db.rollback()  # type: ignore # pyre-ignore[16]
@@ -342,6 +344,8 @@ class EnparaScraper:
             print(f"   Using limit: {limit}")
             
         success_count = 0
+            
+        total_revived = 0
         skipped_count = 0
         failed_count = 0
         error_details = []

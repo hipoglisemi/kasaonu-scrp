@@ -347,7 +347,9 @@ class ONDigitalScraper:
                 eligible_cards=", ".join(data.get("cards", [])) if isinstance(data.get("cards"), list) and data.get("cards") else self.CARD_NAME
             )
 
-            db.add(campaign)
+            from src.utils.scraper_utils import upsert_campaign
+
+            campaign, _op_status = upsert_campaign(db, campaign)
             db.flush()
 
             # Brands
@@ -363,7 +365,7 @@ class ONDigitalScraper:
 
             db.commit()
             print(f"      ✅ Saved: {campaign.title}")
-            return "saved"
+            return locals().get("_op_status", "saved")
 
         except IntegrityError:
             db.rollback()

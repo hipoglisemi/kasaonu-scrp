@@ -309,7 +309,8 @@ class ZiraatScraper:
                 created_at=datetime.utcnow(),
                 updated_at=datetime.utcnow()
             )
-            self.db.add(campaign)  # type: ignore # pyre-ignore[16]
+            from src.utils.scraper_utils import upsert_campaign
+            campaign, _op_status = upsert_campaign(self.db, campaign)
             
             self.db.commit()  # type: ignore # pyre-ignore[16]
 
@@ -333,7 +334,7 @@ class ZiraatScraper:
                     self.db.rollback()
                     print(f"   ⚠️ CampaignBrand link failed: {e}")
             print(f"   ✅ Saved: {title} | End: {vu}")
-            return "saved"  # type: ignore # pyre-ignore[7]
+            return locals().get("_op_status", "saved")  # type: ignore # pyre-ignore[7]
             
         except Exception as e:
             print(f"   ❌ Error processing {url}: {e}")
@@ -351,6 +352,7 @@ class ZiraatScraper:
         
         count = 0
         success_count = 0
+        total_revived = 0
         skipped_count = 0
         failed_count = 0
         error_details = []

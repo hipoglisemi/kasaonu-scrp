@@ -340,7 +340,9 @@ class GarantiShopAndFlyScraper:
                 updated_at=datetime.utcnow()  # type: ignore
             )
             
-            db.add(campaign)  # type: ignore # pyre-ignore[16]
+            from src.utils.scraper_utils import upsert_campaign
+            
+            campaign, _op_status = upsert_campaign(db, campaign)
             db.flush()  # type: ignore # pyre-ignore[16]
             
             # Brands via brand_matcher
@@ -364,7 +366,7 @@ class GarantiShopAndFlyScraper:
                     db.rollback()
                     print(f"   ⚠️ CampaignBrand link failed: {e}")
             print(f"   ✅ Saved: {campaign.title[:50]}... (Reward: {campaign.reward_text})")  # type: ignore # pyre-ignore[16,6]
-            return "saved"  # type: ignore # pyre-ignore[7]
+            return locals().get("_op_status", "saved")  # type: ignore # pyre-ignore[7]
 
     def run(self):
         """Main execution flow"""

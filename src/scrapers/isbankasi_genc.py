@@ -529,7 +529,8 @@ class IsbankMaximumGencScraper:
                 is_active=True, tracking_url=url,
                 created_at=datetime.utcnow(), updated_at=datetime.utcnow(),
             )
-            self.db.add(campaign)  # type: ignore # pyre-ignore[16]
+            from src.utils.scraper_utils import upsert_campaign
+            campaign, _op_status = upsert_campaign(self.db, campaign)
             self.db.commit()  # type: ignore # pyre-ignore[16]
 
             # Brands via brand_matcher
@@ -578,7 +579,7 @@ class IsbankMaximumGencScraper:
 
 
             print(f"   ✅ Saved: {campaign.title[:50]}")  # type: ignore # pyre-ignore[16,6]
-            return "saved"  # type: ignore # pyre-ignore[7]
+            return locals().get("_op_status", "saved")  # type: ignore # pyre-ignore[7]
         except Exception as e:
             self.db.rollback()  # type: ignore # pyre-ignore[16]
             print(f"   ❌ Save failed: {e}")

@@ -181,7 +181,9 @@ class QNBScraper:
                     eligible_cards=", ".join(ai_data.get("cards", [])) if isinstance(ai_data.get("cards"), list) and ai_data.get("cards") else "QNBCard"
                 )
                 
-                db.add(campaign)  # type: ignore # pyre-ignore[16]
+                from src.utils.scraper_utils import upsert_campaign
+                
+                campaign, _op_status = upsert_campaign(db, campaign)
                 db.commit()  # type: ignore # pyre-ignore[16]
 
                 if ai_data.get('brands'):
@@ -206,7 +208,7 @@ class QNBScraper:
                         except Exception as e:
                             db.rollback()
                             print(f"   ⚠️ CampaignBrand link failed: {e}")
-            return "saved"  # type: ignore # pyre-ignore[7]
+            return locals().get("_op_status", "saved")  # type: ignore # pyre-ignore[7]
         except Exception as e:
             print(f"      ❌ DB Save Error: {e}")
             return "error"  # type: ignore # pyre-ignore[7]

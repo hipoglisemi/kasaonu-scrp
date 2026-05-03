@@ -161,6 +161,8 @@ class UptionScraper:
                     found_items = list(found_items)[:limit] # type: ignore
 
                 success_count = 0
+
+                total_revived = 0
                 skipped_count = 0
                 failed_count = 0
 
@@ -299,7 +301,7 @@ class UptionScraper:
             return "failed"
 
         self._save_campaign(ai_data, url, image_url)
-        return "saved"
+        return locals().get("_op_status", "saved")
 
     def _save_campaign(self, data: Dict, url: str, image_url: str):
         db = self.db
@@ -359,7 +361,8 @@ class UptionScraper:
                 is_active=True,
                 clean_text=data.get("_clean_text")
             )
-            db.add(campaign)
+            from src.utils.scraper_utils import upsert_campaign
+            campaign, _op_status = upsert_campaign(db, campaign)
             db.flush() # Get campaign.id
 
             # Brands via brand_matcher

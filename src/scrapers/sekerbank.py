@@ -347,6 +347,8 @@ class SekerbankScraper:
             found_items = found_items[0:limit] # type: ignore # pyre-ignore[16]
 
         success_count = 0
+
+        total_revived = 0
         skipped_count = 0
         failed_count = 0
 
@@ -483,7 +485,7 @@ class SekerbankScraper:
         # Save to DB
         self._save_campaign(ai_data, url, image_url, source['default_card'])
         print(f"      ✅ Saved: {ai_data['title']}")
-        return "saved"
+        return locals().get("_op_status", "saved")
 
     def _save_campaign(self, data: Dict, url: str, image_url: str, default_card_name: str):
         """Save structured data and linked entities to the database."""
@@ -547,7 +549,8 @@ class SekerbankScraper:
         
         try:
             if not self.db: return # type: ignore
-            self.db.add(campaign) # type: ignore # pyre-ignore[16]
+            from src.utils.scraper_utils import upsert_campaign
+            campaign, _op_status = upsert_campaign(self.db, campaign)
             self.db.commit() # type: ignore # pyre-ignore[16]
             
             # Map Brands

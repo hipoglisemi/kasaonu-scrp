@@ -107,6 +107,7 @@ class TamiScraper:
 
         total_found = len(campaigns_list)
         total_saved = 0
+        total_revived = 0
         total_skipped = 0
         total_failed = 0
         error_details = []
@@ -188,7 +189,7 @@ class TamiScraper:
 
             time.sleep(random.uniform(0.5, 1.5))
 
-        print(f"🏁 Scraping finished. Found: {total_found}, Saved: {total_saved}, Skipped: {total_skipped}, Failed: {total_failed}")
+        print(f"🏁 Scraping finished. Found: {total_found}, Saved: {total_saved}, Skipped: {total_skipped}, Failed: {total_failed}, Revived: {total_revived}")
 
         # Final Log
         status_msg = "SUCCESS" if total_failed == 0 else ("PARTIAL" if total_saved > 0 else "FAILED")
@@ -264,7 +265,8 @@ class TamiScraper:
             )
 
             try:
-                db.add(campaign)
+                from src.utils.scraper_utils import upsert_campaign
+                campaign, _op_status = upsert_campaign(db, campaign)
                 db.commit()
                 db.refresh(campaign)
 
@@ -289,7 +291,7 @@ class TamiScraper:
                         db.rollback()
                         print(f"   ⚠️ CampaignBrand link failed: {e}")
                 print(f"   ✅ Saved: {campaign.title}")
-                return "saved"
+                return locals().get("_op_status", "saved")
             except Exception as e:
                 db.rollback()
                 print(f"   ❌ Save Error: {e}")

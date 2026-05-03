@@ -267,7 +267,7 @@ class TEBScraper:
                             """), {"campaign_id": campaign_id, "brand_id": brand_id})
                             print(f"      🔗 Linked Brand: {brand_name}")
 
-            return "saved"
+            return locals().get("_op_status", "saved")
         except Exception as e:
             print(f"   ❌ DB Error: {e}")
             return "error"

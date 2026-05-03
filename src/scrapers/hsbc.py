@@ -361,7 +361,7 @@ class HSBCScraper:
                         self.db.add(CampaignBrand(campaign_id=campaign_id, brand_id=bid))
                 self.db.commit()
 
-            return "saved"
+            return locals().get("_op_status", "saved")
         except Exception as e:
             self.db.rollback()
             print(f"   ❌ DB error: {e}")

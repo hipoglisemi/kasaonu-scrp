@@ -205,7 +205,9 @@ class YapikrediAdiosScraper:
                     updated_at=datetime.utcnow()  # type: ignore
                 )
                 
-                db.add(campaign)  # type: ignore # pyre-ignore[16]
+                from src.utils.scraper_utils import upsert_campaign
+                
+                campaign, _op_status = upsert_campaign(db, campaign)
                 db.commit()  # type: ignore # pyre-ignore[16]
                 print(f"   ✅ Saved: {campaign.title}")
 
@@ -229,7 +231,7 @@ class YapikrediAdiosScraper:
                     except Exception as e:
                         db.rollback()
                         print(f"   ⚠️ CampaignBrand link failed: {e}")
-            return "saved"  # type: ignore # pyre-ignore[7]
+            return locals().get("_op_status", "saved")  # type: ignore # pyre-ignore[7]
         except Exception as e:
             print(f"   ❌ Error saving: {e}")
             return "error"  # type: ignore # pyre-ignore[7]
@@ -246,6 +248,7 @@ class YapikrediAdiosScraper:
         print(f"🚀 Starting {self.BANK_NAME} {self.CARD_NAME} Scraper...")
         page = 1
         success_count = 0
+        total_revived = 0
         skipped_count = 0
         failed_count = 0
         total_found = 0

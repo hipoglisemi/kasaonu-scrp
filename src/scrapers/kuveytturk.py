@@ -365,7 +365,8 @@ class KuveytTurkScraper:
 
         if not campaign:
             campaign = Campaign(tracking_url=source_url, card_id=card_id)
-            self.db.add(campaign)  # type: ignore # pyre-ignore[16]
+            from src.utils.scraper_utils import upsert_campaign
+            campaign, _op_status = upsert_campaign(self.db, campaign)
 
         campaign.slug = slug
         campaign.title = title

@@ -84,6 +84,8 @@ class TurkTelekomScraper:
             print(f"   📋 Found {len(discovery_items)} campaigns to process.")
             
             success_count = 0
+            
+            total_revived = 0
             for i, item in enumerate(discovery_items, 1):
                 url = item['url']
                 p_title = item.get('title')
@@ -608,7 +610,8 @@ class TurkTelekomScraper:
         )
         
         try:
-            self.db.add(campaign)  # type: ignore # pyre-ignore[16]
+            from src.utils.scraper_utils import upsert_campaign
+            campaign, _op_status = upsert_campaign(self.db, campaign)
             self.db.flush()  # type: ignore # pyre-ignore[16]
             
             for bid in brand_ids:

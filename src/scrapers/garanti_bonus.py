@@ -366,7 +366,9 @@ class GarantiBonusScraper:
                 updated_at=datetime.utcnow()  # type: ignore
             )
             
-            db.add(campaign)  # type: ignore # pyre-ignore[16]
+            from src.utils.scraper_utils import upsert_campaign
+            
+            campaign, _op_status = upsert_campaign(db, campaign)
             db.flush()  # Get campaign ID  # type: ignore # pyre-ignore[16]
             
             # Link brands
@@ -417,7 +419,7 @@ class GarantiBonusScraper:
             
             db.commit()  # type: ignore # pyre-ignore[16]
             print(f"   ✅ Saved: {campaign.title[:50]}... (Reward: {campaign.reward_text})")  # type: ignore # pyre-ignore[16,6]
-            return "saved"  # type: ignore # pyre-ignore[7]
+            return locals().get("_op_status", "saved")  # type: ignore # pyre-ignore[7]
     
     def _generate_slug(self, title: str) -> str:
         """Generate URL-friendly slug from title"""
@@ -488,6 +490,7 @@ class GarantiBonusScraper:
             
             total_found = len(campaign_urls)
             success_count = 0
+            total_revived = 0
             skipped_count = 0
             failed_count = 0
             error_details = []

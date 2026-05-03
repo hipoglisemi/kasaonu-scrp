@@ -102,6 +102,7 @@ class ParafScraper:
             
             # 2. Process each campaign
             success_count = 0
+            total_revived = 0
             skipped_count = 0
             failed_count = 0
             for i, campaign_data in enumerate(campaigns, 1):
@@ -226,7 +227,7 @@ class ParafScraper:
             # Save
             self._save_campaign(ai_data, url, image_url, source['default_card'])
             print(f"      ✅ Saved: {ai_data['title']}")  # type: ignore # pyre-ignore[16,6]
-            return "saved"  # type: ignore # pyre-ignore[7]
+            return locals().get("_op_status", "saved")  # type: ignore # pyre-ignore[7]
             
         except Exception as e:
             print(f"      ❌ Page Error: {e}")
@@ -322,7 +323,8 @@ class ParafScraper:
         )
         
         if self.db is None: return
-        self.db.add(campaign)  # type: ignore # pyre-ignore[16]
+        from src.utils.scraper_utils import upsert_campaign
+        campaign, _op_status = upsert_campaign(self.db, campaign)
         self.db.commit()  # type: ignore # pyre-ignore[16]
         
         # Link Brands

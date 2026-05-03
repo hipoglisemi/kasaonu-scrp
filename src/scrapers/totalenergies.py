@@ -331,7 +331,9 @@ class TotalEnergiesScraper:
                         slug=get_unique_slug(final_title, self.db, Campaign)
                     )
                     
-                    self.db.add(campaign)
+                    from src.utils.scraper_utils import upsert_campaign
+                    
+                    campaign, _op_status = upsert_campaign(self.db, campaign)
                     self.db.flush()
                     
                     # Matching Brands

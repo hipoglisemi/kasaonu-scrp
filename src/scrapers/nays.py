@@ -130,6 +130,7 @@ class NaysScraper:
 
         total_found = len(campaign_list)
         total_saved = 0
+        total_revived = 0
         total_skipped = 0
         total_failed = 0
         error_details = []
@@ -286,7 +287,8 @@ class NaysScraper:
                     is_active=True,
                     created_at=datetime.utcnow()
                 )
-                db.add(campaign)
+                from src.utils.scraper_utils import upsert_campaign
+                campaign, _op_status = upsert_campaign(db, campaign)
             elif not force:
                 return "skipped"
 
@@ -364,7 +366,7 @@ class NaysScraper:
                     except Exception as e:
                         db.rollback()
                         print(f"   ⚠️ CampaignBrand link failed: {e}")
-                return "saved"
+                return locals().get("_op_status", "saved")
             except Exception as e:
                 db.rollback()
                 print(f"   ❌ Save Error: {e}")

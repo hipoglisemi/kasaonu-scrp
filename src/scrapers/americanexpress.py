@@ -394,7 +394,9 @@ class AmericanExpressScraper:
             ai_marketing_text=ai_data.get('ai_marketing_text') or ai_data.get('description') or final_title,  # type: ignore
         )
 
-        self.db.add(campaign)  # type: ignore # pyre-ignore[16]
+        from src.utils.scraper_utils import upsert_campaign
+
+        campaign, _op_status = upsert_campaign(self.db, campaign)
         self.db.commit()  # type: ignore # pyre-ignore[16]
 
         # ─── 6. Brands Linkage ───────────────────────────────────────────────────

@@ -477,7 +477,7 @@ class TurkiyeFinansScraper:
                                 {"cid": campaign_id, "bid": bid}
                             )
 
-            return "saved"  # type: ignore # pyre-ignore[7]
+            return locals().get("_op_status", "saved")  # type: ignore # pyre-ignore[7]
         except Exception as e:
             print(f"   ❌ Error processing {url}: {e}")
             return "error"  # type: ignore # pyre-ignore[7]
@@ -490,6 +490,7 @@ class TurkiyeFinansScraper:
         
         total_found = 0
         total_saved = 0
+        total_revived = 0
         total_skipped = 0
         total_failed = 0
         error_details = []
