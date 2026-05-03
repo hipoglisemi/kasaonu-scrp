@@ -308,7 +308,7 @@ class YapikrediWorldScraper:
             page += 1  # type: ignore # pyre-ignore[58]
             time.sleep(1)
 
-        print(f"\n✅ Özet: {total_found} bulundu, {success_count} eklendi, {skipped_count} atlandı, {failed_count} hata aldı.")
+        print(f"\n✅ Özet: {total_found} bulundu, {success_count} eklendi, {skipped_count} atlandı, {total_revived} canlandı, {failed_count} hata aldı.")
         
         status = "SUCCESS"
         if failed_count > 0:  # type: ignore # pyre-ignore[58]
@@ -324,7 +324,7 @@ class YapikrediWorldScraper:
                      total_found=total_found,
                      total_saved=success_count,
                      total_skipped=skipped_count,
-                     total_failed=failed_count,
+                     total_failed=failed_count, total_revived=total_revived,
                      error_details={"errors": error_details} if error_details else None
                 )
         except Exception as le:

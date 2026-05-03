@@ -189,7 +189,7 @@ class TamiScraper:
 
             time.sleep(random.uniform(0.5, 1.5))
 
-        print(f"🏁 Scraping finished. Found: {total_found}, Saved: {total_saved}, Skipped: {total_skipped}, Failed: {total_failed}, Revived: {total_revived}")
+        print(f"🏁 Scraping finished. Found: {total_found}, Saved: {total_saved}, Skipped: {total_skipped}, Revived: {total_revived}, Failed: {total_failed}, Revived: {total_revived}")
 
         # Final Log
         status_msg = "SUCCESS" if total_failed == 0 else ("PARTIAL" if total_saved > 0 else "FAILED")
@@ -201,7 +201,7 @@ class TamiScraper:
                 total_found=total_found,
                 total_saved=total_saved,
                 total_skipped=total_skipped,
-                total_failed=total_failed,
+                total_failed=total_failed, total_revived=total_revived,
                 error_details={"errors": error_details} if error_details else None
             )
 

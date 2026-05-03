@@ -20,6 +20,7 @@ def log_scraper_execution(
     total_saved: int = 0,
     total_skipped: int = 0,
     total_failed: int = 0,
+    total_revived: int = 0,
     error_details: Optional[Dict[str, Any]] = None
 ) -> None:
     """
@@ -33,6 +34,7 @@ def log_scraper_execution(
         total_saved: Total campaigns successfully saved/updated
         total_skipped: Total campaigns skipped (e.g., already exists)
         total_failed: Total campaigns that threw an error during scraping/parsing
+        total_revived: Total passive campaigns that were revived
         error_details: Optional dictionary containing error messages or stack traces
     """
     try:
@@ -53,6 +55,7 @@ def log_scraper_execution(
             total_saved=total_saved,
             total_skipped=total_skipped,
             total_failed=total_failed,
+            total_revived=total_revived,
             error_log=error_log_json,
             created_at=datetime.utcnow()
         )

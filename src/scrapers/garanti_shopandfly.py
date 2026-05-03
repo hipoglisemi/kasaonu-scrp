@@ -394,7 +394,9 @@ class GarantiShopAndFlyScraper:
                 try:
                     result = self._process_campaign(url)
                     if result == "saved":
-                        success_count += 1  # type: ignore # pyre-ignore
+                        success_count += 1
+                    elif result == "revived":
+                        total_revived += 1  # type: ignore # pyre-ignore
                     elif result == "skipped":
                         skipped_count += 1  # type: ignore # pyre-ignore
                     else:
@@ -424,7 +426,7 @@ class GarantiShopAndFlyScraper:
                       total_found=len(campaign_urls),
                       total_saved=success_count,
                       total_skipped=skipped_count,
-                      total_failed=failed_count,
+                      total_failed=failed_count, total_revived=total_revived,
                       error_details={"errors": error_details} if error_details else None
                  )
             

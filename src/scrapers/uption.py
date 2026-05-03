@@ -191,7 +191,7 @@ class UptionScraper:
                     total_found=len(found_items),
                     total_saved=success_count,
                     total_skipped=skipped_count,
-                    total_failed=failed_count
+                    total_failed=failed_count, total_revived=total_revived
                 )
 
         except Exception as e:

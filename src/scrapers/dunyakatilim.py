@@ -137,7 +137,7 @@ class DunyaKatilimScraper:
                      total_found=len(campaigns),
                      total_saved=success_count,
                      total_skipped=skipped_count,
-                     total_failed=failed_count,
+                     total_failed=failed_count, total_revived=total_revived,
                      error_details={"errors": error_details} if error_details else None
                 )
             except Exception as le:

@@ -571,7 +571,7 @@ class ParamScraper:
                     total_found=len(final_urls),
                     total_saved=success,
                     total_skipped=skipped,
-                    total_failed=failed
+                    total_failed=failed, total_revived=total_revived
                 )
         except Exception as e:
             print(f"❌ Scraper error: {e}")

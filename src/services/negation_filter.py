@@ -20,13 +20,13 @@ def normalize_text(s):
     return s.strip()
 
 NEGATION_KEYWORDS = [
-    'dahil değil', 'dahil degil', 'dâhil değil', 'dâhil degil',
+    'dahil değil', 'dahil degil', 'dahil değildir', 'dâhil değil', 'dâhil degil', 'dâhil değildir','dahil degildir',
     'geçerli değildir', 'gecerli degildir', 'geçerli degildir',
     'geçerli değil', 'gecerli degil',
     'hariçtir', 'harictir', 'hariç', 'haric',
     'kapsam dışıdır', 'kapsam disidir', 'kapsam dışı', 'kapsam disi',
     'kapsamında değildir', 'kapsaminda degildir', 'kapsamında değil', 'kapsaminda degil',
-    'yararlanamaz', 'puan kazanamaz', 'katılamaz', 'geçersizdir', 'gecersizdir',
+    'yararlanamaz', 'yararlanamayacaktır', 'puan kazanamaz', 'katılamaz', 'faydalanamaz', 'faydalanamayacaktır', 'geçersizdir', 'gecersizdir',
     'değerlendirilmeyecektir', 'degerlendirilmeyecektir', 'dahil edilmeyecektir', 'dâhil edilmeyecektir',
     'dışında', 'disinda', 'dışındaki', 'disindaki', 'geçerli olmayacaktır', 'gecerli olmayacaktir'
 ]
@@ -81,7 +81,13 @@ def check_string_negation(target_str, full_text, bank_key=None, is_generic_brand
         if sent_end == -1: sent_end = len(window)
         sentence = window[sent_start:sent_end]
         
-        positive_stoppers = r"(?i)(?:^|\s|,)(?:dahil|gecerli|faydalanabilir|faydalanabilecektir|yararlanabilir|dahildir|gecerlidir)(?:$|\s|,|;|:|\.)"
+        # 🛡️ POSITIVE CHECK (Ensuring it's not a negated positive like 'dahil değildir')
+        positive_stoppers = r"(?i)(?:^|\s|,)(?:gecerli|faydalanabilir|faydalanabilecektir|yararlanabilir|dahildir|gecerlidir)(?![ \s]*degil)(?:$|\s|,|;|:|\.)"
+        # Special check for 'dahil' to ensure it's not followed by 'değil/değildir'
+        if re.search(r"(?i)(?:^|\s|,)dahil(?![\s]*degil)", sentence):
+             sentence_has_positive = True
+             has_positive_mention = True
+        
         if re.search(positive_stoppers, sentence):
             sentence_has_positive = True
             has_positive_mention = True

@@ -505,7 +505,7 @@ class MasterpassScraper:
                     total_found=len(urls),
                     total_saved=success,
                     total_skipped=skipped,
-                    total_failed=failed
+                    total_failed=failed, total_revived=total_revived
                 )
                 
         except Exception as e:

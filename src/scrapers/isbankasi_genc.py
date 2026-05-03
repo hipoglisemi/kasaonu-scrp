@@ -630,7 +630,9 @@ class IsbankMaximumGencScraper:
                 try:
                     res = self._process_campaign(url)
                     if res == "saved":
-                        success += 1  # type: ignore # pyre-ignore[58]
+                        success += 1
+                    elif res == "revived":
+                        total_revived += 1  # type: ignore # pyre-ignore[58]
                     elif res == "skipped":
                         skipped += 1  # type: ignore # pyre-ignore[58]
                     else:
@@ -658,7 +660,7 @@ class IsbankMaximumGencScraper:
                           total_found=len(urls),
                           total_saved=success,
                           total_skipped=skipped,
-                          total_failed=failed,
+                          total_failed=failed, total_revived=total_revived,
                           error_details={"errors": error_details} if error_details else None
                      )
             except Exception as le:

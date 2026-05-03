@@ -119,6 +119,20 @@ class CardValidator:
             
             if kc_norm in text_normalized and kc_norm not in validated_norm:
                 is_generic = kc_norm in ["world", "paraf", "maximum", "bonus", "axess"]
+                
+                # 🛡️ AKBANK PROTECTION: Navigation/Footer links often contain 'wings', 'free', 'ticari'.
+                # If AI didn't find it, and it's a generic bank keyword, don't auto-add it 
+                # unless it appears in the raw text with a specific "kart" or "card" suffix 
+                # OR it's found in the title.
+                if bank_key == "akbank" and kc_norm in ["wings", "free", "ticari", "bank'o card"]:
+                    title_norm = self._normalize(raw_text.split('\n')[0])
+                    is_in_title = kc_norm in title_norm
+                    has_card_suffix = re.search(rf"{kc_norm}\s+(?:kart|card|kredi|ticari)", text_normalized)
+                    
+                    if not (is_in_title or has_card_suffix):
+                        logger.debug(f"Card Sniper: Rejected Akbank keyword '{kc}' - likely navigation noise.")
+                        continue
+
                 # 🛡️ Negation Check
                 if check_string_negation(kc, text_normalized, bank_key, is_generic_brand=is_generic):
                     continue

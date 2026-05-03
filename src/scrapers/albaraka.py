@@ -502,7 +502,7 @@ class AlbarakaScraper:
                 total_found=len(campaigns_list),
                 total_saved=success,
                 total_skipped=skipped,
-                total_failed=failed,
+                total_failed=failed, total_revived=total_revived,
                 error_details={"errors": error_details} if error_details else None
             )
             
@@ -520,7 +520,7 @@ class AlbarakaScraper:
                     total_found=0,
                     total_saved=0,
                     total_skipped=0,
-                    total_failed=1,
+                    total_failed=1, total_revived=total_revived,
                     error_details={"error": str(e)}
                 )
             except:

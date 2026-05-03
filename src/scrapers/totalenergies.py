@@ -379,7 +379,7 @@ class TotalEnergiesScraper:
             total_found=results["SAVED"] + results["SKIPPED"] + results["FAILED"],
             total_saved=results["SAVED"],
             total_skipped=results["SKIPPED"],
-            total_failed=results["FAILED"],
+            total_failed=results, total_revived=total_revived["FAILED"],
             error_details={"logs": results["LOGS"]} if results["LOGS"] else None
         )
         return results

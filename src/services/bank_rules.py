@@ -9,21 +9,14 @@ AKBANK SPECIFIC RULES:
 - TERMINOLOGY: 
     - For Axess/Free/Akbank Kart: Uses "chip-para" instead of "puan". 1 chip-para = 1 TL.
     - For Wings: Uses "Mil" or "Mil Puan". 100 Mil Puan = 1 TL (domestic) / 2 TL (int).
+- ELIGIBLE CARDS (CRITICAL):
+    - 🚨 **STRICT LITERAL EXTRACTION**: ONLY extract cards mentioned in the CAMPAIGN DESCRIPTION or CONDITIONS.
+    - ⛔ **NO ASSUMPTIONS**: If the text only mentions "Axess Business", then ONLY write ["Axess Business"]. DO NOT add "Wings" or "Free" unless you see them in the text.
+    - ⛔ **FOOTER TRAP**: Ignore any card names found in navigation menus, footers, or "other campaigns" sections. If it's not part of the specific campaign text, IT IS NOT ELIGIBLE.
 - PARTICIPATION: Primary method is "Jüzdan" app. Always look for "Jüzdan'dan Hemen Katıl" button. If not found, look for "Akbank Axess POS" instructions.
 - SMS: Usually 4566. SMS keyword is usually a single word (e.g., "A101", "TEKNOSA").
-- REWARD: If it says "8 aya varan taksit", it's an installment campaign. Earning: "Taksit İmkanı". ASLA "Detayları İnceleyin" yazma.
-- ELIGIBLE CARDS:
-    - RAW EXTRACTION (LITERAL): Extract the EXACT card names or categories from the text. 
-    - NO MAPPING: If text says "Ticari kartlar", write "Ticari kartlar". If it says "Bank'O Card Axess", write "Bank'O Card Axess".
-    - TITLE TRAP: Even if title says "Axess'e Özel", check footer for "Axess, Wings, Free... dahildir".
-    - KESIN YASAK: Asla "Kampanyaya Dahil Kartlar" yazma.
-    - KESIN YASAK: Kart isimlerini asla 'conditions' (koşullar) listesine yazma. Sadece 'cards' alanına yaz.
-- AKBANK REDUNDANCY ALERT (CRITICAL):
-    - Akbank metinleri tarih ve kart bilgisini çok tekrar eder. 
-    - 'conditions' listesine ASLA "1-31 Mart", "Axess kart", "Jüzdan" gibi bilgileri yazma.
-    - Koşullar SADECE teknik kurallar içermeli (örn: "POS terminali zorunluluğu", "İndirim limiti").
-- PARTICIPATION (REDUNDANCY):
-    - YASAK: "Juzdan uygulama üzerinden katılabilirsiniz." gibi jenerik metinleri tek başına yazma. Eğer butonda "Hemen Katıl" yazıyorsa "Juzdan'dan Hemen Katıl butonuna tıklayın" gibi somutlaştır.
+- REWARD: If it says "8 aya varan taksit", it's an installment campaign. Earning: "Taksit İmkanı".
+- REDUNDANCY: DO NOT repeat dates or card names in 'conditions'.
 """,
     'albaraka': """
 ALBARAKA SPECIFIC RULES:

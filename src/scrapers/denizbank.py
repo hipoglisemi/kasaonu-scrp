@@ -721,7 +721,9 @@ class DenizbankScraper:
                 try:
                     res = self._process_campaign(url)
                     if res == "saved":
-                        success_count += 1  # type: ignore # pyre-ignore[58]
+                        success_count += 1
+                    elif res == "revived":
+                        total_revived += 1  # type: ignore # pyre-ignore[58]
                     elif res == "skipped":
                         skipped_count += 1  # type: ignore # pyre-ignore[58]
                     else:
@@ -749,7 +751,7 @@ class DenizbankScraper:
                 total_found=len(urls),
                 total_saved=success_count,
                 total_skipped=skipped_count,
-                total_failed=failed_count,
+                total_failed=failed_count, total_revived=total_revived,
                 error_details={"errors": error_details} if error_details else None
             )
             db.close()  # type: ignore # pyre-ignore[16]
@@ -767,7 +769,7 @@ class DenizbankScraper:
                 total_found=0,
                 total_saved=0,
                 total_skipped=0,
-                total_failed=1,
+                total_failed=1, total_revived=total_revived,
                 error_details={"error": str(e)}
             )
             db.close()  # type: ignore # pyre-ignore[16]

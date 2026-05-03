@@ -129,7 +129,7 @@ class KuveytTurkScraper:
                 status="COMPLETED",
                 total_found=stats['total'],
                 total_saved=stats['new'] + stats['updated'],
-                total_failed=stats['failed'],
+                total_failed=stats, total_revived=total_revived['failed'],
                 total_skipped=stats.get('skipped', 0)
             )
 

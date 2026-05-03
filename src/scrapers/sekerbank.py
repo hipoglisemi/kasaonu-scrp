@@ -378,7 +378,7 @@ class SekerbankScraper:
             total_found=len(found_items),
             total_saved=success_count,
             total_skipped=skipped_count,
-            total_failed=failed_count
+            total_failed=failed_count, total_revived=total_revived
         )
 
     def _scrape_detail(self, url: str, source: Dict, list_image: str = "", force: bool = False) -> str:

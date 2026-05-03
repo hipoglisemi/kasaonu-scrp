@@ -191,7 +191,7 @@ class AmericanExpressScraper:
                 total_found=self.stats["found"],
                 total_saved=self.stats["saved"],
                 total_skipped=self.stats["skipped"],
-                total_failed=self.stats["failed"],
+                total_failed=self, total_revived=total_revived.stats["failed"],
                 error_details=self.stats["errors"] if self.stats["errors"] else None
             )
             
@@ -205,7 +205,7 @@ class AmericanExpressScraper:
                 total_found=self.stats["found"],
                 total_saved=self.stats["saved"],
                 total_skipped=self.stats["skipped"],
-                total_failed=self.stats["failed"],
+                total_failed=self, total_revived=total_revived.stats["failed"],
                 error_details={"error": error_msg}
             )
         finally:

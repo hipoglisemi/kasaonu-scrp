@@ -564,7 +564,7 @@ class TurkiyeFinansScraper:
                         total_found=total_found,
                         total_saved=total_saved,
                         total_skipped=total_skipped,
-                        total_failed=total_failed,
+                        total_failed=total_failed, total_revived=total_revived,
                         error_details={"errors": error_details} if error_details else None
                     )
             except Exception as le:

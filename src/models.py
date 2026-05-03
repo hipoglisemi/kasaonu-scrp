@@ -285,6 +285,7 @@ class ScraperLog(Base):
     total_saved = Column(Integer, default=0, nullable=False)
     total_skipped = Column(Integer, default=0, nullable=False)
     total_failed = Column(Integer, default=0, nullable=False)
+    total_revived = Column(Integer, default=0, nullable=False)
     error_log = Column(JSON, nullable=True) # Needs sqlalchemy.JSON
     created_at = Column(DateTime, default=func.now(), nullable=False)
 
