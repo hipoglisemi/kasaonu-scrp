@@ -2,6 +2,14 @@
 
 
 
+import sys
+import os
+
+# Path setup - reach project root (parent of src)
+project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+if project_root not in sys.path:
+    sys.path.insert(0, project_root)
+
 import requests  # type: ignore # pyre-ignore[21]
 import time  # type: ignore # pyre-ignore[21]
 from datetime import datetime  # type: ignore # pyre-ignore[21]
@@ -14,7 +22,7 @@ from src.database import get_db_session  # type: ignore # pyre-ignore[21]
 from src.models import Campaign, Bank, Card, Sector, Brand, CampaignBrand  # type: ignore # pyre-ignore[21]
 from src.services.ai_parser import parse_api_campaign  # type: ignore # pyre-ignore[21]
 from src.utils.slug_generator import get_unique_slug  # type: ignore # pyre-ignore[21]
-from src.utils.scraper_utils import is_url_blocked  # type: ignore
+from src.utils.scraper_utils import is_url_blocked, upsert_campaign  # type: ignore
 from src.utils.cache_manager import clear_cache  # type: ignore # pyre-ignore[21]
 
 class EnparaScraper:
@@ -155,8 +163,8 @@ class EnparaScraper:
                 return "skipped"  # type: ignore # pyre-ignore[7]
 
             existing = self.db.query(Campaign).filter(Campaign.tracking_url == url).first()  # type: ignore # pyre-ignore[16]
-            if existing:
-                print(f"   ⏭️ Skipped (Already exists): {existing.title}")
+            if existing and existing.is_active:
+                print(f"   ⏭️ Skipped (Already exists and active): {existing.title}")
                 return "skipped"  # type: ignore # pyre-ignore[7]
         except Exception as e:
             print(f"   ⚠️ DB Pre-check error: {e}")
@@ -247,10 +255,10 @@ class EnparaScraper:
                 print(f"   🚫 Skipped (Safety: Blocklisted): {title}")
                 return "skipped"  # type: ignore # pyre-ignore[7]
 
-            # Check if exists
+            # Check if exists and active
             existing = self.db.query(Campaign).filter(Campaign.tracking_url == tracking_url).first()  # type: ignore # pyre-ignore[16]
-            if existing:
-                print(f"   ⏭️ Skipping existing: {title}")
+            if existing and existing.is_active:
+                print(f"   ⏭️ Skipping existing and active: {title}")
                 return "skipped"  # type: ignore # pyre-ignore[7]
 
             # Map sector
@@ -304,9 +312,16 @@ class EnparaScraper:
                 eligible_cards=", ".join(ai_data.get("cards", [])) if isinstance(ai_data.get("cards"), list) and ai_data.get("cards") else self.CARD_NAME
             )
             
-            self.db.add(campaign)  # type: ignore # pyre-ignore[16]
-            self.db.commit()  # type: ignore # pyre-ignore[16]
-            print(f"   ✅ Saved: {campaign.title}")
+            # Use centralized upsert_campaign for revival and quality control
+            campaign, op_status = upsert_campaign(self.db, campaign)
+            self.db.commit()
+
+            if op_status == "revived":
+                print(f"   ♻️  Revived Passive Campaign: {campaign.title[:50]}...")
+            elif op_status == "saved":
+                 print(f"   ✅ Saved: {campaign.title[:50]}...")
+            
+            self.db.refresh(campaign)
 
             # Brands
             brand_names = ai_data.get('brands', [])
@@ -326,7 +341,7 @@ class EnparaScraper:
                 self.db.add(cb)  # type: ignore # pyre-ignore[16]
             
             self.db.commit()  # type: ignore # pyre-ignore[16]
-            return "saved"  # type: ignore # pyre-ignore[7]
+            return op_status
 
         except Exception as e:
             self.db.rollback()  # type: ignore # pyre-ignore[16]
@@ -342,6 +357,7 @@ class EnparaScraper:
             print(f"   Using limit: {limit}")
             
         success_count = 0
+        revived_count = 0
         skipped_count = 0
         failed_count = 0
         error_details = []
@@ -351,16 +367,19 @@ class EnparaScraper:
                 result = self._process_campaign(link)
                 if result == "saved":
                     success_count += 1  # type: ignore # pyre-ignore[58]
+                elif result == "revived":
+                    revived_count += 1
                 elif result == "skipped" or result is None:
                     skipped_count += 1  # type: ignore # pyre-ignore[58]
                 else:
                     failed_count += 1  # type: ignore # pyre-ignore[58]
+                    error_details.append({"url": link, "error": f"Process returned {result}"})
             except Exception as e:
                 failed_count += 1  # type: ignore # pyre-ignore[58]
                 error_details.append({"url": link, "error": str(e)})
             time.sleep(1) # Soft rate limiting
             
-        print(f"\n✅ Özet: {len(links)} bulundu, {success_count} eklendi, {skipped_count} atlandı, {failed_count} hata aldı.")
+        print(f"\n✅ Özet: {len(links)} bulundu, {success_count} eklendi, {revived_count} canlandırıldı, {skipped_count} atlandı, {failed_count} hata aldı.")
         
         status = "SUCCESS"
         if failed_count > 0:  # type: ignore # pyre-ignore[58]
@@ -375,6 +394,7 @@ class EnparaScraper:
              total_saved=success_count,
              total_skipped=skipped_count,
              total_failed=failed_count,
+             total_revived=revived_count,
              error_details={"errors": error_details} if error_details else None
         )
         

@@ -9,9 +9,12 @@
   ],
   "venvPath": ".",
   "venv": "venv",
-  "extraPaths": ["."],
+  "extraPaths": [
+    ".",
+    "src"
+  ],
   "pythonVersion": "3.9",
-  "autoSearchPaths": false,
+  "autoSearchPaths": true,
   "typeCheckingMode": "off",
   "reportMissingImports": false,
   "reportMissingModuleSource": false,

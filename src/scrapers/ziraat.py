@@ -23,7 +23,7 @@ from sqlalchemy.orm import Session  # type: ignore # pyre-ignore[21]
 from src.database import get_db_session  # type: ignore # pyre-ignore[21]
 from src.models import Bank, Card, Sector, Brand, Campaign, CampaignBrand  # type: ignore # pyre-ignore[21]
 from src.services.ai_parser import AIParser  # type: ignore # pyre-ignore[21]
-from src.utils.scraper_utils import is_url_blocked  # type: ignore
+from src.utils.scraper_utils import is_url_blocked, upsert_campaign  # type: ignore
 from src.utils.logger_utils import log_scraper_execution  # type: ignore # pyre-ignore[21]
 from src.services.brand_matcher import get_or_create_brands_list  # type: ignore
 
@@ -162,8 +162,8 @@ class ZiraatScraper:
         # Database Pre-check (Skip Logic)
         try:
             existing = self.db.query(Campaign).filter(Campaign.tracking_url == url).first()  # type: ignore # pyre-ignore[16]
-            if existing:
-                print(f"   ⏭️ Skipped (Already exists): {existing.title[:40]}")
+            if existing and existing.is_active:
+                print(f"   ⏭️ Skipped (Already exists and active): {existing.title[:40]}")
                 return "skipped"  # type: ignore # pyre-ignore[7]
         except Exception as e:
             print(f"   ⚠️ DB Pre-check error: {e}")
@@ -283,12 +283,6 @@ class ZiraatScraper:
                     vu = datetime.strptime(clean_date, "%d.%m.%Y")
                 except: pass
 
-            # DB Upsert
-            existing = self.db.query(Campaign).filter(Campaign.tracking_url == url).first()  # type: ignore # pyre-ignore[16]
-            if existing:
-                print(f"   ⏭️ Skipped (Already exists, preserving manual edits): {title[:50]}...")  # type: ignore # pyre-ignore[16,6]
-                return "skipped"  # type: ignore # pyre-ignore[7]
-
             campaign = Campaign(
                 card_id=self.card_id,
                 sector_id=sector.id if sector else None,  # type: ignore # pyre-ignore[16]
@@ -309,9 +303,17 @@ class ZiraatScraper:
                 created_at=datetime.utcnow(),
                 updated_at=datetime.utcnow()
             )
-            self.db.add(campaign)  # type: ignore # pyre-ignore[16]
             
-            self.db.commit()  # type: ignore # pyre-ignore[16]
+            # Use centralized upsert_campaign for revival and quality control
+            campaign, op_status = upsert_campaign(self.db, campaign)
+            self.db.commit()
+            
+            if op_status == "revived":
+                print(f"   ♻️  Revived Passive Campaign: {campaign.title}")
+            elif op_status == "saved":
+                 print(f"   ✅ Saved: {campaign.title} | End: {vu}")
+            
+            self.db.refresh(campaign)
 
             # Brands via brand_matcher
             brand_ids = get_or_create_brands_list(
@@ -332,8 +334,7 @@ class ZiraatScraper:
                 except Exception as e:
                     self.db.rollback()
                     print(f"   ⚠️ CampaignBrand link failed: {e}")
-            print(f"   ✅ Saved: {title} | End: {vu}")
-            return "saved"  # type: ignore # pyre-ignore[7]
+            return op_status  # type: ignore # pyre-ignore[7]
             
         except Exception as e:
             print(f"   ❌ Error processing {url}: {e}")
@@ -351,6 +352,7 @@ class ZiraatScraper:
         
         count = 0
         success_count = 0
+        total_revived = 0
         skipped_count = 0
         failed_count = 0
         error_details = []
@@ -363,17 +365,18 @@ class ZiraatScraper:
             try:
                 res = self._process_campaign(camp)
                 if res == "saved": success_count += 1  # type: ignore # pyre-ignore[58]
+                elif res == "revived": total_revived += 1
                 elif res == "skipped": skipped_count += 1  # type: ignore # pyre-ignore[58]
                 else: 
                     failed_count += 1  # type: ignore # pyre-ignore[58]
-                    error_details.append({"url": camp.get('url', 'unknown'), "error": "Unknown DB failure"})
+                    error_details.append({"url": camp.get('url', 'unknown'), "error": f"Process returned {res}"})
             except Exception as e:
                 failed_count += 1  # type: ignore # pyre-ignore[58]
                 error_details.append({"url": camp.get('url', 'unknown'), "error": str(e)})
             
             count += 1  # type: ignore # pyre-ignore[58]
             time.sleep(2)
-        print(f"✅ Özet: {len(campaigns)} bulundu, {success_count} eklendi, {skipped_count} atlandı, {failed_count} hata aldı.")
+        print(f"✅ Özet: {len(campaigns)} bulundu, {success_count} eklendi, {total_revived} canlandı, {skipped_count} atlandı, {failed_count} hata aldı.")
         
         status = "SUCCESS"
         if failed_count > 0:  # type: ignore # pyre-ignore[58]
@@ -389,6 +392,7 @@ class ZiraatScraper:
                  total_saved=success_count,
                  total_skipped=skipped_count,
                  total_failed=failed_count,
+                 total_revived=total_revived,
                  error_details={"errors": error_details} if error_details else None
             )
         except Exception as le:

@@ -27,7 +27,7 @@ from src.services.ai_parser import AIParser # type: ignore
 from src.services.brand_matcher import get_or_create_brands_list # type: ignore
 from src.services.ai_parser_golden import parse_api_campaign  # type: ignore
 from src.utils.logger_utils import log_scraper_execution # type: ignore
-from src.utils.scraper_utils import should_skip_campaign # type: ignore
+from src.utils.scraper_utils import upsert_campaign, is_url_blocked # type: ignore
 from src.utils.slug_generator import get_unique_slug # type: ignore
 
 load_dotenv()
@@ -130,7 +130,7 @@ class TotalEnergiesScraper:
         self.setup_driver()
         self.db = get_db_session()
         
-        results: Dict[str, Any] = {"SAVED": 0, "SKIPPED": 0, "FAILED": 0, "LOGS": []}
+        results: Dict[str, Any] = {"SAVED": 0, "SKIPPED": 0, "FAILED": 0, "REVIVED": 0, "LOGS": []}
         
         try:
             driver = self.driver
@@ -238,9 +238,15 @@ class TotalEnergiesScraper:
                     detail_url = re.sub(r'-\d+/?$', '', detail_url)
                     # Strip any trailing slash to avoid duplicate saves due to exact matches
                     detail_url = detail_url.rstrip('/')
-                    # Skip if already exists
-                    if should_skip_campaign(self.db, detail_url):
-                        print(f"   ⏩ Skipping: {title[:50]}...")
+                    # Skip if already exists and active
+                    if is_url_blocked(self.db, detail_url):
+                        print(f"      🚫 Skipped (Blocklisted): {detail_url}")
+                        results["SKIPPED"] += 1
+                        continue
+
+                    existing = self.db.query(Campaign).filter(Campaign.tracking_url == detail_url).first()
+                    if existing and existing.is_active:
+                        print(f"   ⏩ Skipping (Already exists and active): {title[:50]}...")
                         results["SKIPPED"] += 1
                         continue
 
@@ -331,19 +337,32 @@ class TotalEnergiesScraper:
                         slug=get_unique_slug(final_title, self.db, Campaign)
                     )
                     
-                    self.db.add(campaign)
-                    self.db.flush()
+                    # Use centralized upsert_campaign for revival and quality control
+                    campaign, op_status = upsert_campaign(self.db, campaign)
+                    self.db.commit()
+
+                    if op_status == "revived":
+                        print(f"      ♻️  Revived Passive Campaign: {campaign.title[:50]}...")
+                        results["REVIVED"] += 1
+                    elif op_status == "saved":
+                         print(f"      ✅ Saved: {campaign.title[:50]}...")
+                         results["SAVED"] += 1
+                    
+                    self.db.refresh(campaign)
                     
                     # Matching Brands
                     brand_names = campaign_data.get('brands', [])
                         
-                    brands_ids = get_or_create_brands_list(self.db, brand_names, self.brand_cache)
+                    brands_ids = get_or_create_brands_list(
+                        db=self.db,
+                        names=brand_names,
+                        brand_cache=self.brand_cache
+                    )
                     for b_id in brands_ids:
                         cb = CampaignBrand(campaign_id=campaign.id, brand_id=b_id)
                         self.db.add(cb)
                     
                     self.db.commit()
-                    results["SAVED"] += 1
                     processed_count += 1
                     print(f"   ✅ Saved: {final_title}")
                     
@@ -375,9 +394,7 @@ class TotalEnergiesScraper:
             scraper_name=self.SOURCE_NAME,
             status="SUCCESS" if results["FAILED"] == 0 else "PARTIAL",
             total_found=results["SAVED"] + results["SKIPPED"] + results["FAILED"],
-            total_saved=results["SAVED"],
-            total_skipped=results["SKIPPED"],
-            total_failed=results["FAILED"],
+            total_revived=results["REVIVED"],
             error_details={"logs": results["LOGS"]} if results["LOGS"] else None
         )
         return results

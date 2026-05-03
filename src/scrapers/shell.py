@@ -27,7 +27,7 @@ from src.services.ai_parser import AIParser # type: ignore
 from src.services.brand_matcher import get_or_create_brands_list # type: ignore
 from src.services.ai_parser_golden import parse_api_campaign  # type: ignore
 from src.utils.logger_utils import log_scraper_execution # type: ignore
-from src.utils.scraper_utils import should_skip_campaign # type: ignore
+from src.utils.scraper_utils import upsert_campaign, is_url_blocked # type: ignore
 from src.utils.slug_generator import get_unique_slug # type: ignore
 
 load_dotenv()
@@ -128,6 +128,7 @@ class ShellScraper:
             "total_saved": 0,
             "total_skipped": 0,
             "total_failed": 0,
+            "total_revived": 0,
             "errors": []
         }
 
@@ -217,7 +218,14 @@ class ShellScraper:
                     img_url = urljoin(self.BASE_URL, img_tag.get("src")) if img_tag else None
 
                     # Check DB/Blocklist
-                    if should_skip_campaign(self.db, detail_url):
+                    if is_url_blocked(self.db, detail_url):
+                        print(f"      🚫 Skipped (Blocklisted): {detail_url}")
+                        stats["total_skipped"] += 1
+                        continue
+
+                    existing = self.db.query(Campaign).filter(Campaign.tracking_url == detail_url).first()
+                    if existing and existing.is_active:
+                        print(f"      ⏭️ Skipped (Already exists and active): {title}")
                         stats["total_skipped"] += 1
                         continue
 
@@ -323,16 +331,26 @@ class ShellScraper:
                         category=ai_data.get("sector", "diger")
                     )
 
-                    self.db.add(new_campaign)
-                    self.db.flush()
+                    # Use centralized upsert_campaign for revival and quality control
+                    new_campaign, op_status = upsert_campaign(self.db, new_campaign)
+                    self.db.commit()
+
+                    if op_status == "revived":
+                        print(f"      ♻️  Revived Passive Campaign: {new_campaign.title[:50]}...")
+                        stats["total_revived"] += 1
+                    elif op_status == "saved":
+                         print(f"      ✅ Saved: {new_campaign.title[:50]}...")
+                         stats["total_saved"] += 1
+                    
+                    self.db.refresh(new_campaign)
 
                     # Brand Matching
                     brand_names = ai_data.get("brands", [])
                         
                     brand_ids = get_or_create_brands_list(
-                        self.db,
-                        brand_names,
-                        self.brand_cache
+                        db=self.db,
+                        names=brand_names,
+                        brand_cache=self.brand_cache
                     )
 
                     for b_id in brand_ids:
@@ -340,7 +358,6 @@ class ShellScraper:
                         self.db.add(cb)
 
                     self.db.commit()
-                    stats["total_saved"] += 1
                     processed_count += 1
                     print(f"      ✅ Saved: {title}")
 
@@ -366,11 +383,10 @@ class ShellScraper:
             status=stats.get("status", "SUCCESS"),
             total_found=len(cards) if 'cards' in locals() else 0,
             total_saved=stats["total_saved"],
-            total_skipped=stats["total_skipped"],
-            total_failed=stats["total_failed"],
+            total_revived=stats["total_revived"],
             error_details={"errors": stats["errors"]} if stats["errors"] else None
         )
-        print(f"🏁 Finished {self.SOURCE_NAME}. Saved: {stats['total_saved']}, Skipped: {stats['total_skipped']}, Failed: {stats['total_failed']}")
+        print(f"🏁 Finished {self.SOURCE_NAME}. Saved: {stats['total_saved']}, Revived: {stats['total_revived']}, Skipped: {stats['total_skipped']}, Failed: {stats['total_failed']}")
 
     def _get_sector_id(self, sector_slug: Optional[str]) -> Optional[int]:
         if not sector_slug:

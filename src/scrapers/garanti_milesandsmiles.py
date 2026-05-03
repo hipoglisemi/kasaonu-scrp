@@ -23,7 +23,7 @@ from src.models import Campaign, Bank, Card, Sector, Brand, CampaignBrand  # typ
 from src.services.ai_parser import parse_api_campaign  # type: ignore # pyre-ignore[21]
 from src.utils.slug_generator import get_unique_slug  # type: ignore # pyre-ignore[21]
 from src.utils.cache_manager import clear_cache  # type: ignore # pyre-ignore[21]
-from src.utils.scraper_utils import is_url_blocked  # type: ignore
+from src.utils.scraper_utils import is_url_blocked, upsert_campaign  # type: ignore
 from sqlalchemy.exc import IntegrityError  # type: ignore # pyre-ignore[21]
 
 class GarantiMilesAndSmilesScraper:
@@ -149,8 +149,8 @@ class GarantiMilesAndSmilesScraper:
                     return "skipped"  # type: ignore # pyre-ignore[7]
 
                 existing = db.query(Campaign).filter(Campaign.tracking_url == url).first()  # type: ignore # pyre-ignore[16]
-                if existing:
-                    print(f"   ⏭️ Skipped (Already exists): {url}")
+                if existing and existing.is_active:
+                    print(f"   ⏭️ Skipped (Already exists and active): {url}")
                     return "skipped"  # type: ignore # pyre-ignore[7]
         except Exception as e:
             print(f"   ⚠️ DB Pre-check error: {e}")
@@ -282,10 +282,7 @@ class GarantiMilesAndSmilesScraper:
                 return "skipped"  # type: ignore # pyre-ignore[7]
 
             existing = db.query(Campaign).filter(Campaign.tracking_url == tracking_url).first()  # type: ignore # pyre-ignore[16]
-            if isinstance(title, str):
-                print(f"   ⏭️ Skipped (Already exists, preserving manual edits): {title[:50]}...")  # type: ignore # pyre-ignore[16,6]
-            else:
-                print(f"   ⏭️ Skipped (Already exists): {tracking_url}")
+            # Skip manual skip removed to allow upsert_campaign to handle revival
 
             slug = get_unique_slug(title, db, Campaign)
             
@@ -340,16 +337,24 @@ class GarantiMilesAndSmilesScraper:
                 updated_at=datetime.utcnow()  # type: ignore
             )
             
-            db.add(campaign)  # type: ignore # pyre-ignore[16]
-            db.flush()  # type: ignore # pyre-ignore[16]
+            # Use centralized upsert_campaign for revival and quality control
+            campaign, op_status = upsert_campaign(db, campaign)
+            db.commit()
+
+            if op_status == "revived":
+                print(f"   ♻️  Revived Passive Campaign: {campaign.title[:50]}...")
+            elif op_status == "saved":
+                 print(f"   ✅ Saved: {campaign.title[:50]}... (Reward: {campaign.reward_text})")
+            
+            self.db.refresh(campaign) if hasattr(self, 'db') and self.db else db.refresh(campaign)
             
             # Brands via brand_matcher
             from src.services.brand_matcher import get_or_create_brands_list
             brand_ids = get_or_create_brands_list(
-                db_session=db,
-                brand_names=ai_data.get("brands", []),
+                db=db,
+                names=ai_data.get("brands", []),
                 brand_cache=getattr(self, 'brand_cache', {}),
-                sector_id=sector.id if sector else None
+                sector_id=sector_id
             )
             for bid in brand_ids:
                 try:
@@ -364,7 +369,7 @@ class GarantiMilesAndSmilesScraper:
                     db.rollback()
                     print(f"   ⚠️ CampaignBrand link failed: {e}")
             print(f"   ✅ Saved: {campaign.title[:50]}... (Reward: {campaign.reward_text})")  # type: ignore # pyre-ignore[16,6]
-            return "saved"  # type: ignore # pyre-ignore[7]
+            return op_status
 
     def run(self):
         """Main execution flow"""
@@ -383,6 +388,7 @@ class GarantiMilesAndSmilesScraper:
                 return
             
             success_count: int = 0
+            revived_count: int = 0
             skipped_count: int = 0
             failed_count: int = 0
             error_details: List[Dict[str, Any]] = []  # type: ignore # pyre-ignore[16,6]
@@ -393,6 +399,8 @@ class GarantiMilesAndSmilesScraper:
                     result = self._process_campaign(url)
                     if result == "saved":
                         success_count = int(success_count or 0) + 1
+                    elif result == "revived":
+                        revived_count = int(revived_count or 0) + 1
                     elif result == "skipped":
                         skipped_count = int(skipped_count or 0) + 1
                     else:
@@ -407,7 +415,7 @@ class GarantiMilesAndSmilesScraper:
             
             print(f"\n{'=' * 60}")
             print(f"✅ Scraping complete!")
-            print(f"✅ Özet: {len(campaign_urls)} bulundu, {success_count} eklendi, {int(skipped_count or 0) + int(failed_count or 0)} atlandı/hata aldı.")
+            print(f"✅ Özet: {len(campaign_urls)} bulundu, {success_count} eklendi, {revived_count} canlandırıldı, {skipped_count} atlandı, {failed_count} hata aldı.")
             
             status = "SUCCESS"
             if int(failed_count or 0) > 0:  # type: ignore # pyre-ignore[58]
@@ -423,6 +431,7 @@ class GarantiMilesAndSmilesScraper:
                       total_saved=success_count,
                       total_skipped=skipped_count,
                       total_failed=failed_count,
+                      total_revived=revived_count,
                       error_details={"errors": error_details} if error_details else None
                  )
             

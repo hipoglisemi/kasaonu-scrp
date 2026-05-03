@@ -47,7 +47,7 @@ if DATABASE_URL.startswith("postgres://"):
     
 from src.scrapers.param import Bank, Card, Sector, Brand, CampaignBrand, Campaign, SECTOR_MAP  # type: ignore # pyre-ignore[21]
 from src.utils.logger_utils import log_scraper_execution  # type: ignore # pyre-ignore[21]
-from src.utils.scraper_utils import is_url_blocked  # type: ignore
+from src.utils.scraper_utils import is_url_blocked, upsert_campaign  # type: ignore
 
 class AmericanExpressScraper:
     """American Express scraper - Playwright based"""
@@ -70,7 +70,7 @@ class AmericanExpressScraper:
         AIParser = _AIParser
 
         self.ai_parser = AIParser()
-        self.stats = {"found": 0, "saved": 0, "skipped": 0, "failed": 0, "errors": []}  # type: ignore # pyre-ignore[16,6]
+        self.stats = {"found": 0, "saved": 0, "revived": 0, "skipped": 0, "failed": 0, "errors": []}  # type: ignore # pyre-ignore[16,6]
 
     @staticmethod
     def _slugify(text: str) -> str:
@@ -192,6 +192,7 @@ class AmericanExpressScraper:
                 total_saved=self.stats["saved"],
                 total_skipped=self.stats["skipped"],
                 total_failed=self.stats["failed"],
+                total_revived=self.stats["revived"],
                 error_details=self.stats["errors"] if self.stats["errors"] else None
             )
             
@@ -394,8 +395,19 @@ class AmericanExpressScraper:
             ai_marketing_text=ai_data.get('ai_marketing_text') or ai_data.get('description') or final_title,  # type: ignore
         )
 
-        self.db.add(campaign)  # type: ignore # pyre-ignore[16]
-        self.db.commit()  # type: ignore # pyre-ignore[16]
+        # Use centralized upsert_campaign for revival and quality control
+        campaign, op_status = upsert_campaign(self.db, campaign)
+        self.db.commit()
+
+        if op_status == "revived":
+            print(f"   ♻️  Revived Passive Campaign: {campaign.title[:50]}...")
+            self.stats["revived"] += 1
+        elif op_status == "saved":
+             print(f"   ✅ Saved: {campaign.title[:50]}...")
+             self.stats["saved"] += 1
+        elif op_status == "updated":
+             print(f"   ✅ Updated: {campaign.title[:50]}...")
+             self.stats["saved"] += 1
 
         # ─── 6. Brands Linkage ───────────────────────────────────────────────────
         brands_data = ai_data.get('brands', [])

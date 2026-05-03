@@ -39,7 +39,7 @@ from sqlalchemy.orm import sessionmaker  # type: ignore # pyre-ignore[21]
 from src.database import engine, get_db_session  # type: ignore # pyre-ignore[21]
 from src.models import Bank, Card, Sector, Brand, Campaign, CampaignBrand  # type: ignore # pyre-ignore[21]
 from src.utils.logger_utils import log_scraper_execution  # type: ignore # pyre-ignore[21]
-from src.utils.scraper_utils import is_url_blocked  # type: ignore
+from src.utils.scraper_utils import is_url_blocked, upsert_campaign  # type: ignore
 from src.services.ai_parser_golden import parse_api_campaign  # type: ignore
 
 # AIParser is lazy-imported in __init__ to avoid google.generativeai hang
@@ -342,8 +342,8 @@ class ParamScraper:
                 Campaign.tracking_url == url, Campaign.card_id == self.card_id
             ).first()
             
-            if existing:
-                print(f"   ⏭️  Skipped (Already exists): {existing.title}")
+            if existing and existing.is_active:
+                print(f"   ⏭️  Skipped (Already exists and active): {existing.title}")
                 return "skipped"  # type: ignore # pyre-ignore[7]
 
         print(f"🔍 Processing: {url}")
@@ -420,7 +420,7 @@ class ParamScraper:
             ).first()
 
             if existing:
-                print(f"   🔄 Updating existing campaign: {existing.title}")
+                print(f"   🔄 Updating existing campaign for revival: {existing.title}")
                 existing.sector_id = sector.id if sector else None  # type: ignore # pyre-ignore[16]
                 existing.title = formatted_title
                 existing.description = ai_data.get("description") or formatted_title
@@ -435,8 +435,6 @@ class ParamScraper:
                 existing.start_date = start_date or existing.start_date
                 existing.end_date = end_date or existing.end_date
                 existing.updated_at = func.now()
-                self.db.commit()  # type: ignore # pyre-ignore[16]
-                print(f"   ✅ Updated: {existing.title[:50]}")  # type: ignore # pyre-ignore[16,6]
                 campaign = existing
             else:
                 campaign = Campaign(  # type: ignore
@@ -460,10 +458,16 @@ class ParamScraper:
                     created_at=func.now(),  # type: ignore
                     updated_at=func.now(),  # type: ignore
                 )
-                self.db.add(campaign)  # type: ignore # pyre-ignore[16]
-                self.db.commit()  # type: ignore # pyre-ignore[16]
-                print(f"   ✅ Saved: {campaign.title[:50]}")  # type: ignore # pyre-ignore[16,6]
+            # Use centralized upsert_campaign for revival and quality control
+            campaign, op_status = upsert_campaign(self.db, campaign)
+            self.db.commit()
 
+            if op_status == "revived":
+                print(f"   ♻️  Revived Passive Campaign: {campaign.title[:50]}...")
+            elif op_status == "saved":
+                 print(f"   ✅ Saved: {campaign.title[:50]}...")
+            
+            self.db.refresh(campaign)
 
             # Brands via brand_matcher
 
@@ -516,7 +520,7 @@ class ParamScraper:
 
 
 
-            return "saved"  # type: ignore # pyre-ignore[7]
+            return op_status  # type: ignore # pyre-ignore[7]
         except Exception as e:
             self.db.rollback()  # type: ignore # pyre-ignore[16]
             print(f"   ❌ Save failed: {e}")
@@ -542,13 +546,15 @@ class ParamScraper:
 
             print(f"   🎯 Processing {len(final_urls)} campaigns...")
             
-            success, skipped, failed = 0, 0, 0
+            success, revived, skipped, failed = 0, 0, 0, 0
             for i, url in enumerate(final_urls, 1):
                 print(f"\n[{i}/{len(final_urls)}]")
                 try:
                     res = self._process_campaign(url, force=force)
                     if res == "saved":
                         success += 1  # type: ignore # pyre-ignore[58]
+                    elif res == "revived":
+                        revived += 1
                     elif res == "skipped":
                         skipped += 1  # type: ignore # pyre-ignore[58]
                     else:
@@ -559,7 +565,7 @@ class ParamScraper:
                         self.db.rollback()  # type: ignore # pyre-ignore[16]
                     failed += 1  # type: ignore # pyre-ignore[58]
                 time.sleep(1)
-            print(f"\n🏁 Finished. {len(final_urls)} found, {success} saved, {skipped} skipped, {failed} errors")
+            print(f"\n🏁 Finished. {len(final_urls)} found, {success} saved, {revived} revived, {skipped} skipped, {failed} errors")
             
             # Log execution
             if self.db:
@@ -570,7 +576,8 @@ class ParamScraper:
                     total_found=len(final_urls),
                     total_saved=success,
                     total_skipped=skipped,
-                    total_failed=failed
+                    total_failed=failed,
+                    total_revived=revived
                 )
         except Exception as e:
             print(f"❌ Scraper error: {e}")

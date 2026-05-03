@@ -17,7 +17,7 @@ project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(_
 if project_root not in sys.path:
     sys.path.insert(0, project_root)
 
-from src.utils.scraper_utils import is_url_blocked  # type: ignore
+from src.utils.scraper_utils import is_url_blocked, upsert_campaign  # type: ignore
 from src.utils.logger_utils import log_scraper_execution  # type: ignore # pyre-ignore[21]
 
 # Load Env - same pattern as ziraat.py
@@ -158,13 +158,10 @@ class IsbankMaximumScraper:
         from playwright.sync_api import sync_playwright  # type: ignore # pyre-ignore[21]
         self.playwright = sync_playwright().start()
         
-        # Consistent with Maximiles stealth pattern
-        self.browser = self.playwright.chromium.launch(
+        # Consistent with Yapikredi World pattern - Firefox is more stable here
+        self.browser = self.playwright.firefox.launch(
             headless=True,
-            args=["--no-sandbox", "--disable-setuid-sandbox",
-                  "--disable-dev-shm-usage", "--disable-gpu", "--window-size=1920,1080",
-                  "--disable-blink-features=AutomationControlled",
-                  "--disable-extensions", "--disable-web-security"]
+            args=["--window-size=1920,1080"]
         )
         context = self.browser.new_context(
             viewport={"width": 1920, "height": 1080},
@@ -605,9 +602,16 @@ class IsbankMaximumScraper:
                 created_at=datetime.utcnow(),  # type: ignore
                 updated_at=datetime.utcnow(),  # type: ignore
             )
-            if self.session is None: return None
-            self.session.add(campaign)  # type: ignore # pyre-ignore[16]
-            self.session.commit()  # type: ignore # pyre-ignore[16]
+            # Use centralized upsert_campaign for revival and quality control
+            campaign, op_status = upsert_campaign(self.session, campaign)
+            self.session.commit()
+            
+            if op_status == "revived":
+                print(f"   ♻️  Revived Passive Campaign: {campaign.title}")
+            elif op_status == "saved":
+                 print(f"   ✅ Saved: {campaign.title[:50]}")
+            
+            self.session.refresh(campaign)
 
 
             from src.services.brand_matcher import get_or_create_brands_list  # type: ignore # pyre-ignore[21]
@@ -656,8 +660,7 @@ class IsbankMaximumScraper:
 
 
 
-            print(f"   ✅ Saved: {campaign.title[:50]}")  # type: ignore # pyre-ignore[16,6]
-            return campaign.id  # type: ignore # pyre-ignore[7]
+            return op_status  # type: ignore # pyre-ignore[7]
         except Exception as e:
             self.session.rollback()  # type: ignore # pyre-ignore[16]
             print(f"   ❌ Save failed: {e}")
@@ -706,6 +709,7 @@ class IsbankMaximumScraper:
             urls = active_urls
             results = []
             success: int = 0
+            total_revived: int = 0
             skipped: int = 0
             failed: int = 0
             error_details: List[Dict[str, Any]] = []  # type: ignore # pyre-ignore[16,6]
@@ -733,7 +737,7 @@ class IsbankMaximumScraper:
                     Campaign.tracking_url == url,
                     Campaign.card_id == card_id
                 ).first()
-                if existing and not force:
+                if existing and existing.is_active and not force:
                     existing_img = existing.image_url  # type: ignore # pyre-ignore[16]
                     is_placeholder = (
                         not existing_img
@@ -798,13 +802,16 @@ class IsbankMaximumScraper:
                     except Exception as ai_e:
                         print(f"   ⚠️ AI parse error: {ai_e}")
                         
-                    saved_id = self._save_campaign(res_data, bank_id, card_id)
-                    if saved_id:
+                    res_status = self._save_campaign(res_data, bank_id, card_id)
+                    if res_status == "saved":
                         success += 1  # type: ignore # pyre-ignore[58]
-                        results.append(saved_id)
+                    elif res_status == "revived":
+                        total_revived += 1
+                    elif res_status == "skipped":
+                        skipped += 1
                     else:
                         failed += 1  # type: ignore # pyre-ignore[58]
-                        error_details.append({"url": url, "error": "Save returned None"})
+                        error_details.append({"url": url, "error": f"Save returned {res_status}"})
                         
                 except Exception as e:
                     print(f"❌ Error during details extraction: {e}")
@@ -814,7 +821,7 @@ class IsbankMaximumScraper:
                 
                 time.sleep(1.5)
 
-            print(f"\n🏁 Finished. {len(urls)} found, {success} saved, {skipped} skipped, {failed} errors")
+            print(f"\n🏁 Finished. {len(urls)} found, {success} saved, {total_revived} revived, {skipped} skipped, {failed} errors")
             
             status = "SUCCESS"
             if int(failed or 0) > 0:  # type: ignore # pyre-ignore[58]
@@ -828,6 +835,7 @@ class IsbankMaximumScraper:
                 total_saved=int(success or 0),
                 total_skipped=int(skipped or 0),
                 total_failed=int(failed or 0),
+                total_revived=int(total_revived or 0),
                 error_details={"errors": error_details} if error_details else None
             )
             

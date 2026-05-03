@@ -19,7 +19,7 @@ import traceback  # type: ignore # pyre-ignore[21]
 from datetime import datetime  # type: ignore # pyre-ignore[21]
 from typing import Optional, Dict, Any, List  # type: ignore # pyre-ignore[21]
 from urllib.parse import urljoin  # type: ignore # pyre-ignore[21]
-from src.utils.scraper_utils import is_url_blocked  # type: ignore
+from src.utils.scraper_utils import is_url_blocked, upsert_campaign  # type: ignore
 from bs4 import BeautifulSoup  # type: ignore # pyre-ignore[21]
 
 from src.services.brand_matcher import get_or_create_brands_list  # type: ignore
@@ -529,8 +529,20 @@ class IsbankMaximumGencScraper:
                 is_active=True, tracking_url=url,
                 created_at=datetime.utcnow(), updated_at=datetime.utcnow(),
             )
-            self.db.add(campaign)  # type: ignore # pyre-ignore[16]
-            self.db.commit()  # type: ignore # pyre-ignore[16]
+            
+            # Use centralized upsert_campaign for revival and quality control
+            campaign, op_status = upsert_campaign(self.db, campaign)
+            self.db.commit()
+
+            if op_status == "revived":
+                print(f"   ♻️  Revived Passive Campaign: {campaign.title[:50]}...")
+                return "revived"
+            elif op_status == "saved":
+                 print(f"   ✅ Saved: {campaign.title[:50]}...")
+                 return "saved"
+            elif op_status == "updated":
+                 print(f"   ✅ Updated: {campaign.title[:50]}...")
+                 return "saved"
 
             # Brands via brand_matcher
             brand_ids = get_or_create_brands_list(
@@ -622,7 +634,7 @@ class IsbankMaximumGencScraper:
                         print(f"   ⚠️ Could not update expired campaign {e_url}: {e}")
                         
             urls = active_urls
-            success, skipped, failed = 0, 0, 0
+            success, revived, skipped, failed = 0, 0, 0, 0
             error_details = []
             for i, url in enumerate(urls, 1):
                 print(f"\n[{i}/{len(urls)}]")
@@ -630,6 +642,8 @@ class IsbankMaximumGencScraper:
                     res = self._process_campaign(url)
                     if res == "saved":
                         success += 1  # type: ignore # pyre-ignore[58]
+                    elif res == "revived":
+                        revived += 1
                     elif res == "skipped":
                         skipped += 1  # type: ignore # pyre-ignore[58]
                     else:
@@ -640,7 +654,7 @@ class IsbankMaximumGencScraper:
                     failed += 1  # type: ignore # pyre-ignore[58]
                     error_details.append({"url": url, "error": str(e)})
                 time.sleep(1.5)
-            print(f"\n🏁 Finished. {len(urls)} found, {success} saved, {skipped} skipped, {failed} errors")
+            print(f"\n🏁 Finished. {len(urls)} found, {success} saved, {revived} revived, {skipped} skipped, {failed} errors")
             
             status = "SUCCESS"
             if failed > 0:  # type: ignore # pyre-ignore[58]
@@ -658,6 +672,7 @@ class IsbankMaximumGencScraper:
                           total_saved=success,
                           total_skipped=skipped,
                           total_failed=failed,
+                          total_revived=revived,
                           error_details={"errors": error_details} if error_details else None
                      )
             except Exception as le:

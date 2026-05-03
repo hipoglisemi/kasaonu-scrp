@@ -26,7 +26,7 @@ from src.database import get_db_session  # type: ignore # pyre-ignore[21]
 from src.models import Bank, Card, Sector, Brand, Campaign, CampaignBrand  # type: ignore # pyre-ignore[21]
 from src.services.ai_parser import AIParser  # type: ignore # pyre-ignore[21]
 from src.services.ai_parser_golden import parse_api_campaign  # type: ignore # pyre-ignore[21]
-from src.utils.scraper_utils import is_url_blocked  # type: ignore
+from src.utils.scraper_utils import is_url_blocked, upsert_campaign  # type: ignore
 
 class ParafGencScraper:
     """
@@ -89,6 +89,7 @@ class ParafGencScraper:
             
             # 2. Process each campaign
             success_count = 0
+            revived_count = 0
             skipped_count = 0
             failed_count = 0
             error_details = []
@@ -107,6 +108,8 @@ class ParafGencScraper:
                     res = self._scrape_detail(campaign_data, url, source)
                     if res == "saved":
                         success_count += 1  # type: ignore # pyre-ignore[58]
+                    elif res == "revived":
+                        revived_count += 1
                     elif res == "skipped":
                         skipped_count += 1  # type: ignore # pyre-ignore[58]
                     else:
@@ -119,7 +122,7 @@ class ParafGencScraper:
                     failed_count += 1  # type: ignore # pyre-ignore[58]
                     error_details.append({"url": url, "error": str(e)})
                     
-            print(f"   ✅ Özet: {len(campaigns)} bulundu, {success_count} eklendi, {skipped_count + failed_count} atlandı/hata aldı.")
+            print(f"   ✅ Özet: {len(campaigns)} bulundu, {success_count} eklendi, {revived_count} canlandırıldı, {skipped_count} atlandı, {failed_count} hata aldı.")
             
             status = "SUCCESS"
             if failed_count > 0:  # type: ignore # pyre-ignore[58]
@@ -135,6 +138,7 @@ class ParafGencScraper:
                      total_saved=success_count,
                      total_skipped=skipped_count,
                      total_failed=failed_count,
+                     total_revived=revived_count,
                      error_details={"errors": error_details} if error_details else None
                 )
             except Exception as le:
@@ -171,10 +175,10 @@ class ParafGencScraper:
     def _scrape_detail(self, campaign_data: Dict, url: str, source: Dict) -> bool:
         """Scrape single campaign detail page"""
         
-        # Check if exists
+        # Check if exists and active
         existing = self.db.query(Campaign).filter(Campaign.tracking_url == url).first()  # type: ignore # pyre-ignore[16]
-        if existing:
-            print(f"      ⏭️ Skipped (Already exists): {existing.title[:40]}")
+        if existing and existing.is_active:
+            print(f"      ⏭️ Skipped (Already exists and active): {existing.title[:40]}")
             return "skipped"  # type: ignore # pyre-ignore[7]
 
         # Final blocklist check
@@ -292,9 +296,16 @@ class ParafGencScraper:
                 is_active=True
             )
             
-            if self.db is None: return "error"
-            self.db.add(campaign)  # type: ignore # pyre-ignore[16]
-            self.db.commit()  # type: ignore # pyre-ignore[16]
+            # Use centralized upsert_campaign for revival and quality control
+            campaign, op_status = upsert_campaign(self.db, campaign)
+            self.db.commit()
+
+            if op_status == "revived":
+                print(f"      ♻️  Revived Passive Campaign: {campaign.title[:50]}...")
+            elif op_status == "saved":
+                 print(f"      ✅ Saved: {campaign.title[:50]}...")
+            
+            self.db.refresh(campaign)
             
             for bid in brand_ids:
                 try:
@@ -302,7 +313,7 @@ class ParafGencScraper:
                     self.db.add(cb)  # type: ignore # pyre-ignore[16]
                 except: pass
             self.db.commit()  # type: ignore # pyre-ignore[16]
-            return "saved"  # type: ignore # pyre-ignore[7]
+            return op_status
             
         except Exception as e:
             print(f"      ❌ Save error: {e}")
@@ -344,7 +355,12 @@ class ParafGencScraper:
 
     def _get_or_create_brands(self, names: List[str], sector_id: int) -> List[int]:  # type: ignore # pyre-ignore[16,6]
         from src.services.brand_matcher import get_or_create_brands_list
-        return get_or_create_brands_list(self.db, names, self.brand_cache, sector_id)
+        return get_or_create_brands_list(
+            db=self.db,
+            names=names,
+            brand_cache=self.brand_cache,
+            sector_id=sector_id
+        )
 
 if __name__ == "__main__":
     scraper = ParafGencScraper()

@@ -21,7 +21,7 @@ from src.models import Campaign, Bank, Card, Sector, Brand, CampaignBrand  # typ
 from src.services.ai_parser import parse_api_campaign  # type: ignore # pyre-ignore[21]
 from src.utils.slug_generator import get_unique_slug  # type: ignore # pyre-ignore[21]
 from src.utils.cache_manager import clear_cache  # type: ignore # pyre-ignore[21]
-from src.utils.scraper_utils import is_url_blocked  # type: ignore
+from src.utils.scraper_utils import is_url_blocked, upsert_campaign  # type: ignore
 from sqlalchemy.exc import IntegrityError  # type: ignore # pyre-ignore[21]
 import re  # type: ignore # pyre-ignore[21]
 from src.services.brand_matcher import get_or_create_brands_list
@@ -139,19 +139,20 @@ class GarantiShopAndFlyScraper:
             print(f"❌ Error fetching campaign list: {e}")
             return []  # type: ignore # pyre-ignore[7]
     
-    def _process_campaign(self, url: str) -> str:
+    def _process_campaign(self, url: str, force: bool = False) -> str:
         """Process a single campaign page."""
         # Database Pre-check (Skip Logic)
         try:
             with get_db_session() as db:
-                if is_url_blocked(db, url):
-                    print(f"   🚫 Skipped (Blocklisted): {url}")
-                    return "skipped"  # type: ignore # pyre-ignore[7]
+                if not force:
+                    if is_url_blocked(db, url):
+                        print(f"   🚫 Skipped (Blocklisted): {url}")
+                        return "skipped"  # type: ignore # pyre-ignore[7]
 
-                existing = db.query(Campaign).filter(Campaign.tracking_url == url).first()  # type: ignore # pyre-ignore[16]
-                if existing:
-                    print(f"   ⏭️ Skipped (Already exists): {url}")
-                    return "skipped"  # type: ignore # pyre-ignore[7]
+                    existing = db.query(Campaign).filter(Campaign.tracking_url == url).first()  # type: ignore # pyre-ignore[16]
+                    if existing and existing.is_active:
+                        print(f"   ⏭️ Skipped (Already exists and active): {url}")
+                        return "skipped"  # type: ignore # pyre-ignore[7]
         except Exception as e:
             print(f"   ⚠️ DB Pre-check error: {e}")
 
@@ -282,10 +283,7 @@ class GarantiShopAndFlyScraper:
                 return "skipped"  # type: ignore # pyre-ignore[7]
 
             existing = db.query(Campaign).filter(Campaign.tracking_url == tracking_url).first()  # type: ignore # pyre-ignore[16]
-            if isinstance(title, str):
-                print(f"   ⏭️ Skipped (Already exists, preserving manual edits): {title[:50]}...")  # type: ignore # pyre-ignore[16,6]
-            else:
-                print(f"   ⏭️ Skipped (Already exists): {tracking_url}")
+            # Skip check removed to allow upsert_campaign to handle revival logic
 
             slug = get_unique_slug(title, db, Campaign)
             
@@ -340,16 +338,24 @@ class GarantiShopAndFlyScraper:
                 updated_at=datetime.utcnow()  # type: ignore
             )
             
-            db.add(campaign)  # type: ignore # pyre-ignore[16]
-            db.flush()  # type: ignore # pyre-ignore[16]
+            # Use centralized upsert_campaign for revival and quality control
+            campaign, op_status = upsert_campaign(db, campaign)
+            db.commit()
+
+            if op_status == "revived":
+                print(f"   ♻️  Revived Passive Campaign: {campaign.title[:50]}...")
+            elif op_status == "saved":
+                 print(f"   ✅ Saved: {campaign.title[:50]}... (Reward: {campaign.reward_text})")
+            
+            self.db.refresh(campaign) if hasattr(self, 'db') and self.db else db.refresh(campaign)
             
             # Brands via brand_matcher
             _sector_obj = db.query(Sector).filter(Sector.slug == ai_data.get('sector', 'diger')).first() if ai_data.get('sector') else None
             brand_ids = get_or_create_brands_list(
-                db,
-                ai_data.get("brands", []),
-                getattr(self, 'brand_cache', {}),
-                _sector_obj.id if _sector_obj else None
+                db=db,
+                names=ai_data.get("brands", []),
+                brand_cache=getattr(self, 'brand_cache', {}),
+                sector_id=sector_id
             )
             for bid in brand_ids:
                 try:
@@ -364,9 +370,9 @@ class GarantiShopAndFlyScraper:
                     db.rollback()
                     print(f"   ⚠️ CampaignBrand link failed: {e}")
             print(f"   ✅ Saved: {campaign.title[:50]}... (Reward: {campaign.reward_text})")  # type: ignore # pyre-ignore[16,6]
-            return "saved"  # type: ignore # pyre-ignore[7]
+            return op_status
 
-    def run(self):
+    def run(self, limit: Optional[int] = None, force: bool = False):
         """Main execution flow"""
         print("🚀 Garanti Shop&Fly Scraper - UIkit Edition")
         print("=" * 60)
@@ -374,6 +380,9 @@ class GarantiShopAndFlyScraper:
         try:
             # Fetch campaign list
             campaign_urls = self._fetch_campaign_list()
+            
+            if limit:
+                campaign_urls = campaign_urls[:limit]
             
             if not campaign_urls:
                 print("❌ No campaigns found!")
@@ -383,6 +392,7 @@ class GarantiShopAndFlyScraper:
                 return
             
             success_count: int = 0
+            revived_count: int = 0
             skipped_count: int = 0
             failed_count: int = 0
             error_details: List[Dict[str, Any]] = []  # type: ignore # pyre-ignore[16,6]
@@ -390,9 +400,11 @@ class GarantiShopAndFlyScraper:
                 print(f"\n[{i}/{len(campaign_urls)}] Processing: {url}")  # type: ignore # pyre-ignore[16,6]
                 
                 try:
-                    result = self._process_campaign(url)
+                    result = self._process_campaign(url, force=force)
                     if result == "saved":
                         success_count += 1  # type: ignore # pyre-ignore
+                    elif result == "revived":
+                        revived_count += 1
                     elif result == "skipped":
                         skipped_count += 1  # type: ignore # pyre-ignore
                     else:
@@ -407,7 +419,7 @@ class GarantiShopAndFlyScraper:
             
             print(f"\n{'=' * 60}")
             print(f"✅ Scraping complete!")
-            print(f"✅ Özet: {len(campaign_urls)} bulundu, {success_count} eklendi, {int(skipped_count or 0) + int(failed_count or 0)} atlandı/hata aldı.")
+            print(f"✅ Özet: {len(campaign_urls)} bulundu, {success_count} eklendi, {revived_count} canlandırıldı, {skipped_count} atlandı, {failed_count} hata aldı.")
             
             status = "SUCCESS"
             if failed_count > 0:  # type: ignore # pyre-ignore[58]
@@ -423,6 +435,7 @@ class GarantiShopAndFlyScraper:
                       total_saved=success_count,
                       total_skipped=skipped_count,
                       total_failed=failed_count,
+                      total_revived=revived_count,
                       error_details={"errors": error_details} if error_details else None
                  )
             
@@ -437,5 +450,11 @@ class GarantiShopAndFlyScraper:
             raise
 
 if __name__ == "__main__":
+    import argparse
+    parser = argparse.ArgumentParser(description="Garanti Shop&Fly Scraper")
+    parser.add_argument("--limit", type=int, help="Maximum number of campaigns to process")
+    parser.add_argument("--force", action="store_true", help="Force re-processing of existing campaigns")
+    args = parser.parse_args()
+    
     scraper = GarantiShopAndFlyScraper()
-    scraper.run()
+    scraper.run(limit=args.limit, force=args.force)

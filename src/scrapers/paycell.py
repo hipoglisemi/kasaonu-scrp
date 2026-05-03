@@ -37,7 +37,7 @@ try:
     from src.services.ai_parser import AIParser # type: ignore
     from src.services.ai_parser_golden import parse_api_campaign  # type: ignore
     from src.utils.slug_generator import get_unique_slug # type: ignore
-    from src.utils.scraper_utils import should_skip_campaign, is_url_blocked # type: ignore
+    from src.utils.scraper_utils import upsert_campaign, is_url_blocked # type: ignore
     from src.utils.logger_utils import log_scraper_execution # type: ignore
 except ImportError:
     pass
@@ -129,6 +129,7 @@ class PaycellScraper:
 
             total_found = len(campaign_list)
             total_saved = 0
+            total_revived = 0
             total_skipped = 0
             total_failed = 0
             error_details = []
@@ -141,14 +142,16 @@ class PaycellScraper:
                 try:
                     # 1. Check if already exists or blocked
                     with get_db_session() as db:
-                        if not force and should_skip_campaign(db, url, card_id=self.card_id):
-                            print(f"   ⏭️  Skipped (Already exists or blocked)")
-                            total_skipped += 1
-                            continue
                         if is_url_blocked(db, url):
-                            print(f"   🚫 Skipped (Blocklisted)")
+                            print(f"   🚫 Skipped (Blocklisted): {url}")
                             total_skipped += 1
                             continue
+                        
+                        existing = db.query(Campaign).filter(Campaign.tracking_url == url).first()
+                        if not force and existing and existing.is_active:
+                             print(f"   ⏭️  Skipped (Already exists and active)")
+                             total_skipped += 1
+                             continue
 
                     # 2. Fetch Detail
                     dr = cast(Any, self.driver)
@@ -224,19 +227,17 @@ class PaycellScraper:
                     # 5. Save
                     status = self._save_campaign(title, str(image_url) if image_url else self.DEFAULT_IMAGE_URL, url, ai_data, raw_html, force=force)
                     if status == "saved":
-                        ts = total_saved
-                        total_saved = ts + 1 # type: ignore
+                        total_saved += 1
+                    elif status == "revived":
+                        total_revived += 1
                     elif status == "skipped":
-                        tsk = total_skipped
-                        total_skipped = tsk + 1 # type: ignore
+                        total_skipped += 1
                     else:
-                        tf = total_failed
-                        total_failed = tf + 1 # type: ignore
+                        total_failed += 1
 
                 except Exception as e:
                     print(f"   ❌ Error: {e}")
-                    tf = total_failed
-                    total_failed = tf + 1 # type: ignore
+                    total_failed += 1
                     error_details.append({"url": url, "error": str(e)})
 
                 time.sleep(random.uniform(1, 3))
@@ -252,6 +253,7 @@ class PaycellScraper:
                     total_saved=total_saved,
                     total_skipped=total_skipped,
                     total_failed=total_failed,
+                    total_revived=total_revived,
                     error_details={"errors": error_details} if error_details else None
                 ) # type: ignore
 
@@ -357,9 +359,7 @@ class PaycellScraper:
                 Campaign.card_id == self.card_id
             ).first()
             
-            is_new = False
             if not campaign:
-                is_new = True
                 final_title = ai_data.get("title") or original_title
                 slug = get_unique_slug(final_title, db, Campaign)
                 campaign = Campaign(
@@ -369,9 +369,6 @@ class PaycellScraper:
                     is_active=True,
                     created_at=datetime.utcnow()
                 )
-                db.add(campaign)
-            elif not force:
-                return "skipped"
 
             campaign.title = ai_data.get("title") or original_title
             campaign.description = ai_data.get("description") or campaign.title
@@ -402,14 +399,28 @@ class PaycellScraper:
             
             campaign.clean_text = raw_text
             campaign.updated_at = datetime.utcnow()
+            
+            # Use centralized upsert_campaign for revival and quality control
+            campaign, op_status = upsert_campaign(db, campaign)
+            db.commit()
+            
+            if op_status == "revived":
+                print(f"   ♻️  Revived Passive Campaign: {campaign.title[:50]}...")
+            elif op_status == "saved":
+                 print(f"   ✅ Saved: {campaign.title[:50]}...")
+            
+            db.refresh(campaign)
 
             # Handle Brands
-            brand_ids = self._get_or_create_brands(db, ai_data.get("brands", []), campaign.sector_id)
+            from src.services.brand_matcher import get_or_create_brands_list
+            brand_ids = get_or_create_brands_list(
+                db_session=db,
+                brand_names=ai_data.get("brands", []),
+                brand_cache=getattr(self, 'brand_cache', {}),
+                sector_id=campaign.sector_id
+            )
 
             try:
-                db.commit()
-                db.refresh(campaign)
-
                 # Link Brands
                 processed_brands = []
                 for b_id in brand_ids:
@@ -422,16 +433,12 @@ class PaycellScraper:
                 if processed_brands:
                     db.commit()
 
-                print(f"   ✅ {'Saved' if is_new else 'Updated'}: {campaign.title[:50]} (Brands: {len(brand_ids)})")
-                return "saved"
+                return op_status
             except Exception as e:
                 db.rollback()
-                print(f"   ❌ Save Error: {e}")
+                print(f"   ❌ Brand linking failed: {e}")
                 return "error"
 
-    def _get_or_create_brands(self, db, names: List[str], sector_id: Optional[int]) -> List[Any]:
-        from src.services.brand_matcher import get_or_create_brands_list
-        return get_or_create_brands_list(db, names, {}, sector_id)
 
 if __name__ == "__main__":
     import argparse

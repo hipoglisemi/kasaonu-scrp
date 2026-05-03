@@ -21,7 +21,8 @@ from src.database import engine, get_db_session
 from src.models import Bank, Card, Sector, Campaign, CampaignBrand
 from src.services.brand_matcher import get_or_create_brands_list
 from src.services.ai_parser_golden import parse_api_campaign  # type: ignore
-from src.utils.scraper_utils import is_url_blocked
+from src.utils.scraper_utils import is_url_blocked, upsert_campaign
+from src.utils.logger_utils import log_scraper_execution
 
 class HSBCScraper:
     """HSBC Premier Scraper - Playwright based"""
@@ -238,9 +239,9 @@ class HSBCScraper:
             Campaign.tracking_url == url, 
             Campaign.card_id == self.card_id
         ).first()
-        
-        if existing and not force:
-            print(f"   ⏭️ Skipped (Exists): {existing.title[:40]}")
+
+        if existing and existing.is_active and not force:
+            print(f"   ⏭️ Skipped (Already exists and active): {existing.title[:40]}")
             return "skipped"
             
         # 2. Blocklist
@@ -298,50 +299,42 @@ class HSBCScraper:
             if part and part != "Detayları İnceleyin":
                 conds = f"KATILIM: {part}\n\n{conds}"
 
-            campaign_id = None
-            if existing:
-                existing.title = formatted_title
-                existing.description = ai_data.get("description")
-                existing.ai_marketing_text = ai_data.get("ai_marketing_text") or existing.description
-                existing.reward_text = ai_data.get("reward_text")
-                existing.reward_value = ai_data.get("reward_value")
-                existing.reward_type = ai_data.get("reward_type")
-                existing.conditions = conds
-                existing.eligible_cards = ", ".join(ai_data.get("cards", []))
-                existing.image_url = final_image or existing.image_url
-                existing.start_date = start_dt
-                existing.end_date = end_dt
-                existing.sector_id = sector.id if sector else None
-                existing.updated_at = func.now()
-                campaign_id = existing.id
-                print(f"   ✅ Updated: {existing.title[:50]}")
-            else:
-                camp = Campaign(
-                    card_id=self.card_id,
-                    sector_id=sector.id if sector else None,
-                    slug=slug,
-                    title=formatted_title,
-                    description=ai_data.get("description"),
-                    ai_marketing_text=ai_data.get("ai_marketing_text") or ai_data.get("description"),
-                    reward_text=ai_data.get("reward_text"),
-                    reward_value=ai_data.get("reward_value"),
-                    reward_type=ai_data.get("reward_type"),
-                    conditions=conds,
-                    eligible_cards=", ".join(ai_data.get("cards", [])) or None,
-                    image_url=final_image,
-                    start_date=start_dt,
-                    end_date=end_dt,
-                    is_active=True,
-                    tracking_url=url,
-                    created_at=func.now(),
-                    updated_at=func.now()
-                )
-                self.db.add(camp)
-                self.db.flush()
-                campaign_id = camp.id
-                print(f"   ✅ Saved: {camp.title[:50]}")
+            camp = Campaign(
+                card_id=self.card_id,
+                sector_id=sector.id if sector else None,
+                slug=slug,
+                title=formatted_title,
+                description=ai_data.get("description"),
+                ai_marketing_text=ai_data.get("ai_marketing_text") or ai_data.get("description"),
+                reward_text=ai_data.get("reward_text"),
+                reward_value=ai_data.get("reward_value"),
+                reward_type=ai_data.get("reward_type"),
+                conditions=conds,
+                eligible_cards=", ".join(ai_data.get("cards", [])) or None,
+                participation=part,
+                image_url=final_image,
+                start_date=start_dt,
+                end_date=end_dt,
+                is_active=True,
+                tracking_url=url,
+                clean_text=ai_data.get("_clean_text"),
+                created_at=func.now(),
+                updated_at=func.now()
+            )
             
+            # Use centralized upsert_campaign for revival and quality control
+            campaign, op_status = upsert_campaign(self.db, camp)
             self.db.commit()
+
+            if op_status == "revived":
+                print(f"   ♻️  Revived Passive Campaign: {campaign.title[:50]}...")
+            elif op_status == "saved":
+                 print(f"   ✅ Saved: {campaign.title[:50]}...")
+            elif op_status == "updated":
+                 print(f"   ✅ Updated: {campaign.title[:50]}...")
+            
+            self.db.refresh(campaign)
+            campaign_id = campaign.id
             
             # Brands matching
             brands = ai_data.get("brands", [])
@@ -361,7 +354,7 @@ class HSBCScraper:
                         self.db.add(CampaignBrand(campaign_id=campaign_id, brand_id=bid))
                 self.db.commit()
 
-            return "saved"
+            return op_status
         except Exception as e:
             self.db.rollback()
             print(f"   ❌ DB error: {e}")
@@ -375,18 +368,33 @@ class HSBCScraper:
             items = self._fetch_campaign_items(limit=limit)
             
             success = 0
+            revived = 0
             skipped = 0
             failed = 0
             
             for i, item in enumerate(items, 1):
                 print(f"\n[{i}/{len(items)}]")
                 res = self._process_campaign(item, force=force)
-                if res == "saved": success += 1
+                if res in ["saved", "updated"]: success += 1
+                elif res == "revived": revived += 1
                 elif res == "skipped": skipped += 1
                 else: failed += 1
                 time.sleep(1)
                 
-            print(f"\n🏁 Finished. Total: {len(items)}, Saved: {success}, Skipped: {skipped}, Failed: {failed}")
+            print(f"\n🏁 Finished. Total: {len(items)}, Saved: {success}, Revived: {revived}, Skipped: {skipped}, Failed: {failed}")
+
+            # Log execution
+            status = "SUCCESS" if failed == 0 else ("PARTIAL" if (success > 0 or revived > 0 or skipped > 0) else "FAILED")
+            log_scraper_execution(
+                db=self.db,
+                scraper_name="hsbc",
+                status=status,
+                total_found=len(items),
+                total_saved=success,
+                total_skipped=skipped,
+                total_failed=failed,
+                total_revived=revived
+            )
         except Exception as e:
             print(f"❌ Scraper crashed: {e}")
             traceback.print_exc()

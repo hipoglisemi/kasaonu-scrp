@@ -20,10 +20,10 @@ if project_root not in sys.path:
     sys.path.insert(0, project_root)
 
 from sqlalchemy import create_engine, text  # type: ignore # pyre-ignore[21]
-from sqlalchemy.orm import Session  # type: ignore # pyre-ignore[21]
+from sqlalchemy.orm import Session, sessionmaker  # type: ignore # pyre-ignore[21]
 from src.database import get_db_session  # type: ignore # pyre-ignore[21]
 from src.models import Bank, Card, Sector, Brand, Campaign, CampaignBrand  # type: ignore # pyre-ignore[21]
-from src.utils.scraper_utils import is_url_blocked  # type: ignore # pyre-ignore[21]
+from src.utils.scraper_utils import is_url_blocked, upsert_campaign  # type: ignore # pyre-ignore[21]
 from src.utils.logger_utils import log_scraper_execution  # type: ignore # pyre-ignore[21]
 from src.services.brand_normalizer import normalize_brand_name, cleanup_brands  # type: ignore # pyre-ignore[21]
 from src.services.ai_parser import AIParser  # type: ignore # pyre-ignore[21]
@@ -171,9 +171,10 @@ class ChippinScraper:
         url = "https://www.chippin.com.tr/kampanyalar"
         print(f"   🌐 Fetching: {url}")
         
-        success_count = 0
-        skipped_count = 0
-        failed_count = 0
+        total_saved = 0
+        total_revived = 0
+        total_skipped = 0
+        total_failed = 0
         error_details = []
         
         headers = {
@@ -257,34 +258,30 @@ class ChippinScraper:
                 tracking_url = f"https://www.chippin.com.tr/kampanyalar/{cid}"
 
                 # Database Ops - EARLIER CHECK TO SAVE AI CALLS
+                SessionLocal = sessionmaker(bind=self.engine)
                 try:
-                    with Session(self.engine) as session:
-                        if is_url_blocked(session, tracking_url):
-                             print(f"   🚫 Skipped (Blocklisted): {title}")
-                             skipped_count += 1  # type: ignore # pyre-ignore[58]
-                             continue
-
-                        with self.engine.begin() as conn:
-                            existing = conn.execute(text("SELECT id, image_url FROM campaigns WHERE tracking_url = :url"), {"url": tracking_url}).fetchone()
-                            if existing:
-                                existing_id, existing_img = existing[0], existing[1]
-                                # Görsel placeholder veya boşsa güncelle
-                                is_placeholder = (
-                                    not existing_img
-                                    or existing_img.startswith("/placeholders/")
-                                    or "logo" in existing_img.lower()
-                                )
-                                if is_placeholder and image_url:
-                                    conn.execute(
-                                        text("UPDATE campaigns SET image_url = :img, updated_at = NOW() WHERE id = :id"),
-                                        {"img": image_url, "id": existing_id}
-                                    )
-                                    print(f"   🔄 Görsel güncellendi: {title[:40]}")
-                                    skipped_count += 1  # type: ignore # pyre-ignore[58]
-                                else:
-                                    print(f"   ⏭️ Skipped (Already exists): {title[:40]}")
-                                    skipped_count += 1  # type: ignore # pyre-ignore[58]
-                                continue
+                    db = SessionLocal()
+                    try:
+                        existing = db.query(Campaign).filter(Campaign.tracking_url == tracking_url).first()
+                        if existing and existing.is_active:
+                            # Check if image needs update
+                            existing_img = existing.image_url
+                            is_placeholder = (
+                                not existing_img
+                                or existing_img.startswith("/placeholders/")
+                                or "logo" in existing_img.lower()
+                            )
+                            if is_placeholder and image_url:
+                                existing.image_url = image_url
+                                existing.updated_at = datetime.utcnow()
+                                db.commit()
+                                print(f"   🔄 Görsel güncellendi: {title[:40]}")
+                            
+                            print(f"   ⏭️ Skipped (Already exists and active): {title[:40]}")
+                            total_skipped += 1
+                            continue
+                    finally:
+                        db.close()
                 except Exception as e:
                     print(f"   ❌ DB Pre-check Error: {e}")
 
@@ -342,98 +339,84 @@ class ChippinScraper:
                 except:
                     reward_val = 0.0
 
-                # Database Ops - Insertion
+                # Database Ops - Insertion with ORM
                 try:
-                    with self.engine.begin() as conn:
-                        campaign_data = {
-                            "title": ai_data.get("title") or title,
-                            "description": ai_data.get("description") or "",
-                            "slug": slug,
-                            "image_url": image_url,
-                            "tracking_url": tracking_url,
-                            "start_date": ai_data.get("start_date") or c.get("campaignStartDate"),
-                            "end_date": ai_data.get("end_date") or c.get("campaignEndDate"),
-                            "sector_id": self._resolve_sector_by_name(str(ai_data.get("sector") or "Diğer")) or self._resolve_sector_by_name("Diğer"),
-                            "card_id": card_id,
-                            "participation": ai_data.get("participation"),
-                            "conditions": "\n".join(conditions_lines) if conditions_lines else None,
-                            "eligible_cards": eligible_str,
-                            "reward_text": ai_data.get("reward_text"),
-                            "reward_value": reward_val,
-                            "reward_type": ai_data.get("reward_type"),
-                            "ai_marketing_text": ai_data.get("ai_marketing_text") or ai_data.get("description") or title,
-                        }
+                    db = SessionLocal()
+                    try:
+                        campaign = Campaign(
+                            card_id=card_id,
+                            sector_id=self._resolve_sector_by_name(str(ai_data.get("sector") or "Diğer")) or self._resolve_sector_by_name("Diğer"),
+                            slug=slug,
+                            title=ai_data.get("title") or title,
+                            description=ai_data.get("description") or "",
+                            ai_marketing_text=ai_data.get("ai_marketing_text") or ai_data.get("description") or title,
+                            reward_text=ai_data.get("reward_text"),
+                            reward_value=reward_val,
+                            reward_type=ai_data.get("reward_type"),
+                            conditions="\n".join(conditions_lines) if conditions_lines else None,
+                            eligible_cards=eligible_str,
+                            participation=ai_data.get("participation"),
+                            image_url=image_url,
+                            start_date=ai_data.get("start_date") or c.get("campaignStartDate"),
+                            end_date=ai_data.get("end_date") or c.get("campaignEndDate"),
+                            is_active=True,
+                            tracking_url=tracking_url,
+                            updated_at=datetime.utcnow()
+                        )
 
-                        print(f"      ✨ Creating...")
-                        result = conn.execute(text("""
-                            INSERT INTO campaigns (
-                                title, description, slug, image_url, tracking_url, is_active,
-                                sector_id, card_id, start_date, end_date, conditions, participation,
-                                eligible_cards, reward_text, reward_value, reward_type, ai_marketing_text,
-                                created_at, updated_at
-                            )
-                            VALUES (
-                                :title, :description, :slug, :image_url, :tracking_url, true,
-                                :sector_id, :card_id, :start_date, :end_date, :conditions, :participation,
-                                :eligible_cards, :reward_text, :reward_value, :reward_type, :ai_marketing_text,
-                                NOW(), NOW()
-                            )
-                            ON CONFLICT (slug) DO UPDATE SET updated_at = NOW()
-                            RETURNING id
-                        """), campaign_data)
-                        row = result.fetchone()
-                        campaign_id = row[0] if row else None
-                        success_count += 1  # type: ignore # pyre-ignore[58]
+                        # Use centralized upsert_campaign for revival and quality control
+                        campaign, op_status = upsert_campaign(db, campaign)
+                        db.commit()
 
-                        if ai_data.get("brands") and campaign_id:
-                            clean_brands = cleanup_brands(ai_data["brands"])
-                            for brand_name in clean_brands:
-                                brand_res = conn.execute(text("SELECT id, is_active FROM brands WHERE name=:name"), {"name": brand_name}).fetchone()
-                                if brand_res:
-                                    # 🛡️ Bloklist kontrolu: is_active=False olan markalar atlanır
-                                    if not brand_res[1]:
-                                        print(f"      �deab Skipped blacklisted brand: {brand_name}")
-                                        continue
-                                    bid = brand_res[0]
-                                else:
-                                    bslug = f"{slugify(brand_name)}-{int(time.time())}"
-                                    brand_res = conn.execute(text("INSERT INTO brands (name, slug, is_active, created_at) VALUES (:name, :slug, true, NOW()) RETURNING id"), {"name": brand_name, "slug": bslug}).fetchone()
-                                    bid = brand_res[0]
-                                
-                                link_check = conn.execute(text("SELECT 1 FROM campaign_brands WHERE campaign_id=:cid AND brand_id=CAST(:bid AS uuid)"), {"cid": campaign_id, "bid": bid}).fetchone()
+                        if op_status == "revived":
+                            print(f"   ♻️  Revived Passive Campaign: {campaign.title[:50]}...")
+                            total_revived += 1
+                        elif op_status == "saved":
+                             print(f"   ✅ Saved: {campaign.title[:50]}...")
+                             total_saved += 1
+                        
+                        db.refresh(campaign)
+
+                        # Brands
+                        if ai_data.get("brands"):
+                            from src.services.brand_matcher import get_or_create_brands_list
+                            brand_ids = get_or_create_brands_list(db, ai_data["brands"], {}, campaign.sector_id)
+                            for bid in brand_ids:
+                                link_check = db.query(CampaignBrand).filter_by(campaign_id=campaign.id, brand_id=bid).first()
                                 if not link_check:
-                                    conn.execute(text("INSERT INTO campaign_brands (campaign_id, brand_id) VALUES (:cid, CAST(:bid AS uuid))"), {"cid": campaign_id, "bid": bid})
+                                    db.add(CampaignBrand(campaign_id=campaign.id, brand_id=bid))
+                            db.commit()
+                    finally:
+                        db.close()
                 except Exception as e:
                     print(f"   ❌ DB Error: {e}")
-                    failed_count += 1  # type: ignore # pyre-ignore[58]
+                    total_failed += 1  # type: ignore # pyre-ignore[58]
                     error_details.append({"url": tracking_url, "error": f"DB Error: {str(e)}"})
 
         except Exception as e:
             print(f"   ❌ Error: {e}")
-            failed_count += 1  # type: ignore # pyre-ignore[58]
+            total_failed += 1  # type: ignore # pyre-ignore[58]
             error_details.append({"url": url, "error": str(e)})
             
-        print(f"✅ Özet: {len(campaigns_to_process)} bulundu, {success_count} eklendi, {skipped_count} atlandı, {failed_count} hata aldı.")
+        print(f"✅ Özet: {len(campaigns_to_process)} bulundu, {total_saved} eklendi, {total_revived} canlandırıldı, {total_skipped} atlandı, {total_failed} hata aldı.")
 
         status = "SUCCESS"
-        if failed_count > 0:  # type: ignore # pyre-ignore[58]
-             status = "PARTIAL" if (success_count > 0 or skipped_count > 0) else "FAILED"  # type: ignore # pyre-ignore[58]
+        if total_failed > 0:  # type: ignore # pyre-ignore[58]
+             status = "PARTIAL" if (total_saved > 0 or total_skipped > 0 or total_revived > 0) else "FAILED"  # type: ignore # pyre-ignore[58]
 
         try:
-             from src.utils.logger_utils import log_scraper_execution  # type: ignore # pyre-ignore[21]
-             from sqlalchemy.orm import sessionmaker as _sessionmaker  # type: ignore # pyre-ignore[21]
-             LogSession = _sessionmaker(bind=self.engine)
-             with LogSession() as log_session:
-                  log_scraper_execution(
-                      db=log_session,
-                      scraper_name="chippin",
-                      status=status,
-                      total_found=len(campaigns_to_process),
-                      total_saved=success_count,
-                      total_skipped=skipped_count,
-                      total_failed=failed_count,
-                      error_details={"errors": error_details} if error_details else None
-                  )
+             with SessionLocal() as log_session:
+                   log_scraper_execution(
+                       db=log_session,
+                       scraper_name="chippin",
+                       status=status,
+                       total_found=len(campaigns_to_process),
+                       total_saved=total_saved,
+                       total_skipped=total_skipped,
+                       total_failed=total_failed,
+                       total_revived=total_revived,
+                       error_details={"errors": error_details} if error_details else None
+                   )
         except Exception as log_e:
              print(f"⚠️ Could not save scraper log: {log_e}")
 

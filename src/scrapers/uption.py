@@ -161,6 +161,7 @@ class UptionScraper:
                     found_items = list(found_items)[:limit] # type: ignore
 
                 success_count = 0
+                revived_count = 0
                 skipped_count = 0
                 failed_count = 0
 
@@ -172,6 +173,8 @@ class UptionScraper:
                         res = self._process_campaign(item, force=force)
                         if res == "saved":
                             success_count += 1 # type: ignore
+                        elif res == "revived":
+                            revived_count += 1
                         elif res == "skipped":
                             skipped_count += 1 # type: ignore
                         else:
@@ -189,7 +192,8 @@ class UptionScraper:
                     total_found=len(found_items),
                     total_saved=success_count,
                     total_skipped=skipped_count,
-                    total_failed=failed_count
+                    total_failed=failed_count,
+                    total_revived=revived_count
                 )
 
         except Exception as e:
@@ -298,8 +302,7 @@ class UptionScraper:
             print("      ❌ AI parsing failed.")
             return "failed"
 
-        self._save_campaign(ai_data, url, image_url)
-        return "saved"
+        return self._save_campaign(ai_data, url, image_url)
 
     def _save_campaign(self, data: Dict, url: str, image_url: str):
         db = self.db
@@ -345,7 +348,7 @@ class UptionScraper:
                 slug=slug,
                 title=data.get("title", "Uption Kampanya"),
                 description=data.get("description", ""),
-                ai_marketing_text=ai_data.get("ai_marketing_text") or data.get("description", ""),
+                ai_marketing_text=data.get("ai_marketing_text") or data.get("description", ""),
                 conditions="\n".join(data.get("conditions", [])) if data.get("conditions") else None,
                 eligible_cards=", ".join(data.get("cards", [])) if data.get("cards") else None,
                 participation=data.get("participation", "Uption mobil uygulaması üzerinden katılabilirsiniz."),
@@ -357,10 +360,22 @@ class UptionScraper:
                 start_date=start_date,
                 end_date=end_date,
                 is_active=True,
-                clean_text=data.get("_clean_text")
+                clean_text=data.get("_clean_text"),
+                created_at=datetime.utcnow(),
+                updated_at=datetime.utcnow()
             )
-            db.add(campaign)
-            db.flush() # Get campaign.id
+            
+            # Use centralized upsert_campaign for revival and quality control
+            from src.utils.scraper_utils import upsert_campaign
+            campaign, op_status = upsert_campaign(db, campaign)
+            db.commit()
+
+            if op_status == "revived":
+                print(f"      ♻️  Revived Passive Campaign: {campaign.title[:50]}...")
+            elif op_status == "saved":
+                 print(f"      ✅ Saved: {campaign.title[:50]}...")
+            
+            db.refresh(campaign)
 
             # Brands via brand_matcher
             brand_ids = get_or_create_brands_list(
@@ -371,15 +386,22 @@ class UptionScraper:
             )
             
             for bid in brand_ids:
-                link = CampaignBrand(campaign_id=campaign.id, brand_id=bid)
-                db.add(link)
+                try:
+                    link = db.query(CampaignBrand).filter_by(campaign_id=campaign.id, brand_id=bid).first()
+                    if not link:
+                        db.add(CampaignBrand(campaign_id=campaign.id, brand_id=bid))
+                        db.commit()
+                except Exception as e:
+                    db.rollback()
+                    print(f"      ⚠️ Brand link failed: {e}")
             
-            db.commit()
-            print(f"      ✅ Saved: {campaign.title}")
+            return op_status
             
         except Exception as e:
             if db: db.rollback()
             print(f"      ❌ Save error: {e}")
+            return "error"
+
 
 if __name__ == "__main__":
     import argparse

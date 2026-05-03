@@ -26,7 +26,7 @@ from src.models import Bank, Card, Sector, Brand, Campaign, CampaignBrand  # typ
 from src.services.ai_parser import AIParser  # type: ignore # pyre-ignore[21]
 from src.services.ai_parser_golden import parse_api_campaign  # type: ignore # pyre-ignore[21]
 from src.utils.logger_utils import log_scraper_execution  # type: ignore # pyre-ignore[21]
-from src.utils.scraper_utils import is_url_blocked  # type: ignore
+from src.utils.scraper_utils import is_url_blocked, upsert_campaign  # type: ignore
 
 class KuveytTurkScraper:
     """
@@ -60,7 +60,7 @@ class KuveytTurkScraper:
         """Main async execution flow"""
         print(f"🚀 Starting {self.BANK_NAME} Scraper...")
         start_time = time.time()
-        stats = {'total': 0, 'new': 0, 'updated': 0, 'failed': 0, 'skipped': 0}
+        stats = {'total': 0, 'new': 0, 'updated': 0, 'revived': 0, 'failed': 0, 'skipped': 0}
         
         try:
             self.db = get_db_session()
@@ -130,7 +130,8 @@ class KuveytTurkScraper:
                 total_found=stats['total'],
                 total_saved=stats['new'] + stats['updated'],
                 total_failed=stats['failed'],
-                total_skipped=stats.get('skipped', 0)
+                total_skipped=stats.get('skipped', 0),
+                total_revived=stats.get('revived', 0)
             )
 
         except Exception as e:
@@ -244,8 +245,8 @@ class KuveytTurkScraper:
         try:
             with get_db_session() as db:
                 existing = db.query(Campaign).filter(Campaign.tracking_url == url).first()  # type: ignore # pyre-ignore[16]
-                if existing:
-                    print(f"   ⏭️ Skipped (Already exists): {existing.title}")
+                if existing and existing.is_active:
+                    print(f"   ⏭️ Skipped (Already exists and active): {existing.title}")
                     stats["skipped"] = stats.get("skipped", 0) + 1
                     return True
         except Exception as e:
@@ -340,9 +341,10 @@ class KuveytTurkScraper:
                 "date_text": conditions_text # Fallback for date extraction
             }
             
-            is_new, success = self._save_campaign(bank_id, card_id, parsed_data, raw_data)
-            if success:
-                if is_new: stats['new'] += 1  # type: ignore # pyre-ignore[58,16,6]
+            status = self._save_campaign(bank_id, card_id, parsed_data, raw_data)
+            if status in ["saved", "updated", "revived"]:
+                if status == "saved": stats['new'] += 1  # type: ignore # pyre-ignore[58,16,6]
+                elif status == "revived": stats['revived'] += 1
                 else: stats['updated'] += 1  # type: ignore # pyre-ignore[58,16,6]
                 return True  # type: ignore # pyre-ignore[7]
             else:
@@ -359,55 +361,42 @@ class KuveytTurkScraper:
         title = raw_data["title"]
         slug = self._generate_slug(title)
         source_url = raw_data["source_url"]
-
-        campaign = self.db.query(Campaign).filter_by(tracking_url=source_url).first()  # type: ignore # pyre-ignore[16]
-        is_new = not campaign
-
-        if not campaign:
-            campaign = Campaign(tracking_url=source_url, card_id=card_id)
-            self.db.add(campaign)  # type: ignore # pyre-ignore[16]
-
-        campaign.slug = slug
-        campaign.title = title
-        campaign.description = parsed_data.get("description") or raw_data.get("description", "")
-        campaign.image_url = raw_data.get("image_url") or parsed_data.get("image_url")
-        campaign.is_active = True
-        campaign.updated_at = datetime.utcnow()
-        campaign.clean_text = raw_data.get("raw_text")
-        campaign.participation = parsed_data.get("participation")
-        
-        # Meta
-        campaign.start_date = self._parse_date_string(parsed_data.get("start_date")) or datetime.now().date()
-        campaign.end_date = self._parse_date_string(parsed_data.get("end_date"))
-        
-        sector_slug = str(parsed_data.get("sector") or "diger")
-        campaign.sector_id = self._get_sector_id(sector_slug)
-        
-        # eligible_cards: ai_parser'dan liste veya string gelebilir — her zaman string kaydet
-        cards_raw = parsed_data.get("cards") or []
-        if isinstance(cards_raw, list):
-            campaign.eligible_cards = ", ".join([c for c in cards_raw if c]) or None
-        else:
-            campaign.eligible_cards = str(cards_raw).strip() or None
-        if campaign.eligible_cards and len(campaign.eligible_cards) > 255:
-            campaign.eligible_cards = campaign.eligible_cards[:255]  # type: ignore # pyre-ignore[16,6]
-
-        # conditions: ai_parser'dan liste veya string gelebilir — her zaman \n-joined string kaydet
-        conditions_raw = parsed_data.get("conditions") or []
-        if isinstance(conditions_raw, list):
-            campaign.conditions = "\n".join([c for c in conditions_raw if c]) or None
-        else:
-            campaign.conditions = str(conditions_raw).strip() or None
-
-        campaign.reward_text = parsed_data.get("reward_text")
-        campaign.reward_type = parsed_data.get("reward_type")
-        campaign.reward_value = parsed_data.get("reward_value")
-        
-        campaign.ai_marketing_text = parsed_data.get("ai_marketing_text") or parsed_data.get("description") or campaign.title
+        campaign = Campaign(
+            card_id=card_id,
+            sector_id=self._get_sector_id(str(parsed_data.get("sector") or "diger")),
+            slug=slug,
+            title=title,
+            description=parsed_data.get("description") or raw_data.get("description", ""),
+            ai_marketing_text=parsed_data.get("ai_marketing_text") or parsed_data.get("description") or title,
+            reward_text=parsed_data.get("reward_text"),
+            reward_value=parsed_data.get("reward_value"),
+            reward_type=parsed_data.get("reward_type"),
+            conditions="\n".join(parsed_data.get("conditions", [])) if isinstance(parsed_data.get("conditions"), list) else str(parsed_data.get("conditions") or ""),
+            eligible_cards=", ".join(parsed_data.get("cards", []))[:255] if isinstance(parsed_data.get("cards"), list) else str(parsed_data.get("cards") or "")[:255],
+            participation=parsed_data.get("participation"),
+            image_url=raw_data.get("image_url") or parsed_data.get("image_url"),
+            start_date=self._parse_date_string(parsed_data.get("start_date")) or datetime.now().date(),
+            end_date=self._parse_date_string(parsed_data.get("end_date")),
+            is_active=True,
+            tracking_url=source_url,
+            clean_text=raw_data.get("raw_text"),
+            updated_at=datetime.utcnow()
+        )
 
         try:
-            self.db.flush()  # type: ignore # pyre-ignore[16]
+            # Use centralized upsert_campaign for revival and quality control
+            campaign, op_status = upsert_campaign(self.db, campaign)
+            self.db.commit()
+
+            if op_status == "revived":
+                print(f"   ♻️  Revived Passive Campaign: {campaign.title[:50]}...")
+            elif op_status == "saved":
+                 print(f"   ✅ Saved: {campaign.title[:50]}...")
+            elif op_status == "updated":
+                 print(f"   ✅ Updated: {campaign.title[:50]}...")
             
+            self.db.refresh(campaign)
+
             # Brands
             brands_list = parsed_data.get("brands", [])
             if isinstance(brands_list, list):
@@ -419,8 +408,7 @@ class KuveytTurkScraper:
                     self.db.merge(cb)
                     
             self.db.commit()  # type: ignore # pyre-ignore[16]
-            print(f"      ✅ Saved: {title}")
-            return is_new, True  # type: ignore # pyre-ignore[7]
+            return op_status
         except Exception as e:
             self.db.rollback()  # type: ignore # pyre-ignore[16]
             print(f"      ❌ DB Error: {e}")

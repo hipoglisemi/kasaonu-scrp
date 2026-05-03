@@ -23,7 +23,7 @@ from src.services.ai_parser import parse_api_campaign  # type: ignore # pyre-ign
 from src.utils.slug_generator import get_unique_slug  # type: ignore # pyre-ignore[21]
 from src.utils.cache_manager import clear_cache  # type: ignore # pyre-ignore[21]
 from src.services.brand_normalizer import cleanup_brands  # type: ignore # pyre-ignore[21]
-from src.utils.scraper_utils import is_url_blocked  # type: ignore
+from src.utils.scraper_utils import is_url_blocked, upsert_campaign  # type: ignore
 
 
 class GarantiBonusScraper:
@@ -164,9 +164,9 @@ class GarantiBonusScraper:
                     return "skipped"  # type: ignore # pyre-ignore[7]
 
                 existing = db.query(Campaign).filter(Campaign.tracking_url == url).first()  # type: ignore # pyre-ignore[16]
-                if existing:
-                    print(f"   ⏭️ Skipped (Already exists): {url}")
-                    return "skipped"  # Treat as success to avoid counting as failed  # type: ignore # pyre-ignore[7]
+                if existing and existing.is_active:
+                    print(f"   ⏭️ Skipped (Already exists and active): {url}")
+                    return "skipped"  # type: ignore # pyre-ignore[7]
         except Exception as e:
             print(f"   ⚠️ DB Pre-check error: {e}")
 
@@ -292,10 +292,7 @@ class GarantiBonusScraper:
                 print(f"   🚫 Skipped (Safety Check: Blocklisted): {title[:50]}...")
                 return "skipped"  # type: ignore # pyre-ignore[7]
 
-            existing = db.query(Campaign).filter(Campaign.tracking_url == tracking_url).first()  # type: ignore # pyre-ignore[16]
-            if existing:
-                print(f"   ⏭️ Skipped (Already exists, preserving manual edits): {title[:50]}...")  # type: ignore # pyre-ignore[16,6]
-                return "skipped"  # type: ignore # pyre-ignore[7]
+            # Early skip removed to allow upsert_campaign to handle revival logic
 
             # Generate unique slug
             slug = get_unique_slug(title, db, Campaign)
@@ -366,58 +363,33 @@ class GarantiBonusScraper:
                 updated_at=datetime.utcnow()  # type: ignore
             )
             
-            db.add(campaign)  # type: ignore # pyre-ignore[16]
-            db.flush()  # Get campaign ID  # type: ignore # pyre-ignore[16]
+            # Use centralized upsert_campaign for revival and quality control
+            campaign, op_status = upsert_campaign(db, campaign)
+            db.commit()
+            
+            if op_status == "revived":
+                print(f"   ♻️  Revived Passive Campaign: {campaign.title[:50]}...")
+            elif op_status == "saved":
+                 print(f"   ✅ Saved: {campaign.title[:50]}... (Reward: {campaign.reward_text})")
             
             # Link brands
             brand_names = ai_data.get('brands', [])
             if brand_names:
-                for brand_name in brand_names:
-                    # Generic safe slug generating for brand
-                    import re  # type: ignore # pyre-ignore[21]
-                    # Replace Turkish characters
-                    replacements = {'ı': 'i', 'ğ': 'g', 'ü': 'u', 'ş': 's', 'ö': 'o', 'ç': 'c', 'İ': 'i', 'Ğ': 'g', 'Ü': 'u', 'Ş': 's', 'Ö': 'o', 'Ç': 'c'}
-                    safe_slug = brand_name.lower().strip()
-                    for tr_char, en_char in replacements.items():
-                        safe_slug = safe_slug.replace(tr_char, en_char)
-                    # Remove non-alphanumeric and replace spaces
-                    safe_slug = re.sub(r'[^a-z0-9]+', '-', safe_slug).strip('-')
-
+                from src.services.brand_matcher import get_or_create_brands_list
+                brand_ids = get_or_create_brands_list(db, brand_names, {}, sector_id)
+                for bid in brand_ids:
                     try:
-                        # Get or create brand
-                        brand = db.query(Brand).filter(  # type: ignore # pyre-ignore[16]
-                            (Brand.slug == safe_slug) | (Brand.name.ilike(brand_name))
+                        link = db.query(CampaignBrand).filter(
+                            CampaignBrand.campaign_id == campaign.id,
+                            CampaignBrand.brand_id == bid
                         ).first()
-                        
-                        if not brand:
-                            brand = Brand(
-                                name=brand_name,
-                                slug=safe_slug,
-                                is_active=True
-                            )
-                            db.add(brand)  # type: ignore # pyre-ignore[16]
-                            db.commit() # Commit to get ID and catch unique constraints early  # type: ignore # pyre-ignore[16]
-                        
-                        # Link brand to campaign
-                        campaign_brand = db.query(CampaignBrand).filter(  # type: ignore # pyre-ignore[16]
-                            CampaignBrand.campaign_id == campaign.id,  # type: ignore # pyre-ignore[16]
-                            CampaignBrand.brand_id == brand.id  # type: ignore # pyre-ignore[16]
-                        ).first()
-                        
-                        if not campaign_brand:
-                            campaign_brand = CampaignBrand(
-                                campaign_id=campaign.id,  # type: ignore
-                                brand_id=brand.id  # type: ignore
-                            )
-                            db.add(campaign_brand)  # type: ignore # pyre-ignore[16]
-                            db.commit()  # type: ignore # pyre-ignore[16]
-                    except Exception as e:
-                        db.rollback()  # type: ignore # pyre-ignore[16]
-                        print(f"   ⚠️ Could not link brand {brand_name}: {e}")
-            
-            db.commit()  # type: ignore # pyre-ignore[16]
-            print(f"   ✅ Saved: {campaign.title[:50]}... (Reward: {campaign.reward_text})")  # type: ignore # pyre-ignore[16,6]
-            return "saved"  # type: ignore # pyre-ignore[7]
+                        if not link:
+                            db.add(CampaignBrand(campaign_id=campaign.id, brand_id=bid))
+                            db.commit()
+                    except:
+                        db.rollback()
+
+            return op_status
     
     def _generate_slug(self, title: str) -> str:
         """Generate URL-friendly slug from title"""
@@ -488,6 +460,7 @@ class GarantiBonusScraper:
             
             total_found = len(campaign_urls)
             success_count = 0
+            total_revived = 0
             skipped_count = 0
             failed_count = 0
             error_details = []
@@ -516,11 +489,13 @@ class GarantiBonusScraper:
                     result = self._process_campaign(url)
                     if result == "saved":
                         success_count += 1  # type: ignore # pyre-ignore[58]
+                    elif result == "revived":
+                        total_revived += 1
                     elif result == "skipped":
                         skipped_count += 1  # type: ignore # pyre-ignore[58]
                     else:
                         failed_count += 1  # type: ignore # pyre-ignore[58]
-                        error_details.append({"url": url, "error": "Process campaign returned error"})
+                        error_details.append({"url": url, "error": f"Process returned {result}"})
                 except Exception as e:
                     failed_count += 1  # type: ignore # pyre-ignore[58]
                     error_details.append({"url": url, "error": str(e)})
@@ -531,7 +506,7 @@ class GarantiBonusScraper:
             
             print(f"\n{'=' * 60}")
             print(f"✅ Scraping complete!")
-            print(f"✅ Özet: {total_found} bulundu, {success_count} eklendi, {skipped_count} atlandı, {failed_count} hata aldı.")
+            print(f"✅ Özet: {total_found} bulundu, {success_count} eklendi, {total_revived} canlandı, {skipped_count} atlandı, {failed_count} hata aldı.")
             
             # Determine status
             status = "SUCCESS"
@@ -548,6 +523,7 @@ class GarantiBonusScraper:
                     total_saved=success_count,
                     total_skipped=skipped_count,
                     total_failed=failed_count,
+                    total_revived=total_revived,
                     error_details={"errors": error_details} if error_details else None
                 )
             

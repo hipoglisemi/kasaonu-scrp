@@ -21,7 +21,7 @@ import requests  # type: ignore # pyre-ignore[21]
 import json  # type: ignore # pyre-ignore[21]
 
 from src.utils.logger_utils import log_scraper_execution  # type: ignore
-from src.utils.scraper_utils import is_url_blocked  # type: ignore
+from src.utils.scraper_utils import is_url_blocked, upsert_campaign  # type: ignore
 from src.database import SessionLocal  # type: ignore
 from src.services.brand_matcher import get_or_create_brands_list  # type: ignore
 from src.services.ai_parser_golden import parse_api_campaign  # type: ignore
@@ -343,9 +343,7 @@ class AlbarakaScraper:
                     except Exception: pass
 
             conds = data.get("conditions", [])
-            part = data.get("participation")
             final_conditions = "\n".join(conds)
-
             eligible = ", ".join(data.get("cards", [])) or None
 
             campaign = Campaign(  # type: ignore # pyre-ignore[20]
@@ -366,12 +364,22 @@ class AlbarakaScraper:
                 end_date=end_date,
                 is_active=True,
                 tracking_url=data["source_url"],
+                clean_text=data.get("_clean_text"),
                 created_at=datetime.utcnow(),
                 updated_at=datetime.utcnow(),
             )
-            self.session.add(campaign)  # type: ignore # pyre-ignore[16]
-            self.session.commit()  # type: ignore # pyre-ignore[16]
+            
+            # Use centralized upsert_campaign for revival and quality control
+            campaign, op_status = upsert_campaign(self.session, campaign)
+            self.session.commit()
 
+            if op_status == "revived":
+                print(f"   ♻️  Revived Passive Campaign: {campaign.title[:50]}...")
+            elif op_status == "saved":
+                 print(f"   ✅ Saved: {campaign.title[:50]}...")
+            
+            self.session.refresh(campaign)
+            campaign_id = campaign.id
 
             brand_ids = get_or_create_brands_list(
                 db=self.session,
@@ -397,7 +405,7 @@ class AlbarakaScraper:
 
 
             print(f"   ✅ Saved: {campaign.title[:50]}")  # type: ignore # pyre-ignore[16,6]
-            return campaign.id  # type: ignore # pyre-ignore[7]
+            return op_status
         except Exception as e:
             self.session.rollback()  # type: ignore # pyre-ignore[16]
             print(f"   ❌ Save failed: {e}")
@@ -416,7 +424,7 @@ class AlbarakaScraper:
             campaigns_list = self._fetch_campaign_list()
             
             results = []
-            success, skipped, failed = 0, 0, 0
+            success, total_revived, skipped, failed = 0, 0, 0, 0
             error_details = []
             
             for i, camp in enumerate(campaigns_list, 1):
@@ -431,8 +439,8 @@ class AlbarakaScraper:
                     Campaign.tracking_url == url,
                     Campaign.card_id == card_id
                 ).first()
-                if existing:
-                    print(f"   ℹ️  Already exists in DB: [{existing.id}] {existing.title[:40]}")  # type: ignore # pyre-ignore[16,6]
+                if existing and existing.is_active:
+                    print(f"   ℹ️  Already exists and active: [{existing.id}] {existing.title[:40]}")  # type: ignore # pyre-ignore[16,6]
                     skipped += 1  # type: ignore # pyre-ignore[58]
                     continue
 
@@ -473,13 +481,16 @@ class AlbarakaScraper:
                     else:
                         print("   ⚠️ AI parse returned None, attempting to save with basic data")
                         
-                    saved_id = self._save_campaign(res_data, bank_id, card_id)
-                    if saved_id:
+                    res = self._save_campaign(res_data, bank_id, card_id)
+                    if res == "saved":
                         success += 1  # type: ignore # pyre-ignore[58]
-                        results.append(saved_id)
+                        results.append(url)
+                    elif res == "revived":
+                        total_revived += 1
+                        results.append(url)
                     else:
                         failed += 1  # type: ignore # pyre-ignore[58]
-                        error_details.append({"url": url, "error": "Save returned None"})
+                        error_details.append({"url": url, "error": f"Process returned {res}"})
                         
                 except Exception as e:
                     print(f"❌ Error during details extraction: {e}")
@@ -489,7 +500,7 @@ class AlbarakaScraper:
                 
                 time.sleep(1.5)
 
-            print(f"\n🏁 Finished. {len(campaigns_list)} found, {success} saved, {skipped} skipped, {failed} errors")
+            print(f"\n🏁 Finished. {len(campaigns_list)} found, {success} saved, {total_revived} revived, {skipped} skipped, {failed} errors")
             
             status = "SUCCESS"
             if failed > 0:  # type: ignore # pyre-ignore[58]
@@ -503,6 +514,7 @@ class AlbarakaScraper:
                 total_saved=success,
                 total_skipped=skipped,
                 total_failed=failed,
+                total_revived=total_revived,
                 error_details={"errors": error_details} if error_details else None
             )
             

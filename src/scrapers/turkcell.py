@@ -72,6 +72,7 @@ class TurkcellScraper:
         print(f"🚀 Starting Turkcell Scraper...")
         
         success_count: int = 0
+        revived_count: int = 0
         failed_count: int = 0
         total_found: int = 0
         error_details: List[Dict[str, Any]] = []  # type: ignore # pyre-ignore[16,6]
@@ -101,6 +102,8 @@ class TurkcellScraper:
                         res = await self._scrape_detail(context, url)
                         if res == "saved":
                             success_count += 1  # type: ignore # pyre-ignore[58]
+                        elif res == "revived":
+                            revived_count += 1
                         elif res == "skipped":
                             pass
                         else:
@@ -124,8 +127,9 @@ class TurkcellScraper:
                     status=status,
                     total_found=total_found,
                     total_saved=success_count,
-                    total_skipped=total_found - success_count - failed_count,
+                    total_skipped=total_found - success_count - revived_count - failed_count,
                     total_failed=failed_count,
+                    total_revived=revived_count,
                     error_details={"errors": error_details} if error_details else None
                 )
 
@@ -302,11 +306,22 @@ class TurkcellScraper:
                     is_active=True,
                     ai_marketing_text=ai_data.get("ai_marketing_text"),
                     clean_text=ai_data.get("_clean_text"),
-                    eligible_cards=", ".join(ai_data.get("cards", [])) if isinstance(ai_data.get("cards"), list) and ai_data.get("cards") else "Turkcell"
+                    eligible_cards=", ".join(ai_data.get("cards", [])) if isinstance(ai_data.get("cards"), list) and ai_data.get("cards") else "Turkcell",
+                    created_at=datetime.utcnow(),
+                    updated_at=datetime.utcnow()
                 )
                 
-                db.add(campaign)  # type: ignore # pyre-ignore[16]
-                db.commit()  # type: ignore # pyre-ignore[16]
+                # Use centralized upsert_campaign for revival and quality control
+                from src.utils.scraper_utils import upsert_campaign
+                campaign, op_status = upsert_campaign(db, campaign)
+                db.commit()
+
+                if op_status == "revived":
+                    print(f"   ♻️  Revived Passive Campaign: {campaign.title[:50]}...")
+                elif op_status == "saved":
+                     print(f"   ✅ Saved: {campaign.title[:50]}...")
+                
+                db.refresh(campaign)
 
                 # Brands via brand_matcher
                 from src.services.brand_matcher import get_or_create_brands_list
@@ -328,7 +343,9 @@ class TurkcellScraper:
                     except Exception as e:
                         db.rollback()
                         print(f"   ⚠️ CampaignBrand link failed: {e}")
-            return "saved"  # type: ignore # pyre-ignore[7]
+                
+                return op_status
+
         except Exception as e:
             print(f"      ❌ DB Save Error: {e}")
             return "error"  # type: ignore # pyre-ignore[7]

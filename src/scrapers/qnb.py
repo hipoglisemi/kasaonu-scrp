@@ -19,7 +19,7 @@ from src.utils.logger_utils import log_scraper_execution  # type: ignore # pyre-
 from src.services.brand_normalizer import cleanup_brands  # type: ignore # pyre-ignore[21]
 from src.utils.slug_generator import get_unique_slug  # type: ignore # pyre-ignore[21]
 from src.utils.cache_manager import clear_cache  # type: ignore # pyre-ignore[21]
-from src.utils.scraper_utils import is_url_blocked  # type: ignore
+from src.utils.scraper_utils import is_url_blocked, upsert_campaign  # type: ignore
 
 class QNBScraper:
     """
@@ -107,8 +107,8 @@ class QNBScraper:
                 return "skipped"  # type: ignore # pyre-ignore[7]
 
             existing = db.query(Campaign).filter(Campaign.tracking_url == campaign_url).first()  # type: ignore # pyre-ignore[16]
-            if existing:
-                print(f"   ⏭️ Skipped (Already exists): {title}")
+            if existing and existing.is_active:
+                print(f"   ⏭️ Skipped (Already exists and active): {title}")
                 return "skipped"  # type: ignore # pyre-ignore[7]
 
         content_html = item.get("Content") or item.get("Description") or ""
@@ -157,9 +157,6 @@ class QNBScraper:
 
                 slug = get_unique_slug(ai_data.get('short_title') or ai_data.get('title'), db, Campaign)
                 
-                if not self.card_id:
-                    return "error"  # type: ignore # pyre-ignore[7]
-                    
                 campaign = Campaign(
                     card_id=self.card_id,
                     sector_id=sector_id,
@@ -181,8 +178,16 @@ class QNBScraper:
                     eligible_cards=", ".join(ai_data.get("cards", [])) if isinstance(ai_data.get("cards"), list) and ai_data.get("cards") else "QNBCard"
                 )
                 
-                db.add(campaign)  # type: ignore # pyre-ignore[16]
-                db.commit()  # type: ignore # pyre-ignore[16]
+                # Use centralized upsert_campaign for revival and quality control
+                campaign, op_status = upsert_campaign(db, campaign)
+                db.commit()
+
+                if op_status == "revived":
+                    print(f"   ♻️  Revived Passive Campaign: {campaign.title[:50]}...")
+                elif op_status == "saved":
+                     print(f"   ✅ Saved: {campaign.title[:50]}...")
+                
+                db.refresh(campaign)
 
                 if ai_data.get('brands'):
                     clean_brands = cleanup_brands(ai_data.get('brands'))
@@ -206,7 +211,7 @@ class QNBScraper:
                         except Exception as e:
                             db.rollback()
                             print(f"   ⚠️ CampaignBrand link failed: {e}")
-            return "saved"  # type: ignore # pyre-ignore[7]
+            return op_status
         except Exception as e:
             print(f"      ❌ DB Save Error: {e}")
             return "error"  # type: ignore # pyre-ignore[7]
@@ -216,6 +221,7 @@ class QNBScraper:
         items = self._fetch_campaigns(limit=limit)
         
         success: int = 0
+        revived: int = 0
         skipped: int = 0
         failed: int = 0
         error_details: List[Dict[str, Any]] = []  # type: ignore # pyre-ignore[16,6]
@@ -225,6 +231,8 @@ class QNBScraper:
                 res = self._process_item(item)
                 if res == "saved":
                     success += 1  # type: ignore # pyre-ignore[58]
+                elif res == "revived":
+                    revived += 1
                 elif res == "skipped":
                     skipped += 1  # type: ignore # pyre-ignore[58]
                 else:
@@ -243,6 +251,7 @@ class QNBScraper:
                 total_saved=success,
                 total_skipped=skipped,
                 total_failed=failed,
+                total_revived=revived,
                 error_details={"errors": error_details} if error_details else None
             )
         

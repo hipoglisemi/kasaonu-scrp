@@ -32,7 +32,7 @@ from src.models import Bank, Card, Sector, Brand, Campaign, CampaignBrand # type
 from src.services.ai_parser import AIParser # type: ignore
 from src.services.ai_parser_golden import parse_api_campaign  # type: ignore
 from src.utils.logger_utils import log_scraper_execution # type: ignore
-from src.utils.scraper_utils import should_skip_campaign # type: ignore
+from src.utils.scraper_utils import should_skip_campaign, upsert_campaign, is_url_blocked # type: ignore
 
 try:
     from pyvirtualdisplay import Display # type: ignore
@@ -347,6 +347,7 @@ class SekerbankScraper:
             found_items = found_items[0:limit] # type: ignore # pyre-ignore[16]
 
         success_count = 0
+        revived_count = 0
         skipped_count = 0
         failed_count = 0
 
@@ -358,6 +359,8 @@ class SekerbankScraper:
                 res = self._scrape_detail(url, source, list_image=list_image, force=force)
                 if res == "saved":
                     success_count += 1
+                elif res == "revived":
+                    revived_count += 1
                 elif res == "skipped":
                     skipped_count += 1
                 else:
@@ -376,7 +379,8 @@ class SekerbankScraper:
             total_found=len(found_items),
             total_saved=success_count,
             total_skipped=skipped_count,
-            total_failed=failed_count
+            total_failed=failed_count,
+            total_revived=revived_count
         )
 
     def _scrape_detail(self, url: str, source: Dict, list_image: str = "", force: bool = False) -> str:
@@ -400,9 +404,12 @@ class SekerbankScraper:
                     or "kartavantaj" in existing_img.lower()
                 )
                 if not is_placeholder:
-                    print(f"      ⏭️ Skipped (Already exists): {existing.title}")  # type: ignore
-                    return "skipped"
-                print(f"      🔄 Görsel eksik/geçersiz, güncelleniyor: {existing.title}")
+                    if existing.is_active:
+                        print(f"      ⏭️ Skipped (Already exists and active): {existing.title}")  # type: ignore
+                        return "skipped"
+                    print(f"      🔄 Passive campaign found, re-parsing for potential revival: {existing.title}")
+                else:
+                    print(f"      🔄 Görsel eksik/geçersiz, güncelleniyor: {existing.title}")
 
         driver = self.driver
         if not driver:
@@ -481,9 +488,7 @@ class SekerbankScraper:
             return "error"
 
         # Save to DB
-        self._save_campaign(ai_data, url, image_url, source['default_card'])
-        print(f"      ✅ Saved: {ai_data['title']}")
-        return "saved"
+        return self._save_campaign(ai_data, url, image_url, source['default_card'])
 
     def _save_campaign(self, data: Dict, url: str, image_url: str, default_card_name: str):
         """Save structured data and linked entities to the database."""
@@ -546,25 +551,38 @@ class SekerbankScraper:
         )
         
         try:
-            if not self.db: return # type: ignore
-            self.db.add(campaign) # type: ignore # pyre-ignore[16]
-            self.db.commit() # type: ignore # pyre-ignore[16]
+            if not self.db: return "error" # type: ignore
+            
+            # Use centralized upsert_campaign for revival and quality control
+            campaign, op_status = upsert_campaign(self.db, campaign)
+            self.db.commit()
+
+            if op_status == "revived":
+                print(f"   ♻️  Revived Passive Campaign: {campaign.title[:50]}...")
+            elif op_status == "saved":
+                 print(f"   ✅ Saved: {campaign.title[:50]}...")
+            
+            self.db.refresh(campaign)
             
             # Map Brands
             for bid in brand_ids:
                 try:
                     cb = CampaignBrand(campaign_id=campaign.id, brand_id=bid) # type: ignore # pyre-ignore[16]
                     if self.db:
-                        self.db.add(cb) # type: ignore # pyre-ignore[16]
+                        link_check = self.db.query(CampaignBrand).filter_by(campaign_id=campaign.id, brand_id=bid).first()
+                        if not link_check:
+                            self.db.add(cb) # type: ignore # pyre-ignore[16]
                 except Exception:
                     if self.db:
                         self.db.rollback() # type: ignore # pyre-ignore[16]
             if self.db:
                 self.db.commit() # type: ignore # pyre-ignore[16]
+            return op_status
         except Exception as e:
             print(f"      ❌ Saving Error: {e}")
             if self.db:
                 self.db.rollback() # type: ignore # pyre-ignore[16]
+            return "error"
 
     def _get_or_create_card(self, name: str) -> Card:
         """Helper to get card by name (caching included)."""

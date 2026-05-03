@@ -24,6 +24,7 @@ from src.models import Bank, Card, Sector, Brand, Campaign, CampaignBrand  # typ
 from src.services.ai_parser import AIParser  # type: ignore # pyre-ignore[21]
 from src.services.ai_parser_golden import parse_api_campaign  # type: ignore # pyre-ignore[21]
 from src.utils.logger_utils import log_scraper_execution  # type: ignore # pyre-ignore[21]
+from src.utils.scraper_utils import upsert_campaign, is_url_blocked  # type: ignore # pyre-ignore[21]
 
 class DunyaKatilimScraper:
     """
@@ -90,6 +91,7 @@ class DunyaKatilimScraper:
                 campaigns = campaigns[:self.max_campaigns]  # type: ignore # pyre-ignore[16,6]
             
             success_count = 0
+            revived_count = 0
             skipped_count = 0
             failed_count = 0
             error_details = []
@@ -109,6 +111,8 @@ class DunyaKatilimScraper:
                     res = self._scrape_detail(url, title, base_image, source)
                     if res == "saved":
                         success_count += 1  # type: ignore # pyre-ignore[58]
+                    elif res == "revived":
+                        revived_count += 1
                     elif res == "skipped":
                         skipped_count += 1  # type: ignore # pyre-ignore[58]
                     else:
@@ -121,7 +125,7 @@ class DunyaKatilimScraper:
                     failed_count += 1  # type: ignore # pyre-ignore[58]
                     error_details.append({"url": url, "error": str(e)})
                     
-            print(f"   ✅ Özet: {len(campaigns)} bulundu, {success_count} eklendi, {skipped_count + failed_count} atlandı/hata aldı.")
+            print(f"   ✅ Özet: {len(campaigns)} bulundu, {success_count} eklendi, {revived_count} canlandırıldı, {skipped_count} atlandı, {failed_count} hata aldı.")
             
             status = "SUCCESS"
             if failed_count > 0:  # type: ignore # pyre-ignore[58]
@@ -136,6 +140,7 @@ class DunyaKatilimScraper:
                      total_saved=success_count,
                      total_skipped=skipped_count,
                      total_failed=failed_count,
+                     total_revived=revived_count,
                      error_details={"errors": error_details} if error_details else None
                 )
             except Exception as le:
@@ -191,10 +196,10 @@ class DunyaKatilimScraper:
     def _scrape_detail(self, url: str, title: str, base_image: Optional[str], source: Dict) -> str:  # type: ignore # pyre-ignore[16,6]
         """Scrape single campaign detail page"""
         
-        # Check if exists
+        # Check if exists and active
         existing = self.db.query(Campaign).filter(Campaign.tracking_url == url).first()  # type: ignore # pyre-ignore[16]
-        if existing:
-            print(f"      ⏭️ Skipped (Already exists): {existing.title}")
+        if existing and existing.is_active:
+            print(f"      ⏭️ Skipped (Already exists and active): {existing.title}")
             return "skipped"  # type: ignore # pyre-ignore[7]
 
         from src.utils.scraper_utils import is_url_blocked  # type: ignore
@@ -317,16 +322,24 @@ class DunyaKatilimScraper:
                 is_active=True
             )
             
-            self.db.add(campaign)  # type: ignore # pyre-ignore[16]
-            self.db.commit()  # type: ignore # pyre-ignore[16]
+            # Use centralized upsert_campaign for revival and quality control
+            campaign, op_status = upsert_campaign(self.db, campaign)
+            self.db.commit()
+
+            if op_status == "revived":
+                print(f"   ♻️  Revived Passive Campaign: {campaign.title[:50]}...")
+            elif op_status == "saved":
+                 print(f"   ✅ Saved: {campaign.title[:50]}...")
             
+            self.db.refresh(campaign)
+
             for bid in brand_ids:
                 try:
                     cb = CampaignBrand(campaign_id=campaign.id, brand_id=bid)  # type: ignore # pyre-ignore[16]
                     self.db.add(cb)  # type: ignore # pyre-ignore[16]
                 except: pass
             self.db.commit()  # type: ignore # pyre-ignore[16]
-            return "saved"  # type: ignore # pyre-ignore[7]
+            return op_status
             
         except Exception as e:
             print(f"      ❌ Save error: {e}")

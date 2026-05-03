@@ -19,7 +19,7 @@ from src.models import Campaign, Bank, Card, Sector, Brand, CampaignBrand  # typ
 from src.services.ai_parser import parse_api_campaign  # type: ignore # pyre-ignore[21]
 from src.utils.slug_generator import get_unique_slug  # type: ignore # pyre-ignore[21]
 from src.utils.cache_manager import clear_cache  # type: ignore # pyre-ignore[21]
-from src.utils.scraper_utils import is_url_blocked  # type: ignore
+from src.utils.scraper_utils import is_url_blocked, upsert_campaign  # type: ignore
 from src.services.brand_normalizer import cleanup_brands  # type: ignore # pyre-ignore[21]
 
 class YapikrediWorldScraper:
@@ -90,10 +90,10 @@ class YapikrediWorldScraper:
             if is_url_blocked(db, full_url):
                 print(f"   🚫 Skipped (Blocklisted): {title}")
                 return "skipped"  # type: ignore # pyre-ignore[7]
-
+            
             existing = db.query(Campaign).filter(Campaign.tracking_url == full_url).first()  # type: ignore # pyre-ignore[16]
-            if existing:
-                print(f"   ⏭️ Skipped (Already exists): {title}")
+            if existing and existing.is_active:
+                print(f"   ⏭️ Skipped (Already exists and active): {title}")
                 return "skipped"  # type: ignore # pyre-ignore[7]
 
         print(f"   Processing: {title}")
@@ -217,9 +217,16 @@ class YapikrediWorldScraper:
                     updated_at=datetime.utcnow()  # type: ignore
                 )
                 
-                db.add(campaign)  # type: ignore # pyre-ignore[16]
-                db.commit()  # type: ignore # pyre-ignore[16]
-                print(f"   ✅ Saved: {campaign.title}")
+                # Use centralized upsert_campaign for revival and quality control
+                campaign, op_status = upsert_campaign(db, campaign)
+                db.commit()
+                
+                if op_status == "revived":
+                    print(f"   ♻️  Revived Passive Campaign: {campaign.title}")
+                elif op_status == "saved":
+                    print(f"   ✅ Saved: {campaign.title}")
+                
+                db.refresh(campaign)
 
                 # Brands via brand_matcher
                 from src.services.brand_matcher import get_or_create_brands_list  # type: ignore
@@ -242,7 +249,7 @@ class YapikrediWorldScraper:
                     except Exception as e:
                         db.rollback()
                         print(f"   ⚠️ CampaignBrand link failed: {e}")
-            return "saved"  # type: ignore # pyre-ignore[7]
+            return op_status
         except Exception as e:
             print(f"   ❌ Error saving: {e}")
             return "error"  # type: ignore # pyre-ignore[7]
@@ -259,6 +266,7 @@ class YapikrediWorldScraper:
         print(f"🚀 Starting {self.BANK_NAME} {self.CARD_NAME} Scraper...")
         page = 1
         success_count = 0
+        total_revived = 0
         skipped_count = 0
         failed_count = 0
         total_found = 0
@@ -290,6 +298,8 @@ class YapikrediWorldScraper:
                     res = self._process_item(item)
                     if res == "saved":
                         success_count += 1  # type: ignore # pyre-ignore[58]
+                    elif res == "revived":
+                        total_revived += 1
                     elif res == "skipped":
                         skipped_count += 1  # type: ignore # pyre-ignore[58]
                     else:
@@ -305,7 +315,7 @@ class YapikrediWorldScraper:
             page += 1  # type: ignore # pyre-ignore[58]
             time.sleep(1)
 
-        print(f"\n✅ Özet: {total_found} bulundu, {success_count} eklendi, {skipped_count} atlandı, {failed_count} hata aldı.")
+        print(f"\n✅ Özet: {total_found} bulundu, {success_count} eklendi, {total_revived} canlandı, {skipped_count} atlandı, {failed_count} hata aldı.")
         
         status = "SUCCESS"
         if failed_count > 0:  # type: ignore # pyre-ignore[58]
@@ -322,6 +332,7 @@ class YapikrediWorldScraper:
                      total_saved=success_count,
                      total_skipped=skipped_count,
                      total_failed=failed_count,
+                     total_revived=total_revived,
                      error_details={"errors": error_details} if error_details else None
                 )
         except Exception as le:

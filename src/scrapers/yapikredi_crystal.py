@@ -205,9 +205,18 @@ class YapikrediCrystalScraper:
                     updated_at=datetime.utcnow()  # type: ignore
                 )
                 
-                db.add(campaign)  # type: ignore # pyre-ignore[16]
-                db.commit()  # type: ignore # pyre-ignore[16]
-                print(f"   ✅ Saved: {campaign.title}")
+                # Use centralized upsert_campaign for revival and quality control
+                from src.utils.scraper_utils import upsert_campaign
+                campaign, op_status = upsert_campaign(db, campaign)
+                db.commit()
+
+                if op_status == "revived":
+                    print(f"   ♻️  Revived Passive Campaign: {campaign.title[:50]}...")
+                elif op_status == "saved":
+                     print(f"   ✅ Saved: {campaign.title[:50]}...")
+                
+                db.refresh(campaign)
+
 
                 # Brands via brand_matcher
                 from src.services.brand_matcher import get_or_create_brands_list  # type: ignore
@@ -229,7 +238,8 @@ class YapikrediCrystalScraper:
                     except Exception as e:
                         db.rollback()
                         print(f"   ⚠️ CampaignBrand link failed: {e}")
-            return "saved"  # type: ignore # pyre-ignore[7]
+            return op_status
+
         except Exception as e:
             print(f"   ❌ Error saving: {e}")
             return "error"  # type: ignore # pyre-ignore[7]
@@ -246,6 +256,7 @@ class YapikrediCrystalScraper:
         print(f"🚀 Starting {self.BANK_NAME} {self.CARD_NAME} Scraper...")
         page = 1
         success_count = 0
+        total_revived = 0
         skipped_count = 0
         failed_count = 0
         total_found = 0
@@ -276,6 +287,8 @@ class YapikrediCrystalScraper:
                     res = self._process_item(item)
                     if res == "saved":
                         success_count += 1  # type: ignore # pyre-ignore[58]
+                    elif res == "revived":
+                        total_revived += 1
                     elif res == "skipped":
                         skipped_count += 1  # type: ignore # pyre-ignore[58]
                     else:
@@ -291,7 +304,7 @@ class YapikrediCrystalScraper:
             page += 1  # type: ignore # pyre-ignore[58]
             time.sleep(1)
 
-        print(f"\n✅ Özet: {total_found} bulundu, {success_count} eklendi, {skipped_count} atlandı, {failed_count} hata aldı.")
+        print(f"\n✅ Özet: {total_found} bulundu, {success_count} eklendi, {total_revived} canlandı, {skipped_count} atlandı, {failed_count} hata aldı.")
         
         status = "SUCCESS"
         if failed_count > 0:  # type: ignore # pyre-ignore[58]
@@ -308,6 +321,7 @@ class YapikrediCrystalScraper:
                      total_saved=success_count,
                      total_skipped=skipped_count,
                      total_failed=failed_count,
+                     total_revived=total_revived,
                      error_details={"errors": error_details} if error_details else None
                 )
         except Exception as le:

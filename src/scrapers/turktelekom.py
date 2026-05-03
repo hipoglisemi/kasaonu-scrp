@@ -84,19 +84,46 @@ class TurkTelekomScraper:
             print(f"   📋 Found {len(discovery_items)} campaigns to process.")
             
             success_count = 0
+            total_revived = 0
+            skipped_count = 0
+            failed_count = 0
+            error_details = []
             for i, item in enumerate(discovery_items, 1):
                 url = item['url']
                 p_title = item.get('title')
                 print(f"   [{i}/{len(discovery_items)}] {url}")
                 try:
-                    if self._scrape_detail(url, predefined_title=p_title):
+                    res = self._scrape_detail(url, predefined_title=p_title)
+                    if res == "saved":
                         success_count += 1
+                    elif res == "revived":
+                        total_revived += 1
+                    elif res == "skipped":
+                        skipped_count += 1
+                    else:
+                        failed_count += 1
                     # Small delay to be polite
                     time.sleep(random.uniform(0.3, 0.8))
                 except Exception as e:
                     print(f"      ❌ Error processing {url}: {e}")
+                    failed_count += 1
+                    error_details.append({"url": url, "error": str(e)})
             
-            print(f"\n✅ Scraping complete! Synced {success_count} campaigns.")
+            print(f"\n✅ Scraping complete! Found: {len(discovery_items)}, Saved: {success_count}, Revived: {total_revived}, Skipped: {skipped_count}, Failed: {failed_count}")
+            
+            # Log execution
+            status = "SUCCESS" if failed_count == 0 else ("PARTIAL" if (success_count > 0 or total_revived > 0) else "FAILED")
+            log_scraper_execution(
+                db=self.db,
+                scraper_name="turktelekom",
+                status=status,
+                total_found=len(discovery_items),
+                total_saved=success_count,
+                total_skipped=skipped_count,
+                total_failed=failed_count,
+                total_revived=total_revived,
+                error_details={"errors": error_details} if error_details else None
+            )
 
         except Exception as e:
             print(f"❌ Fatal error: {e}")
@@ -412,7 +439,7 @@ class TurkTelekomScraper:
         
         # 1. Duplicate Check & Update
         existing = self.db.query(Campaign).filter(Campaign.tracking_url == url).first()
-        if existing:
+        if existing and existing.is_active:
             # Update title if it's currently much shorter than combined title
             if predefined_title and len(predefined_title) > len(existing.title) + 2:
                 if any(x in url for x in ["bi-dunya", "prime", "selfy"]):
@@ -420,8 +447,8 @@ class TurkTelekomScraper:
                     existing.title = predefined_title
             
             self.db.commit()
-            print(f"      ⏭️ Skipping (Already exists): {existing.title}")
-            return False
+            print(f"      ⏭️ Skipping (Already exists & active): {existing.title}")
+            return "skipped"
 
         if is_url_blocked(self.db, url):
             print(f"      🚫 Skipping (Blocklisted): {url}")
@@ -471,7 +498,7 @@ class TurkTelekomScraper:
             # Final blocklist check with title
             if is_url_blocked(self.db, url):
                 print(f"      🚫 Skipping (Blocklisted): {title}")
-                return False  # type: ignore # pyre-ignore[7]
+                return "skipped"  # type: ignore # pyre-ignore[7]
             
             # Image extraction
             img_tag = soup.select_one(".detail-text-img img")
@@ -536,7 +563,7 @@ class TurkTelekomScraper:
 
             if not ai_data or ai_data.get("_ai_failed"):
                 print(f"      ❌ AI parsing failed for {url}")
-                return False  # type: ignore # pyre-ignore[7]
+                return "error"  # type: ignore # pyre-ignore[7]
 
             # Override/Fixes
             if image_url and (not ai_data.get('image_url') or 'logo' in ai_data.get('image_url', '').lower()):
@@ -555,62 +582,68 @@ class TurkTelekomScraper:
                     pass
 
             # Save to DB
-            self._save_campaign(ai_data, url, image_url)
-            return True  # type: ignore # pyre-ignore[7]
+            return self._save_campaign(ai_data, url, image_url)
 
         except Exception as e:
             print(f"      ❌ Detail error: {e}")
-            return False  # type: ignore # pyre-ignore[7]
+            return "error"  # type: ignore # pyre-ignore[7]
 
     def _save_campaign(self, data: Dict[str, Any], url: str, image_url: Optional[str]):  # type: ignore # pyre-ignore[16,6]
         """Save parsed campaign to DB"""
-        
-        # Bank & Card
-        bank = self.bank_cache
-        card = self._get_or_create_card("Türk Telekom")
-        
-        # Sector
-        sector = self._get_sector(data.get("sector") or "")
-        
-        # Brands
-        brand_ids = self._get_or_create_brands(data.get("brands", []), sector.id if sector else None)  # type: ignore # pyre-ignore[16]
-        
-        # Slug - always use generate_slug for consistency
-        url_hash = uuid.uuid5(uuid.NAMESPACE_URL, url).hex[:8]  # type: ignore # pyre-ignore[16,6]
-        base_slug = generate_slug(data.get("title", ""))
-        slug = f"{base_slug}-{url_hash}"
-        
-        ai_marketing_text = data.get("ai_marketing_text") or data.get("description", "")
-        participation_text = data.get("participation", "")
-            
-        campaign = Campaign(
-            card_id=card.id,  # type: ignore # pyre-ignore[16]
-            sector_id=sector.id if sector else None,  # type: ignore # pyre-ignore[16]
-            title=data.get("title"),
-            slug=slug,
-            description=data.get("description"),
-            conditions=data.get("conditions") if not isinstance(data.get("conditions"), list) else "\n".join(data.get("conditions") or []),  # type: ignore # pyre-ignore[16,6]
-            reward_text=data.get("reward_text"),
-            reward_value=data.get("reward_value"),
-            reward_type=data.get("reward_type"),
-            start_date=data.get("start_date"),
-            end_date=data.get("end_date"),
-            image_url=image_url or "https://bireysel.turktelekom.com.tr/assets/img/tt-logo.png",
-            tracking_url=url,
-            is_active=True,
-            ai_marketing_text=ai_marketing_text,
-            participation=participation_text,
-            eligible_cards=data.get("eligible_cards") or "Türk Telekom Müşterileri",
-            category=data.get("category"),
-            badge_color=data.get("badge_color"),
-            clean_text=data.get("_clean_text"),
-            quality_score=data.get("quality_score", 0)
-        )
-        
         try:
-            self.db.add(campaign)  # type: ignore # pyre-ignore[16]
-            self.db.flush()  # type: ignore # pyre-ignore[16]
+            # Bank & Card
+            bank = self.bank_cache
+            card = self._get_or_create_card("Türk Telekom")
             
+            # Sector
+            sector = self._get_sector(data.get("sector") or "")
+            
+            # Brands
+            brand_ids = self._get_or_create_brands(data.get("brands", []), sector.id if sector else None)  # type: ignore # pyre-ignore[16]
+            
+            # Slug - always use generate_slug for consistency
+            url_hash = uuid.uuid5(uuid.NAMESPACE_URL, url).hex[:8]  # type: ignore # pyre-ignore[16,6]
+            base_slug = generate_slug(data.get("title", ""))
+            slug = f"{base_slug}-{url_hash}"
+            
+            ai_marketing_text = data.get("ai_marketing_text") or data.get("description", "")
+            participation_text = data.get("participation", "")
+                
+            campaign = Campaign(
+                card_id=card.id,  # type: ignore # pyre-ignore[16]
+                sector_id=sector.id if sector else None,  # type: ignore # pyre-ignore[16]
+                title=data.get("title"),
+                slug=slug,
+                description=data.get("description"),
+                conditions=data.get("conditions") if not isinstance(data.get("conditions"), list) else "\n".join(data.get("conditions") or []),  # type: ignore # pyre-ignore[16,6]
+                reward_text=data.get("reward_text"),
+                reward_value=data.get("reward_value"),
+                reward_type=data.get("reward_type"),
+                start_date=data.get("start_date"),
+                end_date=data.get("end_date"),
+                image_url=image_url or "https://bireysel.turktelekom.com.tr/assets/img/tt-logo.png",
+                tracking_url=url,
+                is_active=True,
+                ai_marketing_text=ai_marketing_text,
+                participation=participation_text,
+                eligible_cards=data.get("eligible_cards") or "Türk Telekom Müşterileri",
+                category=data.get("category"),
+                badge_color=data.get("badge_color"),
+                clean_text=data.get("_clean_text"),
+                quality_score=data.get("quality_score", 0)
+            )
+            
+            from src.utils.scraper_utils import upsert_campaign
+            campaign, op_status = upsert_campaign(self.db, campaign)
+            self.db.commit()
+
+            if op_status == "revived":
+                print(f"      ♻️  Revived Passive Campaign: {campaign.title[:50]}...")
+            elif op_status == "saved":
+                 print(f"      ✅ Saved: {campaign.title[:50]}...")
+            
+            self.db.refresh(campaign)
+
             for bid in brand_ids:
                 existing_link = self.db.query(CampaignBrand).filter_by(campaign_id=campaign.id, brand_id=bid).first()  # type: ignore # pyre-ignore[16]
                 if not existing_link:
@@ -618,10 +651,11 @@ class TurkTelekomScraper:
                     self.db.add(cb)  # type: ignore # pyre-ignore[16]
             
             self.db.commit()  # type: ignore # pyre-ignore[16]
-            print(f"      ✅ Saved: {campaign.title}")
+            return op_status
         except Exception as e:
             self.db.rollback()  # type: ignore # pyre-ignore[16]
             print(f"      ❌ DB Save Error for {url}: {e}")
+            return "error"
 
     # --- HELPERS ---
     def _load_cache(self):

@@ -21,7 +21,7 @@ from urllib.parse import urljoin  # type: ignore # pyre-ignore[21]
 from sqlalchemy import create_engine, Column, Integer, String, Boolean, DateTime, Date, Numeric, Text, ForeignKey  # type: ignore # pyre-ignore[21]
 from sqlalchemy.orm import sessionmaker, relationship, declarative_base  # type: ignore # pyre-ignore[21]
 from sqlalchemy.dialects.postgresql import UUID  # type: ignore # pyre-ignore[21]
-from src.utils.scraper_utils import is_url_blocked  # type: ignore
+from src.utils.scraper_utils import is_url_blocked, upsert_campaign  # type: ignore
 
 from src.services.brand_matcher import get_or_create_brands_list  # type: ignore
 from src.services.ai_parser import AIParser  # type: ignore
@@ -144,8 +144,8 @@ class VakifbankScraper:
         try:
 
             existing = self.db.query(Campaign).filter(Campaign.tracking_url == url).first()  # type: ignore # pyre-ignore[16]
-            if existing:
-                print(f"   ⏭️ Skipped (Already exists): {existing.title[:40]}")
+            if existing and existing.is_active:
+                print(f"   ⏭️ Skipped (Already exists and active): {existing.title[:40]}")
                 return "skipped"  # type: ignore # pyre-ignore[7]
         except Exception as e:
             print(f"   ⚠️ DB Pre-check error: {e}")
@@ -264,12 +264,6 @@ class VakifbankScraper:
                 try: vu = datetime.strptime(ai_data.get("end_date"), "%Y-%m-%d")
                 except: pass
 
-            # DB Operation
-            existing = self.db.query(Campaign).filter(Campaign.tracking_url == url).first()  # type: ignore # pyre-ignore[16]
-            if existing:
-                print(f"   ⏭️ Skipped (Already exists, preserving manual edits): {title[:50]}...")  # type: ignore # pyre-ignore[16,6]
-                return "skipped"  # type: ignore # pyre-ignore[7]
-
             campaign = Campaign(
                 card_id=self.card_id,
                 sector_id=sector.id if sector else None,  # type: ignore # pyre-ignore[16]
@@ -279,6 +273,7 @@ class VakifbankScraper:
                 ai_marketing_text=ai_data.get("ai_marketing_text") or desc,
                 reward_text=ai_data.get("reward_text"),
                 reward_value=ai_data.get("reward_value"),
+                reward_type=ai_data.get("reward_type"),
                 conditions=final_conditions,
                 eligible_cards=", ".join(cards_raw),
                 participation=part_method,
@@ -291,12 +286,19 @@ class VakifbankScraper:
                 created_at=datetime.utcnow(),
                 updated_at=datetime.utcnow()
             )
-            self.db.add(campaign)  # type: ignore # pyre-ignore[16]
+
+            # Use centralized upsert_campaign for revival and quality control
+            campaign, op_status = upsert_campaign(self.db, campaign)
+            self.db.commit()
+
+            if op_status == "revived":
+                print(f"   ♻️  Revived Passive Campaign: {campaign.title[:50]}...")
+            elif op_status == "saved":
+                 print(f"   ✅ Saved: {campaign.title[:50]}...")
             
-            self.db.commit()  # type: ignore # pyre-ignore[16]
+            self.db.refresh(campaign)
 
             # BRANDS
-            brands = ai_data.get("brands", [])
             # Central parser returns list of strings
             # Brands via brand_matcher
             brand_ids = get_or_create_brands_list(
@@ -317,8 +319,7 @@ class VakifbankScraper:
                 except Exception as e:
                     self.db.rollback()
                     print(f"   ⚠️ CampaignBrand link failed: {e}")
-            print(f"   ✅ Saved: {title} | Sector: {db_sector_name} | Brands: {brands}")
-            return "saved"  # type: ignore # pyre-ignore[7]
+            return op_status
             
         except Exception as e:
             print(f"   ❌ Error: {e}")
@@ -326,11 +327,13 @@ class VakifbankScraper:
             traceback.print_exc()
             return "error"  # type: ignore # pyre-ignore[7]
 
-    def run(self):
+    def run(self, limit: int = 1000):
         print("🚀 Starting VakıfBank Scraper (Powered by Kartavantaj AI Parser)...")
-        urls = self._fetch_campaign_list()
+        # limit here means limit_pages for simplicity in this scraper's architecture
+        urls = self._fetch_campaign_list(limit_pages=max(1, limit // 8))
         
         success_count = 0
+        total_revived = 0
         skipped_count = 0
         failed_count = 0
         error_details = []
@@ -340,18 +343,20 @@ class VakifbankScraper:
                 res = self._process_campaign(url)
                 if res == "saved":
                     success_count += 1  # type: ignore # pyre-ignore[58]
+                elif res == "revived":
+                    total_revived += 1
                 elif res == "skipped":
                     skipped_count += 1  # type: ignore # pyre-ignore[58]
                 else:
                     failed_count += 1  # type: ignore # pyre-ignore[58]
-                    error_details.append({"url": url, "error": "Save failed"})
+                    error_details.append({"url": url, "error": f"Process returned {res}"})
             except Exception as e:
                 failed_count += 1  # type: ignore # pyre-ignore[58]
                 error_details.append({"url": url, "error": str(e)})
                 
             time.sleep(2) # Rate limiting
             
-        print(f"\n✅ Özet: {len(urls)} bulundu, {success_count} eklendi, {skipped_count} atlandı, {failed_count} hata aldı.")
+        print(f"\n✅ Özet: {len(urls)} bulundu, {success_count} eklendi, {total_revived} canlandı, {skipped_count} atlandı, {failed_count} hata aldı.")
         
         status = "SUCCESS"
         if failed_count > 0:  # type: ignore # pyre-ignore[58]
@@ -367,6 +372,7 @@ class VakifbankScraper:
                  total_saved=success_count,
                  total_skipped=skipped_count,
                  total_failed=failed_count,
+                 total_revived=total_revived,
                  error_details={"errors": error_details} if error_details else None
             )
         except Exception as le:
@@ -375,5 +381,10 @@ class VakifbankScraper:
         print("🏁 Finished.")
 
 if __name__ == "__main__":
+    import argparse
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--limit", type=int, default=1000)
+    args = parser.parse_args()
+    
     scraper = VakifbankScraper()
-    scraper.run()
+    scraper.run(limit=args.limit)

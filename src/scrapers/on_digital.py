@@ -28,7 +28,7 @@ from src.database import get_db_session
 from src.models import Campaign, Bank, Card, Sector, Brand, CampaignBrand
 from src.services.ai_parser import parse_api_campaign
 from src.utils.slug_generator import get_unique_slug
-from src.utils.scraper_utils import should_skip_campaign
+from src.utils.scraper_utils import should_skip_campaign, upsert_campaign, is_url_blocked
 from src.utils.cache_manager import clear_cache
 
 
@@ -262,8 +262,9 @@ class ONDigitalScraper:
             return "error"
 
         # Skip check
-        if not force and should_skip_campaign(db, url):
-            print(f"      ⏭️  Skipped (already exists or blocked): {url}")
+        existing = db.query(Campaign).filter(Campaign.tracking_url == url).first()
+        if not force and existing and existing.is_active:
+            print(f"      ⏭️  Skipped (already exists and active): {url}")
             return "skipped"
 
         print(f"   🔎 Processing: {item['title']}")
@@ -334,7 +335,7 @@ class ONDigitalScraper:
                 reward_type=data.get('reward_type'),
                 reward_text=data.get('reward_text') or 'Detayları İnceleyin',
                 description=str(data.get('description') or '')[:500],
-                ai_marketing_text=ai_data.get("ai_marketing_text") or str(data.get('description') or '')[:500],
+                ai_marketing_text=data.get("ai_marketing_text") or str(data.get('description') or '')[:500],
                 conditions=conditions_text,
                 participation=data.get('participation') or '',
                 start_date=start_date,
@@ -347,23 +348,28 @@ class ONDigitalScraper:
                 eligible_cards=", ".join(data.get("cards", [])) if isinstance(data.get("cards"), list) and data.get("cards") else self.CARD_NAME
             )
 
-            db.add(campaign)
-            db.flush()
-
-            # Brands
-            for b_name in data.get('brands', []):
-                if not b_name:
-                    continue
-                brand = db.query(Brand).filter(Brand.name == b_name).first()
-                if not brand:
-                    brand = Brand(name=b_name, slug=get_unique_slug(b_name, db, Brand), is_active=True)
-                    db.add(brand)
-                    db.flush()
-                db.add(CampaignBrand(campaign_id=campaign.id, brand_id=brand.id))
-
+            # Use centralized upsert_campaign for revival and quality control
+            campaign, op_status = upsert_campaign(db, campaign)
             db.commit()
-            print(f"      ✅ Saved: {campaign.title}")
-            return "saved"
+
+            if op_status == "revived":
+                print(f"   ♻️  Revived Passive Campaign: {campaign.title[:50]}...")
+            elif op_status == "saved":
+                 print(f"   ✅ Saved: {campaign.title[:50]}...")
+            
+            db.refresh(campaign)
+
+            # Brands via brand_matcher
+            if data.get('brands'):
+                from src.services.brand_matcher import get_or_create_brands_list
+                brand_ids = get_or_create_brands_list(db, data['brands'], {}, campaign.sector_id)
+                for bid in brand_ids:
+                    link_check = db.query(CampaignBrand).filter_by(campaign_id=campaign.id, brand_id=bid).first()
+                    if not link_check:
+                        db.add(CampaignBrand(campaign_id=campaign.id, brand_id=bid))
+                db.commit()
+
+            return op_status
 
         except IntegrityError:
             db.rollback()
@@ -388,25 +394,42 @@ class ONDigitalScraper:
                 items = items[:limit]
                 print(f"   Using limit: {limit}")
 
-            saved = skipped = errors = 0
+            saved = revived = skipped = errors = 0
+            error_details = []
             for i, item in enumerate(items, 1):
                 print(f"   [{i}/{len(items)}] {item['url']}")
                 try:
                     res = self._process_campaign(item, force=force)
                     if res == "saved":
                         saved += 1
+                    elif res == "revived":
+                        revived += 1
                     elif res == "skipped":
                         skipped += 1
                     else:
                         errors += 1
+                        error_details.append({"url": item['url'], "error": f"Process returned {res}"})
                 except Exception as e:
                     print(f"      ❌ Error: {e}")
                     errors += 1
                 time.sleep(random.uniform(1, 2))
 
-            print(f"\n✅ Summary: {saved} saved, {skipped} skipped, {errors} errors.")
+            print(f"\n✅ Summary: {saved} saved, {revived} revived, {skipped} skipped, {errors} errors.")
 
-            if saved > 0:
+            from src.utils.logger_utils import log_scraper_execution
+            log_scraper_execution(
+                db=self.db,
+                scraper_name="on_digital",
+                status="SUCCESS" if errors == 0 else "PARTIAL",
+                total_found=len(items),
+                total_saved=saved,
+                total_skipped=skipped,
+                total_failed=errors,
+                total_revived=revived,
+                error_details={"errors": error_details} if error_details else None
+            )
+
+            if saved > 0 or revived > 0:
                 clear_cache('campaigns:*')
 
         except Exception as e:

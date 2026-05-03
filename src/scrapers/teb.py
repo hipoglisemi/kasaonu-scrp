@@ -17,7 +17,9 @@ from sqlalchemy import create_engine, text  # type: ignore # pyre-ignore[21]
 from src.services.ai_parser import AIParser  # type: ignore # pyre-ignore[21]
 from src.services.ai_parser_golden import parse_api_campaign  # type: ignore # pyre-ignore[21]
 from src.services.brand_normalizer import cleanup_brands  # type: ignore # pyre-ignore[21]
-from src.utils.scraper_utils import is_url_blocked  # type: ignore # pyre-ignore[21]
+from src.utils.scraper_utils import is_url_blocked, upsert_campaign  # type: ignore # pyre-ignore[21]
+from src.models import Campaign, Sector, Brand, CampaignBrand  # type: ignore
+from sqlalchemy.orm import Session, sessionmaker  # type: ignore
 
 load_dotenv()
 
@@ -172,105 +174,83 @@ class TEBScraper:
             print(f"   ❌ Card setup failed: {e}")
             raise
 
-    def _resolve_sector_by_name(self, sector_name: str) -> Optional[int]:  # type: ignore # pyre-ignore[16,6]
-        """Find sector ID by slug. (AI parser returns a sector slug like 'market-gida')"""
+    def _resolve_sector_by_name(self, sector_name: str) -> Optional[int]:
+        """Find sector ID by slug."""
         if not sector_name:
-            return None  # type: ignore # pyre-ignore[7]
+            return None
         try:
             with self.engine.connect() as conn:
-                # Search by slug since AI is strictly instructed to return valid slugs
                 result = conn.execute(
                     text("SELECT id FROM sectors WHERE slug = :slug LIMIT 1"),
                     {"slug": sector_name}
                 ).fetchone()
-                return result[0] if result else None  # type: ignore # pyre-ignore[7]
+                return result[0] if result else None
         except Exception:
-            return None  # type: ignore # pyre-ignore[7]
+            return None
 
-    def _save_to_db(self, data: dict, brands: Optional[List[str]] = None):
-        """Save or update campaign in DB."""
-        campaign_id = None
+    def _save_to_db(self, data: dict, brand_names: Optional[List[str]] = None):
+        """Save or update campaign in DB using ORM and upsert_campaign."""
+        SessionLocal = sessionmaker(bind=self.engine)
+        db = SessionLocal()
         try:
-            with self.engine.begin() as conn:
-                # Blocklist check
-                from sqlalchemy import text as _text  # type: ignore
-                # Using engine to get a session for is_url_blocked helper
-                from src.database import get_db_session  # type: ignore
-                with get_db_session() as db:
-                     if is_url_blocked(db, data.get("tracking_url")):
-                          print(f"   🚫 Skipped (Safety: Blocklisted): {data.get('title')}")
-                          return "skipped"
+            # 1. Blocklist check
+            if is_url_blocked(db, data.get("tracking_url")):
+                print(f"   🚫 Skipped (Safety: Blocklisted): {data.get('title')}")
+                return "skipped"
 
-                existing = conn.execute(
-                    text("SELECT id FROM campaigns WHERE tracking_url = :url"),
-                    {"url": data.get("tracking_url")}
-                ).fetchone()
+            # 2. Prepare Campaign Object
+            campaign = Campaign(
+                card_id=data.get("card_id"),
+                sector_id=data.get("sector_id"),
+                slug=data.get("slug"),
+                title=data.get("title"),
+                description=data.get("description"),
+                ai_marketing_text=data.get("ai_marketing_text"),
+                reward_text=data.get("reward_text"),
+                reward_value=data.get("reward_value"),
+                reward_type=data.get("reward_type"),
+                conditions=data.get("conditions"),
+                eligible_cards=data.get("eligible_cards"),
+                participation=data.get("participation"),
+                image_url=data.get("image_url"),
+                tracking_url=data.get("tracking_url"),
+                clean_text=data.get("clean_text"),
+                start_date=data.get("start_date"),
+                end_date=data.get("end_date"),
+                is_active=True
+            )
 
-                if existing:
-                    # Slicing str directly from function result can confuse some linters
-                    title_preview = str(data.get('title') or '')[:50]  # type: ignore
-                    print(f"   ⏭️ Skipped (Already exists, preserving manual edits): {title_preview}")
-                    return "skipped"
-                else:
-                    title_preview = str(data.get('title') or '')[:50]  # type: ignore
-                    print(f"   ✨ Creating: {title_preview}")
-                    result = conn.execute(text("""
-                        INSERT INTO campaigns (
-                            title, description, slug, image_url, tracking_url, is_active,
-                            sector_id, card_id, start_date, end_date, conditions, participation,
-                            eligible_cards, reward_text, reward_value, reward_type, clean_text,
-                            ai_marketing_text, created_at, updated_at
-                        )
-                        VALUES (
-                            :title, :description, :slug, :image_url, :tracking_url, true,
-                            :sector_id, :card_id, :start_date, :end_date, :conditions, :participation,
-                            :eligible_cards, :reward_text, :reward_value, :reward_type, :clean_text,
-                            :ai_marketing_text, NOW(), NOW()
-                        )
-                        RETURNING id
-                    """), {**data})
-                    campaign_id = result.fetchone()[0]
+            # 3. Use upsert_campaign for revival and quality control
+            campaign, op_status = upsert_campaign(db, campaign)
+            db.commit()
 
-                # Save brands
-                if brands and campaign_id:
-                    clean_brands = cleanup_brands(brands)
-                    for brand_name in clean_brands:
-                        brand_result = conn.execute(
-                            text("SELECT id, is_active FROM brands WHERE name = :name"),
-                            {"name": brand_name}
-                        ).fetchone()
-                        if brand_result:
-                            # 🛡️ Bloklist kontrolü: is_active=False olan markalar atlanır
-                            if not brand_result[1]:
-                                print(f"      🚫 Skipped blacklisted brand: {brand_name}")
-                                continue
-                            brand_id = brand_result[0]
-                        else:
-                            brand_slug = f"{slugify(brand_name)}-{int(time.time())}"
-                            brand_result = conn.execute(text("""
-                                INSERT INTO brands (name, slug, is_active, created_at)
-                                VALUES (:name, :slug, true, NOW())
-                                RETURNING id
-                            """), {"name": brand_name, "slug": brand_slug})
-                            brand_id = brand_result.fetchone()[0]
-                            print(f"      ✨ Created Brand: {brand_name}")
+            if op_status == "revived":
+                print(f"   ♻️  Revived Passive Campaign: {campaign.title[:50]}...")
+            elif op_status == "saved":
+                 print(f"   ✅ Saved: {campaign.title[:50]}...")
+            
+            db.refresh(campaign)
 
-                        existing_link = conn.execute(text("""
-                            SELECT 1 FROM campaign_brands
-                            WHERE campaign_id = :campaign_id AND brand_id = CAST(:brand_id AS uuid)
-                        """), {"campaign_id": campaign_id, "brand_id": brand_id}).fetchone()
+            # 4. Handle Brands
+            if brand_names:
+                from src.services.brand_matcher import get_or_create_brands_list
+                brand_ids = get_or_create_brands_list(db, brand_names, {}, data.get("sector_id"))
+                for bid in brand_ids:
+                    existing_link = db.query(CampaignBrand).filter(
+                        CampaignBrand.campaign_id == campaign.id,
+                        CampaignBrand.brand_id == bid
+                    ).first()
+                    if not existing_link:
+                        db.add(CampaignBrand(campaign_id=campaign.id, brand_id=bid))
+                db.commit()
 
-                        if not existing_link:
-                            conn.execute(text("""
-                                INSERT INTO campaign_brands (campaign_id, brand_id)
-                                VALUES (:campaign_id, CAST(:brand_id AS uuid))
-                            """), {"campaign_id": campaign_id, "brand_id": brand_id})
-                            print(f"      🔗 Linked Brand: {brand_name}")
-
-            return "saved"
+            return op_status
         except Exception as e:
+            db.rollback()
             print(f"   ❌ DB Error: {e}")
             return "error"
+        finally:
+            db.close()
 
     def _process_item(self, item: dict, card_id: int, card_name: str):
         """Process a single campaign item from the API."""
@@ -289,11 +269,11 @@ class TEBScraper:
         try:
             with self.engine.connect() as conn:
                 existing = conn.execute(
-                    text("SELECT id FROM campaigns WHERE tracking_url = :url"),
+                    text("SELECT id, is_active FROM campaigns WHERE tracking_url = :url"),
                     {"url": tracking_url}
                 ).fetchone()
-                if existing:
-                    print(f"   ⏭️ Skipped (Already exists): {title}")
+                if existing and existing[1]:  # existing[1] is is_active
+                    print(f"   ⏭️ Skipped (Already exists and active): {title}")
                     return "skipped"
                 
                 # Blocklist check
@@ -427,7 +407,7 @@ class TEBScraper:
         items = items[:limit]  # type: ignore # pyre-ignore[16,6]
         print(f"\n   🎯 Processing {len(items)} campaigns...\n")
 
-        success = skipped = failed = 0
+        success = revived = skipped = failed = 0
         error_details = []
 
         for idx, item in enumerate(items):
@@ -450,11 +430,13 @@ class TEBScraper:
                 res = self._process_item(item, card_id, card_def["name"])
                 if res == "saved":
                     success += 1  # type: ignore # pyre-ignore[58]
+                elif res == "revived":
+                    revived += 1
                 elif res == "skipped":
                     skipped += 1  # type: ignore # pyre-ignore[58]
                 else:
                     failed += 1  # type: ignore # pyre-ignore[58]
-                    error_details.append({"url": item.get("weblink", "unknown"), "error": "Unknown DB failure"})
+                    error_details.append({"url": item.get("weblink", "unknown"), "error": f"Process returned {res}"})
             except Exception as e:
                 print(f"   ❌ Failed: {e}")
                 failed += 1  # type: ignore # pyre-ignore[58]
@@ -463,7 +445,7 @@ class TEBScraper:
             time.sleep(0.5)
 
         print("\n🏁 TEB Scraper Finished.")
-        print(f"✅ Özet: {len(items)} bulundu, {success} eklendi, {skipped} atlandı, {failed} hata aldı.")
+        print(f"✅ Özet: {len(items)} bulundu, {success} eklendi, {revived} canlandı, {skipped} atlandı, {failed} hata aldı.")
         
         status = "SUCCESS"
         if failed > 0:  # type: ignore # pyre-ignore[58]
@@ -482,6 +464,7 @@ class TEBScraper:
                     total_saved=success,
                     total_skipped=skipped,
                     total_failed=failed,
+                    total_revived=revived,
                     error_details={"errors": error_details} if error_details else None
                 )
         except Exception as le:

@@ -26,7 +26,7 @@ from src.database import get_db_session  # type: ignore # pyre-ignore[21]
 from src.models import Bank, Card, Sector, Brand, Campaign, CampaignBrand  # type: ignore # pyre-ignore[21]
 from src.services.ai_parser import AIParser  # type: ignore # pyre-ignore[21]
 from src.utils.logger_utils import log_scraper_execution  # type: ignore # pyre-ignore[21]
-from src.utils.scraper_utils import is_url_blocked  # type: ignore
+from src.utils.scraper_utils import is_url_blocked, upsert_campaign  # type: ignore
 
 class ParafScraper:
     """
@@ -102,6 +102,7 @@ class ParafScraper:
             
             # 2. Process each campaign
             success_count = 0
+            total_revived = 0
             skipped_count = 0
             failed_count = 0
             for i, campaign_data in enumerate(campaigns, 1):
@@ -120,6 +121,8 @@ class ParafScraper:
                     res = self._scrape_detail(campaign_data, url, source, force=force)
                     if res == "saved":
                         success_count += 1  # type: ignore # pyre-ignore[58]
+                    elif res == "revived":
+                        total_revived += 1
                     elif res == "skipped":
                         skipped_count += 1  # type: ignore # pyre-ignore[58]
                     else:
@@ -129,7 +132,7 @@ class ParafScraper:
                     print(f"      ❌ Error: {e}")
                     failed_count += 1  # type: ignore # pyre-ignore[58]
                     
-            print(f"   ✅ Özet: {len(campaigns)} bulundu, {success_count} eklendi, {skipped_count} atlandı, {failed_count} hata aldı.")
+            print(f"   ✅ Özet: {len(campaigns)} bulundu, {success_count} eklendi, {total_revived} canlandı, {skipped_count} atlandı, {failed_count} hata aldı.")
             
             # Log execution to Database
             log_scraper_execution(
@@ -139,7 +142,8 @@ class ParafScraper:
                 total_found=len(campaigns),
                 total_saved=success_count,
                 total_skipped=skipped_count,
-                total_failed=failed_count
+                total_failed=failed_count,
+                total_revived=total_revived
             )
             
         except Exception as e:
@@ -177,8 +181,8 @@ class ParafScraper:
         # Check if exists
         if not force:
             existing = self.db.query(Campaign).filter(Campaign.tracking_url == url).first()  # type: ignore # pyre-ignore[16]
-            if existing:
-                print(f"      ⏭️ Skipped (Already exists): {existing.title[:40]}")
+            if existing and existing.is_active:
+                print(f"      ⏭️ Skipped (Already exists and active): {existing.title[:40]}")
                 return "skipped"  # type: ignore # pyre-ignore[7]
 
         # Get title
@@ -224,9 +228,8 @@ class ParafScraper:
             image_url = self._fix_image_url(image_path, source['base'])
                 
             # Save
-            self._save_campaign(ai_data, url, image_url, source['default_card'])
-            print(f"      ✅ Saved: {ai_data['title']}")  # type: ignore # pyre-ignore[16,6]
-            return "saved"  # type: ignore # pyre-ignore[7]
+            status = self._save_campaign(ai_data, url, image_url, source['default_card'])
+            return status  # type: ignore # pyre-ignore[7]
             
         except Exception as e:
             print(f"      ❌ Page Error: {e}")
@@ -321,9 +324,16 @@ class ParafScraper:
             is_active=True  # type: ignore
         )
         
-        if self.db is None: return
-        self.db.add(campaign)  # type: ignore # pyre-ignore[16]
-        self.db.commit()  # type: ignore # pyre-ignore[16]
+        # Use centralized upsert_campaign for revival and quality control
+        campaign, op_status = upsert_campaign(self.db, campaign)
+        self.db.commit()
+        
+        if op_status == "revived":
+            print(f"      ♻️  Revived Passive Campaign: {campaign.title[:50]}...")
+        elif op_status == "saved":
+             print(f"      ✅ Saved: {campaign.title[:50]}...")
+        
+        self.db.refresh(campaign)
         
         # Link Brands
         for bid in brand_ids:
@@ -333,6 +343,7 @@ class ParafScraper:
             except:
                 pass
         self.db.commit()  # type: ignore # pyre-ignore[16]
+        return op_status
 
     # --- HELPERS ---
     def _load_cache(self):

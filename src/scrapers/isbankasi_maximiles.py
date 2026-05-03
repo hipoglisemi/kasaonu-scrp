@@ -20,7 +20,7 @@ project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(_
 if project_root not in sys.path:
     sys.path.insert(0, project_root)
 
-from src.utils.scraper_utils import is_url_blocked  # type: ignore
+from src.utils.scraper_utils import is_url_blocked, upsert_campaign  # type: ignore
 from src.services.brand_matcher import get_or_create_brands_list  # type: ignore
 from bs4 import BeautifulSoup  # type: ignore # pyre-ignore[21]
 
@@ -620,50 +620,41 @@ class IsbankMaximilesScraper:
                 pass  # participation field written separately to DB
             final_conditions = "\n".join(conds)
 
-            if existing:
-                # Update existing record
-                existing.sector_id = sector.id if sector else None  # type: ignore # pyre-ignore[16]
-                existing.title = formatted_title
-                existing.description = ai_data.get("description") or data["title"][:200]  # type: ignore # pyre-ignore[16,6]
-                existing.ai_marketing_text = ai_data.get("ai_marketing_text") or ai_data.get("description") or data["title"][:200]  # type: ignore # pyre-ignore[16,6]
-                existing.reward_text = ai_data.get("reward_text")
-                existing.reward_value = ai_data.get("reward_value")
-                existing.reward_type = ai_data.get("reward_type")
-                existing.conditions = final_conditions
-                existing.eligible_cards = ", ".join(ai_data.get("cards", [])) or None
-                existing.clean_text = ai_data.get("_clean_text")
-                existing.image_url = data["image_url"]
-                existing.start_date = start_date
-                existing.end_date = end_date
-                existing.updated_at = func.now()
-                self.db.commit()  # type: ignore # pyre-ignore[16]
-                print(f"   ✅ Updated: {existing.title[:50]}")  # type: ignore # pyre-ignore[16,6]
-            else:
-                campaign = Campaign(  # type: ignore
-                    card_id=self.card_id,  # type: ignore
-                    sector_id=sector.id if sector else None,  # type: ignore
-                    slug=slug,  # type: ignore
-                    title=formatted_title,  # type: ignore
-                    description=ai_data.get("description") or data["title"][:200],  # type: ignore
-                    ai_marketing_text=ai_data.get("ai_marketing_text") or ai_data.get("description") or data["title"][:200],  # type: ignore
-                    reward_text=ai_data.get("reward_text"),  # type: ignore
-                    reward_value=ai_data.get("reward_value"),  # type: ignore
-                    reward_type=ai_data.get("reward_type"),  # type: ignore
-                    conditions=final_conditions,  # type: ignore
-                    eligible_cards=", ".join(ai_data.get("cards", [])) or None,
-                    participation=part,  # type: ignore
-                    clean_text=ai_data.get("_clean_text"),  # type: ignore
-                    image_url=data["image_url"],  # type: ignore
-                    start_date=start_date,  # type: ignore
-                    end_date=end_date,  # type: ignore
-                    is_active=True,  # type: ignore
-                    tracking_url=url,  # type: ignore
-                    created_at=func.now(),  # type: ignore
-                    updated_at=func.now(),  # type: ignore
-                )
-                self.db.add(campaign)  # type: ignore # pyre-ignore[16]
-                self.db.commit()  # type: ignore # pyre-ignore[16]
-                print(f"   ✅ Saved: {campaign.title[:50]}")  # type: ignore # pyre-ignore[16,6]
+            campaign = Campaign(
+                card_id=self.card_id,
+                sector_id=sector.id if sector else None,
+                title=formatted_title,
+                slug=slug,
+                description=ai_data.get("description") or formatted_title,
+                reward_text=ai_data.get("reward_text"),
+                reward_value=ai_data.get("reward_value"),
+                reward_type=ai_data.get("reward_type"),
+                conditions=final_conditions,
+                participation=part,
+                eligible_cards=", ".join(ai_data.get("cards", [])) or None,
+                clean_text=ai_data.get("_clean_text"),
+                image_url=data["image_url"],
+                start_date=start_date,
+                end_date=end_date,
+                is_active=True,
+                tracking_url=url,
+                created_at=func.now(),
+                updated_at=func.now(),
+            )
+            
+            # Use centralized upsert_campaign for revival and quality control
+            campaign, op_status = upsert_campaign(self.db, campaign)
+            self.db.commit()
+
+            if op_status == "revived":
+                print(f"   ♻️  Revived Passive Campaign: {campaign.title[:50]}...")
+                return "revived"
+            elif op_status == "saved":
+                 print(f"   ✅ Saved: {campaign.title[:50]}...")
+                 return "saved"
+            elif op_status == "updated":
+                 print(f"   ✅ Updated: {campaign.title[:50]}...")
+                 return "saved"
 
             # Brands via brand_matcher
             brand_ids = get_or_create_brands_list(
@@ -730,6 +721,7 @@ class IsbankMaximilesScraper:
                         
             urls = active_urls
             success: int = 0
+            revived: int = 0
             skipped: int = 0
             failed: int = 0
             error_details: List[Dict[str, Any]] = []  # type: ignore # pyre-ignore[16,6]
@@ -739,6 +731,8 @@ class IsbankMaximilesScraper:
                     res = self._process_campaign(url, force=force)
                     if res == "saved":
                         success += 1  # type: ignore # pyre-ignore[58]
+                    elif res == "revived":
+                        revived += 1
                     elif res == "skipped":
                         skipped += 1  # type: ignore # pyre-ignore[58]
                     else:
@@ -749,7 +743,7 @@ class IsbankMaximilesScraper:
                     failed += 1  # type: ignore # pyre-ignore[58]
                     error_details.append({"url": url, "error": str(e)})
                 time.sleep(1.5)
-            print(f"\n🏁 Finished. {len(urls)} found, {success} saved, {skipped} skipped, {failed} errors")
+            print(f"\n🏁 Finished. {len(urls)} found, {success} saved, {revived} revived, {skipped} skipped, {failed} errors")
             
             status = "SUCCESS"
             if int(failed or 0) > 0:  # type: ignore # pyre-ignore[58]
@@ -767,6 +761,7 @@ class IsbankMaximilesScraper:
                           total_saved=success,
                           total_skipped=skipped,
                           total_failed=failed,
+                          total_revived=revived,
                           error_details={"errors": error_details} if error_details else None
                      )
             except Exception as le:

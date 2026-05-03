@@ -42,8 +42,8 @@ _TITLE_ONLY_KEYWORDS = {
     "bilet", "lastik", "sigorta", "market", "puan", "bakkal", "indirim", "taksit", "faiz", "kredi",
     # Yemek-içecek sektörü — taksit kampanyalarının koşullarında sıkça geçen generic isimler
     "restoran", "restaurant", "yemek", "kafe", "cafe", "lokanta", "bistro",
-    # 🚨 TELEKOM GUARD: SMS footer kısımlarında (Türk Telekom, Vodafone vb.) geçtiğinde sektörü bozmasın diye sadece Başlıkta ara.
-    "telekom", "telekomünikasyon", "vodafone", "turkcell", "türk telekom", "avea",
+    # 🚨 TELEKOM & TRAVEL FOOTER GUARD: Sayfa altı metinlerinde geçtiğinde sektörü bozmasın diye sadece Başlıkta ara.
+    "telekom", "telekomünikasyon", "vodafone", "turkcell", "türk telekom", "avea", "setur",
 }
 
 class PointBlankMatcher:

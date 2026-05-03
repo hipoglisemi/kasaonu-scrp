@@ -107,6 +107,7 @@ class TamiScraper:
 
         total_found = len(campaigns_list)
         total_saved = 0
+        total_revived = 0
         total_skipped = 0
         total_failed = 0
         error_details = []
@@ -176,6 +177,8 @@ class TamiScraper:
                 status = self._save_campaign(title, image_url, tracking_url, ai_data)
                 if status == "saved":
                     total_saved += 1
+                elif status == "revived":
+                    total_revived += 1
                 elif status == "skipped":
                     total_skipped += 1
                 else:
@@ -188,7 +191,7 @@ class TamiScraper:
 
             time.sleep(random.uniform(0.5, 1.5))
 
-        print(f"🏁 Scraping finished. Found: {total_found}, Saved: {total_saved}, Skipped: {total_skipped}, Failed: {total_failed}")
+        print(f"🏁 Scraping finished. Found: {total_found}, Saved: {total_saved}, Revived: {total_revived}, Skipped: {total_skipped}, Failed: {total_failed}")
 
         # Final Log
         status_msg = "SUCCESS" if total_failed == 0 else ("PARTIAL" if total_saved > 0 else "FAILED")
@@ -199,6 +202,7 @@ class TamiScraper:
                 status=status_msg,
                 total_found=total_found,
                 total_saved=total_saved,
+                total_revived=total_revived,
                 total_skipped=total_skipped,
                 total_failed=total_failed,
                 error_details={"errors": error_details} if error_details else None
@@ -264,15 +268,23 @@ class TamiScraper:
             )
 
             try:
-                db.add(campaign)
+                # Use centralized upsert_campaign for revival and quality control
+                from src.utils.scraper_utils import upsert_campaign
+                campaign, op_status = upsert_campaign(db, campaign)
                 db.commit()
+
+                if op_status == "revived":
+                    print(f"   ♻️  Revived Passive Campaign: {campaign.title[:50]}...")
+                elif op_status == "saved":
+                     print(f"   ✅ Saved: {campaign.title[:50]}...")
+                
                 db.refresh(campaign)
 
                 # Brands via brand_matcher
                 from src.services.brand_matcher import get_or_create_brands_list
                 brand_ids = get_or_create_brands_list(
                     db_session=db,
-                    brand_names=data.get("brands", []),
+                    brand_names=ai_data.get("brands", []),
                     brand_cache=getattr(self, 'brand_cache', {}),
                     sector_id=sector.id if sector else None
                 )
@@ -288,12 +300,13 @@ class TamiScraper:
                     except Exception as e:
                         db.rollback()
                         print(f"   ⚠️ CampaignBrand link failed: {e}")
-                print(f"   ✅ Saved: {campaign.title}")
-                return "saved"
+                
+                return op_status
             except Exception as e:
                 db.rollback()
                 print(f"   ❌ Save Error: {e}")
                 return "error"
+
 
 if __name__ == "__main__":
     scraper = TamiScraper()

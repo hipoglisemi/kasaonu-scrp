@@ -27,7 +27,7 @@ from src.database import get_db_session
 from src.services.ai_parser import AIParser
 from src.services.ai_parser_golden import parse_api_campaign  # type: ignore
 from src.utils.slug_generator import get_unique_slug
-from src.utils.scraper_utils import should_skip_campaign, is_url_blocked
+from src.utils.scraper_utils import should_skip_campaign, is_url_blocked, upsert_campaign
 from src.utils.logger_utils import log_scraper_execution
 
 class NaysScraper:
@@ -130,6 +130,7 @@ class NaysScraper:
 
         total_found = len(campaign_list)
         total_saved = 0
+        total_revived = 0
         total_skipped = 0
         total_failed = 0
         error_details = []
@@ -142,8 +143,9 @@ class NaysScraper:
             try:
                 # 1. Check if already exists or blocked
                 with get_db_session() as db:
-                    if not force and should_skip_campaign(db, url, card_id=self.card_id):
-                        print(f"   ⏭️  Skipped (Already exists or blocked)")
+                    existing = db.query(Campaign).filter(Campaign.tracking_url == url, Campaign.card_id == self.card_id).first()
+                    if not force and existing and existing.is_active:
+                        print(f"   ⏭️  Skipped (Already exists and active)")
                         total_skipped += 1
                         continue
                     if is_url_blocked(db, url):
@@ -239,6 +241,8 @@ class NaysScraper:
                 status = self._save_campaign(title, image_url, url, ai_data, raw_html, force=force)
                 if status == "saved":
                     total_saved += 1
+                elif status == "revived":
+                    total_revived += 1
                 elif status == "skipped":
                     total_skipped += 1
                 else:
@@ -263,6 +267,7 @@ class NaysScraper:
                 total_saved=total_saved,
                 total_skipped=total_skipped,
                 total_failed=total_failed,
+                total_revived=total_revived,
                 error_details={"errors": error_details} if error_details else None
             )
 
@@ -286,8 +291,7 @@ class NaysScraper:
                     is_active=True,
                     created_at=datetime.utcnow()
                 )
-                db.add(campaign)
-            elif not force:
+            elif not force and campaign.is_active:
                 return "skipped"
 
             # Update fields
@@ -341,7 +345,15 @@ class NaysScraper:
             campaign.updated_at = datetime.utcnow()
 
             try:
+                # Use centralized upsert_campaign for revival and quality control
+                campaign, op_status = upsert_campaign(db, campaign)
                 db.commit()
+
+                if op_status == "revived":
+                    print(f"   ♻️  Revived Passive Campaign: {campaign.title[:50]}...")
+                elif op_status == "saved":
+                     print(f"   ✅ Saved: {campaign.title[:50]}...")
+                
                 db.refresh(campaign)
 
                 # Brands via brand_matcher
@@ -364,7 +376,7 @@ class NaysScraper:
                     except Exception as e:
                         db.rollback()
                         print(f"   ⚠️ CampaignBrand link failed: {e}")
-                return "saved"
+                return op_status
             except Exception as e:
                 db.rollback()
                 print(f"   ❌ Save Error: {e}")

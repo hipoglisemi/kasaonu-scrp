@@ -39,7 +39,8 @@ from sqlalchemy.orm import sessionmaker  # type: ignore # pyre-ignore[21]
 from src.database import engine, get_db_session  # type: ignore # pyre-ignore[21]
 from src.models import Bank, Card, Sector, Brand, Campaign, CampaignBrand  # type: ignore # pyre-ignore[21]
 from src.utils.logger_utils import log_scraper_execution  # type: ignore # pyre-ignore[21]
-from src.utils.scraper_utils import is_url_blocked  # type: ignore
+from src.utils.logger_utils import log_scraper_execution  # type: ignore # pyre-ignore[21]
+from src.utils.scraper_utils import is_url_blocked, upsert_campaign  # type: ignore
 from src.services.ai_parser_golden import parse_api_campaign  # type: ignore
 
 # AIParser is lazy-imported in __init__ to avoid google.generativeai hang
@@ -358,50 +359,41 @@ class MasterpassScraper:
                 Campaign.card_id == self.card_id
             ).first()
 
-            if existing:
-                print(f"      🔄 Updating existing campaign: {existing.title}")
-                existing.sector_id = sector.id if sector else None  # type: ignore # pyre-ignore[16]
-                existing.title = formatted_title
-                existing.description = ai_data.get("description") or formatted_title
-                existing.ai_marketing_text = ai_data.get("ai_marketing_text") or existing.description
-                existing.reward_text = ai_data.get("reward_text")
-                existing.reward_value = ai_data.get("reward_value")
-                existing.reward_type = ai_data.get("reward_type")
-                existing.conditions = final_conditions
-                existing.eligible_cards = eligible_cards_str
-                existing.clean_text = ai_data.get("_clean_text")
-                if data["image_url"]:  # type: ignore # pyre-ignore[16,6]
-                    existing.image_url = data["image_url"]
-                existing.start_date = start_date or existing.start_date
-                existing.end_date = end_date or existing.end_date
-                existing.updated_at = func.now()
-                self.db.commit()  # type: ignore # pyre-ignore[16]
-                campaign = existing
-            else:
-                campaign = Campaign(  # type: ignore
-                    card_id=self.card_id,  # type: ignore
-                    sector_id=sector.id if sector else None,  # type: ignore
-                    slug=slug,  # type: ignore
-                    title=formatted_title,  # type: ignore
-                    description=ai_data.get("description") or formatted_title,  # type: ignore
-                    ai_marketing_text=ai_data.get("ai_marketing_text") or ai_data.get("description") or formatted_title,  # type: ignore,
-                    reward_text=ai_data.get("reward_text"),  # type: ignore
-                    reward_value=ai_data.get("reward_value"),  # type: ignore
-                    reward_type=ai_data.get("reward_type"),  # type: ignore
-                    conditions=final_conditions,  # type: ignore
-                    eligible_cards=eligible_cards_str,
-                    participation=ai_data.get("participation"),  # type: ignore
-                    clean_text=ai_data.get("_clean_text"),  # type: ignore
-                    image_url=data.get("image_url"),  # type: ignore
-                    start_date=start_date,  # type: ignore
-                    end_date=end_date,  # type: ignore
-                    is_active=True,  # type: ignore
-                    tracking_url=url,  # type: ignore
-                    created_at=func.now(),  # type: ignore
-                    updated_at=func.now(),  # type: ignore
-                )
-                self.db.add(campaign)  # type: ignore # pyre-ignore[16]
-                self.db.commit()  # type: ignore # pyre-ignore[16]
+            campaign = Campaign(
+                card_id=self.card_id,
+                sector_id=sector.id if sector else None,
+                title=formatted_title,
+                slug=slug,
+                description=ai_data.get("description") or formatted_title,
+                reward_text=ai_data.get("reward_text"),
+                reward_value=ai_data.get("reward_value"),
+                reward_type=ai_data.get("reward_type"),
+                conditions=final_conditions,
+                participation=part,
+                eligible_cards=eligible_cards_str,
+                clean_text=ai_data.get("_clean_text"),
+                image_url=data.get("image_url"),
+                start_date=start_date,
+                end_date=end_date,
+                is_active=True,
+                tracking_url=url,
+                created_at=func.now(),
+                updated_at=func.now(),
+            )
+            
+            # Use centralized upsert_campaign for revival and quality control
+            campaign, op_status = upsert_campaign(self.db, campaign)
+            self.db.commit()
+
+            if op_status == "revived":
+                print(f"      ♻️  Revived Passive Campaign: {campaign.title[:50]}...")
+                return "revived"
+            elif op_status == "saved":
+                 print(f"      ✅ Saved: {campaign.title[:50]}...")
+                 return "saved"
+            elif op_status == "updated":
+                 print(f"      ✅ Updated: {campaign.title[:50]}...")
+                 return "saved"
             print(f"      ✅ Saved")
 
 
@@ -476,13 +468,15 @@ class MasterpassScraper:
 
             print(f"   🎯 Processing {len(urls)} campaigns...")
             
-            success, skipped, failed = 0, 0, 0
+            success, revived, skipped, failed = 0, 0, 0, 0
             for i, url in enumerate(urls, 1):
                 print(f"\n[{i}/{len(urls)}] {url}")
                 try:
                     res = self._process_campaign(url, force=force)
                     if res == "saved":
                         success += 1  # type: ignore # pyre-ignore[58]
+                    elif res == "revived":
+                        revived += 1
                     elif res == "skipped":
                         skipped += 1  # type: ignore # pyre-ignore[58]
                     else:
@@ -493,7 +487,7 @@ class MasterpassScraper:
                         self.db.rollback()  # type: ignore # pyre-ignore[16]
                     failed += 1  # type: ignore # pyre-ignore[58]
                 time.sleep(1)
-            print(f"\n🏁 Finished. {len(urls)} found, {success} saved, {skipped} skipped, {failed} errors")
+            print(f"\n🏁 Finished. {len(urls)} found, {success} saved, {revived} revived, {skipped} skipped, {failed} errors")
             
             # Log successful or partial execution
             if self.db:
@@ -504,7 +498,8 @@ class MasterpassScraper:
                     total_found=len(urls),
                     total_saved=success,
                     total_skipped=skipped,
-                    total_failed=failed
+                    total_failed=failed,
+                    total_revived=revived
                 )
                 
         except Exception as e:
