@@ -827,6 +827,11 @@ ANALİZ EDİLECEK METİN:
                     Campaign.reward_text.isnot(None)
                 ).first()
                 if existing:
+                    # ♻️ UNIVERSAL REVIVAL FIX: If campaign is passive, force a fresh parse 
+                    # to apply updated extraction logic (ordering, noise filters, etc.)
+                    if not existing.is_active:
+                        return None
+                        
                     sector_name = "Diğer"
                     if existing.sector_id:
                         sec = db.query(Sector).filter(Sector.id == existing.sector_id).first()
