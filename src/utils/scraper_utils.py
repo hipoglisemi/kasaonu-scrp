@@ -1,7 +1,8 @@
 
-from typing import Any
+from typing import Any, Tuple
 from sqlalchemy.orm import Session
 from src.models import CampaignBlocklist, Campaign
+from datetime import datetime
 
 def is_url_blocked(db: Session, url: str) -> bool:
     """Check if a URL is in the blocklist."""
@@ -27,3 +28,43 @@ def should_skip_campaign(db: Session, url: str, card_id: Any = None) -> bool:
         query = query.filter(Campaign.card_id == card_id)
         
     return query.first() is not None
+
+def upsert_campaign(db: Session, campaign: Campaign) -> Tuple[Campaign, str]:
+    """
+    Saves or updates a campaign. 
+    If it was passive (is_active=False), it revives it and requires re-approval.
+    Returns (campaign, status) where status is "saved" or "revived".
+    """
+    existing = db.query(Campaign).filter(
+        Campaign.tracking_url == campaign.tracking_url,
+        Campaign.card_id == campaign.card_id
+    ).first()
+    
+    if existing:
+        status = "saved"
+        if existing.is_active is False:
+            print(f"   🔄 Reviving passive campaign: {existing.title[:40]}...")
+            existing.is_active = True
+            existing.is_approved = False  # Require admin re-approval
+            status = "revived"
+            
+        # Update fields
+        existing.title = campaign.title
+        existing.reward_text = campaign.reward_text
+        existing.reward_value = campaign.reward_value
+        existing.reward_type = campaign.reward_type
+        existing.description = campaign.description
+        existing.conditions = campaign.conditions
+        existing.participation = campaign.participation
+        existing.eligible_cards = campaign.eligible_cards
+        existing.image_url = campaign.image_url
+        existing.start_date = campaign.start_date
+        existing.end_date = campaign.end_date
+        existing.clean_text = campaign.clean_text
+        existing.ai_marketing_text = campaign.ai_marketing_text
+        existing.updated_at = datetime.utcnow()
+        
+        return existing, status
+    else:
+        db.add(campaign)
+        return campaign, "saved"
