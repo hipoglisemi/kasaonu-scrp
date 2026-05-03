@@ -12,6 +12,8 @@ AKBANK SPECIFIC RULES:
 - ELIGIBLE CARDS (CRITICAL):
     - 🚨 **RAW EXTRACTION (LITERAL)**: Extract the EXACT card names or descriptive categories from the text. 
     - ⛔ **NO MAPPING**: If text says "Axess ve Wings Ticari kartları", write "Axess ve Wings Ticari kartları". 
+    - ⛔ **KESIN YASAK**: Asla "Kampanyaya Dahil Kartlar" yazma.
+    - ⛔ **KESIN YASAK**: Kart isimlerini asla 'conditions' (koşullar) listesine yazma. Sadece 'cards' alanına yaz.
 - PARTICIPATION (katilim_sekli):
     - 🚨 **ULTRA-CONCISE**: Use ONLY these 3 options:
       1. If Jüzdan: "Jüzdan'dan Hemen Katıl butonuna tıklayın."
