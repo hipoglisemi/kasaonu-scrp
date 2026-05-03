@@ -111,7 +111,7 @@ jobs:
 
     - name: Install Playwright Browsers
       run: |
-        playwright install chromium --with-deps
+        playwright install chromium firefox --with-deps
 
     - name: Run Scraper
       env:
