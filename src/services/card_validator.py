@@ -24,14 +24,9 @@ class CardValidator:
 
     def _normalize(self, text: str) -> str:
         if not text: return ""
-        text = text.lower()
-        # Replace Turkish chars for matching
-        replacements = {
-            'ı': 'i', 'ğ': 'g', 'ü': 'u', 'ş': 's', 'ö': 'o', 'ç': 'c'
-        }
-        for k, v in replacements.items():
-            text = text.replace(k, v)
-        return re.sub(r'[^a-z0-9\s]', ' ', text).strip()
+        # Use the same robust normalization as the negation filter
+        from src.services.negation_filter import normalize_text
+        return normalize_text(text)
 
     def validate(self, cards: List[str], raw_text: str, bank_key: str) -> List[str]:
         """
