@@ -161,6 +161,9 @@ class TotalEnergiesScraper:
             print(f"   🎯 Found {len(card_elements)} total potential campaign cards.")
 
             processed_count = 0
+
+
+            total_revived: int = 0
             for card_soup in card_elements:
                 if limit is not None and processed_count >= limit:
                     break

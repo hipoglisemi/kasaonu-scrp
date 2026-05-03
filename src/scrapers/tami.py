@@ -177,6 +177,8 @@ class TamiScraper:
                 status = self._save_campaign(title, image_url, tracking_url, ai_data)
                 if status == "saved":
                     total_saved += 1
+                elif status == "revived":
+                    total_revived += 1
                 elif status == "skipped":
                     total_skipped += 1
                 else:

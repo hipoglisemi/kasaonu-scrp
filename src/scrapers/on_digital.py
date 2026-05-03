@@ -391,12 +391,15 @@ class ONDigitalScraper:
                 print(f"   Using limit: {limit}")
 
             saved = skipped = errors = 0
+ total_revived: int = 0
             for i, item in enumerate(items, 1):
                 print(f"   [{i}/{len(items)}] {item['url']}")
                 try:
                     res = self._process_campaign(item, force=force)
                     if res == "saved":
                         saved += 1
+                elif res == "revived":
+                    total_revived += 1
                     elif res == "skipped":
                         skipped += 1
                     else:

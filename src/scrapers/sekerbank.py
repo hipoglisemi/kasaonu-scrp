@@ -198,6 +198,8 @@ class SekerbankScraper:
         # "Daha Fazla Görüntüle" button logic
         print("   ⏳ Loading all campaigns (Scroll & Click)...")
         click_count = 0
+
+        total_revived: int = 0
         while True:
             try:
                 # Scroll down to make button visible
@@ -360,6 +362,8 @@ class SekerbankScraper:
                 res = self._scrape_detail(url, source, list_image=list_image, force=force)
                 if res == "saved":
                     success_count += 1
+                elif res == "revived":
+                    total_revived += 1
                 elif res == "skipped":
                     skipped_count += 1
                 else:

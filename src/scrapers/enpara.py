@@ -344,6 +344,9 @@ class EnparaScraper:
             print(f"   Using limit: {limit}")
             
         success_count = 0
+
+            
+        total_revived: int = 0
             
         total_revived = 0
         skipped_count = 0
@@ -354,7 +357,9 @@ class EnparaScraper:
             try:
                 result = self._process_campaign(link)
                 if result == "saved":
-                    success_count += 1  # type: ignore # pyre-ignore[58]
+                    success_count += 1
+                elif result == "revived":
+                    total_revived += 1  # type: ignore # pyre-ignore[58]
                 elif result == "skipped" or result is None:
                     skipped_count += 1  # type: ignore # pyre-ignore[58]
                 else:

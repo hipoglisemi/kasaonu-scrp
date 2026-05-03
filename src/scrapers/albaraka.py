@@ -69,7 +69,8 @@ class AlbarakaScraper:
         self.session = SessionLocal()
         self.headers = {
             "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-            "Accept": "application/json, text/javascript, */*; q=0.01",
+            "Accept": "application/json, text/javascript, */*; q=0
+ total_revived: int = 0.01",
             "X-Requested-With": "XMLHttpRequest",
             "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
             "Origin": "https://www.albaraka.com.tr",

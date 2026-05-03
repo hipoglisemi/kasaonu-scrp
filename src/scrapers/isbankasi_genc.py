@@ -222,6 +222,9 @@ class IsbankMaximumGencScraper:
         time.sleep(5)
 
         scroll_count = 0
+
+
+        total_revived: int = 0
         while scroll_count < 100:
             if limit:
                 soup = BeautifulSoup(self.page.content(), "html.parser")

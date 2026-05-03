@@ -332,6 +332,9 @@ class VakifbankScraper:
         urls = self._fetch_campaign_list()
         
         success_count = 0
+
+        
+        total_revived: int = 0
         
         total_revived = 0
         skipped_count = 0

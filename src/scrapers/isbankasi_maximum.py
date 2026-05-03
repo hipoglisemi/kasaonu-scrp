@@ -706,6 +706,8 @@ class IsbankMaximumScraper:
             urls = active_urls
             results = []
             success: int = 0
+
+            total_revived: int = 0
             skipped: int = 0
             failed: int = 0
             error_details: List[Dict[str, Any]] = []  # type: ignore # pyre-ignore[16,6]

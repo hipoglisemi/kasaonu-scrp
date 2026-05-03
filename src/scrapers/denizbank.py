@@ -221,6 +221,8 @@ class DenizbankScraper:
             
             last_height = self.driver.execute_script("return document.body.scrollHeight")
             scroll_attempts = 0
+
+            total_revived: int = 0
             max_attempts = 15 # A reasonable limit to prevent true infinite loops
             
             while scroll_attempts < max_attempts:

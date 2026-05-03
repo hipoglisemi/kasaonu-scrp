@@ -70,6 +70,8 @@ class ZiraatScraper:
         page = 1
         consecutive_empty = 0
 
+        total_revived: int = 0
+
         while True:
             ajax_url = f"https://www.bankkart.com.tr/api/Campaigns/GetMoreShow?indexNo={page}&type=Bireysel"
             print(f"   -> Fetching API page {page}: {ajax_url}")
@@ -364,7 +366,9 @@ class ZiraatScraper:
             
             try:
                 res = self._process_campaign(camp)
-                if res == "saved": success_count += 1  # type: ignore # pyre-ignore[58]
+                if res == "saved": success_count += 1
+                elif res == "revived":
+                    total_revived += 1  # type: ignore # pyre-ignore[58]
                 elif res == "skipped": skipped_count += 1  # type: ignore # pyre-ignore[58]
                 else: 
                     failed_count += 1  # type: ignore # pyre-ignore[58]

@@ -218,6 +218,9 @@ class QNBScraper:
         items = self._fetch_campaigns(limit=limit)
         
         success: int = 0
+
+        
+        total_revived: int = 0
         skipped: int = 0
         failed: int = 0
         error_details: List[Dict[str, Any]] = []  # type: ignore # pyre-ignore[16,6]
@@ -226,7 +229,9 @@ class QNBScraper:
             try:
                 res = self._process_item(item)
                 if res == "saved":
-                    success += 1  # type: ignore # pyre-ignore[58]
+                    success += 1
+                elif res == "revived":
+                    total_revived += 1  # type: ignore # pyre-ignore[58]
                 elif res == "skipped":
                     skipped += 1  # type: ignore # pyre-ignore[58]
                 else:

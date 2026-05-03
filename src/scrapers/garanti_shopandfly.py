@@ -385,6 +385,9 @@ class GarantiShopAndFlyScraper:
                 return
             
             success_count: int = 0
+
+            
+            total_revived: int = 0
             skipped_count: int = 0
             failed_count: int = 0
             error_details: List[Dict[str, Any]] = []  # type: ignore # pyre-ignore[16,6]

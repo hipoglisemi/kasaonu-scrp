@@ -54,7 +54,8 @@ class DunyaKatilimScraper:
         self.headers = {
             "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
             "X-Requested-With": "XMLHttpRequest",
-            "Accept": "text/html, */*; q=0.01",
+            "Accept": "text/html, */*; q=0
+ total_revived: int = 0.01",
             "Referer": "https://dunyakatilim.com.tr/kampanyalar"
         }
 
@@ -110,7 +111,9 @@ class DunyaKatilimScraper:
                 try:
                     res = self._scrape_detail(url, title, base_image, source)
                     if res == "saved":
-                        success_count += 1  # type: ignore # pyre-ignore[58]
+                        success_count += 1
+                elif res == "revived":
+                    total_revived += 1  # type: ignore # pyre-ignore[58]
                     elif res == "skipped":
                         skipped_count += 1  # type: ignore # pyre-ignore[58]
                     else:

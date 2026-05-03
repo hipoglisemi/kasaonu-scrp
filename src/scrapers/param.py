@@ -160,6 +160,8 @@ class ParamScraper:
         print("   ⏬ Scrolling down to load all campaigns...")
         last_height = self.page.evaluate("document.body.scrollHeight")
         scroll_count = 0
+
+        total_revived: int = 0
         while scroll_count < 30:
             self.page.evaluate("window.scrollTo(0, document.body.scrollHeight);")
             time.sleep(2.5)
@@ -549,7 +551,9 @@ class ParamScraper:
                 try:
                     res = self._process_campaign(url, force=force)
                     if res == "saved":
-                        success += 1  # type: ignore # pyre-ignore[58]
+                        success += 1
+                elif res == "revived":
+                    total_revived += 1  # type: ignore # pyre-ignore[58]
                     elif res == "skipped":
                         skipped += 1  # type: ignore # pyre-ignore[58]
                     else:

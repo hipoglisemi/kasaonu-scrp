@@ -490,6 +490,8 @@ class GarantiBonusScraper:
             
             total_found = len(campaign_urls)
             success_count = 0
+
+            total_revived: int = 0
             total_revived = 0
             skipped_count = 0
             failed_count = 0

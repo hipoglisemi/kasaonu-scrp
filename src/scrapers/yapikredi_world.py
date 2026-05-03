@@ -261,6 +261,8 @@ class YapikrediWorldScraper:
         print(f"🚀 Starting {self.BANK_NAME} {self.CARD_NAME} Scraper...")
         page = 1
         success_count = 0
+
+        total_revived: int = 0
         total_revived = 0
         skipped_count = 0
         failed_count = 0
@@ -292,7 +294,9 @@ class YapikrediWorldScraper:
                 try:
                     res = self._process_item(item)
                     if res == "saved":
-                        success_count += 1  # type: ignore # pyre-ignore[58]
+                        success_count += 1
+                elif res == "revived":
+                    total_revived += 1  # type: ignore # pyre-ignore[58]
                     elif res == "skipped":
                         skipped_count += 1  # type: ignore # pyre-ignore[58]
                     else:

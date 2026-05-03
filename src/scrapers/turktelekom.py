@@ -84,6 +84,9 @@ class TurkTelekomScraper:
             print(f"   📋 Found {len(discovery_items)} campaigns to process.")
             
             success_count = 0
+
+            
+            total_revived: int = 0
             
             total_revived = 0
             for i, item in enumerate(discovery_items, 1):

@@ -72,6 +72,9 @@ class TurkcellScraper:
         print(f"🚀 Starting Turkcell Scraper...")
         
         success_count: int = 0
+
+        
+        total_revived: int = 0
         failed_count: int = 0
         total_found: int = 0
         error_details: List[Dict[str, Any]] = []  # type: ignore # pyre-ignore[16,6]
@@ -100,7 +103,9 @@ class TurkcellScraper:
                     try:
                         res = await self._scrape_detail(context, url)
                         if res == "saved":
-                            success_count += 1  # type: ignore # pyre-ignore[58]
+                            success_count += 1
+                elif res == "revived":
+                    total_revived += 1  # type: ignore # pyre-ignore[58]
                         elif res == "skipped":
                             pass
                         else:

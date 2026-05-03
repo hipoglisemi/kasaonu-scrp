@@ -129,6 +129,8 @@ class PaycellScraper:
 
             total_found = len(campaign_list)
             total_saved = 0
+
+            total_revived: int = 0
             total_revived = 0
             total_skipped = 0
             total_failed = 0

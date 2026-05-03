@@ -233,6 +233,8 @@ class IsbankMaximilesScraper:
                 if len(campaign_items) > 10:
                     recent = list(campaign_items)[-10:]  # type: ignore # pyre-ignore[16,6]
                     expired_count: int = 0
+
+                    total_revived: int = 0
                     for a in recent:
                          a_tag: Any = cast(Any, a)
                          parent: Any = a_tag.find_parent("div", class_="campaign-item") or a_tag.find_parent("div", class_="col-xl-4") or a_tag.find_parent("div", class_="card") or a_tag.parent
@@ -739,7 +741,9 @@ class IsbankMaximilesScraper:
                 try:
                     res = self._process_campaign(url, force=force)
                     if res == "saved":
-                        success += 1  # type: ignore # pyre-ignore[58]
+                        success += 1
+                elif res == "revived":
+                    total_revived += 1  # type: ignore # pyre-ignore[58]
                     elif res == "skipped":
                         skipped += 1  # type: ignore # pyre-ignore[58]
                     else:

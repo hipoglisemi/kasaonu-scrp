@@ -130,6 +130,8 @@ class NaysScraper:
 
         total_found = len(campaign_list)
         total_saved = 0
+
+        total_revived: int = 0
         total_revived = 0
         total_skipped = 0
         total_failed = 0
@@ -240,6 +242,8 @@ class NaysScraper:
                 status = self._save_campaign(title, image_url, url, ai_data, raw_html, force=force)
                 if status == "saved":
                     total_saved += 1
+                elif status == "revived":
+                    total_revived += 1
                 elif status == "skipped":
                     total_skipped += 1
                 else:

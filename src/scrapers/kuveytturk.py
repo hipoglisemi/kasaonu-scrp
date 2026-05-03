@@ -155,6 +155,8 @@ class KuveytTurkScraper:
 
             # Click "Daha Fazla Göster" loop - Exit when count stops increasing
             click_count = 0
+
+            total_revived: int = 0
             MAX_CLICKS = 30
             consecutive_no_growth = 0
             

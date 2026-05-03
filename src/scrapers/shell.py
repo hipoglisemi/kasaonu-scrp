@@ -196,6 +196,9 @@ class ShellScraper:
             card = self._get_or_create_card(self.db, bank.id)
 
             processed_count = 0
+
+
+            total_revived: int = 0
             for card_soup in cards:
                 if processed_count >= limit:
                     break

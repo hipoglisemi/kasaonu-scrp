@@ -212,6 +212,8 @@ class TurkiyeFinansScraper:
             # Scroll to load all lazy-loaded content
             print("   📜 Scrolling to load all campaigns...")
             prev_height = 0
+
+            total_revived: int = 0
             scroll_attempts = 0
             max_attempts = 20
 
@@ -527,7 +529,9 @@ class TurkiyeFinansScraper:
                     try:
                         res = self._process_campaign(url, card_key, card_id)
                         if res == "saved":
-                            success_count += 1  # type: ignore # pyre-ignore[58]
+                            success_count += 1
+                elif res == "revived":
+                    total_revived += 1  # type: ignore # pyre-ignore[58]
                             total_saved += 1  # type: ignore # pyre-ignore[58]
                         elif res == "skipped":
                             skipped_count += 1  # type: ignore # pyre-ignore[58]

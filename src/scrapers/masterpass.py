@@ -477,13 +477,16 @@ class MasterpassScraper:
 
             print(f"   🎯 Processing {len(urls)} campaigns...")
             
-            success, skipped, failed = 0, 0, 0
+            success, skipped, failed = 0
+ total_revived: int = 0, 0, 0
             for i, url in enumerate(urls, 1):
                 print(f"\n[{i}/{len(urls)}] {url}")
                 try:
                     res = self._process_campaign(url, force=force)
                     if res == "saved":
-                        success += 1  # type: ignore # pyre-ignore[58]
+                        success += 1
+                elif res == "revived":
+                    total_revived += 1  # type: ignore # pyre-ignore[58]
                     elif res == "skipped":
                         skipped += 1  # type: ignore # pyre-ignore[58]
                     else:

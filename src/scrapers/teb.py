@@ -428,6 +428,7 @@ class TEBScraper:
         print(f"\n   🎯 Processing {len(items)} campaigns...\n")
 
         success = skipped = failed = 0
+ total_revived: int = 0
         error_details = []
 
         for idx, item in enumerate(items):
@@ -449,7 +450,9 @@ class TEBScraper:
                 # Same issue as QNB: _process_item actually needs to return the result of _save_to_db, but it is already doing that.
                 res = self._process_item(item, card_id, card_def["name"])
                 if res == "saved":
-                    success += 1  # type: ignore # pyre-ignore[58]
+                    success += 1
+                elif res == "revived":
+                    total_revived += 1  # type: ignore # pyre-ignore[58]
                 elif res == "skipped":
                     skipped += 1  # type: ignore # pyre-ignore[58]
                 else:
@@ -463,7 +466,7 @@ class TEBScraper:
             time.sleep(0.5)
 
         print("\n🏁 TEB Scraper Finished.")
-        print(f"✅ Özet: {len(items)} bulundu, {success} eklendi, {skipped} atlandı, {failed} hata aldı.")
+        print(f"✅ Özet: {len(items)} bulundu, {success} eklendi, {skipped} atlandı, {total_revived} canlandı, {failed} hata aldı.")
         
         status = "SUCCESS"
         if failed > 0:  # type: ignore # pyre-ignore[58]

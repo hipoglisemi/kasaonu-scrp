@@ -162,6 +162,9 @@ class UptionScraper:
 
                 success_count = 0
 
+
+                total_revived: int = 0
+
                 total_revived = 0
                 skipped_count = 0
                 failed_count = 0
@@ -173,7 +176,9 @@ class UptionScraper:
                     try:
                         res = self._process_campaign(item, force=force)
                         if res == "saved":
-                            success_count += 1 # type: ignore
+                            success_count += 1
+                elif res == "revived":
+                    total_revived += 1 # type: ignore
                         elif res == "skipped":
                             skipped_count += 1 # type: ignore
                         else:

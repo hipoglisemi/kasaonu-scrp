@@ -156,6 +156,8 @@ class OpetScraper:
             # Handling "Daha Fazla Göster"
             print("   ⏳ Loading all campaigns (Clicking 'Daha Fazla Göster')...")
             click_count = 0
+
+            total_revived: int = 0
             while click_count < 20:
                 try:
                     # More robust selector covering different button variants

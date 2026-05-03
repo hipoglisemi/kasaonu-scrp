@@ -87,6 +87,8 @@ class VodafoneScraper:
             
             # 2. Process Details
             success_count = 0
+
+            total_revived: int = 0
             total_revived = 0
             for i, url in enumerate(all_links, 1):
                 print(f"   [{i}/{len(all_links)}] {url}")
