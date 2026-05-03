@@ -45,7 +45,7 @@ def check_string_negation(target_str, full_text, bank_key=None, is_generic_brand
         return False
     
     # Common suffixes/prefixes that change the card type
-    modifiers = r"(?:debit|business|esnaf|kobi|genc|genç|free|flexi|ticari|para|fly|free|eko|eco|platinum|crystal|adios|play|altin|altın|gold|premium|money|gift|paracard|garantione|amex|american express|troy|shop&fly|miles&smiles)"
+    modifiers = r"(?i)(?:debit|business|esnaf|kobi|genc|genç|free|flexi|ticari|bank’o card|bank’o|para|fly|free|eko|eco|platinum|crystal|adios|play|altin|altın|gold|premium|money|gift|paracard|garantione|amex|american express|troy|shop&fly|miles&smiles)"
     
     # Use regex for whole word match
     if is_generic_brand:
@@ -87,8 +87,8 @@ def check_string_negation(target_str, full_text, bank_key=None, is_generic_brand
         positive_stoppers = r"(?i)(?:^|\s|,)(?:gecerli|faydalanabilir|faydalanabilecektir|yararlanabilir|dahildir|gecerlidir)(?![ \s]*degil)(?:$|\s|,|;|:|\.)"
         # Special check for 'dahil' to ensure it's not followed by 'değil/değildir'
         if re.search(r"(?i)(?:^|\s|,)dahil(?![\s]*degil)", sentence):
-             sentence_has_positive = True
-             has_positive_mention = True
+            sentence_has_positive = True
+            has_positive_mention = True
         
         if re.search(positive_stoppers, sentence):
             sentence_has_positive = True
@@ -121,11 +121,19 @@ def check_string_negation(target_str, full_text, bank_key=None, is_generic_brand
             # we consider the card potentially valid.
             has_positive_mention = True
 
-    # 🛡️ FINAL DECISION:
-    # If we have ANY positive/neutral mention, trust it over negative ones
-    if has_positive_mention:
-        return False
-    return has_negative_mention
+    # 🛡️ FINAL DECISION (v3):
+    # - If we have an explicit NEGATIVE mention, we are very skeptical.
+    # - A 'Neutral' mention (no negation but no positive keyword) should NOT override a negation.
+    # - Only an explicit POSITIVE keyword (dahildir, gecerlidir) in the SAME sentence/context
+    #   might potentially override it, but to be safe, if there's ANY confirmed negation
+    #   in the text for this card, we exclude it from the main cards list.
+    
+    if has_negative_mention:
+        # Safety first: If it's negated anywhere, it shouldn't be in the main list.
+        # It can still be mentioned in conditions by the AI.
+        return True
+        
+    return False
 
 def filter_excluded_cards(cards, text):
     """
