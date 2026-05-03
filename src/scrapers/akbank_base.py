@@ -298,17 +298,18 @@ class AkbankBaseScraper:
                             total_skipped += 1
                             continue
                             
-                        existing = db.query(Campaign).filter(Campaign.tracking_url == url, Campaign.card_id == self.card_id).first()
-                        if existing and existing.is_active:
-                            print(f"⏭️  Skipped (Already exists & active): {existing.title}")
-                            total_skipped += 1  # type: ignore # pyre-ignore[58]
-                            continue
-
                 # Process (Sub-classes may override this)
-                res = self._process_campaign(url, force=force)
+                # If we found an existing but passive campaign, force a re-parse to get fresh data
+                current_force = force
+                with get_db_session() as db:
+                    existing = db.query(Campaign).filter(Campaign.tracking_url == url, Campaign.card_id == self.card_id).first()
+                    if existing and not existing.is_active:
+                        current_force = True
+                
+                res = self._process_campaign(url, force=current_force)
                 
                 # Sub-classes might return None but be successful if they didn't throw
-                if res == "saved" or res is None:
+                if res in ["saved", "updated"] or res is None:
                     total_saved += 1  # type: ignore # pyre-ignore[58]
                 elif res == "revived":
                     total_revived += 1
