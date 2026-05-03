@@ -177,12 +177,10 @@ class CardValidator:
 
         def get_pos(card_name):
             c_norm = self._normalize(card_name)
-            # Find in main_content first (the 'dahildir' list), fallback to full text
-            pos = main_content.find(c_norm)
-            if pos != -1: return pos + 1000 # Give priority to the 'dahildir' list matches
-            
-            full_pos = text_normalized.find(c_norm)
-            return full_pos if full_pos != -1 else 99999
+            # Find the position of the card in the normalized text
+            # This ensures we follow the document's natural order perfectly.
+            pos = text_normalized.find(c_norm)
+            return pos if pos != -1 else 99999
             
         validated.sort(key=get_pos)
 
