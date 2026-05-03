@@ -18,7 +18,7 @@ AKBANK SPECIFIC RULES:
     - 🚨 **ULTRA-CONCISE**: Use ONLY these 3 options:
       1. If Jüzdan: "Jüzdan'dan Hemen Katıl butonuna tıklayın."
       2. If SMS: "[KEYWORD] yazıp 4566'ya SMS gönderin."
-      3. If no registration: "Otomatik Katılım" (ASLA "Ön katılım gerekmez" veya "POS'tan harcama yapın" gibi uzun cümleler yazma).
+      3. If no registration: "Otomatik Katılım" (Tercihen bunu kullan). Eğer harcama yeri çok kritikse en fazla "Axess üye işyerlerinde harcama yapın" şeklinde kısa tut. (ASLA metindeki o uzun boilerplate cümleleri kopyalama).
 - SMS: Usually 4566. SMS keyword is usually a single word (e.g., "A101", "TEKNOSA").
 - REWARD: If it says "8 aya varan taksit", it's an installment campaign. Earning: "Taksit İmkanı". ASLA "Detayları İnceleyin" yazma.
 - AKBANK REDUNDANCY ALERT (CRITICAL):
