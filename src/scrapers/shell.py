@@ -224,7 +224,7 @@ class ShellScraper:
                         continue
 
                     existing = self.db.query(Campaign).filter(Campaign.tracking_url == detail_url).first()
-                    if existing and existing.is_active:
+                    if existing and existing.is_active and existing.is_approved:
                         print(f"      ⏭️ Skipped (Already exists and active): {title}")
                         stats["total_skipped"] += 1
                         continue

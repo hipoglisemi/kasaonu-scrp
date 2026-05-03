@@ -404,7 +404,7 @@ class SekerbankScraper:
                     or "kartavantaj" in existing_img.lower()
                 )
                 if not is_placeholder:
-                    if existing.is_active:
+                    if existing.is_active and existing.is_approved:
                         print(f"      ⏭️ Skipped (Already exists and active): {existing.title}")  # type: ignore
                         return "skipped"
                     print(f"      🔄 Passive campaign found, re-parsing for potential revival: {existing.title}")

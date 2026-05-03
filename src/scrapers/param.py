@@ -342,7 +342,7 @@ class ParamScraper:
                 Campaign.tracking_url == url, Campaign.card_id == self.card_id
             ).first()
             
-            if existing and existing.is_active:
+            if existing and existing.is_active and existing.is_approved:
                 print(f"   ⏭️  Skipped (Already exists and active): {existing.title}")
                 return "skipped"  # type: ignore # pyre-ignore[7]
 

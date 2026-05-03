@@ -263,7 +263,7 @@ class ChippinScraper:
                     db = SessionLocal()
                     try:
                         existing = db.query(Campaign).filter(Campaign.tracking_url == tracking_url).first()
-                        if existing and existing.is_active:
+                        if existing and existing.is_active and existing.is_approved:
                             # Check if image needs update
                             existing_img = existing.image_url
                             is_placeholder = (

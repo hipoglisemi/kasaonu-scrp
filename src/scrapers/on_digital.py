@@ -263,7 +263,7 @@ class ONDigitalScraper:
 
         # Skip check
         existing = db.query(Campaign).filter(Campaign.tracking_url == url).first()
-        if not force and existing and existing.is_active:
+        if not force and existing and existing.is_active and existing.is_approved:
             print(f"      ⏭️  Skipped (already exists and active): {url}")
             return "skipped"
 

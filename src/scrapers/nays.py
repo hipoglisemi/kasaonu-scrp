@@ -144,7 +144,7 @@ class NaysScraper:
                 # 1. Check if already exists or blocked
                 with get_db_session() as db:
                     existing = db.query(Campaign).filter(Campaign.tracking_url == url, Campaign.card_id == self.card_id).first()
-                    if not force and existing and existing.is_active:
+                    if not force and existing and existing.is_active and existing.is_approved:
                         print(f"   ⏭️  Skipped (Already exists and active)")
                         total_skipped += 1
                         continue

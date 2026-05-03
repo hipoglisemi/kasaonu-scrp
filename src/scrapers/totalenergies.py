@@ -245,7 +245,7 @@ class TotalEnergiesScraper:
                         continue
 
                     existing = self.db.query(Campaign).filter(Campaign.tracking_url == detail_url).first()
-                    if existing and existing.is_active:
+                    if existing and existing.is_active and existing.is_approved:
                         print(f"   ⏩ Skipping (Already exists and active): {title[:50]}...")
                         results["SKIPPED"] += 1
                         continue

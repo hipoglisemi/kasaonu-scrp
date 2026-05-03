@@ -340,8 +340,9 @@ class DenizbankScraper:
             db = SessionLocal()
             try:
                 existing = db.query(Campaign).filter(Campaign.tracking_url == url).first()
-                if existing and existing.is_active:
-                    print(f"   ⏭️ Skipped (Already exists and active): {existing.title[:50]}")
+                # ♻️ Re-parse if campaign is passive OR pending approval to apply latest logic
+                if existing and existing.is_active and existing.is_approved:
+                    print(f"   ⏭️ Skipped (Already exists, active and approved): {existing.title[:50]}")
                     return "skipped"
             finally:
                 db.close()

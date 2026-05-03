@@ -439,7 +439,7 @@ class TurkTelekomScraper:
         
         # 1. Duplicate Check & Update
         existing = self.db.query(Campaign).filter(Campaign.tracking_url == url).first()
-        if existing and existing.is_active:
+        if existing and existing.is_active and existing.is_approved:
             # Update title if it's currently much shorter than combined title
             if predefined_title and len(predefined_title) > len(existing.title) + 2:
                 if any(x in url for x in ["bi-dunya", "prime", "selfy"]):

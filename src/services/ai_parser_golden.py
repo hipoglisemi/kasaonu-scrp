@@ -827,9 +827,9 @@ ANALİZ EDİLECEK METİN:
                     Campaign.reward_text.isnot(None)
                 ).first()
                 if existing:
-                    # ♻️ UNIVERSAL REVIVAL FIX: If campaign is passive, force a fresh parse 
-                    # to apply updated extraction logic (ordering, noise filters, etc.)
-                    if not existing.is_active:
+                    # ♻️ UNIVERSAL REVIVAL/PENDING FIX: If campaign is passive OR pending approval, 
+                    # force a fresh parse to apply the latest extraction logic (ordering, noise filters, etc.)
+                    if not existing.is_active or not existing.is_approved:
                         return None
                         
                     sector_name = "Diğer"

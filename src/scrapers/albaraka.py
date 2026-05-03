@@ -439,7 +439,7 @@ class AlbarakaScraper:
                     Campaign.tracking_url == url,
                     Campaign.card_id == card_id
                 ).first()
-                if existing and existing.is_active:
+                if existing and existing.is_active and existing.is_approved:
                     print(f"   ℹ️  Already exists and active: [{existing.id}] {existing.title[:40]}")  # type: ignore # pyre-ignore[16,6]
                     skipped += 1  # type: ignore # pyre-ignore[58]
                     continue

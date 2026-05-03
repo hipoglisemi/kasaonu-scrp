@@ -303,7 +303,8 @@ class AkbankBaseScraper:
                 current_force = force
                 with get_db_session() as db:
                     existing = db.query(Campaign).filter(Campaign.tracking_url == url, Campaign.card_id == self.card_id).first()
-                    if existing and not existing.is_active:
+                    # ♻️ Force re-parse if campaign is passive OR pending approval
+                    if existing and (not existing.is_active or not existing.is_approved):
                         current_force = True
                 
                 res = self._process_campaign(url, force=current_force)

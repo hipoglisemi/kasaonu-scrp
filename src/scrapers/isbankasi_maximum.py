@@ -737,7 +737,7 @@ class IsbankMaximumScraper:
                     Campaign.tracking_url == url,
                     Campaign.card_id == card_id
                 ).first()
-                if existing and existing.is_active and not force:
+                if existing and existing.is_active and existing.is_approved and not force:
                     existing_img = existing.image_url  # type: ignore # pyre-ignore[16]
                     is_placeholder = (
                         not existing_img

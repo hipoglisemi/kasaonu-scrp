@@ -107,7 +107,7 @@ class QNBScraper:
                 return "skipped"  # type: ignore # pyre-ignore[7]
 
             existing = db.query(Campaign).filter(Campaign.tracking_url == campaign_url).first()  # type: ignore # pyre-ignore[16]
-            if existing and existing.is_active:
+            if existing and existing.is_active and existing.is_approved:
                 print(f"   ⏭️ Skipped (Already exists and active): {title}")
                 return "skipped"  # type: ignore # pyre-ignore[7]
 

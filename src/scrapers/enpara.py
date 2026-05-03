@@ -163,7 +163,7 @@ class EnparaScraper:
                 return "skipped"  # type: ignore # pyre-ignore[7]
 
             existing = self.db.query(Campaign).filter(Campaign.tracking_url == url).first()  # type: ignore # pyre-ignore[16]
-            if existing and existing.is_active:
+            if existing and existing.is_active and existing.is_approved:
                 print(f"   ⏭️ Skipped (Already exists and active): {existing.title}")
                 return "skipped"  # type: ignore # pyre-ignore[7]
         except Exception as e:
@@ -257,7 +257,7 @@ class EnparaScraper:
 
             # Check if exists and active
             existing = self.db.query(Campaign).filter(Campaign.tracking_url == tracking_url).first()  # type: ignore # pyre-ignore[16]
-            if existing and existing.is_active:
+            if existing and existing.is_active and existing.is_approved:
                 print(f"   ⏭️ Skipping existing and active: {title}")
                 return "skipped"  # type: ignore # pyre-ignore[7]
 

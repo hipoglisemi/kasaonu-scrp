@@ -177,7 +177,7 @@ class ParafGencScraper:
         
         # Check if exists and active
         existing = self.db.query(Campaign).filter(Campaign.tracking_url == url).first()  # type: ignore # pyre-ignore[16]
-        if existing and existing.is_active:
+        if existing and existing.is_active and existing.is_approved:
             print(f"      ⏭️ Skipped (Already exists and active): {existing.title[:40]}")
             return "skipped"  # type: ignore # pyre-ignore[7]
 

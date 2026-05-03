@@ -240,7 +240,7 @@ class HSBCScraper:
             Campaign.card_id == self.card_id
         ).first()
 
-        if existing and existing.is_active and not force:
+        if existing and existing.is_active and existing.is_approved and not force:
             print(f"   ⏭️ Skipped (Already exists and active): {existing.title[:40]}")
             return "skipped"
             
