@@ -45,7 +45,7 @@ def check_string_negation(target_str, full_text, bank_key=None, is_generic_brand
         return False
     
     # Common suffixes/prefixes that change the card type
-    modifiers = r"(?i)(?:debit|business|esnaf|kobi|genc|genç|free|flexi|ticari|bank’o card|bank’o|para|fly|free|eko|eco|platinum|crystal|adios|play|altin|altın|gold|premium|money|gift|paracard|garantione|amex|american express|troy|shop&fly|miles&smiles)"
+    modifiers = r"(?i)(?:debit|business|esnaf|kobi|genc|genç|free|flexi|ticari|bank['’]o card|bank['’]o|para|fly|free|eko|eco|platinum|crystal|adios|play|altin|altın|gold|premium|money|gift|paracard|garantione|amex|american express|troy|shop&fly|miles&smiles)"
     
     # Use regex for whole word match
     if is_generic_brand:
