@@ -122,12 +122,12 @@ VAKIFBANK/WORLD SPECIFIC RULES:
 """,
     'ziraat': """
 ZIRAAT BANKKART SPECIFIC RULES:
-- TERMINOLOGY: "Bankkart Lira". 1 Bankkart Lira = 1 TL.
-- ELIGIBLE CARDS:
-    - STRICT LITERAL EXTRACTION: Extract ONLY the cards explicitly mentioned in the text.
-    - RULE: If text says "Bankkart, Bankkart Genç ve Bankkart Başak", then use EXACTLY ["Bankkart", "Bankkart Genç", "Bankkart Başak"].
-    - RULE: If text says "Taksit özelliği olan Bankkart ve Bankkart Başak", then use EXACTLY ["Bankkart", "Bankkart Başak"].
-    - RULE: Check for "dahil değildir". "Bankkart Business" and "Ücretsiz" are usually EXCLUDED. Do not list excluded cards.
+- ELIGIBLE CARDS (cards) - THE "DAHIL" RULE (CRITICAL):
+    - 🚨 **PATTERN MATCHING**: Ziraat campaigns have a very strict structure. 
+    - 1. Look for sentences ending with "**dahildir.**" or "**dahil edilecektir.**". Extract all cards listed BEFORE these words. 
+    - 2. **PARENTHESES LISTS**: If you see a list inside parentheses like "(Bankkart, Bankkart Genç, ...)", these are EXPLICITLY INCLUDED. Extract all of them. 
+    - 3. **NEGATION**: Look for sentences ending with "**dahil değildir.**". Any cards listed before this word MUST BE EXCLUDED from the 'cards' list.
+    - 4. **BANKKART LITERAL (CRITICAL)**: Always include "Bankkart" (without any suffixes) as a card if it is mentioned as included. Do NOT omit it.
 - PARTICIPATION:
     - SMS: Look for specific keywords (e.g., "SUBAT2500", "RAMAZAN", "MARKET") sent to **4757**.
     - App: "Bankkart Mobil", "bankkart.com.tr".
@@ -135,7 +135,9 @@ ZIRAAT BANKKART SPECIFIC RULES:
     - FALLBACK: If NO specific method (SMS/App) is found, and it seems like a general campaign (e.g., "İlk Kart", "Taksit"), assume "Otomatik Katılım".
 - CONDITIONS:
     - FORMAT: SUMMARIZE into 5-6 clear bullet points.
-    - CONTENT: MUST include numeric limits (max earners, min spend) and dates.
+    - CONTENT: MUST include numeric limits (max earners, min spend). 
+    - 🚨 **EXCLUSIONS**: You SHOULD mention non-eligible (excluded) cards here (e.g., "Bankkart Business kartlar dahil değildir").
+    - 🚨 **NO REPETITION**: Do NOT repeat the campaign dates or the list of ELIGIBLE cards in the conditions.
     - Avoid long paragraphs. Use concise language.
 """,
     'kuveyt türk': """

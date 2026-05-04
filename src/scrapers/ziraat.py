@@ -298,6 +298,7 @@ class ZiraatScraper:
                 image_url=final_image,
                 start_date=vf,
                 end_date=vu,
+                clean_text=ai_data.get("_clean_text"),
                 is_active=True,
                 tracking_url=url,
                 created_at=datetime.utcnow(),

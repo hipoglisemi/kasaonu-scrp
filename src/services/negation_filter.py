@@ -16,6 +16,7 @@ def normalize_text(s):
     # Further normalize specific chars
     s = s.replace('ı', 'i').replace('ş', 's').replace('ğ', 'g')
     s = s.replace('ü', 'u').replace('ö', 'o').replace('ç', 'c')
+    s = s.replace('â', 'a').replace('î', 'i').replace('û', 'u')
     s = s.replace('worlcard', 'worldcard')
     # Standardize apostrophes
     s = s.replace('’', "'").replace('‘', "'")
@@ -23,8 +24,10 @@ def normalize_text(s):
 
 NEGATION_KEYWORDS = [
     'dahil değil', 'dahil degil', 'dahil değildir', 'dâhil değil', 'dâhil degil', 'dâhil değildir','dahil degildir',
+    'dahil olmadığını', 'dahil olmadigini', 'dâhil olmadığını', 'dâhil olmadigini',
     'geçerli değildir', 'gecerli degildir', 'geçerli degildir',
     'geçerli değil', 'gecerli degil',
+    'geçerli olmadığını', 'gecerli olmadigini',
     'hariçtir', 'harictir', 'hariç', 'haric',
     'kapsam dışıdır', 'kapsam disidir', 'kapsam dışı', 'kapsam disi',
     'kapsamında değildir', 'kapsaminda degildir', 'kapsamında değil', 'kapsaminda degil',
@@ -85,8 +88,9 @@ def check_string_negation(target_str, full_text, bank_key=None, is_generic_brand
         
         # 🛡️ POSITIVE CHECK (Ensuring it's not a negated positive like 'dahil değildir')
         positive_stoppers = r"(?i)(?:^|\s|,)(?:gecerli|faydalanabilir|faydalanabilecektir|yararlanabilir|dahildir|gecerlidir)(?![ \s]*degil)(?:$|\s|,|;|:|\.)"
-        # Special check for 'dahil' to ensure it's not followed by 'değil/değildir'
-        if re.search(r"(?i)(?:^|\s|,)dahil(?![\s]*degil)", sentence):
+        # Special check for 'dahil' to ensure it's not followed by 'değil/değildir/olmadığını'
+        # normalized sentence will have 'dahil' and 'olmadigini'
+        if re.search(r"(?i)(?:^|\s|,)dahil(?![\s]*(?:degil|olmadigini|olmadigi))", sentence):
             sentence_has_positive = True
             has_positive_mention = True
         
@@ -99,7 +103,8 @@ def check_string_negation(target_str, full_text, bank_key=None, is_generic_brand
                 neg_norm = normalize_text(neg)
                 if neg_norm in window:
                     pos_of_neg = window.find(neg_norm)
-                    card_pos_in_window = window.find(target_norm)
+                    # 🎯 FIX: Use rel_pos instead of find() to ensure we are checking the CORRECT occurrence in the window
+                    card_pos_in_window = rel_pos
                     
                     if pos_of_neg < card_pos_in_window:
                         part_between = window[pos_of_neg+len(neg_norm):card_pos_in_window]
@@ -107,10 +112,17 @@ def check_string_negation(target_str, full_text, bank_key=None, is_generic_brand
                         part_between = window[card_pos_in_window+len(target_norm):pos_of_neg]
                     
                     # Boundary check
-                    has_boundary = re.search(rf"[\.\!\?•\;:][ \s\n]*|\n\s*[-*•]\s*", part_between)
+                    # 🛡️ REFINEMENT: In list-style negations (like Akbank), commas are NOT boundaries.
+                    # Only actual sentence-ending punctuation should block the negation.
+                    # Removed ':' from boundary list because "Dahil degildir: Axess" should still negate.
+                    has_boundary = re.search(rf"[\.\!\?•\;][ \s\n]*|\n\s*[-*•]\s*", part_between)
                     has_pos_mid = re.search(positive_stoppers, part_between)
                     
-                    if not (has_boundary or has_pos_mid):
+                    # 🛡️ DISTANCE CHECK: If the distance is very short (under 60 chars), 
+                    # we are much more likely to ignore a boundary.
+                    is_very_close = len(part_between) < 80
+                    
+                    if (not has_boundary or is_very_close) and not has_pos_mid:
                         is_this_negated = True
                         break
         
@@ -135,11 +147,16 @@ def check_string_negation(target_str, full_text, bank_key=None, is_generic_brand
         
     return False
 
-def filter_excluded_cards(cards, text):
+def filter_excluded_cards(cards, text, bank_name=None):
     """
     Main entry point for filtering a list of cards based on negative context.
     """
     if not cards or not text:
+        return cards
+        
+    # 🚨 SKIP for Bankkart (Ziraat): AI already handles this via bank_rules.py
+    # and the universal filter is too aggressive for Ziraat's reward-related sentences.
+    if bank_name and ("ziraat" in bank_name.lower() or "bankkart" in bank_name.lower()):
         return cards
         
     text_normalized = normalize_text(text)
@@ -152,7 +169,7 @@ def filter_excluded_cards(cards, text):
             continue
             
         is_excluded = False
-        is_generic = card_clean in ["world", "paraf", "maximum", "bonus", "axess"]
+        is_generic = card_clean in ["world", "paraf", "maximum", "bonus", "axess", "bankkart"]
         
         # 1. Try full name match
         if check_string_negation(card_clean, text_normalized, is_generic_brand=is_generic):
@@ -160,7 +177,7 @@ def filter_excluded_cards(cards, text):
             
         # 2. If not found or not excluded, try bank-only match for multi-word bank cards
         if not is_excluded and not is_generic:
-            bank_names = ["albaraka", "anadolubank", "vakifbank", "denizbank", "akbank", "is bankasi", "isbank", "garanti", "yapi kredi", "qnb", "finansbank", "teb", "kuveyt turk", "turkiye finans"]
+            bank_names = ["albaraka", "anadolubank", "vakifbank", "denizbank", "akbank", "is bankasi", "isbank", "garanti", "yapi kredi", "qnb", "finansbank", "teb", "kuveyt turk", "turkiye finans", "ziraat", "bankkart"]
             for bank in bank_names:
                 if bank in card_clean and len(card_clean.split()) > 1:
                     if check_string_negation(bank, text_normalized, is_generic_brand=True):

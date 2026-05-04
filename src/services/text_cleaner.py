@@ -211,6 +211,8 @@ def clean_campaign_text(raw_text: str, og_title: str = None, title: str = None) 
         r"(?i)ilginizi\s+çekebilir",
         r"(?i)benzer kampanyalar",
         r"(?i)benzer fırsatlar",
+        r"(?i)ayın kampanyaları",
+        r"(?i)on'un kazandıran dünyasında",
         r"(?i)diğer kampanyalara göz atın",
         r"(?i)sizin için seçtiklerimiz",
         r"(?i)öne çıkan ayrıcalıklar",

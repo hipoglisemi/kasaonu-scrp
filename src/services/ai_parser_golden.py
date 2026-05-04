@@ -545,14 +545,14 @@ ANALİZ EDİLECEK METİN:
         try:
             print(f"   🔍 DEBUG: Running Universal Negation Filter on {len(cards)} cards...")
             from src.services.negation_filter import filter_excluded_cards
-            cards = filter_excluded_cards(cards, raw_text)
+            cards = filter_excluded_cards(cards, raw_text, bank_name=bank_name)
             print(f"   🔍 DEBUG: Filter finished. Final cards: {cards}")
         except Exception as e:
             print(f"   ⚠️ Universal negation filter failed: {e}")
             import traceback
             traceback.print_exc()
         # Final armored safety pass: ensure the filtered list is what actually goes into the data
-        final_cards = filter_excluded_cards(cards, raw_text)
+        final_cards = filter_excluded_cards(cards, raw_text, bank_name=bank_name)
         data["cards"] = final_cards if final_cards else []
         print(f"   🛡️ ARMORED CHECK: Final cards in data are {data['cards']}")
 
@@ -996,9 +996,9 @@ def parse_api_campaign(
     # Yeni bir banka eklendiğinde sadece burası güncellenir, scraper'a dokunulmaz.
     _bank_noise_map = {
         "akbank":        ['.headerContent', '.logoBox', '.verisign', '.push',
-                          '.campaignOtherCampaigns', '.footer-banner'],
+                          '.campaignOtherCampaigns', '.footer-banner', '.listing-box'],
         "axess":         ['.headerContent', '.logoBox', '.verisign', '.push',
-                          '.campaignOtherCampaigns', '.footer-banner'],
+                          '.campaignOtherCampaigns', '.footer-banner', '.listing-box'],
         "garanti":       ['.header-v2', '.footer-v2', '.nav-v2', '.sidebar-v2',
                           '.online-islemler'],
         "garanti bbva":  ['.header-v2', '.footer-v2', '.nav-v2', '.sidebar-v2',
@@ -1015,6 +1015,8 @@ def parse_api_campaign(
         "işbankası":     ['.other-links', '.menu-wrapper', '.sticky-cta'],
         "maximum":       ['.other-links', '.menu-wrapper', '.sticky-cta'],
         "maximiles":     ['.other-links', '.menu-wrapper', '.sticky-cta'],
+        "burgan bank":   ['.on-asistan', '.footer-navigation', '.bottom-footer'],
+        "türk telekom":  ['.featured-privileges', '.other-campaigns', '.footer-main'],
     }
     _bank_key = (bank_name or "").lower()
     for _key, _selectors in _bank_noise_map.items():
@@ -1056,6 +1058,8 @@ def parse_api_campaign(
                           '.paraf-campaign-detail'],
         "denizbank":     ['.kampanya-detay', '.campaign-detail', '.cmsContent'],
         "chippin":       ['.campaign-body', '.campaign-detail'],
+        "burgan bank":   ['.box-content', '.raw-data', '.kampanya-detay-icerik'],
+        "türk telekom":  ['.campaign-detail-content', '.cms-content', '.featured-privileges'],
     }
 
     # Genel fallback selector listesi (banka eşleşmezse veya boş çıkarsa)
