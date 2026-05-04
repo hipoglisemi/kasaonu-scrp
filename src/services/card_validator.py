@@ -8,7 +8,7 @@ logger = logging.getLogger(__name__)
 # Constants moved from parser for better focus
 CARD_EXCLUSION_TERMS = {
     "kart puani", "kart puanı", "worldpuan", "maxipuan", "chip-para", "chip para",
-    "parafpara", "bankkart lira", "puan", "odul", "ödül", "hediye"
+    "parafpara", "bankkart lira", "puan", "odul", "ödül", "hediye", "bankkartlira"
 }
 
 CARD_PASSTHROUGH_TERMS = {
@@ -46,14 +46,18 @@ class CardValidator:
             card_norm = self._normalize(card)
 
             # 1. EXCLUSION / PASSTHROUGH
-            if card_norm in CARD_EXCLUSION_TERMS:
+            # Check if card matches any exclusion term (normalized)
+            is_excluded = any(self._normalize(excl) == card_norm for excl in CARD_EXCLUSION_TERMS)
+            
+            # 🚨 EXTRA STRIKT: "lira" is NEVER a card name in any bank, it's always a reward.
+            if "lira" in card_norm or is_excluded:
                 continue
             if card_norm in CARD_PASSTHROUGH_TERMS:
                 validated.append(card)
                 continue
 
             # 2. TRAP GUARDS (Privacy, POS, App)
-            if self._is_in_trap_context(card_norm, text_normalized):
+            if self._is_in_trap_context(card_norm, text_normalized, bank_key):
                 continue
 
             # 3. DIRECT MATCH & NEGATION
@@ -71,7 +75,7 @@ class CardValidator:
 
         return list(dict.fromkeys(validated)) # Remove duplicates while preserving order
 
-    def _is_in_trap_context(self, card_norm: str, text_normalized: str) -> bool:
+    def _is_in_trap_context(self, card_norm: str, text_normalized: str, bank_key: str = None) -> bool:
         # Privacy/KVKK
         privacy_keywords = ["toplanacaktir", "islenecektir", "aydinlatma metni", "kisisel veri", "veri sorumlusu"]
         # POS/Infra
@@ -82,6 +86,12 @@ class CardValidator:
         card_idx = text_normalized.find(card_norm)
         if card_idx != -1:
             window = text_normalized[card_idx:card_idx+200]
+            
+            # 🛡️ ZIRAAT PRESTIJ TRAP: Avoid extracting Prestij cards from the 'Katlanan Bankkart Lira' informational sentence
+            if bank_key == "ziraat" and "prestij" in card_norm:
+                if "katlanan bankkart lira" in window or "sunulan katlanan" in window:
+                    return True
+
             # 🛡️ REFINEMENT: If the card is in a sentence that explicitly says it's included, it's NOT a trap.
             if "dahil" in window or "gecerli" in window or "faydalan" in window:
                 return False
@@ -117,7 +127,11 @@ class CardValidator:
             kc_norm = self._normalize(kc)
             
             if kc_norm in text_normalized and kc_norm not in validated_norm:
-                is_generic = kc_norm in ["world", "paraf", "maximum", "bonus", "axess"]
+                # 🛡️ TRAP GUARD in Sniper: Don't snipe cards that are in trap contexts
+                if self._is_in_trap_context(kc_norm, text_normalized, bank_key):
+                    continue
+                    
+                is_generic = kc_norm in ["world", "paraf", "maximum", "bonus", "axess", "bankkart"]
                 
                 # 🛡️ Negation Check
                 if check_string_negation(kc, text_normalized, bank_key, is_generic_brand=is_generic):
@@ -136,6 +150,10 @@ class CardValidator:
                         if bank_key == "akbank" and "axess" in v_norm and "axess" in kc_norm:
                             if "bank'o" in v_norm or "bank'o" in kc_norm:
                                 continue # Keep both Axess and Bank'O Card Axess
+                        
+                        # [ZIRAAT EXCEPTION]: Bankkart base and variants are distinct
+                        if bank_key == "ziraat":
+                            continue 
                         
                         is_overlap = True
                         # Only upgrade if it's a direct branding upgrade (e.g. Bonus -> Garanti BBVA Bonus)

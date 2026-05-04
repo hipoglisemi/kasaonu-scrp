@@ -63,7 +63,7 @@ class IsbankMaximilesScraper:
         db_url = os.environ.get("DATABASE_URL")
         if db_url and db_url.startswith("postgres://"):
              from sqlalchemy import create_engine
-             self.engine = create_engine(db_url.replace("postgres://", "postgresql://", 1), pool_pre_ping=True, pool_recycle=300)
+             self.engine = create_engine(db_url.replace("postgres://", "postgresql://", 1), pool_pre_ping=True, pool_recycle=60)
         self.db = get_db_session()
         
         # Lazy import of AIParser to avoid google.generativeai hanging at module import time
@@ -194,6 +194,9 @@ class IsbankMaximilesScraper:
             pw = self.playwright
             if pw:
                 pw.stop()
+            # Ensure DB session is closed to prevent OperationalError at end of run
+            if hasattr(self, 'db') and self.db:
+                self.db.close()
         except Exception:
             pass
 

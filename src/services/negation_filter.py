@@ -44,11 +44,12 @@ def check_string_negation(target_str, full_text, bank_key=None, is_generic_brand
         return False
         
     target_norm = normalize_text(target_str)
+    full_text = normalize_text(full_text)
     if target_norm not in full_text:
         return False
     
     # Common suffixes/prefixes that change the card type
-    modifiers = r"(?i)(?:debit|business|esnaf|kobi|genc|genç|free|flexi|ticari|bank['’]o card|bank['’]o|para|fly|free|eko|eco|platinum|crystal|adios|play|altin|altın|gold|premium|money|gift|paracard|garantione|amex|american express|troy|shop&fly|miles&smiles)"
+    modifiers = r"(?i)(?:debit|business|esnaf|kobi|genc|genç|free|flexi|ticari|bank['’]o card|bank['’]o|para|fly|free|eko|eco|platinum|crystal|adios|play|altin|altın|gold|premium|money|gift|paracard|garantione|amex|american express|troy|shop&fly|miles&smiles|ucretsiz|ücretsiz|basak|başak|prestij)"
     
     # Use regex for whole word match
     if is_generic_brand:
@@ -60,15 +61,18 @@ def check_string_negation(target_str, full_text, bank_key=None, is_generic_brand
     has_negative_mention = False
     
     for match in re.finditer(pattern, full_text):
-        # 🛡️ Generic Brand Protection: Check if this match is a specific variant
-        context_around = full_text[max(0, match.start()-30):match.end()+30]
         if is_generic_brand:
-            filler = r"(?:\s+(?:bbva|kredi|kartları|kart|logolu))*?\s+"
-            if re.search(rf"{modifiers}{filler}{target_norm}|{target_norm}{filler}{modifiers}", context_around):
+            filler = r"(?:\s+(?:bbva|kredi|kartları|kart|logolu|lira|pos))*?\s+"
+            point_activity = r"(?:kullanim|harcama|yukleme|kazanim|aktarim|puan|lira|biriktir|cekme|pos)"
+            
+            # Check prefix (e.g. "Axess Bonus")
+            prefix = full_text[max(0, match.start()-20):match.start()]
+            if re.search(rf"{modifiers}{filler}$", prefix):
                 continue
-                
-            point_activity = r"(?:kullanim|harcama|yukleme|kazanim|aktarim|puan|biriktir|cekme)"
-            if re.search(rf"{target_norm}\s+(?:{point_activity}|{filler}{point_activity})", context_around):
+            
+            # Check suffix (e.g. "Bonus Genç", "Bonus Puan")
+            suffix = full_text[match.end():match.end()+30]
+            if re.search(rf"^{filler}(?:{modifiers}|{point_activity})", suffix):
                 continue
 
         start_search = max(0, match.start() - 150)
@@ -101,9 +105,23 @@ def check_string_negation(target_str, full_text, bank_key=None, is_generic_brand
         if not sentence_has_positive:
             for neg in NEGATION_KEYWORDS:
                 neg_norm = normalize_text(neg)
-                if neg_norm in window:
+                # 🎯 FIX v2: Search in SENTENCE first, then fall back to window.
+                # This prevents cross-sentence false matches.
+                if neg_norm in sentence:
+                    neg_pos_in_sentence = sentence.find(neg_norm)
+                    card_pos_in_sentence = rel_pos - sent_start
+                    if neg_pos_in_sentence < card_pos_in_sentence:
+                        part_between = sentence[neg_pos_in_sentence+len(neg_norm):card_pos_in_sentence]
+                    else:
+                        part_between = sentence[card_pos_in_sentence+len(target_norm):neg_pos_in_sentence]
+                    
+                    has_pos_mid = re.search(positive_stoppers, part_between)
+                    if not has_pos_mid:
+                        is_this_negated = True
+                        break
+                elif neg_norm in window:
+                    # Fallback: negation keyword in wider window but not in same sentence
                     pos_of_neg = window.find(neg_norm)
-                    # 🎯 FIX: Use rel_pos instead of find() to ensure we are checking the CORRECT occurrence in the window
                     card_pos_in_window = rel_pos
                     
                     if pos_of_neg < card_pos_in_window:
@@ -111,18 +129,13 @@ def check_string_negation(target_str, full_text, bank_key=None, is_generic_brand
                     else:
                         part_between = window[card_pos_in_window+len(target_norm):pos_of_neg]
                     
-                    # Boundary check
-                    # 🛡️ REFINEMENT: In list-style negations (like Akbank), commas are NOT boundaries.
-                    # Only actual sentence-ending punctuation should block the negation.
-                    # Removed ':' from boundary list because "Dahil degildir: Axess" should still negate.
-                    has_boundary = re.search(rf"[\.\!\?•\;][ \s\n]*|\n\s*[-*•]\s*", part_between)
+                    has_boundary = re.search(rf"[\.!\?•;][ \s\n]*|\n\s*[-*•]\s*", part_between)
                     has_pos_mid = re.search(positive_stoppers, part_between)
-                    
-                    # 🛡️ DISTANCE CHECK: If the distance is very short (under 60 chars), 
-                    # we are much more likely to ignore a boundary.
                     is_very_close = len(part_between) < 80
                     
-                    if (not has_boundary or is_very_close) and not has_pos_mid:
+                    # 🎯 FIX: If there is a boundary (sentence end), we MUST respect it.
+                    # is_very_close should only help if there is NO clear boundary.
+                    if not has_boundary and not has_pos_mid:
                         is_this_negated = True
                         break
         
@@ -154,11 +167,6 @@ def filter_excluded_cards(cards, text, bank_name=None):
     if not cards or not text:
         return cards
         
-    # 🚨 SKIP for Bankkart (Ziraat): AI already handles this via bank_rules.py
-    # and the universal filter is too aggressive for Ziraat's reward-related sentences.
-    if bank_name and ("ziraat" in bank_name.lower() or "bankkart" in bank_name.lower()):
-        return cards
-        
     text_normalized = normalize_text(text)
     filtered_cards = []
     
@@ -175,8 +183,10 @@ def filter_excluded_cards(cards, text, bank_name=None):
         if check_string_negation(card_clean, text_normalized, is_generic_brand=is_generic):
             is_excluded = True
             
-        # 2. If not found or not excluded, try bank-only match for multi-word bank cards
-        if not is_excluded and not is_generic:
+        # 2. Bank-name fallback: ONLY if the full card name is NOT in the text at all.
+        #    If Step 1 found the card and said "not negated", trust that result.
+        card_found_in_text = card_clean in text_normalized
+        if not is_excluded and not is_generic and not card_found_in_text:
             bank_names = ["albaraka", "anadolubank", "vakifbank", "denizbank", "akbank", "is bankasi", "isbank", "garanti", "yapi kredi", "qnb", "finansbank", "teb", "kuveyt turk", "turkiye finans", "ziraat", "bankkart"]
             for bank in bank_names:
                 if bank in card_clean and len(card_clean.split()) > 1:

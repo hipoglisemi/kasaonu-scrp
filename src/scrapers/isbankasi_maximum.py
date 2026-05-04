@@ -82,7 +82,7 @@ class IsbankMaximumScraper:
     def __init__(self):
         if not DATABASE_URL:
             raise ValueError("DATABASE_URL is not set")
-        self.engine = create_engine(DATABASE_URL, pool_pre_ping=True, pool_recycle=300)
+        self.engine = create_engine(DATABASE_URL, pool_pre_ping=True, pool_recycle=60)
         Session = sessionmaker(bind=self.engine)
         self.session = Session()
         self.headers = {
@@ -158,18 +158,21 @@ class IsbankMaximumScraper:
         from playwright.sync_api import sync_playwright  # type: ignore # pyre-ignore[21]
         self.playwright = sync_playwright().start()
         
-        # Consistent with Yapikredi World pattern - Firefox is more stable here
-        self.browser = self.playwright.firefox.launch(
+        # Reverted to Chromium - Firefox was causing NET_RESET errors
+        self.browser = self.playwright.chromium.launch(
             headless=True,
-            args=["--window-size=1920,1080"]
+            args=["--no-sandbox", "--disable-setuid-sandbox", 
+                  "--disable-dev-shm-usage", "--disable-gpu", 
+                  "--window-size=1920,1080", "--disable-blink-features=AutomationControlled"]
         )
         context = self.browser.new_context(
             viewport={"width": 1920, "height": 1080},
-            user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
+            user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36",
             locale="tr-TR",
             timezone_id="Europe/Istanbul",
-            extra_http_headers={"Accept-Language": "tr-TR,tr;q=0.9,en;q=0.8"}
+            extra_http_headers={"Accept-Language": "tr-TR,tr;q=0.9,en-US;q=0.8,en;q=0.7"}
         )
+        # Stealth init script
         context.add_init_script("Object.defineProperty(navigator, 'webdriver', {get: () => undefined})")
         self.page = context.new_page()
         self.page.set_default_timeout(60000)
@@ -181,6 +184,9 @@ class IsbankMaximumScraper:
                 self.browser.close()
             if self.playwright:
                 self.playwright.stop()
+            # Ensure DB session is closed
+            if hasattr(self, 'session') and self.session:
+                self.session.close()
         except Exception:
             pass
 

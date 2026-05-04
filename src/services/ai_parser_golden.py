@@ -27,7 +27,7 @@ BANK_CARD_KEYWORDS = {
     "akbank": ["axess", "wings", "free", "bank’o card axess", "bank'o card", "ticari kartlar", "ticari", "ek kartlar", "sanal kartlar"],
     "işbankası": ["maximum", "maximiles", "privia"],
     "yapı kredi": ["worldcard", "world", "play", "adios", "crystal", "bireysel kredi kartları", "banka kartları", "tlcard", "vakıfbank worldcard", "albaraka worldcard", "anadolubank worldcard", "opet worldcard"],
-    "ziraat": ["bankkart", "bankkart başak", "bankkart genç", "bankkart prestij", "bankkart business", "bankkart lira"],
+    "ziraat": ["bankkart", "bankkart başak", "bankkart genç", "bankkart prestij", "bankkart business"],
     "vakıfbank": ["worldcard", "world", "express card"],
     "halkbank": ["paraf", "parafly", "paraf business", "parafree", "paraf esnaf", "paraf kobi", "eczacı paraf", "eczacı paraf kobi", "halkcard", "paraf genç", "paraf gençiz", "sanal kartlar", "ek kartlar"],
     "denizbank": ["denizbonus", "net kart", "denizbank bonus"],
@@ -541,18 +541,10 @@ ANALİZ EDİLECEK METİN:
         if cards:
             cards = self.card_validator.validate(cards, raw_text, bank_key)
         
-        # 🛡️ UNIVERSAL NEGATION FILTER (Hardware-level protection against AI hallucinations)
-        try:
-            print(f"   🔍 DEBUG: Running Universal Negation Filter on {len(cards)} cards...")
-            from src.services.negation_filter import filter_excluded_cards
-            cards = filter_excluded_cards(cards, raw_text, bank_name=bank_name)
-            print(f"   🔍 DEBUG: Filter finished. Final cards: {cards}")
-        except Exception as e:
-            print(f"   ⚠️ Universal negation filter failed: {e}")
-            import traceback
-            traceback.print_exc()
         # Final armored safety pass: ensure the filtered list is what actually goes into the data
+        from src.services.negation_filter import filter_excluded_cards
         final_cards = filter_excluded_cards(cards, raw_text, bank_name=bank_name)
+            
         data["cards"] = final_cards if final_cards else []
         print(f"   🛡️ ARMORED CHECK: Final cards in data are {data['cards']}")
 

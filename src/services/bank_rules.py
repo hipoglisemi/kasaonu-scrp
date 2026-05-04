@@ -128,6 +128,9 @@ ZIRAAT BANKKART SPECIFIC RULES:
     - 2. **PARENTHESES LISTS**: If you see a list inside parentheses like "(Bankkart, Bankkart Genç, ...)", these are EXPLICITLY INCLUDED. Extract all of them. 
     - 3. **NEGATION**: Look for sentences ending with "**dahil değildir.**". Any cards listed before this word MUST BE EXCLUDED from the 'cards' list.
     - 4. **BANKKART LITERAL (CRITICAL)**: Always include "Bankkart" (without any suffixes) as a card if it is mentioned as included. Do NOT omit it.
+    - 5. **REWARD TRAP (CRITICAL)**: "**Bankkart Lira**" is a reward unit (like points), NOT a card. **NEVER** include "Bankkart Lira" in the cards list.
+    - 6. **PRESTIJ BOILERPLATE (CRITICAL)**: Sentences mentioning "Katlanan Bankkart Lira özelliği" or "Bankkart Prestij/Bankkart Prestij Plus kredi kartları için sunulan" are just informational boilerplate. Do NOT extract "Bankkart Prestij" or "Bankkart Prestij Plus" from these sentences unless they are explicitly listed in the main "dahildir" sentence.
+- TERMINOLOGY: "Bankkart Lira". 1 Bankkart Lira = 1 TL.
 - PARTICIPATION:
     - SMS: Look for specific keywords (e.g., "SUBAT2500", "RAMAZAN", "MARKET") sent to **4757**.
     - App: "Bankkart Mobil", "bankkart.com.tr".
@@ -176,12 +179,13 @@ HALKBANK (PARAF / PARAFLY) SPECIFIC RULES:
 DENIZBANK (DENIZBONUS) SPECIFIC RULES:
 - TERMINOLOGY: "Bonus". 1 Bonus = 1 TL.
 - ELIGIBLE CARDS (cards):
-    - RAW EXTRACTION (CRITICAL): Do NOT map cards to a fixed list. Extract the EXACT descriptive string from the text.
-    - Examples: 
-        * "Tüm bonus özellikli DenizBank Bireysel Kredi Kartları"
-        * "DenizBank TROY logolu bireysel ve ticari kredi kartı, banka kartı ve ön ödemeli kartlar"
-        * "Net Kart"
-    - KESIN YASAK: Metinde geçmeyen kart isimlerini (DenizBonus Gold vb.) uydurma. Metinde ne yazıyorsa harfi harfine onu al.
+    - 🚨 **MODIFIER DISTRIBUTION (ULTRA CRITICAL)**: 
+        * Denizbank metinlerinde "Mastercard/Visa/TROY logolu banka kartı, kredi kartı veya ön ödemeli kartlar" gibi gruplar çok yaygındır.
+        * Bu durumlarda sıfatı (örn: "Mastercard logolu") HER BİR kart tipine tek tek dağıtarak listele.
+        * DOĞRU: ["DenizBank Mastercard logolu banka kartı", "DenizBank Mastercard logolu kredi kartı", "DenizBank Mastercard logolu ön ödemeli kartlar"]
+        * YANLIŞ (DEVRİK): ["Kredi kartı", "Ön ödemeli kartlar", "DenizBank Mastercard logolu banka kartı"]
+    - 🚨 **EXACT EXTRACTION**: Metindeki tanımlayıcı ifadeleri (örn: "Tüm bonus özellikli Bireysel Kredi Kartları") olduğu gibi koru ama yukarıdaki dağıtma kuralını uygula.
+    - KESIN YASAK: Metinde geçmeyen kart isimlerini uydurma.
 - PARTICIPATION:
     - PRIORITY:
       1. App: "MobilDeniz" or "DenizKartım". Look for "Hemen Katıl" button.

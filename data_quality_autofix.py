@@ -138,6 +138,9 @@ def fetch_html(url: str) -> str:
         options.add_argument('--headless=new')
         
         options.add_argument('--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36')
+        options.add_experimental_option("excludeSwitches", ["enable-automation"])
+        options.add_experimental_option('useAutomationExtension', False)
+        options.add_argument('--disable-blink-features=AutomationControlled')
         
         try:
             driver = webdriver.Chrome(options=options)
@@ -205,7 +208,10 @@ def fetch_html(url: str) -> str:
             raw_html = response.text
         except Exception as e:
             print(f"   ⚠️ Request failed: {e}")
-            return ""
+            status = "LIVE_FETCH_ERROR"
+            if "403" in str(e) or "429" in str(e) or "forbidden" in str(e).lower():
+                status = "BOT_BLOCKED"
+            return "", status
 
     if not is_trafilatura_text:
         soup = BeautifulSoup(raw_html, 'html.parser')
@@ -255,8 +261,9 @@ def fetch_html(url: str) -> str:
     
     # 🛡️ Use Central Text Cleaner (Standard Scraper Logic)
     text = clean_campaign_text(text)
-    print(f"🔍 DEBUG PROCESSED TEXT (Full): {text}")
-    return text
+    
+    status_code = "LIVE_SUCCESS" if len(text) > 200 else "LIVE_EMPTY"
+    return text, status_code
 
 def run_autofix(limit: int = 250, campaign_id: Optional[int] = None, force_all: bool = False, ids_file: Optional[str] = None, ui_mode: bool = False, pending: bool = False, model: Optional[str] = None, fallback_model: Optional[str] = None):
     print(f"🚀 Starting Data Quality Auto-Fixer (Limit: {limit})...")
@@ -526,98 +533,90 @@ def run_autofix(limit: int = 250, campaign_id: Optional[int] = None, force_all: 
                 # Force rescue if campaign_id is specifically requested (UI Repair Button)
                 force_rescue = True if campaign_id else FORCE_ALL
                 
+                # Initialize repair metadata
+                repair_meta = {"source": "DB", "status": "CLEAN_TEXT_USED"}
+                og_title = None
+                
                 if c.clean_text and len(c.clean_text) >= 600 and not is_truncated and not mojibake_pattern.search(c.clean_text) and not force_rescue:
                     print(f"   ⚡ Using pre-cleaned text from DB ({len(c.clean_text)} chars)")
                     text_to_parse = c.clean_text
                 else:
-                    # Fresh fetch required
                     print(f"   🌐 Logic: RESCUE! (Force mode or text issue). Fetching fresh HTML...")
                     
-                    # Step 1: Fetch raw HTML to extract H1 title (before text cleaning strips HTML tags)
-                    og_title = None
+                    # Step 1: Fetch raw HTML for title
                     try:
                         import urllib3
                         urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
                         headers = {
                             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36',
-                            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
-                            'Accept-Language': 'tr-TR,tr;q=0.9,en-US;q=0.8,en;q=0.7',
                         }
                         _raw_resp = requests.get(c.tracking_url, headers=headers, timeout=15, verify=False)
                         _raw_resp.raise_for_status()
-                        _raw_html = _raw_resp.text
                         from bs4 import BeautifulSoup as _BS
-                        _raw_soup = _BS(_raw_html, "html.parser")
-                        # Priority 1: H1 (most reliable on bank campaign pages like Yapı Kredi)
+                        _raw_soup = _BS(_raw_resp.text, "html.parser")
                         _h1 = _raw_soup.select_one('h1')
                         if _h1 and _h1.get_text(strip=True):
                             og_title = _h1.get_text(strip=True)
-                            print(f"   🏷️ H1 title: {og_title}")
-                        else:
-                            # Priority 2: og:title (fallback for sites without H1)
-                            _og = _raw_soup.find("meta", property="og:title")
-                            if _og and _og.get("content"):
-                                _og_content = _og["content"].strip()
-                                # Only use og:title if it's specific (>2 words), not a generic site name
-                                if len(_og_content.split()) > 2:
-                                    og_title = _og_content
-                                    print(f"   🏷️ og:title: {og_title}")
+                            print(f"   🏷️ H1 title found: {og_title}")
                     except Exception as _e:
-                        print(f"   ⚠️ Raw HTML fetch for title failed: {_e}")
+                        print(f"   ⚠️ Raw title fetch failed: {_e}")
                     
-                    # Step 2: Clean text via full pipeline (fetch_html does BeautifulSoup + text_cleaner)
-                    html_text = fetch_html(c.tracking_url)
+                    # Step 2: Full HTML Fetch
+                    html_text, live_status = fetch_html(c.tracking_url)
                     
-                    if html_text and len(html_text) >= 50:
-                        # Run text_cleaner again with the H1 title so the Header Sniper can cut menu noise correctly
+                    if html_text and len(html_text) >= 150:
                         text_to_parse = clean_campaign_text(html_text, og_title=og_title)
+                        repair_meta["source"] = "LIVE"
+                        repair_meta["status"] = live_status
                         print(f"   ✅ URL fetch successful ({len(text_to_parse)} chars)")
                     else:
-                        # SECOND FALLBACK: Use description and conditions if URL fetching fails (likely bot protection or dead link)
-                        print(f"   ⚠️ URL fetch failed (possible bot-block or 404).")
-                        
+                        print(f"   ⚠️ [CODE: {live_status}] URL fetch failed. Falling back to DB content.")
                         fallback_segments = []
                         if c.description: fallback_segments.append(c.description)
                         if c.conditions: fallback_segments.append(c.conditions)
-                        
                         fallback_text = " ".join(fallback_segments)
-                        if len(fallback_text) > 20: 
-                            print(f"   🔄 Using secondary fallback: Existing Description/Conditions ({len(fallback_text)} chars)")
+                        
+                        if len(fallback_text) > 20:
                             text_to_parse = fallback_text
+                            repair_meta["source"] = "DB_FALLBACK"
+                            repair_meta["status"] = live_status
                         else:
-                            print(f"   ❌ Could not extract meaningful text from URL or DB fields. Skipping.")
+                            print(f"   ❌ [ERR_CODE: CONTENT_NOT_FOUND] Could not extract meaningful text.")
                             continue
 
-                # Determine bank name for AI parser (needed for Point-Blank & bank-specific rules)
-                bank_name = None
-                if c.card and c.card.bank:
-                    bank_name = c.card.bank.name
+                # Determine bank name for AI parser
+                bank_name = c.card.bank.name if c.card and c.card.bank else None
                 
-                # ── HASH / CONTENT MATCHING (Adım 5) ──
-                # If running automatically (no human 'Tamir Et' button clicked: not campaign_id and not FORCE_ALL)
-                # and the text hasn't changed from what we already stored, DO NOT hit Gemini again. 
-                # It will give the same defective result. Save API costs!
-                if not FORCE_ALL and not campaign_id:
-                    if c.clean_text and text_to_parse == c.clean_text:
-                        print(f"   ⏸️ Banka metni değişmemiş. Boşuna AI çağrısı yapılmıyor (Hash Match). Atlandı.")
-                        continue
-
-                # Eğer DB'den gelen başlık çok uzunsa (Açıklama metni yanlışlıkla başlık olmuşsa), 
-                # AI bu metne BAŞLIK KİLİDİ atmasın diye boş gönderiyoruz. AI metnin en üstündeki H1'i bularak kendisi atayacak.
+                # Title fix logic
                 ai_title_pass = c.title or ''
                 if len(ai_title_pass.split()) > 15:
-                    print(f"   🔓 DB Title is too long ({len(ai_title_pass.split())} words) - Erasing lock to let AI find the real title from HTML.")
+                    print(f"   🔓 DB Title is too long - Erasing lock for AI.")
                     ai_title_pass = ''
 
-                print(f"   🤖 [GOLDEN V3] Sending {len(text_to_parse)} characters to AI... (Bank: {bank_name or 'Unknown'})")
+                # AI Parsing
+                print(f"   🤖 [GOLDEN V3] Sending {len(text_to_parse)} chars to AI... (Bank: {bank_name or 'Unknown'})")
+                print(f"   🔍 DEBUG: Context snippet: {text_to_parse[:200].replace(chr(10), ' ')}...")
+                
                 parser = _get_golden_parser(model=model, fallback_model=fallback_model)
-
                 ai_data = parser.parse_campaign(
                     raw_html=text_to_parse,
                     bank_name=bank_name or '',
                     title=ai_title_pass,
-                    og_title=og_title if 'og_title' in dir() else None
+                    og_title=og_title
                 )
+                
+                if ai_data:
+                    print(f"   🤖 AI EXTRACTION: {ai_data.get('cards')}")
+                    if ai_data.get('brands'):
+                        print(f"   🏷️ BRANDS: {ai_data.get('brands')}")
+                
+                if ai_data:
+                    ai_data["repair_metadata"] = {
+                        "source": repair_meta["source"],
+                        "status": repair_meta["status"],
+                        "reasons": reasons_list,
+                        "campaign_id": c.id
+                    }
                 
                 if not ai_data:
                     print(f"   ❌ Gemini AI failed to return data. Skipping.")
