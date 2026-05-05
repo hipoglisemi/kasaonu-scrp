@@ -8,101 +8,133 @@ import os
 import sys
 import json
 import logging
+import re
+import io
+from contextlib import redirect_stdout
+from typing import Optional
+
+# Setup logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 # Add project root to path
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+current_dir = os.path.dirname(os.path.abspath(__file__))
+if current_dir not in sys.path:
+    sys.path.insert(0, current_dir)
 
-from fastapi import FastAPI, HTTPException, Header
-from fastapi.responses import JSONResponse
-from pydantic import BaseModel
-from typing import Optional
-from contextlib import redirect_stdout
-import io
+try:
+    from fastapi import FastAPI, HTTPException, Header, Request
+    from fastapi.responses import JSONResponse
+    from pydantic import BaseModel
+except ImportError as e:
+    logger.error(f"Critical Import Error: {e}")
+    # We can't even start FastAPI if this fails
+    raise
 
-app = FastAPI(title="KartAvantaj Repair API", version="1.0.0")
+app = FastAPI(title="KartAvantaj Repair API", version="1.0.1")
 
 # Simple token-based auth
 REPAIR_API_SECRET = os.getenv("REPAIR_API_SECRET", "")
 
-def verify_token(authorization: Optional[str] = Header(None)):
+def verify_token(authorization: Optional[str]):
     """Verify the API token to prevent unauthorized access."""
     if not REPAIR_API_SECRET:
         return  # No secret configured = open (dev mode)
     
     if not authorization or authorization != f"Bearer {REPAIR_API_SECRET}":
-        raise HTTPException(status_code=401, detail="Unauthorized")
-
-
-@app.get("/health")
-async def health():
-    """Health check endpoint for Coolify."""
-    return {"status": "ok", "service": "repair-api"}
-
+        raise HTTPException(status_code=401, detail="Unauthorized Access")
 
 @app.exception_handler(Exception)
-async def global_exception_handler(request, exc):
+async def global_exception_handler(request: Request, exc: Exception):
     """Catch all unhandled exceptions and return them as JSON."""
-    logging.exception("Unhandled exception occurred")
+    logger.exception(f"Unhandled exception during request to {request.url}")
     return JSONResponse(
         status_code=500,
         content={
             "success": False, 
-            "message": f"Global Sunucu Hatası: {str(exc)}",
-            "type": type(exc).__name__
+            "message": f"Python Global Hatası: {str(exc)}",
+            "type": type(exc).__name__,
+            "detail": "Sunucu tarafında beklenmedik bir hata oluştu."
         }
     )
+
+@app.get("/health")
+async def health():
+    """Health check endpoint for Coolify."""
+    return {"status": "ok", "service": "repair-api", "version": "1.0.1"}
+
 @app.post("/repair/{campaign_id}")
 async def repair_campaign(campaign_id: int, force: bool = True, authorization: Optional[str] = Header(None)):
     """
     Repair a single campaign using data_quality_autofix.py
-    This is the same logic that runs in GitHub Actions.
     """
     verify_token(authorization)
     
+    logger.info(f"Starting repair for campaign ID: {campaign_id}")
+    
     try:
-        from data_quality_autofix import run_autofix
+        # Import inside handler to catch specific import errors
+        try:
+            from data_quality_autofix import run_autofix
+        except ImportError as ie:
+            logger.error(f"Failed to import run_autofix: {ie}")
+            return JSONResponse(status_code=500, content={
+                "success": False,
+                "message": f"Modül yükleme hatası: {str(ie)}. Bağımlılıklar eksik olabilir."
+            })
         
         # Capture stdout to extract the JSON sentinel output
         captured = io.StringIO()
         
         with redirect_stdout(captured):
-            run_autofix(
-                limit=1,
-                campaign_id=campaign_id,
-                force_all=force,
-                ui_mode=True
-            )
+            try:
+                run_autofix(
+                    limit=1,
+                    campaign_id=campaign_id,
+                    force_all=force,
+                    ui_mode=True
+                )
+            except Exception as run_err:
+                logger.error(f"run_autofix crashed: {run_err}")
+                raise run_err
         
         output = captured.getvalue()
         
         # Extract JSON between sentinels
-        import re
         match = re.search(r'---AIPARSER_JSON_START---\n([\s\S]*?)\n---AIPARSER_JSON_END---', output)
         
         if match:
-            result = json.loads(match.group(1))
-            return JSONResponse(content={
-                "success": True,
-                "data": result,
-                "logs": output[:2000]  # First 2K chars of logs for debugging
-            })
+            try:
+                result = json.loads(match.group(1))
+                return JSONResponse(content={
+                    "success": True,
+                    "data": result,
+                    "logs": output[:3000] # Increased log size for debugging
+                })
+            except json.JSONDecodeError as jde:
+                logger.error(f"JSON Decode Error: {jde}")
+                return JSONResponse(status_code=422, content={
+                    "success": False,
+                    "message": "AI çıktısı geçerli bir JSON formatında değil.",
+                    "logs": output[:3000]
+                })
         else:
-            # No JSON sentinel found — campaign might have been healthy or AI failed
-            return JSONResponse(content={
+            logger.warning(f"No JSON sentinel found for campaign {campaign_id}")
+            return JSONResponse(status_code=422, content={
                 "success": False,
-                "message": "AI onarımı başarısız oldu veya kampanyada sorun bulunamadı.",
-                "logs": output[:2000]
-            }, status_code=422)
+                "message": "AI onarımı başarısız oldu (JSON çıktısı üretilemedi).",
+                "logs": output[:3000]
+            })
             
     except Exception as e:
-        logging.exception(f"Repair failed for campaign {campaign_id}")
-        return JSONResponse(content={
+        logger.exception(f"Repair failed for campaign {campaign_id}")
+        return JSONResponse(status_code=500, content={
             "success": False,
-            "message": f"Sunucu hatası: {str(e)}"
-        }, status_code=500)
-
+            "message": f"Onarım sırasında teknik hata: {str(e)}"
+        })
 
 if __name__ == "__main__":
     import uvicorn
     port = int(os.getenv("PORT", "8001"))
+    logger.info(f"Starting Repair API on port {port}...")
     uvicorn.run(app, host="0.0.0.0", port=port)
