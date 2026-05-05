@@ -10,8 +10,19 @@ AKBANK SPECIFIC RULES:
     - For Axess/Free/Akbank Kart: Uses "chip-para" instead of "puan". 1 chip-para = 1 TL.
     - For Wings: Uses "Mil" or "Mil Puan". 100 Mil Puan = 1 TL (domestic) / 2 TL (int).
 - ELIGIBLE CARDS (CRITICAL):
-    - 🚨 **RAW EXTRACTION (LITERAL)**: Extract the EXACT card names or descriptive categories from the text. 
-    - ⛔ **NO MAPPING**: If text says "Axess ve Wings Ticari kartları", write "Axess ve Wings Ticari kartları". 
+    - 🚨 **METNE SADIK SIRALI LİSTE**: Kart isimlerini metinde geçtiği sırayla, virgülle ayrılmış temiz bir liste olarak yaz. **SIRALAMAYI ASLA BOZMAYIN VE HİÇBİR MARKAYI ATLAMAYIN.**
+    - 🚨 **TEMİZLEME KURALLARI**:
+        - "Axess Bireysel kartlar" -> **Axess**
+        - "Wings Bireysel kartlar" -> **Wings**
+        - "Free Bireysel kartlar" -> **Free**
+        - "Bireysel kredi kartları", "Bireysel kartlar", "Kredi kartları" ibarelerini TEMİZLE, sadece marka kalsın.
+        - "Akbank Kart" ibaresini OLDUĞU GİBİ KORU (markadır).
+        - "Ticari kartlar", "Ek kartlar", "Sanal kartlar" ibarelerini OLDUĞU GİBİ KORU. ("Ticari" olarak kısaltma yapma, tam yaz).
+    - 💡 **ÖREK DÖNÜŞÜMLER**:
+        - "Kampanyaya bireysel Wings kartlar ile ek kartlar dahildir" -> **Wings, Ek kartlar**
+        - "Axess, Wings, Free ve Ticari kartlar dahildir" -> **Axess, Wings, Free, Ticari kartlar**
+        - "Bank’O Card Axess Bireysel kartlar ile sanal kartlar dahildir" -> **Bank’O Card Axess, Sanal kartlar**
+    - ⛔ **KESIN YASAK**: Hiçbir kartı (özellikle Wings listede varsa) "başlıkta var zaten" diyerek listeden ELEMEYİN.
     - ⛔ **KESIN YASAK**: Asla "Kampanyaya Dahil Kartlar" yazma.
     - ⛔ **KESIN YASAK**: Kart isimlerini asla 'conditions' (koşullar) listesine yazma. Sadece 'cards' alanına yaz.
 - PARTICIPATION (katilim_sekli):
@@ -272,5 +283,63 @@ CHIPPIN SPECIFIC RULES:
 - CONDITIONS:
     - Kampanyaya dahil olan MINIMUM harcama tutarını özellikle belirt ("Örn: 500 TL ve üzeri Chippin ödemelerinde").
     - Kampanya kazanımının ne zaman yatırılacağını belirt.
+""",
+    'dunyakatilim': """
+DÜNYA KATILIM SPECIFIC RULES:
+- TERMINOLOGY: "Harcama Puan" or "İndirim".
+- ELIGIBLE CARDS (cards):
+    - RAW EXTRACTION (LITERAL): Extract exact names from text.
+    - Keywords: "Dünya Katılım Banka Kartı", "Dünya Katılım Kredi Kartı", "Dünya Katılım Troy Kart".
+    - 🚨 ASLA ATLANMAYACAK: "TROY" logolu kartlar vurgulanmışsa bunu kart listesine ekle.
+- PARTICIPATION (katilim_sekli):
+    - PRIORITY ORDER:
+      1. App: "Dünya Katılım Mobil" application. Look for "Kampanyalar" menu and "Katıl" button.
+      2. SMS: If any shortcode is mentioned (rare).
+      3. Automatic: If the campaign is a discount or automatic refund.
+    - FORMAT: "Dünya Katılım Mobil uygulamasındaki Kampanyalar menüsünden katılabilirsiniz."
+- CONDITIONS: 
+    - Focus on specific merchant categories and minimum spend requirements.
+    - Mention if "TROY" logo is mandatory for the campaign.
+""",
+    'vodafone': """
+VODAFONE SPECIFIC RULES:
+- TERMINOLOGY: "Fayda", "İndirim", "Kod".
+- ELIGIBLE CARDS / CUSTOMER SEGMENTS (cards) - **STRICT LITERAL & REDUNDANCY GUARD**:
+    - 🚨 **KESİN TALİMAT**: Metinde "Klasik", "RED Premium" gibi spesifik gruplar listelenmişse, ayrıca genel bir "Vodafone Müşterileri" maddesi EKLEME (eğer metinde bağımsız bir grup olarak geçmiyorsa).
+    - 🚨 **HASSASİYET**: Eğer grupların başında "Faturalı" veya "Bireysel" gibi belirteçler varsa bunları MUTLAKA koru.
+    - 🚨 **KISA VE ÖZ İSİMLENDİRME**: Segment isimlerini listelerken **SADECE VE SADECE EN SON** maddeye "müşterileri" ekini ekle. Diğer tüm maddelerin sonundaki "müşterileri", "aboneleri", "kullanıcıları" gibi ekleri metinde yazsa bile **SİL**.
+    - **DOĞRU**: `["Vodafone Ev İnterneti", "Vodafone RED Premium", "Vodafone Faturasız müşterileri"]`
+    - **YANLIŞ**: `["Vodafone Ev İnterneti müşterileri", "Vodafone RED Premium", "Vodafone Faturasız müşterileri"]`
+    - Metinde geçen her grubu `cards` alanına **ayrı ayrı** ve **standardize ederek** (Başına "Vodafone" ekleyerek) yaz.
+    - ⛔ **YASAK**: Metinde açıkça yazmayan ("FreeZone" vb.) hiçbir grubu ekleme.
+- PARTICIPATION (katilim_sekli):
+    - 🚨 **ÖNEMLİ**: Kod alma, SMS, şifre söyleme gibi teknik adımları SADECE `participation` alanına yaz. 
+    - ⛔ **YASAK**: Bu teknik adımları `ai_marketing_text` alanına yazma.
+    - Look for "Vodafone Yanımda", "Happy" or "Fırsatlar Dünyası" app instructions.
+    - Extract as: "Vodafone Yanımda uygulamasındaki Fırsatlar Dünyası / Happy menüsünden indirim kodunuzu alarak katılabilirsiniz."
+    - Metinde SMS (7276 vb.) veya Kasa adımları varsa mutlaka ekle.
+- CONDITIONS: 
+    - Focus on usage frequency (e.g., "30 günde 1 kez", "ayda 2 kez").
+    - Mention minimum spend thresholds and specific exclusions.
+    - ⛔ **TEKRAR YASAĞI**: `cards` alanında belirttiğin müşteri gruplarını burada tekrar yazma.
+""",
+    'paycell': """
+PAYCELL SPECIFIC RULES:
+- STRUCTURE (CRITICAL): Paycell uses a Q&A format. Map these headers DIRECTLY:
+    1. "Kampanyaya Dahil Harcamalar Nelerdir?" -> **ELIGIBLE CARDS (cards)** (🚨 PRIMARY SOURCE)
+    2. "Kampanya Geçerlilik Tarihi Nedir?" -> **DATES (start_date, end_date)**
+    3. "Kampanyadan Nasıl Kazanırım?" -> **PARTICIPATION (participation)**
+    4. "Kampanya Faydası Nedir?" -> **REWARD (reward_text)**
+    5. "Kampanyaya Kimler Katılabilir?" -> Use this ONLY to identify customer segments (e.g. Turkcell Müşterileri).
+- DESCRIPTION (CRITICAL):
+    - 🚨 **ASLA ÖZETLEME**: Paycell metinleri soru-cevap formatındadır. 'description' alanına metnin TAMAMINI (tüm soru ve cevapları) olduğu gibi yaz. Bilgi kaybını önlemek için bu hayati önem taşır.
+- ELIGIBLE CARDS (cards):
+    - 🚨 **KESİN TALİMAT**: Geçerli kartları veya ödeme yöntemlerini **SADECE** "Kampanyaya Dahil Harcamalar Nelerdir?" başlığı altındaki metinde ara. Başka bölümlere (Nasıl Kazanırım, Kimler Katılabilir vb.) bakma.
+    - **LİTERAL EXTRACTION**: Metinde geçen kart isimlerini (örn: "Fiziksel Paycell Kart", "Sanal Paycell Kart") aynen al.
+    - **PUBG ÖRNEĞİ (KRİTİK)**: Eğer harcama şartında "Paycell PUBG Kart" diyorsa, 'cards' listesine SADECE "Paycell PUBG Kart" yaz. Bu durumda genel "Paycell Kart" ibaresini eklemek **KESİNLİKLE YASAKTIR**.
+- PARTICIPATION (participation):
+    - 🚨 **KRİTİK**: "Kampanyadan Nasıl Kazanırım?" bölümündeki aksiyonu (örn: "Paycell Mobil Uygulaması üzerinden HEMEN KATIL butonuna basın") özetle. Eğer SMS veya başka bir yöntem varsa mutlaka belirt.
+- TERMINOLOGY: "Hediye Para" or "Nakit İade".
+- CONDITIONS: Use "Diğer Koşullar" and "Kampanyaya Dahil Harcamalar Nelerdir?" for the conditions list.
 """
 }

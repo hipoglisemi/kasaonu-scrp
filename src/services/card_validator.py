@@ -83,24 +83,33 @@ class CardValidator:
         # App/Channel
         app_keywords = ["mobil", "uygulama", "uygulamasi", "uygulamasindan", "internet sube", "web sitesi", "online", "subesi"]
 
-        card_idx = text_normalized.find(card_norm)
-        if card_idx != -1:
-            window = text_normalized[card_idx:card_idx+200]
+        # 🛡️ FIX: Check ALL occurrences. If at least one is in a 'dahil/gecerli' context, it's NOT a trap.
+        occurrences = [m.start() for m in re.finditer(re.escape(card_norm), text_normalized)]
+        if not occurrences:
+            return False
             
-            # 🛡️ ZIRAAT PRESTIJ TRAP: Avoid extracting Prestij cards from the 'Katlanan Bankkart Lira' informational sentence
-            if bank_key == "ziraat" and "prestij" in card_norm:
-                if "katlanan bankkart lira" in window or "sunulan katlanan" in window:
-                    return True
-
+        any_valid_mention = False
+        for idx in occurrences:
+            window = text_normalized[idx:idx+200]
+            
             # 🛡️ REFINEMENT: If the card is in a sentence that explicitly says it's included, it's NOT a trap.
             if "dahil" in window or "gecerli" in window or "faydalan" in window:
-                return False
+                any_valid_mention = True
+                break
 
-            if any(k in window for k in privacy_keywords + infra_keywords + app_keywords):
-                # Exception: specific cards like 'Opet Worldcard'
-                if len(card_norm.split()) < 2:
-                    return True
-        return False
+            # Check if this specific occurrence is a trap
+            is_this_trap = any(k in window for k in privacy_keywords + infra_keywords + app_keywords)
+            
+            # Additional bank-specific traps
+            if bank_key == "ziraat" and "prestij" in card_norm:
+                if "katlanan bankkart lira" in window or "sunulan katlanan" in window:
+                    is_this_trap = True
+            
+            if not is_this_trap:
+                any_valid_mention = True
+                break
+        
+        return not any_valid_mention
 
     def _match_core_words(self, card_norm: str, text_normalized: str, raw_text: str, bank_key: str) -> bool:
         core_words = [w for w in card_norm.split() if len(w) > 2 and w not in self.stop_words]
@@ -130,6 +139,14 @@ class CardValidator:
                 # 🛡️ TRAP GUARD in Sniper: Don't snipe cards that are in trap contexts
                 if self._is_in_trap_context(kc_norm, text_normalized, bank_key):
                     continue
+                
+                # 🛡️ VODAFONE REDUNDANCY GUARD: Don't add general 'müşterileri/kullanıcıları' if specific segments are present
+                if bank_key == "vodafone" and kc_norm in ["vodafone musterileri", "vodafone kullanicilari"]:
+                    # Specific segments are those that contain 'vodafone' but are NOT the generic ones
+                    generic_ones = ["vodafone", "vodafone müşterileri", "vodafone kullanıcıları"]
+                    has_specific = any("vodafone" in v.lower() and v.lower() not in generic_ones for v in validated)
+                    if has_specific:
+                        continue
                     
                 is_generic = kc_norm in ["world", "paraf", "maximum", "bonus", "axess", "bankkart"]
                 

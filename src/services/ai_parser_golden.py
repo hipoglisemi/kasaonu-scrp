@@ -24,7 +24,7 @@ logger = logging.getLogger(__name__)
 #  Used to VALIDATE AI output, not to instruct the AI.
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 BANK_CARD_KEYWORDS = {
-    "akbank": ["axess", "wings", "free", "bank’o card axess", "bank'o card", "ticari kartlar", "ticari", "ek kartlar", "sanal kartlar"],
+    "akbank": ["axess", "wings", "free", "akbank kart", "bank’o card axess", "bank'o card", "ticari kartlar", "ticari", "ek kartlar", "sanal kartlar"],
     "işbankası": ["maximum", "maximiles", "privia"],
     "yapı kredi": ["worldcard", "world", "play", "adios", "crystal", "bireysel kredi kartları", "banka kartları", "tlcard", "vakıfbank worldcard", "albaraka worldcard", "anadolubank worldcard", "opet worldcard"],
     "ziraat": ["bankkart", "bankkart başak", "bankkart genç", "bankkart prestij", "bankkart business"],
@@ -42,7 +42,7 @@ BANK_CARD_KEYWORDS = {
     "albaraka": ["albaraka worldcard"],
     "türk telekom": ["türk telekom müşterileri", "prime", "selfy"],
     "turkcell": ["turkcell müşterileri", "paycell kart"],
-    "vodafone": ["vodafone red", "vodafone freezone", "vodafone müşterileri"],
+    "vodafone": ["vodafone müşterileri", "vodafone kullanıcıları", "vodafone red", "vodafone freezone"],
     "chippin": ["chippin"],
     "param": ["paramkart"],
     "paycell": ["paycell kart"],
@@ -51,6 +51,7 @@ BANK_CARD_KEYWORDS = {
     "masterpass": ["masterpass"],
     "opet": ["opet kart", "yakıt puan", "opet mobil"],
     "nays": ["nays kart", "nays kullanıcıları"],
+    "dünya katılım": ["dünya katılım kartı", "dünya katılım banka kartı", "dünya katılım kredi kartı"],
 }
 
 BANK_APP_NAMES = {
@@ -111,6 +112,7 @@ BANK_SELF_NAMES = {
     "albaraka": ["albaraka"],
     "opet": ["opet", "opet kart", "yakıt puan", "opet kampanyası", "opet mobil"],
     "nays": ["nays", "nays kart"],
+    "dünya katılım": ["dünya katılım", "dunya katilim", "dunya katılım", "dünya katilim"],
 }
 
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -1009,6 +1011,8 @@ def parse_api_campaign(
         "maximiles":     ['.other-links', '.menu-wrapper', '.sticky-cta'],
         "burgan bank":   ['.on-asistan', '.footer-navigation', '.bottom-footer'],
         "türk telekom":  ['.featured-privileges', '.other-campaigns', '.footer-main'],
+        "dunyakatilim":  ['.header', '.footer', '.similar-campaigns', '.related-posts'],
+        "vodafone":      ['.header', '.footer', '.sidebar', '.related-campaigns', '.bottom-bar'],
     }
     _bank_key = (bank_name or "").lower()
     for _key, _selectors in _bank_noise_map.items():
@@ -1052,6 +1056,8 @@ def parse_api_campaign(
         "chippin":       ['.campaign-body', '.campaign-detail'],
         "burgan bank":   ['.box-content', '.raw-data', '.kampanya-detay-icerik'],
         "türk telekom":  ['.campaign-detail-content', '.cms-content', '.featured-privileges'],
+        "dunyakatilim":  ['.news-campaign-content', '.bt', '.richtext'],
+        "vodafone":      ['.campaign-detail', '.offer-detail', '.terms-conditions'],
     }
 
     # Genel fallback selector listesi (banka eşleşmezse veya boş çıkarsa)

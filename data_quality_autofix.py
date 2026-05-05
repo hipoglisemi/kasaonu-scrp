@@ -241,7 +241,9 @@ def fetch_html(url: str) -> str:
             'article.campaign-detail', '.cmsContent',
             '.campaingDetail', '.campaing', '.textArea', '.campaingDetail-content',
             '.how-to-win-content', '.tab-content', '.campaign-detail-content', '.campaign-detail-text',
-            '.campaign-detail-capsule', '.container-right', '.campaign-dates'
+            '.campaign-detail-capsule', '.container-right', '.campaign-dates',
+            '.news-campaign-content', '.bt', '.richtext',
+            '.offer-detail', '.terms-conditions'
         ]
         
         content_found = []
