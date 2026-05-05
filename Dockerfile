@@ -12,6 +12,11 @@ RUN apt-get update && apt-get install -y \
     libgconf-2-4 \
     libxss1 \
     libasound2 \
+    libgbm1 \
+    libgtk-3-0 \
+    fonts-liberation \
+    libappindicator3-1 \
+    xdg-utils \
     xvfb \
     && rm -rf /var/lib/apt/lists/*
 

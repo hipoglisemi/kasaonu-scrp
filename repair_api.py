@@ -39,6 +39,18 @@ async def health():
     return {"status": "ok", "service": "repair-api"}
 
 
+@app.exception_handler(Exception)
+async def global_exception_handler(request, exc):
+    """Catch all unhandled exceptions and return them as JSON."""
+    logging.exception("Unhandled exception occurred")
+    return JSONResponse(
+        status_code=500,
+        content={
+            "success": False, 
+            "message": f"Global Sunucu Hatası: {str(exc)}",
+            "type": type(exc).__name__
+        }
+    )
 @app.post("/repair/{campaign_id}")
 async def repair_campaign(campaign_id: int, force: bool = True, authorization: Optional[str] = Header(None)):
     """
