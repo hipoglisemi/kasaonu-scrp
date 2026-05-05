@@ -1,5 +1,4 @@
 # Requirements for the Repair API service only
-# (No Playwright, Chrome, or Selenium needed)
 sqlalchemy==2.0.25
 psycopg2-binary==2.9.9
 python-dotenv==1.0.0
@@ -11,6 +10,9 @@ python-slugify==8.0.4
 google-auth
 google-api-python-client
 thefuzz==0.20.0
+# Browser automation and extraction
+selenium==4.17.2
+trafilatura==1.6.4
 # API framework
 fastapi>=0.104.0
 uvicorn[standard]>=0.24.0

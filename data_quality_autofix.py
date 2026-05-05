@@ -127,24 +127,28 @@ def fetch_html(url: str) -> str:
 
     if is_spa:
         print(f"   🚀 SPA/Tabbed Site Detected ({url}). Booting Headless Chrome...")
-        import time
-        from selenium import webdriver
-        from selenium.webdriver.common.by import By
-        options = webdriver.ChromeOptions()
-        options.add_argument('--disable-blink-features=AutomationControlled')
-        options.add_argument('--no-sandbox')
-        options.add_argument('--disable-dev-shm-usage')
-        options.add_argument('--disable-gpu')
-        options.add_argument('--headless=new')
-        
-        options.add_argument('--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36')
-        options.add_experimental_option("excludeSwitches", ["enable-automation"])
-        options.add_experimental_option('useAutomationExtension', False)
-        options.add_argument('--disable-blink-features=AutomationControlled')
-        
         try:
-            driver = webdriver.Chrome(options=options)
-            driver.set_page_load_timeout(30)
+            from selenium import webdriver
+            from selenium.webdriver.common.by import By
+            
+            from selenium.webdriver.chrome.service import Service
+            
+            options = webdriver.ChromeOptions()
+            if os.getenv("CHROME_BIN"):
+                options.binary_location = os.getenv("CHROME_BIN")
+                
+            options.add_argument('--disable-blink-features=AutomationControlled')
+            options.add_argument('--no-sandbox')
+            options.add_argument('--disable-dev-shm-usage')
+            options.add_argument('--disable-gpu')
+            options.add_argument('--headless=new')
+            options.add_argument('--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36')
+            options.add_experimental_option("excludeSwitches", ["enable-automation"])
+            options.add_experimental_option('useAutomationExtension', False)
+            
+            service = Service(executable_path=os.getenv("CHROMEDRIVER_PATH", "chromedriver"))
+            driver = webdriver.Chrome(service=service, options=options)
+            driver.set_page_load_timeout(60) # Increased timeout
             driver.get(url)
             time.sleep(4) # Initial wait
             # Scroll to bottom to trigger lazy loading
