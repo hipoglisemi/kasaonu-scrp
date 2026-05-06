@@ -334,11 +334,10 @@ class ParafScraper:
         
         # Link Brands
         for bid in brand_ids:
-            try:
+            existing_link = self.db.query(CampaignBrand).filter_by(campaign_id=campaign.id, brand_id=bid).first()
+            if not existing_link:
                 cb = CampaignBrand(campaign_id=campaign.id, brand_id=bid)  # type: ignore # pyre-ignore[16]
                 self.db.add(cb)  # type: ignore # pyre-ignore[16]
-            except:
-                pass
         self.db.commit()  # type: ignore # pyre-ignore[16]
         return op_status
 

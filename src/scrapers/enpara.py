@@ -337,8 +337,10 @@ class EnparaScraper:
                     self.db.flush()  # type: ignore # pyre-ignore[16]
                 
                 # Link
-                cb = CampaignBrand(campaign_id=campaign.id, brand_id=brand.id)  # type: ignore # pyre-ignore[16]
-                self.db.add(cb)  # type: ignore # pyre-ignore[16]
+                existing_link = self.db.query(CampaignBrand).filter_by(campaign_id=campaign.id, brand_id=brand.id).first()
+                if not existing_link:
+                    cb = CampaignBrand(campaign_id=campaign.id, brand_id=brand.id)  # type: ignore # pyre-ignore[16]
+                    self.db.add(cb)  # type: ignore # pyre-ignore[16]
             
             self.db.commit()  # type: ignore # pyre-ignore[16]
             return op_status
