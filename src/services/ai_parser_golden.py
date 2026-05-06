@@ -26,7 +26,7 @@ logger = logging.getLogger(__name__)
 BANK_CARD_KEYWORDS = {
     "akbank": ["axess", "wings", "free", "akbank kart", "bank’o card axess", "bank'o card", "ticari kartlar", "ticari", "ek kartlar", "sanal kartlar"],
     "işbankası": ["maximum", "maximiles", "privia"],
-    "yapı kredi": ["worldcard", "world", "play", "adios", "crystal", "bireysel kredi kartları", "banka kartları", "tlcard", "vakıfbank worldcard", "albaraka worldcard", "anadolubank worldcard", "opet worldcard"],
+    "yapı kredi": ["worldcard", "world", "play", "adios", "crystal", "bireysel kredi kartları", "banka kartları", "tlcard", "vakıfbank worldcard", "albaraka worldcard", "anadolubank worldcard", "opet worldcard", "vakıfbank", "albaraka", "anadolubank"],
     "ziraat": ["bankkart", "bankkart başak", "bankkart genç", "bankkart prestij", "bankkart business"],
     "vakıfbank": ["worldcard", "world", "express card"],
     "halkbank": ["paraf", "parafly", "paraf business", "parafree", "paraf esnaf", "paraf kobi", "eczacı paraf", "eczacı paraf kobi", "halkcard", "paraf genç", "paraf gençiz", "sanal kartlar", "ek kartlar"],
@@ -45,13 +45,13 @@ BANK_CARD_KEYWORDS = {
     "vodafone": ["vodafone müşterileri", "vodafone kullanıcıları", "vodafone red", "vodafone freezone"],
     "chippin": ["chippin"],
     "param": ["paramkart"],
-    "paycell": ["paycell kart"],
+    "paycell": ["paycell kart", "faturana yansıt", "mobil ödeme"],
     "tami": ["tami kart"],
     "uption": ["uption kart"],
     "masterpass": ["masterpass"],
-    "opet": ["opet kart", "yakıt puan", "opet mobil"],
+    "opet": ["opet kart", "opet mobil", "opet müşterileri"],
     "nays": ["nays kart", "nays kullanıcıları"],
-    "dünya katılım": ["dünya katılım kartı", "dünya katılım banka kartı", "dünya katılım kredi kartı"],
+    "dünya katılım": ["dünya katılım kartı", "dünya katılım banka kartı", "dünya katılım kredi kartı", "dkart", "dkart debit", "dünya katılım paraf", "dünya katılım troy"],
 }
 
 BANK_APP_NAMES = {
@@ -349,6 +349,7 @@ Kampanya Sahibi Banka/Kurum: {bank_name}
     - En fazla 10 madde.
     - 🚨 İKİNCİL ÖDÜLLER: Ana ödülden farklı olan taksit, ek fayda vb. durumları ve onlara özel geçerli kartları burada belirt (Örn: "Peşin fiyatına 6 taksit fırsatından Axess kartlar da yararlanabilir").
     - 🚨 GEÇERLİ OLDUĞU YERLER (ZORUNLU): Kampanyanın dahil olduğu/geçerli olduğu mağaza, marka, platform veya web siteleri metinde geçiyorsa, bunu EKSİKSİZ VE KESİN OLARAK maddelerden biri yap (Örn: "Kampanya sadece www.ornek.com ve X mağazalarında geçerlidir").
+    - 🚨 İSTİSNALAR VE HARİÇ OLANLAR (KRİTİK): Kampanya kapsamında **geçerli OLMAYAN** markalar, ürün grupları, mağazalar veya kart tipleri metinde belirtilmişse (Örn: "Tütün harcamaları dahil değildir", "X mağazaları hariçtir", "Ticari kartlar geçerli değildir"), bunları MUTLAKA 'conditions' listesine madde olarak ekle. Kullanıcı neyin kapsam dışı olduğunu bilmeli.
     - 🚨 MAĞAZA/POS KURALI: Eğer 'sadece X Bankası POS cihazlarından geçen işlemler' gibi fiziksel/altyapı şartları varsa, bunu DİREKT OLARAK maddelerden biri yap.
     - 🚨 ULTRA KRİTİK - YASAK: Tarih, Geçerli Kartlar ve Katılım adımlarını 'conditions' içerisine KESİNLİKLE YAZMA (Tepede zaten var). Sadece harcama alt sınırı, POS şartları, ödül limitleri gibi işlemsel koşulları özetle.
     - 🚨 JURIDICAL BOILERPLATE REMOVAL (ULTRA STRICT): Aşağıdaki jenerik hukuki metinleri KESİNLİKLE SİL, ASLA MADDE OLARAK YAZMA:
@@ -383,7 +384,7 @@ ANALİZ EDİLECEK METİN:
 """
 
     # ── MAIN PARSE FLOW ──────────────────────────────────────────────
-    def parse_campaign(self, raw_html: str, bank_name: str = "", title: str = "", og_title: str = None, structured_cards_text: str = None) -> Dict[str, Any]:
+    def parse_campaign(self, raw_html: str, bank_name: str = "", title: str = "", og_title: str = None, structured_cards_text: str = None, scraper_sector: str = None) -> Dict[str, Any]:
         """Golden Standard V3 parse flow."""
         # 1. Clean text (og_title/title enables header trimming for SPA sites)
         cleaned_text = clean_campaign_text(raw_html, og_title=og_title, title=title)
@@ -421,7 +422,7 @@ ANALİZ EDİLECEK METİN:
         parsed_data = self._extract_json(ai_response)
 
         # 4. Apply ALL Python Guards
-        result = self._apply_business_logic(parsed_data, cleaned_text, bank_name, title, pb_matches)
+        result = self._apply_business_logic(parsed_data, cleaned_text, bank_name, title, pb_matches, scraper_sector=scraper_sector)
 
         # ── 5. REPORT CANDIDATES BACK TO PBE ──
         # If AI found a validated brand that isn't in PBE yet, report it for admin approval.
@@ -488,7 +489,7 @@ ANALİZ EDİLECEK METİN:
     # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     def _apply_business_logic(self, data: Dict[str, Any], raw_text: str,
                                bank_name: str = "", title: str = "",
-                               pb_matches: list = None) -> Dict[str, Any]:
+                               pb_matches: list = None, scraper_sector: str = None) -> Dict[str, Any]:
         today = datetime.now()
         raw_text_lower = self._tr_lower(raw_text)
         title_lower = self._tr_lower(title or "")
@@ -520,12 +521,12 @@ ANALİZ EDİLECEK METİN:
         sector = data.get("sector", "diger")
         if isinstance(sector, list):
             sector = sector[0] if sector else "diger"
-        # Fix legacy slugs
-        sector = SECTOR_SLUG_FIXES.get(sector, sector)
-        if sector not in self.valid_sectors:
-            sector = "diger"
-        # PBE sector override
-        if pb_matches:
+        
+        # Priority 1: Scraper Override (Highest trust)
+        if scraper_sector and scraper_sector != "diger":
+            sector = scraper_sector
+        # Priority 2: PBE sector override (High trust)
+        elif pb_matches:
             pb_sectors = [
                 m.get("sector") for m in pb_matches 
                 if m.get("sector") and m.get("sector") != "diger"
@@ -535,6 +536,12 @@ ANALİZ EDİLECEK METİN:
                 pbe_sector = SECTOR_SLUG_FIXES.get(pb_sectors[0], pb_sectors[0])
                 if pbe_sector in self.valid_sectors and pbe_sector != "diger":
                     sector = pbe_sector
+        
+        # Priority 3: Final normalization of AI suggestion
+        sector = SECTOR_SLUG_FIXES.get(sector, sector)
+        if sector not in self.valid_sectors:
+            sector = self._determine_sector(sector, title, raw_text)
+            
         data["sector"] = sector
 
         # ── 3. CARD GUARD (Core Word Matching + Sniper) ──────────────
@@ -1106,7 +1113,8 @@ def parse_api_campaign(
         bank_name=bank_name or "", 
         title=title or "", 
         og_title=og_title,
-        structured_cards_text=structured_cards_text
+        structured_cards_text=structured_cards_text,
+        scraper_sector=scraper_sector
     )
     if not result:
         result = {}

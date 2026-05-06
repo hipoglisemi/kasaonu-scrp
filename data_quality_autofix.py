@@ -146,8 +146,13 @@ def fetch_html(url: str) -> str:
             options.add_experimental_option("excludeSwitches", ["enable-automation"])
             options.add_experimental_option('useAutomationExtension', False)
             
-            service = Service(executable_path=os.getenv("CHROMEDRIVER_PATH", "chromedriver"))
-            driver = webdriver.Chrome(service=service, options=options)
+            try:
+                service = Service(executable_path=os.getenv("CHROMEDRIVER_PATH", "chromedriver"))
+                driver = webdriver.Chrome(service=service, options=options)
+            except:
+                # Fallback to standard init if service/path fails (similar to scrapers)
+                driver = webdriver.Chrome(options=options)
+
             driver.set_page_load_timeout(60) # Increased timeout
             driver.get(url)
             time.sleep(4) # Initial wait
@@ -268,6 +273,19 @@ def fetch_html(url: str) -> str:
     # 🛡️ Use Central Text Cleaner (Standard Scraper Logic)
     text = clean_campaign_text(text)
     
+    # 🛡️ GENERIC CONTENT GUARD
+    generic_keywords = ["çerez", "kişisel veriler", "aydınlatma metni", "hakkımızda", "içeriğe git", "menüye git", "gizlilik politikası"]
+    campaign_keywords = ["kampanya", "indirim", "fırsat", "çekiliş", "kazan", "hediye", "puan", "iade", "tl", "bonus"]
+    
+    text_lower = text.lower()
+    generic_count = sum(1 for k in generic_keywords if k in text_lower)
+    campaign_count = sum(1 for k in campaign_keywords if k in text_lower)
+    
+    # If the text is overwhelmingly generic and missing campaign keywords, mark as empty
+    if generic_count > 5 and campaign_count < 2 and len(text) < 3000:
+        print(f"   🛡️ Generic Content Guard Triggered! (Generic: {generic_count}, Campaign: {campaign_count}). Rejecting text.")
+        return "", "GENERIC_CONTENT_REJECTED"
+
     status_code = "LIVE_SUCCESS" if len(text) > 200 else "LIVE_EMPTY"
     return text, status_code
 
@@ -560,10 +578,12 @@ def run_autofix(limit: int = 250, campaign_id: Optional[int] = None, force_all: 
                         _raw_resp.raise_for_status()
                         from bs4 import BeautifulSoup as _BS
                         _raw_soup = _BS(_raw_resp.text, "html.parser")
-                        _h1 = _raw_soup.select_one('h1')
-                        if _h1 and _h1.get_text(strip=True):
-                            og_title = _h1.get_text(strip=True)
-                            print(f"   🏷️ H1 title found: {og_title}")
+                        # 🛡️ Skip H1 title extraction for Opet as it's usually generic "Kampanyalar"
+                        if "opet" not in (c.tracking_url or "").lower():
+                            _h1 = _raw_soup.select_one('h1')
+                            if _h1 and _h1.get_text(strip=True):
+                                og_title = _h1.get_text(strip=True)
+                                print(f"   🏷️ H1 title found: {og_title}")
                     except Exception as _e:
                         print(f"   ⚠️ Raw title fetch failed: {_e}")
                     
@@ -608,7 +628,8 @@ def run_autofix(limit: int = 250, campaign_id: Optional[int] = None, force_all: 
                     raw_html=text_to_parse,
                     bank_name=bank_name or '',
                     title=ai_title_pass,
-                    og_title=og_title
+                    og_title=og_title,
+                    scraper_sector=c.sector.slug if c.sector else None
                 )
                 
                 if ai_data:

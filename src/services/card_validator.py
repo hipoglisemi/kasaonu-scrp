@@ -12,7 +12,9 @@ CARD_EXCLUSION_TERMS = {
 }
 
 CARD_PASSTHROUGH_TERMS = {
-    "sanal kart", "ek kart", "sanal", "ek", "sanal kartlar", "ek kartlar"
+    "sanal kart", "ek kart", "sanal", "ek", "sanal kartlar", "ek kartlar",
+    "turkcell musterileri", "vodafone musterileri", "türk telekom musterileri",
+    "bireysel musteriler", "ticari kartlar", "tum kartlar", "tum musteriler"
 }
 
 class CardValidator:
@@ -62,7 +64,8 @@ class CardValidator:
 
             # 3. DIRECT MATCH & NEGATION
             if card_norm in text_normalized:
-                if not check_string_negation(card, raw_text, bank_key):
+                is_generic = card_norm in ["world", "paraf", "maximum", "bonus", "axess", "bankkart"]
+                if not check_string_negation(card, raw_text, bank_key, is_generic_brand=is_generic):
                     validated.append(card)
                 continue
 
@@ -93,7 +96,7 @@ class CardValidator:
             window = text_normalized[idx:idx+200]
             
             # 🛡️ REFINEMENT: If the card is in a sentence that explicitly says it's included, it's NOT a trap.
-            if "dahil" in window or "gecerli" in window or "faydalan" in window:
+            if any(k in window for k in ["dahil", "gecerli", "faydalan", "indirim", "firsat", "kazan"]):
                 any_valid_mention = True
                 break
 
@@ -116,12 +119,17 @@ class CardValidator:
         if not core_words: return False
         
         matched = sum(1 for w in core_words if w in text_normalized)
-        threshold = max(1, int(len(core_words) * 0.6))
+        # 🛡️ Threshold check: for 1-2 core words, we need 100% match. For 3+, 60%.
+        if len(core_words) <= 2:
+            threshold = len(core_words)
+        else:
+            threshold = max(2, int(len(core_words) * 0.6))
         
         if matched >= threshold:
             # Check negation on the first matched core word
             first_match = next((w for w in core_words if w in text_normalized), card_norm)
-            if not check_string_negation(first_match, raw_text, bank_key):
+            is_generic = first_match in ["world", "paraf", "maximum", "bonus", "axess", "bankkart"]
+            if not check_string_negation(first_match, raw_text, bank_key, is_generic_brand=is_generic):
                 return True
         return False
 
@@ -167,6 +175,12 @@ class CardValidator:
                         if bank_key == "akbank" and "axess" in v_norm and "axess" in kc_norm:
                             if "bank'o" in v_norm or "bank'o" in kc_norm:
                                 continue # Keep both Axess and Bank'O Card Axess
+
+                        # [HALKBANK EXCEPTION]: Paraf and Parafly can coexist
+                        if bank_key == "halkbank" and v_norm == "paraf" and kc_norm == "parafly":
+                            continue
+                        if bank_key == "halkbank" and v_norm == "parafly" and kc_norm == "paraf":
+                            continue
                         
                         # [ZIRAAT EXCEPTION]: Bankkart base and variants are distinct
                         if bank_key == "ziraat":

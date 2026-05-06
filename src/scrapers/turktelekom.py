@@ -601,10 +601,8 @@ class TurkTelekomScraper:
             # Brands
             brand_ids = self._get_or_create_brands(data.get("brands", []), sector.id if sector else None)  # type: ignore # pyre-ignore[16]
             
-            # Slug - always use generate_slug for consistency
-            url_hash = uuid.uuid5(uuid.NAMESPACE_URL, url).hex[:8]  # type: ignore # pyre-ignore[16,6]
-            base_slug = generate_slug(data.get("title", ""))
-            slug = f"{base_slug}-{url_hash}"
+            # Slug - always use get_unique_slug for consistency and deterministic hashing
+            slug = generate_slug(data.get("title") or "Kampanya")
             
             ai_marketing_text = data.get("ai_marketing_text") or data.get("description", "")
             participation_text = data.get("participation", "")

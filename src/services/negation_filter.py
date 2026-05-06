@@ -51,11 +51,10 @@ def check_string_negation(target_str, full_text, bank_key=None, is_generic_brand
     # Common suffixes/prefixes that change the card type
     modifiers = r"(?i)(?:debit|business|esnaf|kobi|genc|genç|free|flexi|ticari|bank['’\s]*o['’\s]*card|bank['’\s]*o['’\s]*|para|fly|free|eko|eco|platinum|crystal|adios|play|altin|altın|gold|premium|money|gift|paracard|garantione|amex|american express|troy|shop&fly|miles&smiles|ucretsiz|ücretsiz|basak|başak|prestij)"
     
-    # Use regex for whole word match
-    if is_generic_brand:
-        pattern = rf"(?<![a-z0-9]){re.escape(target_norm)}(?![a-z0-9])"
-    else:
-        pattern = rf"(?<![a-z0-9]){re.escape(target_norm)}(?![a-z0-9])"
+    # Use regex for whole word match, but allow common Turkish suffixes
+    # We allow: lar, ler, li, lu, lü, lı, nin, nın, in, un, ün, a, e, yla, yle etc.
+    turkish_suffixes = r"(?:lar|ler|lı|li|lu|lü|lar|ler|n|ın|in|un|ün|a|e|ya|ye|yı|yi|yu|yü|da|de|dan|den|yla|yle)?"
+    pattern = rf"(?<![a-z0-9]){re.escape(target_norm)}{turkish_suffixes}(?![a-z0-9])"
         
     has_positive_mention = False
     has_negative_mention = False
@@ -83,11 +82,21 @@ def check_string_negation(target_str, full_text, bank_key=None, is_generic_brand
         is_this_negated = False
         sentence_has_positive = False
         
-        # Find sentence for this occurrence
+        # Find sentence for this occurrence (respecting dots, semicolons and colons)
         rel_pos = match.start() - start_search
-        sent_start = max(0, window.rfind(".", 0, rel_pos) + 1)
-        sent_end = window.find(".", rel_pos + len(target_norm))
-        if sent_end == -1: sent_end = len(window)
+        
+        # Search for any boundary characters: . ; :
+        boundaries = [window.rfind(".", 0, rel_pos), window.rfind(";", 0, rel_pos), window.rfind(":", 0, rel_pos)]
+        sent_start = max(0, max(boundaries) + 1)
+        
+        # Search forward for boundaries
+        f_boundaries = [window.find(".", rel_pos + len(target_norm)), 
+                        window.find(";", rel_pos + len(target_norm)),
+                        window.find(":", rel_pos + len(target_norm))]
+        # Filter out -1s
+        f_boundaries = [b for b in f_boundaries if b != -1]
+        sent_end = min(f_boundaries) if f_boundaries else len(window)
+        
         sentence = window[sent_start:sent_end]
         
         # 🛡️ POSITIVE CHECK (Ensuring it's not a negated positive like 'dahil değildir')

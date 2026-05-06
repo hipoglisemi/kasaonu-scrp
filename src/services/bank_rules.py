@@ -61,7 +61,9 @@ YAPI KREDI (WORLD) SPECIFIC RULES:
     - IMPORTANT: "TL Worldpuan" means the value is in TL. If it says "100 TL Worldpuan", earning is "100 TL Worldpuan".
 - ELIGIBLE CARDS (cards):
     - RAW EXTRACTION (LITERAL): Extract the EXACT card names or common categories from the text.
-    - Metinde ne geçiyorsa aynen al: "Worldcard", "Yapı Kredi Kredi Kartları", "Mastercard logolu kartlar", "Business", "World Eko", "Adios" vb.
+    - Metinde ne geçiyorsa aynen al: "Worldcard", "Yapı Kredi Kredi Kartları", "Mastercard logolu kartlar", "Business", "World Eko", "Adios", "Crystal", "Play" vb.
+    - 🚨 PARTNER BANKA HASSASİYETİ (CRITICAL): Yapı Kredi kampanyalarında "Vakıfbank", "Albaraka" ve "Anadolubank" sıklıkla ortaktır. Metinde bu bankaların DAHİL OLDUĞU belirtiliyorsa cards listesine eklemeyi unutma. (Eğer metinde "hariçtir" deniyorsa kesinlikle ekleme).
+    - 🚨 LİTERAL KURALI: Sadece metinde ismen geçen kartları al. Eğer metin "Tüm bireysel kredi kartları" diyorsa ve özel alt marka adı geçmiyorsa, sadece bu genel ifadeyi al (uydurma marka ekleme).
     - NO DEFAULTING: If the text says "Mastercard", write "Mastercard". DO NOT write "Worldcard" unless it's in the text.
 - PARTICIPATION (katilim_sekli):
     - EXTRACTION RULE: Extract exactly what is found in the text. DO NOT use generic templates.
@@ -176,7 +178,8 @@ HALKBANK (PARAF / PARAFLY) SPECIFIC RULES:
 - ELIGIBLE CARDS (cards):
     - STRICT & EXHAUSTIVE: Metindeki kart listesinde geçen HER İSMİ tek tek al.
     - 🚨 ASLA ATLANMAYACAK KARTLAR: "Parafree", "Paraf Esnaf", "Paraf KOBİ", "Eczacı Paraf", "Eczacı Paraf KOBİ", "Paraf Business", "Sanal kartlar", "Ek kartlar".
-    - Common INCLUSIONS: "Paraf", "Parafly", "Halkcard".
+    - Common CARDS: "Paraf", "Parafly", "Halkcard" (🚨 **DİKKAT**: Metinde "Halkcard dahil değildir" deniyorsa ASLA ekleme).
+    - 🚨 **SPESİFİK İSTİSNA**: Eğer "Paraf Debit", "Paraf Business" veya "Ticari kartlar" dahil değil deniyorsa, bu sadece o kartlar içindir. Metinde ana "Paraf" kartının dahil olduğu yazıyorsa mutlaka ekle.
     - Exclusions: "Paraf Genç" ve "Debit kartlar" (Banka kartları) genellikle dahil değildir, metni dikkatli oku.
 - PARTICIPATION (katilim_sekli):
     - PRIORITY ORDER:
@@ -286,17 +289,19 @@ CHIPPIN SPECIFIC RULES:
 """,
     'dunyakatilim': """
 DÜNYA KATILIM SPECIFIC RULES:
-- TERMINOLOGY: "Harcama Puan" or "İndirim".
+- TERMINOLOGY: "Harcama Puan", "İndirim" or "ParafPara".
 - ELIGIBLE CARDS (cards):
     - RAW EXTRACTION (LITERAL): Extract exact names from text.
     - Keywords: "Dünya Katılım Banka Kartı", "Dünya Katılım Kredi Kartı", "Dünya Katılım Troy Kart".
     - 🚨 ASLA ATLANMAYACAK: "TROY" logolu kartlar vurgulanmışsa bunu kart listesine ekle.
 - PARTICIPATION (katilim_sekli):
+    - 🚨 **ÖNEMLİ**: Katılım şeklini bulamazsan BOŞ BIRAKMA. Eğer SMS veya Uygulama kaydı yoksa "Otomatik Katılım" veya "Paraf POS üzerinden işlem" şeklinde belirt.
     - PRIORITY ORDER:
       1. App: "Dünya Katılım Mobil" application. Look for "Kampanyalar" menu and "Katıl" button.
-      2. SMS: If any shortcode is mentioned (rare).
-      3. Automatic: If the campaign is a discount or automatic refund.
-    - FORMAT: "Dünya Katılım Mobil uygulamasındaki Kampanyalar menüsünden katılabilirsiniz."
+      2. SMS: If any shortcode is mentioned.
+      3. POS/In-store: "Mağazada Paraf POS cihazı üzerinden işlem yaparak" or "Kasada belirtilerek".
+      4. Automatic: If it's a simple installment or discount, use "Harcama anında otomatik olarak uygulanır."
+    - FORMAT: "Dünya Katılım Mobil uygulamasındaki Kampanyalar menüsünden katılabilirsiniz." or "Paraf POS cihazı üzerinden işleminizi yaparak katılabilirsiniz."
 - CONDITIONS: 
     - Focus on specific merchant categories and minimum spend requirements.
     - Mention if "TROY" logo is mandatory for the campaign.
@@ -326,20 +331,36 @@ VODAFONE SPECIFIC RULES:
     'paycell': """
 PAYCELL SPECIFIC RULES:
 - STRUCTURE (CRITICAL): Paycell uses a Q&A format. Map these headers DIRECTLY:
-    1. "Kampanyaya Dahil Harcamalar Nelerdir?" -> **ELIGIBLE CARDS (cards)** (🚨 PRIMARY SOURCE)
-    2. "Kampanya Geçerlilik Tarihi Nedir?" -> **DATES (start_date, end_date)**
+    1. "Kampanyaya Kimler Katılabilir?" -> **ELIGIBLE CARDS (cards)** (Source for cards/segments)
+    2. "Kampanyaya Dahil Harcamalar Nelerdir?" -> **ELIGIBLE CARDS (cards)** (Source for cards/payment methods)
     3. "Kampanyadan Nasıl Kazanırım?" -> **PARTICIPATION (participation)**
-    4. "Kampanya Faydası Nedir?" -> **REWARD (reward_text)**
-    5. "Kampanyaya Kimler Katılabilir?" -> Use this ONLY to identify customer segments (e.g. Turkcell Müşterileri).
+    4. "Kampanya Geçerlilik Tarihi Nedir?" -> **DATES (start_date, end_date)**
+    5. "Kampanya Faydası Nedir?" -> **REWARD (reward_text)**
 - DESCRIPTION (CRITICAL):
     - 🚨 **ASLA ÖZETLEME**: Paycell metinleri soru-cevap formatındadır. 'description' alanına metnin TAMAMINI (tüm soru ve cevapları) olduğu gibi yaz. Bilgi kaybını önlemek için bu hayati önem taşır.
 - ELIGIBLE CARDS (cards):
-    - 🚨 **KESİN TALİMAT**: Geçerli kartları veya ödeme yöntemlerini **SADECE** "Kampanyaya Dahil Harcamalar Nelerdir?" başlığı altındaki metinde ara. Başka bölümlere (Nasıl Kazanırım, Kimler Katılabilir vb.) bakma.
-    - **LİTERAL EXTRACTION**: Metinde geçen kart isimlerini (örn: "Fiziksel Paycell Kart", "Sanal Paycell Kart") aynen al.
-    - **PUBG ÖRNEĞİ (KRİTİK)**: Eğer harcama şartında "Paycell PUBG Kart" diyorsa, 'cards' listesine SADECE "Paycell PUBG Kart" yaz. Bu durumda genel "Paycell Kart" ibaresini eklemek **KESİNLİKLE YASAKTIR**.
+    - 🚨 **ÖNEMLİ**: Paycell için "Faturana Yansıt", "Mobil Ödeme", "Turkcell müşterileri" ve "Paycell Kart" ibarelerini metnin neresinde olursa olsun mutlaka 'cards' listesine ekle. "Faturana Yansıt" bir ödeme ürünü ismidir.
+    - **LİTERAL EXTRACTION**: Metinde karakter karakter ne görüyorsan (örn: "Faturana Yansıt", "Fiziksel Paycell Kart") aynen al.
+    - **SIFIR HALÜSİNASYON**: Metinde açıkça geçmeyen bir kartı ASLA ekleme.
 - PARTICIPATION (participation):
-    - 🚨 **KRİTİK**: "Kampanyadan Nasıl Kazanırım?" bölümündeki aksiyonu (örn: "Paycell Mobil Uygulaması üzerinden HEMEN KATIL butonuna basın") özetle. Eğer SMS veya başka bir yöntem varsa mutlaka belirt.
+    - 🚨 **KAYNAK KONTROLÜ**: Katılım şekli bilgisini **ÖNCELİKLE** "Kampanyadan Nasıl Kazanırım?" bölümünden al. 
+    - **FALLBACK**: Eğer bu başlık yoksa tüm metne bak.
+    - Buton tıklama ("Hemen Katıl"), SMS veya diğer aksiyonları bu bölümden özetleyerek yaz.
 - TERMINOLOGY: "Hediye Para" or "Nakit İade".
 - CONDITIONS: Use "Diğer Koşullar" and "Kampanyaya Dahil Harcamalar Nelerdir?" for the conditions list.
+""",
+    'opet': """
+OPET SPECIFIC RULES:
+- ELIGIBLE CARDS / CUSTOMER SEGMENTS (cards):
+    - 🚨 **VARSAYILAN MÜŞTERİ GRUBU**: Opet kampanyalarında eğer metinde spesifik bir banka kartı (örn: "Axess", "Opet Worldcard") belirtilmemişse, `cards` alanına mutlaka **"Opet Müşterileri"** yazılmalıdır.
+    - 🚨 **ÖNCELİK KURALI**: Eğer metinde "Opet Worldcard ile..." veya "Yapı Kredi kredi kartları ile..." gibi banka spesifik bir ifade geçiyorsa, sadece o banka kartlarını yaz. "Opet Müşterileri" ifadesini bu durumda EKLEME.
+    - 🚨 **METİN KONTROLÜ**: "Opet müşterilerine özel", "Opetlilere özel", "Opet Kart sahiplerine" gibi ifadeler doğrudan "Opet Müşterileri" olarak normalize edilmelidir.
+    - 🚨 **İŞ BİRLİĞİ KAMPANYALARI**: "DeFacto ve Opet iş birliği", "Çek Kazan" gibi üçüncü taraf kampanyalarında, katılım Opet sitesi üzerinden duyuruluyorsa "Opet Müşterileri" mutlaka eklenmelidir.
+- PARTICIPATION (participation):
+    - Opet sitesindeki "Hemen Katıl", "Şifre Al", "Kodu Kullan" gibi adımları özetle.
+    - "Opet Mobil uygulamasını indirin", "Opet Pay ile ödeyin" gibi talimatları mutlaka ekle.
+- CONDITIONS: 
+    - Akaryakıt harici harcamalar (örn: market, araç yıkama) veya belirli ürün grupları (Parex, Karcher) için geçerliyse belirt.
+    - Puan kullanım tarihleri ve geçerli istasyon kısıtlamalarını ekle.
 """
 }
