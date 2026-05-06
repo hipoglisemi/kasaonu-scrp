@@ -344,8 +344,10 @@ class OpetScraper:
                     )
 
                     for b_id in brand_ids:
-                        cb = CampaignBrand(campaign_id=new_campaign.id, brand_id=b_id)
-                        self.db.add(cb)
+                        existing_link = self.db.query(CampaignBrand).filter_by(campaign_id=new_campaign.id, brand_id=b_id).first()
+                        if not existing_link:
+                            cb = CampaignBrand(campaign_id=new_campaign.id, brand_id=b_id)
+                            self.db.add(cb)
 
                     self.db.commit()
                     processed_count += 1
