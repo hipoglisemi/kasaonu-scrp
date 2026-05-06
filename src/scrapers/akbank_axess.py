@@ -10,8 +10,9 @@ if project_root not in sys.path:
 
 try:
     from src.scrapers.akbank_base import AkbankBaseScraper  # type: ignore # pyre-ignore[21]
-except ImportError:
-    from akbank_base import AkbankBaseScraper  # type: ignore # pyre-ignore[21]
+except ImportError as e:
+    print(f"[DEBUG] AkbankBaseScraper import FAILED: {e}")
+    raise
 
 class AkbankAxessScraper(AkbankBaseScraper):
     """

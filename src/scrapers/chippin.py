@@ -56,9 +56,15 @@ CARD_DEFINITIONS = {
 }
 
 def slugify(text: str) -> str:
-    text = text.lower()
-    tr_map = str.maketrans("çğıöşüâîûÇĞİÖŞÜÂÎÛ", "cgiosuaiucgiosuaiu")
+    if not text:
+        return ""
+    # Turkish character mapping (before lowercasing to catch İ and I correctly)
+    tr_map = str.maketrans(
+        "ÇĞİÖŞÜâîûÂÎÛçğıöşü",
+        "cgiosuaiuaiucgiosu"
+    )
     text = text.translate(tr_map)
+    text = text.lower()
     text = re.sub(r'[^a-z0-9\s-]', '', text)
     text = re.sub(r'[\s-]+', '-', text).strip('-')
     return text  # type: ignore # pyre-ignore[7]

@@ -73,16 +73,9 @@ class IsbankMaximilesScraper:
             print("[DEBUG] AIParser lazy-imported via src.services")
             self.parser = AIParser()
             self.parse_api_campaign = _parse_api_campaign
-        except ImportError:
-            try:
-                from services.ai_parser import AIParser as _FallbackParser  # type: ignore # pyre-ignore[21]
-                from src.services.ai_parser_golden import parse_api_campaign as _parse_api_campaign  # type: ignore # pyre-ignore[21]
-                print("[DEBUG] AIParser lazy-imported via services")
-                self.parser = _FallbackParser()
-                self.parse_api_campaign = _parse_api_campaign
-            except ImportError as e:
-                print(f"[DEBUG] AIParser import FAILED: {e}")  # type: ignore # pyre-ignore[16,6]
-                raise
+        except ImportError as e:
+            print(f"[DEBUG] AIParser import FAILED: {e}")
+            raise
         print("[DEBUG] AIParser initialized")
 
         self.page = None

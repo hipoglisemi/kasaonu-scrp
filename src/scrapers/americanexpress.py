@@ -64,8 +64,9 @@ class AmericanExpressScraper:
         
         try:
             from src.services.ai_parser import AIParser as _AIParser  # type: ignore # pyre-ignore[21]
-        except ImportError:
-            from services.ai_parser import AIParser as _AIParser  # type: ignore # pyre-ignore[21]
+        except ImportError as e:
+            print(f"[DEBUG] AIParser import FAILED: {e}")
+            raise
         global AIParser
         AIParser = _AIParser
 

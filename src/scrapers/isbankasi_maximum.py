@@ -96,15 +96,9 @@ class IsbankMaximumScraper:
             from src.services.ai_parser_golden import parse_api_campaign as _parse_api_campaign  # type: ignore # pyre-ignore[21]
             self.parser = AIParser()
             self.parse_api_campaign = _parse_api_campaign
-        except ImportError:
-            try:
-                from services.ai_parser import AIParser  # type: ignore # pyre-ignore[21]
-                from src.services.ai_parser_golden import parse_api_campaign as _parse_api_campaign  # type: ignore # pyre-ignore[21]
-                self.parser = AIParser()
-                self.parse_api_campaign = _parse_api_campaign
-            except ImportError as e:
-                print(f"[DEBUG] AIParser import FAILED: {e}")  # type: ignore # pyre-ignore[16,6]
-                raise
+        except ImportError as e:
+            print(f"[DEBUG] AIParser import FAILED: {e}")
+            raise
         print("[DEBUG] AIParser initialized")
         
         self.page = None

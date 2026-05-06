@@ -79,10 +79,9 @@ class AlbarakaScraper:
         try:
             from src.services.ai_parser import AIParser as _AIParser  # type: ignore
             self.parser = _AIParser()
-        except ImportError:
-            # Fallback for some local environments
-            from services.ai_parser import AIParser as _AIParser  # type: ignore
-            self.parser = _AIParser()
+        except ImportError as e:
+            print(f"[DEBUG] AIParser import FAILED: {e}")
+            raise
 
     def _get_or_create_bank(self) -> int:
         bank = self.session.query(Bank).filter(  # type: ignore # pyre-ignore[16]

@@ -264,6 +264,8 @@ TÜRKİYE FİNANS (HAPPY CARD / ÂLÂ KART) SPECIFIC RULES:
       2. App: "Mobil Şube" or "İnternet Şubesi". Look for "Kampanyalar" menu.
       3. Automatic: ONLY if "otomatik katılım" or if no SMS/App instruction exists AND text implies auto.
     - FORMAT: "[KEYWORD] yazıp 2442'ye SMS göndererek veya Türkiye Finans Mobil Şube üzerinden katılabilirsiniz."
+- NOISE FILTERING (CRITICAL):
+    - 🚨 **ÇAPA METNİ**: "Türkiye Finans Katılım Bankası A.Ş. kampanya koşullarını değiştirme hakkını saklı tutar." cümlesinden sonrasını KESİNLİKLE dikkate alma. Bu metin ve sonrası tamamen gürültü (footer, yasal adresler vb.) içerir.
 """,
     "chippin": """
 CHIPPIN SPECIFIC RULES:
