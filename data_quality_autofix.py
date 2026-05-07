@@ -307,11 +307,13 @@ def run_autofix(limit: int = 250, campaign_id: Optional[int] = None, force_all: 
             
             if campaign_id:
                 query = query.filter(Campaign.id == campaign_id)
-            elif pending:
+            elif ids_file:
+                # ids_file logic will filter the list later, but we can start with all active ones
+                query = query.filter(Campaign.is_active == True)
+            else:
+                # DEFAULT BEHAVIOR: Focus ONLY on PENDING (unapproved) campaigns
                 print("🔍 Focusing on PENDING (unapproved) campaigns...")
                 query = query.filter(Campaign.is_approved == False)
-            else:
-                query = query.filter(Campaign.is_active == True)
             
             defective_campaigns = query.all()
             print(f"   📊 Checking {len(defective_campaigns)} active campaigns for defects.")
@@ -485,10 +487,18 @@ def run_autofix(limit: int = 250, campaign_id: Optional[int] = None, force_all: 
                             reasons.append("Review 'Genel' Brand")
                             break
 
-                # FORCE REPAIR IF SPECIFIC ID IS PROVIDED OR IDS_FILE MODE IS ACTIVE (Bypass defect check)
-                if (campaign_id or ids_file) and not is_defective:
+                # FORCE REPAIR IF:
+                # 1. SPECIFIC ID IS PROVIDED
+                # 2. IDS_FILE MODE IS ACTIVE
+                # 3. IT'S A PENDING CAMPAIGN THAT HAS NEVER BEEN REPAIRED (Strict First-Pass Rule)
+                is_never_repaired_pending = (not c.is_approved and c.repair_count == 0)
+                
+                if (campaign_id or ids_file or is_never_repaired_pending) and not is_defective:
                     is_defective = True
-                    reasons.append(f"Manual Force Repair (List Mode)")
+                    if is_never_repaired_pending:
+                        reasons.append("Mandatory First-Pass for Pending Approval")
+                    else:
+                        reasons.append(f"Manual Force Repair (List Mode)")
 
                 if is_defective and c.tracking_url:
                     # COOLDOWN & PERMANENT SKIP LOGIC

@@ -28,7 +28,7 @@ BANK_CARD_KEYWORDS = {
     "işbankası": ["maximum", "maximiles", "privia"],
     "yapı kredi": ["worldcard", "world", "play", "adios", "crystal", "bireysel kredi kartları", "banka kartları", "tlcard", "vakıfbank worldcard", "albaraka worldcard", "anadolubank worldcard", "opet worldcard", "vakıfbank", "albaraka", "anadolubank"],
     "ziraat": ["bankkart", "bankkart başak", "bankkart genç", "bankkart prestij", "bankkart business"],
-    "vakıfbank": ["worldcard", "world", "express card"],
+    "vakıfbank": ["vakıfbank worldcard", "express card", "platinum", "milplus", "sky", "gold", "rail card", "meclis kart", "taraftar kart", "kampüs kart", "bankomat"],
     "halkbank": ["paraf", "parafly", "paraf business", "parafree", "paraf esnaf", "paraf kobi", "eczacı paraf", "eczacı paraf kobi", "halkcard", "paraf genç", "paraf gençiz", "sanal kartlar", "ek kartlar"],
     "denizbank": ["denizbonus", "net kart", "denizbank bonus"],
     "qnb": ["qnb card", "qnb troy"],
@@ -37,7 +37,7 @@ BANK_CARD_KEYWORDS = {
     "türkiye finans": ["happy card", "âlâ kart", "happy zero"],
     "enpara": ["enpara.com kredi kartı", "enpara kredi kartı"],
     "hsbc": ["hsbc premier"],
-    "şekerbank": ["şekerbank bonus", "şekerbank diamond"],
+    "şekerbank": ["şekerbank bonus", "şekerbank diamond", "şeker bonus"],
     "burgan": ["on kredi kartı", "on banka kartı"],
     "albaraka": ["albaraka worldcard"],
     "türk telekom": ["türk telekom müşterileri", "prime", "selfy"],
@@ -252,7 +252,7 @@ class AIParserGolden:
         return str(val).strip()
 
     # ── PROMPT (SHORT & MODEL-INDEPENDENT) ───────────────────────────
-    def _get_golden_prompt(self, cleaned_text: str, bank_name: str = "", pb_matches: list = None, title: str = "", og_title: str = None) -> str:
+    def _get_golden_prompt(self, cleaned_text: str, bank_name: str = "", pb_matches: Optional[list] = None, title: str = "", og_title: Optional[str] = None) -> str:
         current_date = datetime.now().strftime("%Y-%m-%d")
         bank_info = f" ({bank_name})" if bank_name else ""
 
@@ -384,7 +384,7 @@ ANALİZ EDİLECEK METİN:
 """
 
     # ── MAIN PARSE FLOW ──────────────────────────────────────────────
-    def parse_campaign(self, raw_html: str, bank_name: str = "", title: str = "", og_title: str = None, structured_cards_text: str = None, scraper_sector: str = None) -> Dict[str, Any]:
+    def parse_campaign(self, raw_html: str, bank_name: str = "", title: str = "", og_title: Optional[str] = None, structured_cards_text: Optional[str] = None, scraper_sector: Optional[str] = None) -> Dict[str, Any]:
         """Golden Standard V3 parse flow."""
         # 1. Clean text (og_title/title enables header trimming for SPA sites)
         cleaned_text = clean_campaign_text(raw_html, og_title=og_title, title=title)
@@ -489,7 +489,7 @@ ANALİZ EDİLECEK METİN:
     # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     def _apply_business_logic(self, data: Dict[str, Any], raw_text: str,
                                bank_name: str = "", title: str = "",
-                               pb_matches: list = None, scraper_sector: str = None) -> Dict[str, Any]:
+                               pb_matches: Optional[list] = None, scraper_sector: Optional[str] = None) -> Dict[str, Any]:
         today = datetime.now()
         raw_text_lower = self._tr_lower(raw_text)
         title_lower = self._tr_lower(title or "")
@@ -572,6 +572,13 @@ ANALİZ EDİLECEK METİN:
         brands = self._validate_brands(brands, raw_text_lower, title_lower, bank_key, pbe_trusted=pbe_brand_names)
         data["brands"] = brands
 
+        # ── 4.5 BRAND-SPECIFIC FALLBACKS (Petrol Ofisi etc.) ──────────
+        if not data.get("cards"):
+            brands_lower = [str(b).lower() for b in data.get("brands", [])]
+            if any(po in brands_lower for po in ["petrol ofisi", "poaş", "poas"]) or "petrol ofisi" in title_lower or "petrol ofisi" in raw_text_lower[:500]:
+                data["cards"] = ["Petrol Ofisi Müşterileri"]
+                print(f"   ⛽ FALLBACK: Petrol Ofisi detected with no cards, using 'Petrol Ofisi Müşterileri'")
+
         # ── 5. CONDITION GUARD ───────────────────────────────────────
         conditions = self._to_clean_list(data.get("conditions"))
         conditions = [c for c in conditions
@@ -639,7 +646,7 @@ ANALİZ EDİLECEK METİN:
         return ""
 
     # ── BRAND VALIDATION (from old parser, improved) ─────────────────
-    def _validate_brands(self, brands: list, text_lower: str, title_lower: str, bank_key: str, pbe_trusted: set = None) -> list:
+    def _validate_brands(self, brands: list, text_lower: str, title_lower: str, bank_key: str, pbe_trusted: Optional[set] = None) -> list:
         """
         Brand Hallucination Guard V3:
         1. Self-tagging prevention (bank/card names as brands)
@@ -879,8 +886,7 @@ ANALİZ EDİLECEK METİN:
         if tracking_url and not force:
             cached = self._check_db_cache(tracking_url)
             if cached:
-                safe_url = str(tracking_url)
-                print(f"   ✨ Using cached AI data for: {safe_url[:60]}...")
+                print(f"   ✨ Using cached AI data for: {tracking_url[:60]}...")
                 return cached
 
         return self.parse_campaign(raw_html=raw_text, bank_name=bank_name or "", title=title or "", og_title=og_title)
@@ -920,7 +926,7 @@ def _create_default_client():
             signal.alarm(65)
             try:
                 res = generate_with_rotation(prompt, model=self.model, config=config)
-                return str(res) if res else "{}"
+                return res if res else "{}"
             except TimeoutException:
                 logger.error("Gemini API call timed out (65s)")
                 return "{}"
@@ -966,7 +972,7 @@ def parse_api_campaign(
     if tracking_url and not force:
         cached = parser._check_db_cache(tracking_url)
         if cached:
-            print(f"   ✨ [API] Using cached AI data for: {str(tracking_url)[:60]}...")
+            print(f"   ✨ [API] Using cached AI data for: {tracking_url[:60]}...")
             return cached
 
     # 2. Clean HTML content — AUTOFIX-PARITY STRATEGY
@@ -1020,6 +1026,7 @@ def parse_api_campaign(
         "türk telekom":  ['.featured-privileges', '.other-campaigns', '.footer-main'],
         "dunyakatilim":  ['.header', '.footer', '.similar-campaigns', '.related-posts'],
         "vodafone":      ['.header', '.footer', '.sidebar', '.related-campaigns', '.bottom-bar'],
+        "şekerbank":     ['#breadcrumb', '.footer', '.header', '.campaign-list'],
     }
     _bank_key = (bank_name or "").lower()
     for _key, _selectors in _bank_noise_map.items():
@@ -1065,6 +1072,7 @@ def parse_api_campaign(
         "türk telekom":  ['.campaign-detail-content', '.cms-content', '.featured-privileges'],
         "dunyakatilim":  ['.news-campaign-content', '.bt', '.richtext'],
         "vodafone":      ['.campaign-detail', '.offer-detail', '.terms-conditions'],
+        "şekerbank":     ['#icerik-kutusu', '.aboutbox_about_box_container__AIbwl', '.campaign-detail'],
     }
 
     # Genel fallback selector listesi (banka eşleşmezse veya boş çıkarsa)

@@ -180,7 +180,16 @@ class TotalEnergiesScraper:
                     
                     # 2. Check icons in detail button
                     detail_btn = card_soup.select_one(".showcase__card-detail--button")
+                    detail_url = None
                     if detail_btn:
+                        # Extract URL early to use in expiration check
+                        onclick = detail_btn.get("onclick", "")
+                        match = re.search(r"window\.location\.href='([^']+)'", onclick)
+                        if match:
+                            relative_url = match.group(1)
+                            detail_url = urljoin(self.BASE_URL, relative_url)
+                            detail_url = re.sub(r'-\d+/?$', '', detail_url).rstrip('/')
+
                         icon_img = detail_btn.select_one("img")
                         if icon_img and "play_gray.svg" in icon_img.get("src", ""):
                             is_expired = True
@@ -200,7 +209,7 @@ class TotalEnergiesScraper:
                             check_url = detail_url
                             existing_campaign = self.db.query(Campaign).filter(Campaign.tracking_url == check_url).first()
                             if existing_campaign and existing_campaign.is_active:
-                                existing_campaign.is_active = False
+                                setattr(existing_campaign, 'is_active', False)
                                 self.db.commit()
                                 print(f"      ✅ Successfully marked as INACTIVE in DB.")
                         except Exception as e:
@@ -222,22 +231,8 @@ class TotalEnergiesScraper:
                     if image_tag:
                         listing_image_url = urljoin(self.BASE_URL, image_tag.get("src", ""))
 
-                    if not detail_btn:
+                    if not detail_url:
                         continue
-                        
-                    onclick = detail_btn.get("onclick", "")
-                    match = re.search(r"window\.location\.href='([^']+)'", onclick)
-                    if not match:
-                        continue
-                        
-                    relative_url = match.group(1)
-                    detail_url = urljoin(self.BASE_URL, relative_url)
-                    
-                    # Normalize URL (remove -2, -3 etc. from the end of the slug)
-                    # example: .../kampanya-adi-3/ -> .../kampanya-adi
-                    detail_url = re.sub(r'-\d+/?$', '', detail_url)
-                    # Strip any trailing slash to avoid duplicate saves due to exact matches
-                    detail_url = detail_url.rstrip('/')
                     # Skip if already exists and active
                     if is_url_blocked(self.db, detail_url):
                         print(f"      🚫 Skipped (Blocklisted): {detail_url}")
@@ -316,6 +311,10 @@ class TotalEnergiesScraper:
                     except:
                         end_dt = None
 
+                    # Determine eligible cards (default to Club TotalEnergies Müşterileri if empty)
+                    extracted_cards = campaign_data.get('cards', [])
+                    eligible_cards = ", ".join(extracted_cards) if extracted_cards else "Club TotalEnergies Müşterileri"
+
                     campaign = Campaign(
                         card_id=card.id,
                         sector_id=sector_id,
@@ -327,7 +326,7 @@ class TotalEnergiesScraper:
                         ai_marketing_text=campaign_data.get('ai_marketing_text') or campaign_data.get('description'),
                         conditions="\n".join(campaign_data.get('conditions', [])),
                         participation=campaign_data.get('participation'),
-                        eligible_cards=", ".join(campaign_data.get('cards', [])),
+                        eligible_cards=eligible_cards,
                         category=campaign_data.get('sector', 'diger'),
                         image_url=listing_image_url or campaign_data.get('image_url'),
                         tracking_url=detail_url,

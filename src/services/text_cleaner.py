@@ -1,7 +1,8 @@
 import re
+from typing import Optional
 from bs4 import BeautifulSoup
 
-def clean_campaign_text(raw_text: str, og_title: str = None, title: str = None) -> str:
+def clean_campaign_text(raw_text: str, og_title: Optional[str] = None, title: Optional[str] = None) -> str:
     """
     Centralized text cleaner to remove boilerplate banking legal terms and navigation noise.
     

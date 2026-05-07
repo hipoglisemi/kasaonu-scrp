@@ -34,7 +34,7 @@ class CardValidator:
         """
         Main entry point for card validation.
         """
-        if not raw_text or not cards:
+        if not raw_text:
             return cards
 
         raw_text_lower = raw_text.lower()
@@ -78,30 +78,48 @@ class CardValidator:
 
         return list(dict.fromkeys(validated)) # Remove duplicates while preserving order
 
-    def _is_in_trap_context(self, card_norm: str, text_normalized: str, bank_key: str = None) -> bool:
+    def _is_in_trap_context(self, card_norm: str, text_normalized: str, bank_key: Optional[str] = None) -> bool:
         # Privacy/KVKK
         privacy_keywords = ["toplanacaktir", "islenecektir", "aydinlatma metni", "kisisel veri", "veri sorumlusu"]
         # POS/Infra
         infra_keywords = ["pos", "posu", "pos'u", "sistemi", "uye isyeri", "uyeisyeri", "pos sistemi"]
         # App/Channel
         app_keywords = ["mobil", "uygulama", "uygulamasi", "uygulamasindan", "internet sube", "web sitesi", "online", "subesi"]
+        # Service/Channel Traps
+        service_keywords = ["hatti", "kanali", "hizmeti", "portal", "platformu", "numarasi", "adresi"]
+        
+        # 🛡️ FIX: If the full card name is not in the text, look for its core words
+        # This prevents the trap guard from rejecting cards found by the Sniper
+        search_term = card_norm
+        if card_norm not in text_normalized:
+            core_words = [w for w in card_norm.split() if len(w) > 2 and w not in self.stop_words]
+            if not core_words: return False
+            # Look for the most specific core word
+            search_term = core_words[-1]
 
-        # 🛡️ FIX: Check ALL occurrences. If at least one is in a 'dahil/gecerli' context, it's NOT a trap.
-        occurrences = [m.start() for m in re.finditer(re.escape(card_norm), text_normalized)]
+        # Use strict word boundaries for search_term, excluding URL patterns
+        # 🛡️ FIX: Separate fixed-width lookbehinds for Python re compatibility
+        pattern = rf"(?<![a-z0-9])(?<![a-z]\.){re.escape(search_term)}(?![a-z0-9]|\.[a-z])"
+        occurrences = [m.start() for m in re.finditer(pattern, text_normalized)]
         if not occurrences:
             return False
             
         any_valid_mention = False
         for idx in occurrences:
             window = text_normalized[idx:idx+200]
-            
+            short_window = text_normalized[idx:idx+40]
+
+            # 🛡️ IMMEDIATE SERVICE TRAP: If 'hattı', 'kanalı' etc. is right next to the name, it's a trap.
+            if any(k in short_window for k in service_keywords):
+                continue
+
             # 🛡️ REFINEMENT: If the card is in a sentence that explicitly says it's included, it's NOT a trap.
             if any(k in window for k in ["dahil", "gecerli", "faydalan", "indirim", "firsat", "kazan"]):
                 any_valid_mention = True
                 break
 
             # Check if this specific occurrence is a trap
-            is_this_trap = any(k in window for k in privacy_keywords + infra_keywords + app_keywords)
+            is_this_trap = any(k in window for k in privacy_keywords + infra_keywords + app_keywords + service_keywords)
             
             # Additional bank-specific traps
             if bank_key == "ziraat" and "prestij" in card_norm:
@@ -118,7 +136,15 @@ class CardValidator:
         core_words = [w for w in card_norm.split() if len(w) > 2 and w not in self.stop_words]
         if not core_words: return False
         
-        matched = sum(1 for w in core_words if w in text_normalized)
+        # 🛡️ FIX: Use whole word matching with regex to avoid partial matches (e.g. 'plus' matching 'milplus')
+        # Also avoid URL patterns (e.g. milplus.com.tr)
+        matched = 0
+        for w in core_words:
+            # 🛡️ FIX: Separate fixed-width lookbehinds for Python re compatibility
+            pattern = rf"(?<![a-z0-9])(?<![a-z]\.){re.escape(w)}(?![a-z0-9]|\.[a-z])"
+            if re.search(pattern, text_normalized):
+                matched += 1
+        
         # 🛡️ Threshold check: for 1-2 core words, we need 100% match. For 3+, 60%.
         if len(core_words) <= 2:
             threshold = len(core_words)
@@ -127,10 +153,32 @@ class CardValidator:
         
         if matched >= threshold:
             # Check negation on the first matched core word
-            first_match = next((w for w in core_words if w in text_normalized), card_norm)
+            first_match_pattern = rf"(?<![a-z0-9])(?<![a-z]\.){re.escape(w)}(?![a-z0-9]|\.[a-z])"
+            first_match = next((w for w in core_words if re.search(first_match_pattern, text_normalized)), card_norm)
             is_generic = first_match in ["world", "paraf", "maximum", "bonus", "axess", "bankkart"]
-            if not check_string_negation(first_match, raw_text, bank_key, is_generic_brand=is_generic):
+            negated = check_string_negation(first_match, raw_text, bank_key, is_generic_brand=is_generic)
+            if not negated:
                 return True
+        
+        # 🛡️ Special Case: 1/2 match is okay if the missing word is the bank name itself
+        if len(core_words) == 2 and matched == 1:
+            # Check for missing word using the robust pattern
+            pattern = rf"(?<![a-z0-9])(?<![a-z]\.){re.escape(core_words[0])}(?![a-z0-9]|\.[a-z])"
+            pattern2 = rf"(?<![a-z0-9])(?<![a-z]\.){re.escape(core_words[1])}(?![a-z0-9]|\.[a-z])"
+            
+            missing_word = None
+            if not re.search(pattern, text_normalized):
+                missing_word = core_words[0]
+            elif not re.search(pattern2, text_normalized):
+                missing_word = core_words[1]
+                
+            if missing_word and (bank_key in missing_word or "bank" in missing_word):
+                # Use the word that IS in the text for negation check
+                found_word = core_words[1] if missing_word == core_words[0] else core_words[0]
+                found_pattern = rf"(?<![a-z0-9])(?<![a-z]\.){re.escape(found_word)}(?![a-z0-9]|\.[a-z])"
+                if not check_string_negation(found_word, raw_text, bank_key):
+                    return True
+
         return False
 
     def _run_sniper(self, validated: List[str], raw_text: str, text_normalized: str, bank_key: str) -> List[str]:
@@ -143,7 +191,9 @@ class CardValidator:
         for kc in bank_keywords:
             kc_norm = self._normalize(kc)
             
-            if kc_norm in text_normalized and kc_norm not in validated_norm:
+            # 🛡️ FLEXIBLE MATCH: Use _match_core_words instead of strict 'in' check
+            # This allows matching 'VakıfBank Platinum' when the text only says 'Platinum'
+            if self._match_core_words(kc_norm, text_normalized, raw_text, bank_key) and kc_norm not in validated_norm:
                 # 🛡️ TRAP GUARD in Sniper: Don't snipe cards that are in trap contexts
                 if self._is_in_trap_context(kc_norm, text_normalized, bank_key):
                     continue
@@ -158,8 +208,9 @@ class CardValidator:
                     
                 is_generic = kc_norm in ["world", "paraf", "maximum", "bonus", "axess", "bankkart"]
                 
-                # 🛡️ Negation Check
-                if check_string_negation(kc, text_normalized, bank_key, is_generic_brand=is_generic):
+                # 🛡️ Negation Check (CRITICAL)
+                # If the card is negated anywhere in the text (sentence or header), NEVER snipe it.
+                if check_string_negation(kc, raw_text, bank_key, is_generic_brand=is_generic):
                     continue
                 # Upgrade Logic: If "Bonus" is there but "Garanti BBVA Bonus" is found, replace it
                 # 🛡️ GARANTI PROTECTION: Don't upgrade/replace generic 'Bonus' with specific 'Money Bonus' etc.
@@ -169,7 +220,13 @@ class CardValidator:
                 upgraded = False
                 for i, v in enumerate(validated):
                     v_norm = self._normalize(v)
-                    if (v_norm in kc_norm or kc_norm in v_norm) and v_norm != kc_norm:
+                    
+                    # 🛡️ Overlap check: Direct substring OR Bank-specific alias logic
+                    is_direct_overlap = (v_norm in kc_norm or kc_norm in v_norm) and v_norm != kc_norm
+                    b_key_norm = bank_key.lower().replace('ş', 's').replace('ı', 'i').replace('ğ', 'g')
+                    is_seker_alias = (b_key_norm == "sekerbank" and "seker" in v_norm and "bonus" in v_norm and "bonus" in kc_norm)
+                    
+                    if is_direct_overlap or is_seker_alias:
                         
                         # [AKBANK EXCEPTION]: Axess and Bank'O Card Axess are different products
                         if bank_key == "akbank" and "axess" in v_norm and "axess" in kc_norm:

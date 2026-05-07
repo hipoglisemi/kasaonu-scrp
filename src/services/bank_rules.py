@@ -95,8 +95,11 @@ AMERICAN EXPRESS SPECIFIC RULES:
 IS BANKASI/MAXIMUM/MAXIMİLES SPECIFIC RULES:
 - TERMINOLOGY: "Maxipuan" (Points) or "MaxiMil" (Miles).
 - ELIGIBLE CARDS (cards):
+    - 🚨 **METNE SADIK SIRALI LİSTE**: Kart isimlerini metinde geçtiği sırayla, virgülle ayrılmış temiz bir liste olarak yaz. **SIRALAMAYI ASLA BOZMAYIN, MARKALARI METİNDEKİ GİBİ HARFİYEN ALIN (Örn: "Privia markalı tüm bireysel kredi kartları").**
+    - 🚨 **KAYNAK KONTROLÜ**: Geçerli kart listesini öncelikle **"Kampanyaya dahil/dâhil olan kartlar:"** veya **"Kampanyaya dahil/dâhil olan kartlar ve işlemler:"** başlıklarının altındaki maddelerden çıkar.
     - RAW EXTRACTION (LITERAL): Metinde ne yazıyorsa DIREKT ONU YAZ.
     - ONEMLI: "Sanal kartlar", "Ticari kartlar" vb. ifadeleri sadece **dahil/geçerli** oldukları belirtilmişse listeye ekle. Eğer "hariçtir" deniyorsa ASLA yazma.
+    - 🚨 **BAŞLIK KURALI (CRITICAL)**: "Kampanyaya dahil/dâhil olmayan kartlar:" veya "Kampanyaya dahil/dâhil olmayan işlemler:" başlığı altında listelenen hiçbir kartı (örn: Maximiles, Ticari Kartlar) `cards` listesine EKLEME. Bu başlıklar kesin dışlama bölgesidir.
     - Örnek: "İş Bankası Maximum özellikli kredi kartları (Maximum, Maximiles...)" yazıyorsa AYNEN AL.
     - KESIN YASAK: Fibabanka, Ziraat gibi diğer banka kartlarını ASLA YAZMA. Sadece İş Bankası kartlarını listele.
 - PARTICIPATION (katilim_sekli):
