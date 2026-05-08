@@ -122,7 +122,7 @@ SECTOR_MAP = {
 def fetch_html(url: str) -> str:
     """Attempts to fetch the HTML content of a URL."""
     raw_html = ""
-    spa_domains = ["opet.com.tr", "naysapp.com.tr", "chippin.com", "axess.com.tr", "kartfree.com", "wingscard.com.tr", "bonus.com.tr", "denizbonus.com"]
+    spa_domains = ["paycell.com.tr", "opet.com.tr", "naysapp.com.tr", "chippin.com", "axess.com.tr", "kartfree.com", "wingscard.com.tr", "bonus.com.tr", "denizbonus.com"]
     is_spa = any(domain in url for domain in spa_domains)
 
     if is_spa:
