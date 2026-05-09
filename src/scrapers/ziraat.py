@@ -289,7 +289,7 @@ class ZiraatScraper:
                 slug=slug,
                 title=title,
                 description=desc,
-                ai_marketing_text=ai_data.get("ai_marketing_text") or desc,
+                ai_marketing_text=ai_data.get("ai_marketing_text"),
                 reward_text=ai_data.get("reward_text"),
                 reward_value=ai_data.get("reward_value"),
                 conditions=final_conditions,

@@ -364,8 +364,8 @@ Kampanya Sahibi Banka/Kurum: {bank_name}
 JSON FORMATI:
 {{
   "title": "Metnin en üstündeki doğal ve spesifik başlığı bul. Aksi kanıtlanmadıkça 'Opet Kampanyası' gibi sonradan atanmış jenerik/sıkıcı başlık isimlerini GÖRMEZDEN GEL, sadece asıl içeriği yansıtan resmî başlığı (Örn: Çek Kazan Superfresh Fırsatı) kullan.",
-  "description": "2 cümlelik samimi özet",
-  "ai_marketing_text": "2-3 cümlelik enerjik, emojili pazarlama metni. Somut rakamları belirt. Metin SEO dostu olmalı.",
+  "description": "Kampanyanın ne olduğunu anlatan 2-3 cümlelik net ve bilgilendirici özet. (Örn: 'X mağazasında Y kartı ile Z TL indirim fırsatı sizi bekliyor.')",
+  "ai_marketing_text": "Kullanıcıyı heyecanlandıracak, emojili ve SEO odaklı pazarlama metni. 🚨 ASLA description ile aynı olmamalıdır. 'Hadi hemen katıl!', 'Fırsatı kaçırma!' gibi eylem çağrıları ve emojiler (🚀, ✨, 🛍️) içermelidir.",
   "reward_value": 0.0,
   "reward_type": "puan/indirim/taksit/mil",
   "reward_text": "Kısa ve Çarpıcı. Peşin fiyatına gibi detayları yazma. Örn: '150 TL Yakıt Puan' veya '%20 İndirim'",
@@ -553,9 +553,7 @@ ANALİZ EDİLECEK METİN:
         # Final armored safety pass: ensure the filtered list is what actually goes into the data
         from src.services.negation_filter import filter_excluded_cards
         final_cards = filter_excluded_cards(cards, raw_text, bank_name=bank_name)
-            
         data["cards"] = final_cards if final_cards else []
-        print(f"   🛡️ ARMORED CHECK: Final cards in data are {data['cards']}")
 
         # ── 4. BRAND GUARD (Title / Illusion / Negative Context) ─────
         brands = data.get("brands", [])
@@ -624,6 +622,14 @@ ANALİZ EDİLECEK METİN:
             
         if data.get("cards"):
             data["cards"] = [c[0].upper() + c[1:] if c else c for c in data["cards"]]
+
+        # ── 10. MARKETING SPICER (Lazy AI Guard) ────────────────────
+        mkt = data.get("ai_marketing_text")
+        dsc = data.get("description")
+        if mkt and dsc and mkt.strip() == dsc.strip() and len(mkt) > 20:
+             # AI was lazy, let's add some flair to make them distinct
+             suffix = " 🚀 Bu fırsatı kaçırmayın, hemen katılın! ✨"
+             data["ai_marketing_text"] = mkt.strip() + suffix
 
         return data
 

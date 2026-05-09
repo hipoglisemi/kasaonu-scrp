@@ -215,8 +215,13 @@ class DunyaKatilimScraper:
             response.raise_for_status()
             soup = BeautifulSoup(response.text, 'html.parser')
             
+            # Noise Removal
+            for noise in soup.select('.footer-cookie-policy, .cookie-banner, .cookie-modal, #cookie-all-apply'):
+                noise.extract()
+
             content_div = (
                 soup.select_one('.news-campaign-content') or 
+                soup.select_one('.page-top-title') or
                 soup.select_one('.bt') or 
                 soup.select_one('.richtext') or 
                 soup.find('h2', string=lambda text: text and 'Kampanya Koşulları' in text)
@@ -311,7 +316,7 @@ class DunyaKatilimScraper:
                 reward_type=data.get("reward_type"),
                 reward_value=data.get("reward_value"),
                 reward_text=data.get("reward_text"),
-                ai_marketing_text=data.get("ai_marketing_text") or data.get("description"),
+                ai_marketing_text=data.get("ai_marketing_text"),
                 eligible_cards=eligible_cards_text,
                 category=participation_text,
                 badge_color=data.get("badge_color"),

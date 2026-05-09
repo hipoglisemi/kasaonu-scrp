@@ -173,7 +173,7 @@ def clean_campaign_text(raw_text: str, og_title: Optional[str] = None, title: Op
     BOILERPLATE_CHOP_MARKERS = [
         "çerez politikası", "cookie policy", "aydınlatma metni", 
         "kişisel verilerin korunması", "legal caution", "yasal bilgilendirme",
-        "gizlilik politikası"
+        "gizlilik politikası", "çerez kullanımı"
     ]
 
     final_text = '\n'.join(cleaned_lines)
@@ -190,8 +190,8 @@ def clean_campaign_text(raw_text: str, og_title: Optional[str] = None, title: Op
     # 🎯 Apply high-confidence boilerplate chopping
     for marker in BOILERPLATE_CHOP_MARKERS:
         marker_pos = text_lower.find(marker)
-        # Only trip if it's deep in the text (don't accidentally cut main content if mentioned early)
-        if marker_pos != -1 and marker_pos > 800:
+        # Only trip if it's not literally the first 200 chars (to be safe)
+        if marker_pos != -1 and marker_pos > 200:
             legal_limit_idx = min(legal_limit_idx, marker_pos)
             break
     
@@ -259,14 +259,17 @@ def clean_campaign_text(raw_text: str, og_title: Optional[str] = None, title: Op
                 final_text = final_text[restart_pos:].strip()
                 break
 
-    # 🎯 Sub-Step 4.2: Universal Sniper (Dynamic)
-    headers_to_check = [h for h in [og_title, title] if h and h.strip()]
-    for header in headers_to_check:
-        h_clean = header.strip()
-        h_pos = final_text.find(h_clean)
-        if h_pos > 50: # Only trim if there's significant noise before it
-            # If the header is too far down, it's definitely noise above
-            final_text = final_text[h_pos:].strip()
-            break # Found the most reliable marker
-
+    # 🎯 Sub-Step 4.3: Aggressive Cookie Header Removal
+    # If the text starts with cookie notification boilerplate, strip it.
+    cookie_header_patterns = [
+        r"(?i)^çerez kullanımı\s+aydınlatma metni",
+        r"(?i)^aydınlatma metni\s+dünya katılım",
+        r"(?i)^çerez kullanımı\s+aydınlatma metni\s+dünya katılım",
+    ]
+    for cp in cookie_header_patterns:
+        if re.search(cp, final_text[:200]):
+            # Find the first real line after the boilerplate
+            # boilerplate usually ends with "kapat" or "kabul et" or just a newline
+            final_text = re.sub(cp, "", final_text, count=1).strip()
+    
     return final_text

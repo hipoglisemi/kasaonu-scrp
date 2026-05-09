@@ -317,7 +317,7 @@ class ShellScraper:
                         reward_value=ai_data.get("reward_value"),
                         reward_type=ai_data.get("reward_type"),
                         description=ai_data.get("description"),
-                        ai_marketing_text=ai_data.get("ai_marketing_text") or ai_data.get("description"),
+                        ai_marketing_text=ai_data.get("ai_marketing_text"),
                         conditions="\n".join(ai_data.get("conditions", [])),
                         image_url=img_url or ai_data.get("image_url"),
                         participation=ai_data.get("participation"),

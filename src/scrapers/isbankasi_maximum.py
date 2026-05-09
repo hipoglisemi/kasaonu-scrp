@@ -585,7 +585,7 @@ class IsbankMaximumScraper:
                 slug=slug,  # type: ignore
                 title=formatted_title,  # type: ignore
                 description=data.get("description") or data["title"][:200],  # type: ignore
-                ai_marketing_text=data.get("ai_marketing_text") or data.get("description") or data["title"][:200],  # type: ignore
+                ai_marketing_text=data.get("ai_marketing_text"),  # type: ignore
                 reward_text=data.get("reward_text"),  # type: ignore
                 reward_value=data.get("reward_value"),  # type: ignore
                 reward_type=data.get("reward_type"),  # type: ignore

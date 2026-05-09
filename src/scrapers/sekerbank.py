@@ -538,7 +538,7 @@ class SekerbankScraper:
             reward_text=data.get("reward_text"),  # type: ignore
             
             # Additional metadata
-            ai_marketing_text=data.get("ai_marketing_text") or data.get("description"),  # type: ignore
+            ai_marketing_text=data.get("ai_marketing_text"),  # type: ignore
             participation=data.get("participation"),  # type: ignore
             eligible_cards=", ".join(data.get("cards", [])),  # type: ignore
             category=data.get("category"),  # type: ignore

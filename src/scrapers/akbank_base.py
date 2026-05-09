@@ -215,7 +215,7 @@ class AkbankBaseScraper:
                 slug=get_unique_slug(final_title, db, Campaign),  # type: ignore
                 title=final_title,  # type: ignore
                 description=ai_data.get('description') or title,  # type: ignore
-                ai_marketing_text=ai_data.get('ai_marketing_text') or ai_data.get('description') or title,  # type: ignore
+                ai_marketing_text=ai_data.get('ai_marketing_text'),  # type: ignore
                 reward_text=ai_data.get('reward_text'),  # type: ignore
                 reward_value=ai_data.get('reward_value'),  # type: ignore
                 reward_type=ai_data.get('reward_type'),  # type: ignore

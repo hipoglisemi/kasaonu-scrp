@@ -122,7 +122,7 @@ SECTOR_MAP = {
 def fetch_html(url: str) -> str:
     """Attempts to fetch the HTML content of a URL."""
     raw_html = ""
-    spa_domains = ["paycell.com.tr", "opet.com.tr", "naysapp.com.tr", "chippin.com", "axess.com.tr", "kartfree.com", "wingscard.com.tr", "bonus.com.tr", "denizbonus.com"]
+    spa_domains = ["dunyakatilim.com.tr", "paycell.com.tr", "opet.com.tr", "naysapp.com.tr", "chippin.com", "axess.com.tr", "kartfree.com", "wingscard.com.tr", "bonus.com.tr", "denizbonus.com"]
     is_spa = any(domain in url for domain in spa_domains)
 
     if is_spa:
@@ -163,6 +163,16 @@ def fetch_html(url: str) -> str:
             driver.execute_script("window.scrollTo(0, document.body.scrollHeight - 500);")
             time.sleep(2)
             raw_html = driver.page_source
+
+            # Dünya Katılım specific: Close cookie banner if present
+            if "dunyakatilim.com.tr" in url:
+                try:
+                    cookie_btn = driver.find_element(By.ID, "cookie-all-apply")
+                    if cookie_btn:
+                        driver.execute_script("arguments[0].click();", cookie_btn)
+                        time.sleep(2)
+                except:
+                    pass
 
             # Bonus.com.tr specific: Click on "DİĞER BİLGİLER" or "Nasıl Kazanırım" tabs to reveal cards
             if "bonus.com.tr" in url:
@@ -233,7 +243,9 @@ def fetch_html(url: str) -> str:
         noise_selectors = [
             '.other-campaigns', '.featured-campaigns', '.similar-campaigns', 
             '.campaign-recommendations', 'section.news-carousel', 
-            '#related-campaigns', '.campaignDetail-others'
+            '#related-campaigns', '.campaignDetail-others',
+            '.footer-cookie-policy', '.cookie-banner', '.cookie-modal', 
+            '#cookie-dialog-content', '.cookie-consent', '#cookie-all-apply'
         ]
         for selector in noise_selectors:
             for element in soup.select(selector):
@@ -241,7 +253,7 @@ def fetch_html(url: str) -> str:
         
         # 🎯 CONTENT TARGETING
         target_selectors = [
-            '.sub-header', '.campaign-terms', '.campaign-detail-content', '.campaign-detail', 
+            '.page-top-title', '.sub-header', '.campaign-terms', '.campaign-detail-content', '.campaign-detail', 
             '.campaign-detail-tab-details', '.campaign-detail-box', 
             'article.campaign-detail', '.cmsContent',
             '.campaingDetail', '.campaing', '.textArea', '.campaingDetail-content',
@@ -590,10 +602,17 @@ def run_autofix(limit: int = 250, campaign_id: Optional[int] = None, force_all: 
                         _raw_soup = _BS(_raw_resp.text, "html.parser")
                         # 🛡️ Skip H1 title extraction for Opet as it's usually generic "Kampanyalar"
                         if "opet" not in (c.tracking_url or "").lower():
-                            _h1 = _raw_soup.select_one('h1')
-                            if _h1 and _h1.get_text(strip=True):
+                            _h1s = _raw_soup.find_all('h1')
+                            _h1 = None
+                            for h in _h1s:
+                                h_text = h.get_text(strip=True)
+                                if h_text and not any(kw in h_text.lower() for kw in ["çerez", "cookie", "aydınlatma metni"]):
+                                    _h1 = h
+                                    break
+                            
+                            if _h1:
                                 og_title = _h1.get_text(strip=True)
-                                print(f"   🏷️ H1 title found: {og_title}")
+                                print(f"   🏷️ Valid H1 title found: {og_title}")
                     except Exception as _e:
                         print(f"   ⚠️ Raw title fetch failed: {_e}")
                     
@@ -681,9 +700,13 @@ def run_autofix(limit: int = 250, campaign_id: Optional[int] = None, force_all: 
                 # Update Title
                 if not c.title or is_title_generic or FORCE_ALL:
                     if ai_data.get("title") and ai_data["title"] != c.title:
-                        print(f"   ✨ Repaired Title: {c.title} -> {ai_data['title']}")
-                        c.title = ai_data["title"]
-                        updated = True
+                        ai_title = ai_data["title"]
+                        if any(kw in ai_title.lower() for kw in ["çerez", "cookie", "aydınlatma metni"]):
+                            print(f"   🛡️ AI returned a cookie-related title: '{ai_title}'. Ignoring.")
+                        else:
+                            print(f"   ✨ Repaired Title: {c.title} -> {ai_title}")
+                            c.title = ai_title
+                            updated = True
 
                 # Update Description
                 if not c.description or len(c.description.strip()) < 15 or FORCE_ALL:

@@ -411,7 +411,7 @@ class TurkiyeFinansScraper:
                     slug=slug,
                     title=ai_data.get("title") or title,
                     description=ai_data.get("description") or "",
-                    ai_marketing_text=ai_data.get("ai_marketing_text") or ai_data.get("description") or title,
+                    ai_marketing_text=ai_data.get("ai_marketing_text"),
                     reward_text=ai_data.get("reward_text"),
                     reward_value=ai_data.get("reward_value"),
                     reward_type=ai_data.get("reward_type"),

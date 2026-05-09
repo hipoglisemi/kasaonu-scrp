@@ -203,7 +203,7 @@ class YapikrediPlayScraper:
                     reward_text=ai_data.get('reward_text', 'Detayları İnceleyin'),  # type: ignore
                     clean_text=ai_data.get('_clean_text', ''),  # type: ignore
                     description=ai_data.get('description') or details_text,  # type: ignore
-                    ai_marketing_text=ai_data.get('ai_marketing_text') or ai_data.get('description') or details_text,  # type: ignore
+                    ai_marketing_text=ai_data.get('ai_marketing_text'),  # type: ignore
                     conditions="\n".join(ai_data.get('conditions', [])),  # type: ignore
                     start_date=start_date,  # type: ignore
                     end_date=end_date,  # type: ignore

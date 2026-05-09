@@ -367,7 +367,7 @@ class KuveytTurkScraper:
             slug=slug,
             title=title,
             description=parsed_data.get("description") or raw_data.get("description", ""),
-            ai_marketing_text=parsed_data.get("ai_marketing_text") or parsed_data.get("description") or title,
+            ai_marketing_text=parsed_data.get("ai_marketing_text"),
             reward_text=parsed_data.get("reward_text"),
             reward_value=parsed_data.get("reward_value"),
             reward_type=parsed_data.get("reward_type"),

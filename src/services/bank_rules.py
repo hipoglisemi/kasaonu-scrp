@@ -32,6 +32,11 @@ AKBANK SPECIFIC RULES:
       3. If no registration: "Otomatik Katılım" (Tercihen bunu kullan). Eğer harcama yeri çok kritikse en fazla "Axess üye işyerlerinde harcama yapın" şeklinde kısa tut. (ASLA metindeki o uzun boilerplate cümleleri kopyalama).
 - SMS: Usually 4566. SMS keyword is usually a single word (e.g., "A101", "TEKNOSA").
 - REWARD: If it says "8 aya varan taksit", it's an installment campaign. Earning: "Taksit İmkanı". ASLA "Detayları İnceleyin" yazma.
+- MARKETING (ai_marketing_text):
+    - 🚨 **KESİN TALİMAT**: Pazarlama metni 'description' alanından FARKLI olmalıdır. 
+    - Emojiler kullanarak (🚀, ✨, 🛍️) kullanıcının ilgisini çek.
+    - SEO uyumlu, enerjik ve somut kazancı vurgulayan 2-3 cümle kur.
+    - Örn: "Axess ile harcarken kazanın! 🚀 Trendyol alışverişlerinizde 250 TL chip-para fırsatını kaçırmayın, hemen harcamaya başlayın! ✨"
 - AKBANK REDUNDANCY ALERT (CRITICAL):
     - Akbank metinleri tarih ve kart bilgisini çok tekrar eder. 
     - 'conditions' (koşullar) listesine ASLA tarih, kart adı veya "Jüzdan" gibi bilgileri yazma.
@@ -296,8 +301,10 @@ CHIPPIN SPECIFIC RULES:
 DÜNYA KATILIM SPECIFIC RULES:
 - TERMINOLOGY: "Harcama Puan", "İndirim" or "ParafPara".
 - ELIGIBLE CARDS (cards):
-    - RAW EXTRACTION (LITERAL): Extract exact names from text.
-    - Keywords: "Dünya Katılım Banka Kartı", "Dünya Katılım Kredi Kartı", "Dünya Katılım Troy Kart".
+    - 🚨 **LİTERAL KURALI (CRITICAL)**: Sadece metinde AKTİF kampanya maddeleri içinde geçen kart isimlerini al. 
+    - 🚨 **HALÜSİNASYON YASAĞI**: Sayfanın en altındaki "Dünya Katılım Bankası A.Ş. kampanya koşullarında değişiklik yapma hakkını saklı tutar" gibi yasal metinlerden kart ismi ÇIKARMA.
+    - 🚨 **ÖNCELİK**: Eğer metinde "Dünya Katılım Paraf" geçiyorsa sadece onu yaz. Metinde açıkça geçmiyorsa "Dünya Katılım Banka Kartı", "Dünya Katılım Kredi Kartı" gibi jenerik isimleri uydurma.
+    - Keywords: "Dünya Katılım Paraf", "Dünya Katılım Banka Kartı", "Dünya Katılım Kredi Kartı", "Dünya Katılım Troy Kart".
     - 🚨 ASLA ATLANMAYACAK: "TROY" logolu kartlar vurgulanmışsa bunu kart listesine ekle.
 - PARTICIPATION (katilim_sekli):
     - 🚨 **ÖNEMLİ**: Katılım şeklini bulamazsan BOŞ BIRAKMA. Eğer SMS veya Uygulama kaydı yoksa "Otomatik Katılım" veya "Paraf POS üzerinden işlem" şeklinde belirt.

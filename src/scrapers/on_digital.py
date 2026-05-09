@@ -335,7 +335,7 @@ class ONDigitalScraper:
                 reward_type=data.get('reward_type'),
                 reward_text=data.get('reward_text') or 'Detayları İnceleyin',
                 description=str(data.get('description') or '')[:500],
-                ai_marketing_text=data.get("ai_marketing_text") or str(data.get('description') or '')[:500],
+                ai_marketing_text=data.get("ai_marketing_text"),
                 conditions=conditions_text,
                 participation=data.get('participation') or '',
                 start_date=start_date,

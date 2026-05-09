@@ -351,7 +351,7 @@ class AlbarakaScraper:
                 slug=slug,
                 title=formatted_title,
                 description=data.get("description") or data["title"][:200],
-                ai_marketing_text=data.get("ai_marketing_text") or data.get("description") or data["title"][:200],
+                ai_marketing_text=data.get("ai_marketing_text"),
                 reward_text=data.get("reward_text"),
                 reward_value=data.get("reward_value"),
                 reward_type=data.get("reward_type"),

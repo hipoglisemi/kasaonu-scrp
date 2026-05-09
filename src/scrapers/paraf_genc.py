@@ -284,7 +284,7 @@ class ParafGencScraper:
                 reward_type=data.get("reward_type"),
                 reward_value=data.get("reward_value"),
                 reward_text=data.get("reward_text"),
-                ai_marketing_text=data.get("ai_marketing_text") or data.get("description"),
+                ai_marketing_text=data.get("ai_marketing_text"),
                 eligible_cards=card_name,
                 category=data.get("category"),
                 badge_color=data.get("badge_color"),
