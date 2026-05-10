@@ -577,7 +577,17 @@ def run_autofix(limit: int = 250, campaign_id: Optional[int] = None, force_all: 
                 text_to_parse = ""
                 
                 # Force rescue if campaign_id is specifically requested (UI Repair Button)
-                force_rescue = True if campaign_id else FORCE_ALL
+                # 🛑 EXCEPTION: SPA domains (maximum.com.tr etc.) must NEVER force live fetch
+                # because requests-based fetching returns broken/partial JS content.
+                spa_domains_block = ["maximum.com.tr", "maximiles.com.tr", "privia.com.tr", "worldcard.com.tr"]
+                is_spa_url = any(spa in (c.tracking_url or "") for spa in spa_domains_block)
+                db_text_len = len(c.clean_text) if c.clean_text else 0
+                
+                if is_spa_url and db_text_len > 600:
+                    force_rescue = False  # Never force-fetch SPAs with good DB data
+                    print(f"   🔒 SPA domain detected. Force-rescue disabled. Using DB text ({db_text_len} chars).")
+                else:
+                    force_rescue = True if campaign_id else FORCE_ALL
                 
                 # Initialize repair metadata
                 repair_meta = {"source": "DB", "status": "CLEAN_TEXT_USED"}
@@ -620,10 +630,18 @@ def run_autofix(limit: int = 250, campaign_id: Optional[int] = None, force_all: 
                     html_text, live_status = fetch_html(c.tracking_url)
                     
                     if html_text and len(html_text) >= 150:
-                        text_to_parse = clean_campaign_text(html_text, og_title=og_title)
-                        repair_meta["source"] = "LIVE"
-                        repair_meta["status"] = live_status
-                        print(f"   ✅ URL fetch successful ({len(text_to_parse)} chars)")
+                        fetched_cleaned = clean_campaign_text(html_text, og_title=og_title)
+                        # 🛡️ DB TEXT PROTECTION: Never overwrite longer DB text with shorter live content
+                        if db_text_len > 0 and len(fetched_cleaned) < db_text_len * 0.7:
+                            print(f"   ⚠️ URL fetch returned significantly less/no data ({len(fetched_cleaned)} vs {db_text_len} DB chars). Falling back to DB content.")
+                            text_to_parse = c.clean_text
+                            repair_meta["source"] = "DB"
+                            repair_meta["status"] = "DB_FALLBACK_LIVE_TOO_SHORT"
+                        else:
+                            text_to_parse = fetched_cleaned
+                            repair_meta["source"] = "LIVE"
+                            repair_meta["status"] = live_status
+                            print(f"   ✅ URL fetch successful ({len(text_to_parse)} chars)")
                     else:
                         print(f"   ⚠️ [CODE: {live_status}] URL fetch failed. Falling back to DB content.")
                         fallback_segments = []

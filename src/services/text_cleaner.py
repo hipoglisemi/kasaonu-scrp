@@ -226,6 +226,10 @@ def clean_campaign_text(raw_text: str, og_title: Optional[str] = None, title: Op
         r"(?i)mıl programı mıl kazanımı",
         r"(?i)©\s*copyright",
         r"(?i)tüm hakları saklıdır",
+        # 🛑 İş Bankası Arşiv Gürültüsü: Geçmiş kampanyaların tekrar eklenmesi
+        r"(?i)^geçmiş kampanyalarımız\s*$",
+        r"(?i)^geçmiş kampanyalar\s*$",
+        r"(?i)^diğer kampanyalarımız\s*$",
     ]
     
     # 1. First evaluate hard cuts (no minimum percentage threshold required)
