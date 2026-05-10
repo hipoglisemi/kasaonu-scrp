@@ -348,7 +348,7 @@ class UptionScraper:
                 slug=slug,
                 title=data.get("title", "Uption Kampanya"),
                 description=data.get("description", ""),
-                ai_marketing_text=data.get("ai_marketing_text"), ""),
+                ai_marketing_text=data.get("ai_marketing_text"),
                 conditions="\n".join(data.get("conditions", [])) if data.get("conditions") else None,
                 eligible_cards=", ".join(data.get("cards", [])) if data.get("cards") else None,
                 participation=data.get("participation", "Uption mobil uygulaması üzerinden katılabilirsiniz."),

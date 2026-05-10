@@ -604,7 +604,7 @@ class TurkTelekomScraper:
             # Slug - always use get_unique_slug for consistency and deterministic hashing
             slug = generate_slug(data.get("title") or "Kampanya")
             
-            ai_marketing_text = data.get("ai_marketing_text"), "")
+            ai_marketing_text = data.get("ai_marketing_text")
             participation_text = data.get("participation", "")
                 
             campaign = Campaign(

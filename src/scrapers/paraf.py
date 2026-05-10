@@ -281,7 +281,7 @@ class ParafScraper:
             slug = f"{slug}-{url_hash}"
         
         # Prepare marketing text (participation is now a separate field, no need to duplicate)
-        marketing_text = data.get("ai_marketing_text") or data.get("description", "")
+        marketing_text = data.get("ai_marketing_text")
         
         # Map card logo URL based on eligible cards
         card_logo_url = None
