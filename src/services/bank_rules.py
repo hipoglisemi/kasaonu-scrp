@@ -34,9 +34,8 @@ AKBANK SPECIFIC RULES:
 - REWARD: If it says "8 aya varan taksit", it's an installment campaign. Earning: "Taksit İmkanı". ASLA "Detayları İnceleyin" yazma.
 - MARKETING (ai_marketing_text):
     - 🚨 **KESİN TALİMAT**: Pazarlama metni 'description' alanından FARKLI olmalıdır. 
-    - Emojiler kullanarak (🚀, ✨, 🛍️) kullanıcının ilgisini çek.
+    - Kampanya içeriğine (sektör/marka) uygun ve çeşitli emojiler kullanarak kullanıcının ilgisini çek.
     - SEO uyumlu, enerjik ve somut kazancı vurgulayan 2-3 cümle kur.
-    - Örn: "Axess ile harcarken kazanın! 🚀 Trendyol alışverişlerinizde 250 TL chip-para fırsatını kaçırmayın, hemen harcamaya başlayın! ✨"
 - AKBANK REDUNDANCY ALERT (CRITICAL):
     - Akbank metinleri tarih ve kart bilgisini çok tekrar eder. 
     - 'conditions' (koşullar) listesine ASLA tarih, kart adı veya "Jüzdan" gibi bilgileri yazma.
@@ -100,11 +99,11 @@ AMERICAN EXPRESS SPECIFIC RULES:
 IS BANKASI/MAXIMUM/MAXIMİLES SPECIFIC RULES:
 - TERMINOLOGY: "Maxipuan" (Points) or "MaxiMil" (Miles).
 - ELIGIBLE CARDS (cards):
-    - 🚨 **METNE SADIK SIRALI LİSTE**: Kart isimlerini metinde geçtiği sırayla, virgülle ayrılmış temiz bir liste olarak yaz. **SIRALAMAYI ASLA BOZMAYIN, MARKALARI METİNDEKİ GİBİ HARFİYEN ALIN (Örn: "Privia markalı tüm bireysel kredi kartları").**
-    - 🚨 **KAYNAK KONTROLÜ**: Geçerli kart listesini öncelikle **"Kampanyaya dahil/dâhil olan kartlar:"** veya **"Kampanyaya dahil/dâhil olan kartlar ve işlemler:"** başlıklarının altındaki maddelerden çıkar.
-    - RAW EXTRACTION (LITERAL): Metinde ne yazıyorsa DIREKT ONU YAZ.
+    - 🚨 **METNE SADIK SIRALI LİSTE (CRITICAL)**: Kart isimlerini metinde geçtiği sırayla, virgülle ayrılmış temiz bir liste olarak yaz. **Maximum** ve **Maximiles** ana markalarını parantez içinde bile olsa (Örn: "... (Maximum, Maximiles) ...") MUTLAKA ayrı kalemler olarak ekle. "Maximum" kelimesini "Maximum Genç" ile karıştırıp listeden ELEME. Her ikisi de metinde varsa her ikisini de yaz.
+    - 🚨 **KAYNAK KONTROLÜ (SAFE ZONE)**: Geçerli kart listesini **MUTLAKA** metinde geçen **"Kampanyaya dahil/dâhil olan kartlar:"**, **"Kampanyaya dahil/dâhil olan kartlar ve işlemler:"** veya **"KAMPANYAYA DÂHİL OLAN KARTLAR VE İŞLEMLER:"** başlıklarının altından harfiyen çıkar. Bu başlıkların altındaki her bir kart tanımı (Maximum, Maximiles, TROY logolu kartlar, Bankamatik Kartı, MaxiPara vb.) KESİNLİKLE geçerlidir ve hiçbirini atlamadan listele.
+    - RAW EXTRACTION (LITERAL): Metinde ne yazıyorsa (Örn: "İş Bankası TROY logolu bireysel ve ticari kredi kartı") DIREKT ONU YAZ.
     - ONEMLI: "Sanal kartlar", "Ticari kartlar" vb. ifadeleri sadece **dahil/geçerli** oldukları belirtilmişse listeye ekle. Eğer "hariçtir" deniyorsa ASLA yazma.
-    - 🚨 **BAŞLIK KURALI (CRITICAL)**: "Kampanyaya dahil/dâhil olmayan kartlar:" veya "Kampanyaya dahil/dâhil olmayan işlemler:" başlığı altında listelenen hiçbir kartı (örn: Maximiles, Ticari Kartlar) `cards` listesine EKLEME. Bu başlıklar kesin dışlama bölgesidir.
+    - 🚨 **BAŞLIK KURALI (CRITICAL)**: "Kampanyaya dahil/dâhil olmayan kartlar:" başlığı altında listelenen hiçbir kartı `cards` listesine EKLEME. 🚨 **İSTİSNA**: Bir alt varyasyonun (Örn: "Maximum Fırsat", "Maximum Aidatsız") hariç tutulması, ana kartın (Örn: "Maximum") hariç tutulduğu anlamına GELMEZ. Eğer metin başında "Maximum Kart" dahil deniyorsa onu MUTLAKA listeye ekle.
     - Örnek: "İş Bankası Maximum özellikli kredi kartları (Maximum, Maximiles...)" yazıyorsa AYNEN AL.
     - KESIN YASAK: Fibabanka, Ziraat gibi diğer banka kartlarını ASLA YAZMA. Sadece İş Bankası kartlarını listele.
 - PARTICIPATION (katilim_sekli):
@@ -233,11 +232,13 @@ QNB SPECIFIC RULES:
     'teb': """
 TEB (TÜRK EKONOMİ BANKASI) SPECIFIC RULES:
 - TERMINOLOGY: "Bonus". 1 Bonus = 1 TL. "TEB Bonus" is the reward program name.
-- ELIGIBLE CARDS:
-    - STRICT: Extract ONLY cards explicitly mentioned in the text.
-    - Common cards: "TEB Kredi Kartı", "TEB Bonus Kart", "TEB Banka Kartı", "CEPTETEB".
-    - "Bireysel kredi kartları" = ["TEB Kredi Kartı"].
-    - EXCLUSION: "Ticari kartlar" are often EXCLUDED unless explicitly mentioned.
+- ELIGIBLE CARDS (cards):
+    - 🚨 **ÖNCELİK SIRASI**: 
+        1. "Kampanyaya Dahil Kartlar" veya "Kampanya Bilgileri" başlığı altındaki maddeler.
+        2. Eğer başlık yoksa, metnin giriş paragrafları ve şartlar listesi içindeki tüm kart tanımları (Örn: "Mastercard logolu TEB Kredi Kartları", "Visa logolu kartlar").
+    - 🚨 **ZENGİN LİTERAL KURALI**: Kart isimlerini metindeki tüm niteleyicileriyle birlikte al. **"Mastercard logolu"**, **"Visa özellikli"**, **"TROY logolu"**, **"Bonus özellikli"** gibi ifadeler kartın ta kendisidir, bunları KESİNLİKLE LİSTEYE EKLE.
+    - 🚨 **KESİN YASAK (HALLUCINATION)**: Metinde "She", "Genç", "CEPTETEB" gibi spesifik alt markalar AÇIKÇA (karakter karakter) geçmiyorsa, bu isimleri ASLA 'cards' listesine ekleme. 
+    - 🚨 **DIŞLAMA KONTROLÜ**: **"Kampanyaya Dahil Olmayan Kartlar"** başlığı altındaki hiçbir kartı (Örn: Sade Kart, Ticari Kart) 'cards' listesine EKLEME.
 - PARTICIPATION:
     - PRIORITY ORDER:
       1. Campaign Code + SMS: If text contains "Kampanya Kodu: XXXXX" at the top, the participation is "XXXXX yazıp 5350'ye SMS gönderin."
@@ -254,7 +255,6 @@ TEB (TÜRK EKONOMİ BANKASI) SPECIFIC RULES:
       * Excluded transaction types (e.g. "Nakit çekim, taksitli işlemler hariç")
       * Bonus loading timeline (e.g. "Bonus 30 gün içinde yüklenir")
     - FORMAT: 3-5 concise bullet points. NO long paragraphs.
-    - AVOID: Repeating dates, card names, or SMS instructions already extracted.
 """,
     'turkiye-finans': """
 TÜRKİYE FİNANS (HAPPY CARD / ÂLÂ KART) SPECIFIC RULES:

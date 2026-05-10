@@ -45,8 +45,7 @@ CARD_DEFINITIONS = {
     "kredi karti": {"name": "TEB Kredi Kartı", "slug": "teb-kredi-karti"},
     "banka karti": {"name": "TEB Banka Kartı", "slug": "teb-banka-karti"},
     "cepteteb":    {"name": "CEPTETEB",         "slug": "cepteteb"},
-    "visa":        {"name": "TEB VISA",          "slug": "teb-visa"},
-    "default":     {"name": "TEB Genel",         "slug": "teb-genel"},
+    "default":     {"name": "TEB Kredi Kartı",   "slug": "teb-kredi-karti"},
 }
 
 HEADERS = {
@@ -99,7 +98,7 @@ def resolve_card_from_category(web_category: str) -> dict:
     if "cepteteb" in cat_lower:
         return CARD_DEFINITIONS["cepteteb"]  # type: ignore # pyre-ignore[7]
     if "visa" in cat_lower:
-        return CARD_DEFINITIONS["visa"]  # type: ignore # pyre-ignore[7]
+        return CARD_DEFINITIONS["kredi karti"]  # Map Visa campaigns to general credit card
     if "kredi" in cat_lower:
         return CARD_DEFINITIONS["kredi karti"]  # type: ignore # pyre-ignore[7]
     if "banka" in cat_lower:

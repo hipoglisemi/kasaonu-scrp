@@ -32,7 +32,7 @@ BANK_CARD_KEYWORDS = {
     "halkbank": ["paraf", "parafly", "paraf business", "parafree", "paraf esnaf", "paraf kobi", "eczacı paraf", "eczacı paraf kobi", "halkcard", "paraf genç", "paraf gençiz", "sanal kartlar", "ek kartlar"],
     "denizbank": ["denizbonus", "net kart", "denizbank bonus"],
     "qnb": ["qnb card", "qnb troy"],
-    "teb": ["teb bonus", "cepteteb"],
+    "teb": ["teb bonus", "cepteteb", "teb banka kartı"],
     "kuveyt türk": ["sağlam kart"],
     "türkiye finans": ["happy card", "âlâ kart", "happy zero"],
     "enpara": ["enpara.com kredi kartı", "enpara kredi kartı"],
@@ -190,21 +190,23 @@ class AIParserGolden:
     # ── TURKISH HELPERS ──────────────────────────────────────────────
     @staticmethod
     def _tr_lower(text: str) -> str:
-        if not text:
-            return ""
+        """Turkish-aware lowercasing with symbol stripping (®, ™)."""
+        if not text: return ""
+        # Remove common symbols that break word matching
+        text = text.replace("®", "").replace("™", "").replace("©", "")
         tr_map = {ord('I'): 'ı', ord('İ'): 'i', ord('Ş'): 'ş', ord('Ğ'): 'ğ',
                   ord('Ç'): 'ç', ord('Ö'): 'ö', ord('Ü'): 'ü'}
         return text.translate(tr_map).lower()
 
     @staticmethod
     def _normalize(s: str) -> str:
-        """Normalize spaces, ampersands and Turkish characters for comparison."""
-        s = s.lower().replace("\xa0", " ").replace("&", " & ").replace("  ", " ")
-        s = s.replace('ı', 'i').replace('ş', 's').replace('ğ', 'g')
-        s = s.replace('ü', 'u').replace('ö', 'o').replace('ç', 'c')
-        # Handle common bank typos
-        s = s.replace('worlcard', 'worldcard')
-        return s.strip()
+        """Deep normalization using central negation filter logic."""
+        if not s: return ""
+        from src.services.negation_filter import normalize_text
+        s = normalize_text(s)
+        # Final clean for comparison: remove all non-alphanumeric except spaces
+        s = re.sub(r'[^a-z0-9\s]', ' ', s)
+        return " ".join(s.split())
 
     # ── SAFE TYPE CONVERTERS ─────────────────────────────────────────
     @staticmethod
@@ -365,7 +367,7 @@ JSON FORMATI:
 {{
   "title": "Metnin en üstündeki doğal ve spesifik başlığı bul. Aksi kanıtlanmadıkça 'Opet Kampanyası' gibi sonradan atanmış jenerik/sıkıcı başlık isimlerini GÖRMEZDEN GEL, sadece asıl içeriği yansıtan resmî başlığı (Örn: Çek Kazan Superfresh Fırsatı) kullan.",
   "description": "Kampanyanın ne olduğunu anlatan 2-3 cümlelik net ve bilgilendirici özet. (Örn: 'X mağazasında Y kartı ile Z TL indirim fırsatı sizi bekliyor.')",
-  "ai_marketing_text": "Kullanıcıyı heyecanlandıracak, emojili ve SEO odaklı pazarlama metni. 🚨 ASLA description ile aynı olmamalıdır. 'Hadi hemen katıl!', 'Fırsatı kaçırma!' gibi eylem çağrıları ve emojiler (🚀, ✨, 🛍️) içermelidir.",
+  "ai_marketing_text": "Kullanıcıyı heyecanlandıracak, SEO odaklı pazarlama metni. 🚨 ASLA description ile aynı olmamalıdır. Kampanya içeriğiyle (Sektör ve Marka) doğrudan ilgili, çeşitli ve yaratıcı emojiler kullanarak enerjik bir dil kur. 'Hadi hemen katıl!', 'Fırsatı kaçırma!' gibi eylem çağrıları içermelidir.",
   "reward_value": 0.0,
   "reward_type": "puan/indirim/taksit/mil",
   "reward_text": "Kısa ve Çarpıcı. Peşin fiyatına gibi detayları yazma. Örn: '150 TL Yakıt Puan' veya '%20 İndirim'",
@@ -373,8 +375,8 @@ JSON FORMATI:
   "start_date": "YYYY-MM-DD",
   "end_date": "YYYY-MM-DD",
   "sector": "sektor-slug",
-  "brands": ["Marka1", "Marka2"], // ⛔ NEGATION TRAP: Metinde 'hariçtir','dahil değildir', 'geçerli değildir', 'kapsam dışıdır' gibi kelimelerin 10-15 kelime yakınında geçen markaları (Örn: Migros, Şok, A101 hariç) KESİNLİKLE LİSTEYE EKLEME.
-  "cards": ["Ana ödül için (başlıktaki ödül) %100 geçerli olan kart isimlerini metindeki orijinal sırasıyla listele. Örn: 'Garanti Bonus', 'Ek kartlar'. Eğer bir kart ana ödül için hariç tutulmuşsa buraya EKLEME."],
+  "brands": ["Marka1", "Marka2"], // ⛔ TROY TRAP: 'TROY logolu kartlar', 'TROY kartlar' veya 'TROY özellikli' ifadelerindeki TROY bir marka/mağaza DEĞİL, Visa/Mastercard gibi bir ödeme altyapısıdır. Bunları KESİNLİKLE 'brands' listesine ekleme. Sadece 'Troy Apple Mağazası' veya 'troyestore.com' gibi bir alışveriş yeri bağlamı varsa ekle. ⛔ NEGATION TRAP: Metinde 'hariçtir','dahil değildir', 'geçerli değildir', 'kapsam dışıdır' gibi kelimelerin 10-15 kelime yakınında geçen markaları KESİNLİKLE LİSTEYE EKLEME. 🚨 DİKKAT: 'X dışında ... faydalanamaz' veya 'X hariç ... kazanamaz' gibi yapılar X'in GEÇERLİ olduğunu belirtir (özel vurgu), bu durumda X'i listeye ekle.
+  "cards": ["Ana ödül için geçerli olan kart tanımlarını (Örn: 'Bonus', 'Axess', 'Mastercard logolu TEB Bireysel Kredi Kartı') listele. 🚨 SIRALAMA KURALI: 'Ek kartlar' ve 'Sanal kartlar' ibarelerini MUTLAKA listenin EN SONUNA ekle (Örn: ['Bonus', 'Axess', 'Ek kartlar', 'Sanal kartlar']). Eğer bir kart ana ödül için hariç tutulmuşsa buraya EKLEME."],
   "participation": "Kampanyadan nasıl faydalanılacağını net bir dille özetle. Şirket/uygulama mağazası isimlerini at, doğrudan eylemi yaz. Açıkça 'Katıl' butonu/SMS'i YOKSA BİLE, kampanyadan yararlanmak için yapılması gereken ödeme sırası işlemlerini (örn: 'Ödemenizi ilgili banka POS cihazından yapın', 'İnternet sitesinde taksit seçeneğini işaretleyin', 'Kasada şifreyi söyleyin') BURAYA YAZ. Örn: 'İşCep'ten Katıl butonuna tıklayın.', 'Kasada kampanyadan yararlanmak istediğinizi belirtin.', 'Ödemeyi bankamız POS'undan yapın.', 'Faturanızı uygulamadan okutun.' Eğer metinde hiçbir ön katılım şartı (SMS/Buton) veya eylem cümlesi geçmiyorsa, eksi (-) yazmak YERİNE: 'Otomatik Katılım' yaz.",
   "conditions": ["Önemli Şart 1", "İkincil ödül (örn: taksit) varsa ve farklı kartlar için geçerliyse mutlaka belirt.", "Önemli Şart 2"]
 }}
@@ -553,6 +555,20 @@ ANALİZ EDİLECEK METİN:
         # Final armored safety pass: ensure the filtered list is what actually goes into the data
         from src.services.negation_filter import filter_excluded_cards
         final_cards = filter_excluded_cards(cards, raw_text, bank_name=bank_name)
+        
+        # 🚨 CARD ORDERING ENFORCEMENT (Ek/Sanal kartlar sona)
+        if final_cards and len(final_cards) > 1:
+            special_terms = ["ek kart", "sanal kart"]
+            main_cards = []
+            trailing_cards = []
+            for c in final_cards:
+                c_low = c.lower()
+                if any(term in c_low for term in special_terms):
+                    trailing_cards.append(c)
+                else:
+                    main_cards.append(c)
+            final_cards = main_cards + trailing_cards
+
         data["cards"] = final_cards if final_cards else []
 
         # ── 4. BRAND GUARD (Title / Illusion / Negative Context) ─────
@@ -713,6 +729,17 @@ ANALİZ EDİLECEK METİN:
             brand_norm = self._tr_lower(brand)
             brand_plain = _strip_symbols(brand_norm)
 
+            # 🚨 0. TROY INFRASTRUCTURE GUARD (Payment Scheme vs. Store) - CRITICAL PRIORITY
+            if "troy" in brand_norm:
+                troy_retail_keywords = ["mağaza", "store", "apple", "yetkili", "online", "troyestore"]
+                troy_infra_patterns = ["troy logolu", "troy kart", "troy özellikli", "troy temassız"]
+                is_infra_context = any(pat in title_lower for pat in troy_infra_patterns) or \
+                                   any(pat in text_lower for pat in troy_infra_patterns)
+                # 🛡️ ONLY check original text_lower/title_lower for retail context, ignore AI generated content
+                if is_infra_context and not any(k in text_lower for k in troy_retail_keywords) and not any(k in title_lower for k in troy_retail_keywords):
+                    logger.debug(f"Brand Guard: Rejected TROY infrastructure being tagged as brand '{brand}'")
+                    continue
+
             # 1. SELF-TAGGING CHECK (applies to ALL brands, including PBE)
             is_trap = any(trap in brand_norm for trap in app_store_traps)
             is_in_title = brand_plain and brand_plain in title_plain
@@ -801,9 +828,13 @@ ANALİZ EDİLECEK METİN:
                 "türk telekom", "türktelekom", "turk telekom", "turktelekom",
                 "vodafone", "turkcell"
             }
+            # 6. GSM OPERATOR GUARD (SMS Channel Protection)
+            gsm_operators = {
+                "türk telekom", "türktelekom", "turk telekom", "turktelekom",
+                "vodafone", "turkcell"
+            }
             if brand_norm in gsm_operators:
                 if brand_norm not in title_lower:
-                    # logger.debug(f"Brand Guard: Rejected GSM operator '{brand}' (SMS channel suspected)")
                     continue
 
             # 7. PBE BYPASS — database-verified brands skip the remaining heuristic text checks

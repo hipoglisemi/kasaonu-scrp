@@ -33,8 +33,7 @@ class CardValidator:
         if not raw_text:
             return cards
 
-        raw_text_lower = raw_text.lower()
-        text_normalized = self._normalize(raw_text_lower)
+        text_normalized = self._normalize(raw_text)
         validated = []
 
         for card in cards:
@@ -52,7 +51,8 @@ class CardValidator:
                 continue
 
             # 2. TRAP GUARDS
-            if self._is_in_trap_context(card_norm, text_normalized, bank_key):
+            # 🚨 RELAXED FOR TEB: TEB texts are very messy and often mix card names with app/web keywords.
+            if bank_key.lower() != "teb" and self._is_in_trap_context(card_norm, text_normalized, bank_key):
                 continue
 
             # 3. DIRECT MATCH & NEGATION
@@ -83,10 +83,13 @@ class CardValidator:
                  continue
 
             is_subset = False
+            power_brands = {"maximum", "maximiles", "bonus", "world", "paraf", "axess", "wings", "bankkart"}
             for f in final_validated:
                 f_norm = self._normalize(f)
                 f_core = {w for w in f_norm.split() if len(w) > 2 and w not in self.stop_words}
                 if v_core.issubset(f_core):
+                    if len(v_core) == 1 and list(v_core)[0] in power_brands:
+                        continue
                     is_subset = True
                     break
             if not is_subset:
@@ -147,6 +150,14 @@ class CardValidator:
             threshold = len(core_words)
         else:
             threshold = max(3, int(len(core_words) * 0.75))
+            
+        # 🛡️ RELAXED THRESHOLD FOR 2-WORD CARDS
+        # If it has 2 words and at least one matches, we check if it's a 'Power Word' for this bank
+        power_words = {"maximum", "maximiles", "privia", "bankamatik", "bonus", "axess", "wings", "world", "paraf", "bankkart"}
+        if len(core_words) == 2 and matched == 1:
+            matched_word = next((w for w in core_words if re.search(rf"(?<![a-z0-9])(?<![a-z]\.){re.escape(w)}(?![a-z0-9]|\.[a-z])", text_normalized)), "")
+            if matched_word in power_words:
+                matched = threshold # Force pass
         
         if matched >= threshold:
             # 🛡️ BANK NAME GUARD
@@ -180,6 +191,10 @@ class CardValidator:
 
         bank_keywords = self.bank_card_keywords[bank_key]
         validated_norm = {self._normalize(c) for c in validated}
+
+        # 🚨 BANK-SPECIFIC SNIPER TOGGLE
+        if bank_key.lower() == "teb":
+            return validated
 
         for kc in bank_keywords:
             kc_norm = self._normalize(kc)
