@@ -945,7 +945,7 @@ def _create_default_client():
     def timeout_handler(signum, frame):
         raise TimeoutException("Gemini API call timed out")
 
-    _model = os.getenv("GEMINI_MODEL", "models/gemini-3.1-flash-lite-preview")
+    _model = os.getenv("GEMINI_MODEL", "models/gemini-3.1-flash-lite")
 
     class _GeminiClient:
         def __init__(self):

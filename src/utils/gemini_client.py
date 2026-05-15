@@ -70,7 +70,7 @@ def generate_with_rotation(
     if not HAS_GENAI:
         raise ImportError("google-genai kütüphanesi yüklü değil.")
 
-    primary_model_name = model or os.getenv("GEMINI_MODEL", "gemini-3.1-flash-lite-preview")
+    primary_model_name = model or os.getenv("GEMINI_MODEL", "gemini-3.1-flash-lite")
     fallback_model_name = fallback_model or os.getenv("FALLBACK_MODEL")
     
     models_to_try = [(primary_model_name, "Primary")]

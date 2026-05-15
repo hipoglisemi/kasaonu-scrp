@@ -61,8 +61,8 @@ def save_checkpoint(processed_ids):
     with open(CHECKPOINT_FILE, 'w') as f:
         json.dump({"processed_ids": processed_ids}, f)
 
-# 🚨 MODEL AYARI: Kullanıcı isteği üzerine 3.1 Flash Lite Preview kullanılmaktadır.
-GEMINI_MODEL = "gemma-4-31b-it"
+# 🚨 MODEL AYARI: Kullanıcı isteği üzerine 3.1 Flash Lite stabil sürümü kullanılmaktadır.
+GEMINI_MODEL = "gemini-3.1-flash-lite"
 
 def generate_marketing_text(title: str, description: str, reward_text: str) -> str:
     prompt = MARKETING_PROMPT.format(
