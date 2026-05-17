@@ -81,10 +81,6 @@ class AkbankBaseScraper:
                 response = self.session.get(self.list_url, params=params, timeout=20)
                 response.raise_for_status()
                 
-                if 'kampanyadetay' not in response.text:
-                    print(f"   Page {page} empty. Stopping.")
-                    break
-                
                 soup = BeautifulSoup(response.text, 'html.parser')
                 links = soup.select('.campaingBox a.dLink')
                 

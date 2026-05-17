@@ -367,7 +367,10 @@ def run_autofix(limit: int = 250, campaign_id: Optional[int] = None, force_all: 
                     "Juzdan uygulama üzerinden katılabilirsiniz.",
                     "Juzdan üzerinden katılabilirsiniz.",
                     "Mobil Şube üzerinden Kampanyaya Katıl butonuna tıklayın",
-                    "Kampanyaya katılmak için Mobil Şube üzerinden Kampanyaya Katıl butonuna tıklamanız yeterlidir."
+                    "Kampanyaya katılmak için Mobil Şube üzerinden Kampanyaya Katıl butonuna tıklamanız yeterlidir.",
+                    "Otomatik Katılım",
+                    "Otomatik katılım",
+                    "Katılım kanalı belirtilmediği için",  # AI'nin ürettiği genel/yanlış fallback
                 ]
                 
                 is_corrupted = False
@@ -424,7 +427,7 @@ def run_autofix(limit: int = 250, campaign_id: Optional[int] = None, force_all: 
                         reasons.append("Corrupted Conditions")
                 
                 # Check for Generic/Missing Participation
-                is_participation_bad = not c.participation or c.participation.strip() == "" or any(p in (c.participation or "") for p in useless_participations) or "Detayları İnceleyin" in (c.participation or "")
+                is_participation_bad = not c.participation or c.participation.strip() == "" or any(p in (c.participation or "") for p in useless_participations) or "Detayları İnceleyin" in (c.participation or "") or "Otomatik Katılım" in (c.participation or "")
                 if is_participation_bad:
                     is_defective = True
                     reasons.append("Missing/Generic Participation Text")
@@ -445,10 +448,24 @@ def run_autofix(limit: int = 250, campaign_id: Optional[int] = None, force_all: 
                     clean_lower = (c.clean_text or "").lower()
                     
                     # 1. Cards Smart Check
-                    card_keywords = ["platinum", "gold", "business", "ticari", "troy", "amex", "business", "kurumsal", "sirket", "şahıs", "miles", "wings", "chip-para"]
+                    card_keywords = ["platinum", "gold", "business", "ticari", "troy", "amex", "kurumsal", "miles", "wings", "chip-para"]
                     found_cards = [k for k in card_keywords if k in clean_lower]
                     current_cards_lower = (c.eligible_cards or "").lower()
                     
+                    # 🛡️ NEGATION CONTEXT FILTER: Skip keywords that only appear in exclusion sentences.
+                    # e.g. "ticari kartlar ve Bankomat Kartlar ile yapılan işlemler dahil değildir"
+                    # should NOT trigger "Incomplete Cards".
+                    negation_markers = ["dahil değil", "dahil degil", "geçerli değil", "gecerli degil", "hariçtir", "harictir", "kapsam dışı", "kapsam disi", "geçersiz", "gecersiz"]
+                    def _keyword_only_in_negation(kw, text):
+                        import re as _re
+                        for m in _re.finditer(rf'\b{_re.escape(kw)}\b', text, _re.IGNORECASE):
+                            window = text[max(0,m.start()-200):m.end()+200]
+                            if not any(n in window for n in negation_markers):
+                                return False  # at least one non-negated occurrence
+                        return True  # all occurrences are in negation context
+
+                    found_cards = [k for k in found_cards if not _keyword_only_in_negation(k, clean_lower)]
+
                     if found_cards and not any(k in current_cards_lower for k in found_cards):
                         # If clean_text mentions specific cards but column is generic/missing
                         is_defective = True
@@ -587,7 +604,7 @@ def run_autofix(limit: int = 250, campaign_id: Optional[int] = None, force_all: 
                     force_rescue = False  # Never force-fetch SPAs with good DB data
                     print(f"   🔒 SPA domain detected. Force-rescue disabled. Using DB text ({db_text_len} chars).")
                 else:
-                    force_rescue = True if campaign_id else FORCE_ALL
+                    force_rescue = FORCE_ALL
                 
                 # Initialize repair metadata
                 repair_meta = {"source": "DB", "status": "CLEAN_TEXT_USED"}
@@ -630,7 +647,7 @@ def run_autofix(limit: int = 250, campaign_id: Optional[int] = None, force_all: 
                     html_text, live_status = fetch_html(c.tracking_url)
                     
                     if html_text and len(html_text) >= 150:
-                        fetched_cleaned = clean_campaign_text(html_text, og_title=og_title)
+                        fetched_cleaned = clean_campaign_text(html_text, og_title=og_title, title=c.title)
                         # 🛡️ DB TEXT PROTECTION: Never overwrite longer DB text with shorter live content
                         if db_text_len > 0 and len(fetched_cleaned) < db_text_len * 0.7:
                             print(f"   ⚠️ URL fetch returned significantly less/no data ({len(fetched_cleaned)} vs {db_text_len} DB chars). Falling back to DB content.")
@@ -676,7 +693,8 @@ def run_autofix(limit: int = 250, campaign_id: Optional[int] = None, force_all: 
                     bank_name=bank_name or '',
                     title=ai_title_pass,
                     og_title=og_title,
-                    scraper_sector=c.sector.slug if c.sector else None
+                    scraper_sector=c.sector.slug if c.sector else None,
+                    is_already_clean=True
                 )
                 
                 if ai_data:
@@ -758,11 +776,20 @@ def run_autofix(limit: int = 250, campaign_id: Optional[int] = None, force_all: 
                 is_cards_corrupted = "Kampanyaya Dahil Kartlar" in (c.eligible_cards or "") or corrupted_regex.search(c.eligible_cards or "")
                 is_cards_incomplete = any("Incomplete Cards" in r for r in reasons_list)
                 
-                if is_cards_empty or is_cards_corrupted or is_cards_incomplete or FORCE_ALL:
+                # 🆕 WRONG CARDS CHECK: If AI produces a DIFFERENT (cleaner) set of cards, always update.
+                # This catches cases where AI correctly removes excluded cards (Bankomat, Platinum, etc.)
+                # even when the defect reason is something else (e.g. "Missing Brands").
+                ai_cards_set = set(ai_data.get("cards") or [])
+                current_cards_set = set((c.eligible_cards or "").split(", ")) if c.eligible_cards else set()
+                is_cards_wrong = bool(ai_cards_set) and ai_cards_set != current_cards_set
+
+                if is_cards_empty or is_cards_corrupted or is_cards_incomplete or is_cards_wrong or FORCE_ALL:
                     if ai_data.get("cards") is not None:
                         cards_str = ", ".join(ai_data["cards"]) if len(ai_data["cards"]) > 0 else "-"
                         if is_cards_incomplete:
                             print(f"   ✨ Upgraded Incomplete Cards: {c.eligible_cards} → {cards_str}")
+                        elif is_cards_wrong:
+                            print(f"   ✨ Corrected Wrong Cards: {c.eligible_cards} → {cards_str}")
                         else:
                             print(f"   ✨ Repaired Eligible Cards: {cards_str}")
                         c.eligible_cards = cards_str
@@ -824,7 +851,7 @@ def run_autofix(limit: int = 250, campaign_id: Optional[int] = None, force_all: 
 
 
                 # Clean and update Participation
-                is_curr_p_bad = not c.participation or c.participation.strip() == "" or any(p in (c.participation or "") for p in useless_participations) or corrupted_regex.search(c.participation)
+                is_curr_p_bad = not c.participation or c.participation.strip() == "" or any(p in (c.participation or "") for p in useless_participations) or corrupted_regex.search(c.participation) or "Otomatik Katılım" in (c.participation or "")
                 if is_curr_p_bad or FORCE_ALL:
                     if ai_data.get("participation"):
                         print(f"   ✨ Repaired Participation: {ai_data['participation'][:50]}...")

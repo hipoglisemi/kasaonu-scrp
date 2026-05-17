@@ -24,13 +24,13 @@ logger = logging.getLogger(__name__)
 #  Used to VALIDATE AI output, not to instruct the AI.
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 BANK_CARD_KEYWORDS = {
-    "akbank": ["axess", "wings", "free", "akbank kart", "bank’o card axess", "bank'o card", "ticari kartlar", "ticari", "ek kartlar", "sanal kartlar"],
-    "işbankası": ["maximum", "maximiles", "privia"],
-    "yapı kredi": ["worldcard", "world", "play", "adios", "crystal", "bireysel kredi kartları", "banka kartları", "tlcard", "vakıfbank worldcard", "albaraka worldcard", "anadolubank worldcard", "opet worldcard", "vakıfbank", "albaraka", "anadolubank"],
-    "ziraat": ["bankkart", "bankkart başak", "bankkart genç", "bankkart prestij", "bankkart business"],
-    "vakıfbank": ["vakıfbank worldcard", "express card", "platinum", "milplus", "sky", "gold", "rail card", "meclis kart", "taraftar kart", "kampüs kart", "bankomat"],
-    "halkbank": ["paraf", "parafly", "paraf business", "parafree", "paraf esnaf", "paraf kobi", "eczacı paraf", "eczacı paraf kobi", "halkcard", "paraf genç", "paraf gençiz", "sanal kartlar", "ek kartlar"],
-    "denizbank": ["denizbonus", "net kart", "denizbank bonus"],
+    "akbank": ["axess", "wings", "free", "akbank kart", "bank’o card axess", "bank'o card", "ticari kartlar", "ticari", "ek kartlar", "sanal kartlar", "troy logolu banka kartı", "troy logolu kredi kartı", "troy logolu ön ödemeli kartlar", "troy logolu ön ödemeli kart", "troy logolu banka kartları", "troy logolu kredi kartları", "troy logolu kartlar"],
+    "işbankası": ["maximum", "maximiles", "privia", "troy logolu banka kartı", "troy logolu kredi kartı", "troy logolu ön ödemeli kartlar", "troy logolu ön ödemeli kart", "troy logolu banka kartları", "troy logolu kredi kartları", "troy logolu kartlar", "maximum troy"],
+    "yapı kredi": ["worldcard", "world", "play", "adios", "crystal", "bireysel kredi kartları", "banka kartları", "tlcard", "vakıfbank worldcard", "albaraka worldcard", "anadolubank worldcard", "opet worldcard", "vakıfbank", "albaraka", "anadolubank", "troy logolu banka kartı", "troy logolu kredi kartı", "troy logolu ön ödemeli kartlar", "troy logolu ön ödemeli kart", "troy logolu banka kartları", "troy logolu kredi kartları", "troy logolu kartlar"],
+    "ziraat": ["bankkart", "bankkart başak", "bankkart genç", "bankkart prestij", "bankkart business", "troy logolu banka kartı", "troy logolu kredi kartı", "troy logolu ön ödemeli kartlar", "troy logolu ön ödemeli kart", "troy logolu banka kartları", "troy logolu kredi kartları", "troy logolu kartlar", "bankkart troy"],
+    "vakıfbank": ["vakıfbank worldcard", "express card", "platinum", "milplus", "sky", "gold", "rail card", "meclis kart", "taraftar kart", "kampüs kart", "bankomat", "troy logolu banka kartı", "troy logolu kredi kartı", "troy logolu ön ödemeli kartlar", "troy logolu ön ödemeli kart", "troy logolu banka kartları", "troy logolu kredi kartları", "troy logolu kartlar", "vakıfbank troy"],
+    "halkbank": ["paraf", "parafly", "paraf business", "parafree", "paraf esnaf", "paraf kobi", "eczacı paraf", "eczacı paraf kobi", "halkcard", "paraf genç", "paraf gençiz", "sanal kartlar", "ek kartlar", "troy logolu banka kartı", "troy logolu kredi kartı", "troy logolu ön ödemeli kartlar", "troy logolu ön ödemeli kart", "troy logolu banka kartları", "troy logolu kredi kartları", "troy logolu kartlar", "paraf troy"],
+    "denizbank": ["denizbonus", "net kart"],
     "qnb": ["qnb card", "qnb troy"],
     "teb": ["teb bonus", "cepteteb", "teb banka kartı"],
     "kuveyt türk": ["sağlam kart"],
@@ -336,6 +336,8 @@ Kampanya Sahibi Banka/Kurum: {bank_name}
    - 🚨 **KART SEÇİMİ (KRİTİK)**: Eğer metinde bir kart grubu ana ödül için "dahil değildir" (excluded) olarak belirtilmişse, ancak metnin başka bir yerinde (örn: taksit kampanyası için) "dahildir" deniyorsa, o kartı `cards` listesine EKLEME. `cards` listesi sadece ana ödül için TAM YETKİLİ kartları içermelidir.
    - Metinde geçen kart isimlerini metindeki ORİJİNAL SIRASINI BOZMADAN aynen listele (marka içi sıralama).
    - 🚨 PARTNER BANKALAR (CRITICAL): Eğer metinde "Anadolu Bank", "Albaraka", "Vakıfbank" veya "Worldcard lisanslı bankalar" geçiyorsa, MUTLAKA 'cards' alanına KURTARARAK ekle.
+   - 🚨 ZİRAAT BANKKART KURALI (ÇOK KRİTİK): Ziraat Bankası kampanyalarında; eğer metin 'Bireysel Bankkart' veya 'Bankkart' diyorsa bu 'Bankkart, Bankkart Genç, Bankkart Prestij' kartlarını kapsar, bunları yaz (Ticari kartları, Business, Başak ASLA ekleme). Eğer metinde sadece tek bir kart (örn: sadece 'Prestij') diyorsa diğerlerini ekleme. Ayrıca metin 'ek kartlar' veya 'sanal kartlar' geçerli diyorsa bu terimleri de aynen listeye ekle. Açıkça adı geçmeyen hiçbir kartı ezbere UYDURMA.
+   - 🚨 DENİZBANK KURALI (ÇOK KRİTİK): Denizbank kampanyalarında "Tüm bonus özellikli DenizBank Bireysel Kredi Kartları" diyorsa KESİNLİKLE "Denizbonus" diye UYDURMA, kelimesi kelimesine "DenizBank Bireysel Kredi Kartları" olarak al. Eğer metinde açıkça "Denizbonus" kelimesi geçmiyorsa listeye asla ekleme. "Net Kart", "sanal kart" geçiyorsa ekle.
    - ⛔ YASAK: Eğer metinde geçerli kart/müşteri adı (örn: 'Opet Kart', 'Türk Telekom müşterileri') geçmiyorsa ASLA uydurarak ekleme. Yoksa boş bırak `[-]`.
 
 4. **TARİHLER**: 
@@ -376,8 +378,8 @@ JSON FORMATI:
   "end_date": "YYYY-MM-DD",
   "sector": "sektor-slug",
   "brands": ["Marka1", "Marka2"], // ⛔ TROY TRAP: 'TROY logolu kartlar', 'TROY kartlar' veya 'TROY özellikli' ifadelerindeki TROY bir marka/mağaza DEĞİL, Visa/Mastercard gibi bir ödeme altyapısıdır. Bunları KESİNLİKLE 'brands' listesine ekleme. Sadece 'Troy Apple Mağazası' veya 'troyestore.com' gibi bir alışveriş yeri bağlamı varsa ekle. ⛔ NEGATION TRAP: Metinde 'hariçtir','dahil değildir', 'geçerli değildir', 'kapsam dışıdır' gibi kelimelerin 10-15 kelime yakınında geçen markaları KESİNLİKLE LİSTEYE EKLEME. 🚨 DİKKAT: 'X dışında ... faydalanamaz' veya 'X hariç ... kazanamaz' gibi yapılar X'in GEÇERLİ olduğunu belirtir (özel vurgu), bu durumda X'i listeye ekle.
-  "cards": ["Ana ödül için geçerli olan kart tanımlarını (Örn: 'Bonus', 'Axess', 'Mastercard logolu TEB Bireysel Kredi Kartı') listele. 🚨 SIRALAMA KURALI: 'Ek kartlar' ve 'Sanal kartlar' ibarelerini MUTLAKA listenin EN SONUNA ekle (Örn: ['Bonus', 'Axess', 'Ek kartlar', 'Sanal kartlar']). Eğer bir kart ana ödül için hariç tutulmuşsa buraya EKLEME."],
-  "participation": "Kampanyadan nasıl faydalanılacağını net bir dille özetle. Şirket/uygulama mağazası isimlerini at, doğrudan eylemi yaz. Açıkça 'Katıl' butonu/SMS'i YOKSA BİLE, kampanyadan yararlanmak için yapılması gereken ödeme sırası işlemlerini (örn: 'Ödemenizi ilgili banka POS cihazından yapın', 'İnternet sitesinde taksit seçeneğini işaretleyin', 'Kasada şifreyi söyleyin') BURAYA YAZ. Örn: 'İşCep'ten Katıl butonuna tıklayın.', 'Kasada kampanyadan yararlanmak istediğinizi belirtin.', 'Ödemeyi bankamız POS'undan yapın.', 'Faturanızı uygulamadan okutun.' Eğer metinde hiçbir ön katılım şartı (SMS/Buton) veya eylem cümlesi geçmiyorsa, eksi (-) yazmak YERİNE: 'Otomatik Katılım' yaz.",
+  "cards": ["Ana ödül için geçerli olan kart tanımlarını (Örn: 'Bonus', 'Axess', 'Mastercard logolu TEB Bireysel Kredi Kartı') listele. 🚨 TROY KURALI: Eğer metinde 'TROY logolu banka kartı', 'TROY logolu kredi kartı', 'TROY logolu ön ödemeli kart' veya 'TROY logolu kartlar' gibi TROY-özel ifadeler geçiyorsa, bunları MUTLAKA bu şekilde netçe listele (Örn: 'TROY logolu banka kartı', 'TROY logolu kredi kartı', 'TROY logolu ön ödemeli kartlar'). Genel parent kart adını (örn: 'Paraf', 'Bonus') buraya ASLA ekleme ki Visa/Mastercard sürümleriyle karışmasın. 🚨 SIRALAMA KURALI: 'Ek kartlar' ve 'Sanal kartlar' ibarelerini MUTLAKA listenin EN SONUNA ekle (Örn: ['TROY logolu banka kartı', 'Sanal kartlar'])."],
+  "participation": "🚨 KRİTİK KURAL: Metinde 'KATILMAK İÇİN', 'NASIL KATILIRIM', 'Hemen Katıl', 'SMS', 'yazıp', 'numarasına', 'ÖNEMLİ BİLGİLER' gibi ifadeler VARSA, o bölümdeki bilgiyi AYNEN kopyala — özetleme ve kısaltma. SMS varsa 'X yazıp 1234'e SMS gönderin' formatıyla, buton varsa 'Uygulamadan Hemen Katıl butonuna tıklayın' formatıyla yaz. 🚫 YASAK: 'Otomatik Katılım' — metinde katılımla ilgili HERHANGİ bir bilgi (kelime, cümle, yönlendirme) varsa bunu ASLA yazma. Gerçekten hiçbir katılım yöntemi belirtilmemişse (metni dikkatlice okuduktan sonra), o zaman yazabilirsin. Eğer katılım bilgisi bulamıyorsan, kampanyadan yararlanmak için yapılması gereken eylemi (POS, taksit seçimi, kasada belirtme) yaz.",
   "conditions": ["Önemli Şart 1", "İkincil ödül (örn: taksit) varsa ve farklı kartlar için geçerliyse mutlaka belirt.", "Önemli Şart 2"]
 }}
 
@@ -386,10 +388,13 @@ ANALİZ EDİLECEK METİN:
 """
 
     # ── MAIN PARSE FLOW ──────────────────────────────────────────────
-    def parse_campaign(self, raw_html: str, bank_name: str = "", title: str = "", og_title: Optional[str] = None, structured_cards_text: Optional[str] = None, scraper_sector: Optional[str] = None) -> Dict[str, Any]:
+    def parse_campaign(self, raw_html: str, bank_name: str = "", title: str = "", og_title: Optional[str] = None, structured_cards_text: Optional[str] = None, scraper_sector: Optional[str] = None, is_already_clean: bool = False) -> Dict[str, Any]:
         """Golden Standard V3 parse flow."""
         # 1. Clean text (og_title/title enables header trimming for SPA sites)
-        cleaned_text = clean_campaign_text(raw_html, og_title=og_title, title=title)
+        if is_already_clean:
+            cleaned_text = raw_html
+        else:
+            cleaned_text = clean_campaign_text(raw_html, og_title=og_title, title=title)
 
         # 2. PBE Pre-scan (find known brands before AI call)
         pb_brands = []
@@ -730,14 +735,13 @@ ANALİZ EDİLECEK METİN:
             brand_plain = _strip_symbols(brand_norm)
 
             # 🚨 0. TROY INFRASTRUCTURE GUARD (Payment Scheme vs. Store) - CRITICAL PRIORITY
+            # Troy is a payment network (like Visa/Mastercard). BLOCK by default.
+            # Only allow if the brand name ITSELF clearly refers to a retail entity (store, mağaza, etc.)
             if "troy" in brand_norm:
                 troy_retail_keywords = ["mağaza", "store", "apple", "yetkili", "online", "troyestore"]
-                troy_infra_patterns = ["troy logolu", "troy kart", "troy özellikli", "troy temassız"]
-                is_infra_context = any(pat in title_lower for pat in troy_infra_patterns) or \
-                                   any(pat in text_lower for pat in troy_infra_patterns)
-                # 🛡️ ONLY check original text_lower/title_lower for retail context, ignore AI generated content
-                if is_infra_context and not any(k in text_lower for k in troy_retail_keywords) and not any(k in title_lower for k in troy_retail_keywords):
-                    logger.debug(f"Brand Guard: Rejected TROY infrastructure being tagged as brand '{brand}'")
+                is_retail_brand = any(k in brand_norm for k in troy_retail_keywords)
+                if not is_retail_brand:
+                    logger.debug(f"Brand Guard: Rejected TROY infrastructure brand '{brand}' (not a retail entity)")
                     continue
 
             # 1. SELF-TAGGING CHECK (applies to ALL brands, including PBE)
@@ -816,7 +820,8 @@ ANALİZ EDİLECEK METİN:
             # 5. COMMON NOUN GUARD (runs BEFORE PBE bypass — common nouns are NEVER valid brands)
             # "bilet", "sigorta", "market" etc. should never be tagged even if PBE has a rule for them,
             # UNLESS the brand name is explicitly in the title (e.g. title = "Bilete.com Kampanyası").
-            is_generic = any(cn in brand_norm for cn in common_nouns)
+            # Note: check brand_plain (stripped of dots) so "bilet.com" also matches common noun "bilet"
+            is_generic = any(cn in brand_plain for cn in common_nouns)
             if is_generic and brand_norm not in title_lower:
                 logger.debug(f"Brand Guard: Rejected common noun (pre-PBE) '{brand}'")
                 continue

@@ -162,8 +162,9 @@ def check_string_negation(target_str, full_text, bank_key=None, is_generic_brand
                 is_this_negated = True
         
         if is_this_negated:
-            print(f"   🛑 Card explicitly negated by header '{nearest_header}'. Overriding any positive mentions.")
-            return True
+            print(f"   🛑 Card explicitly negated by header '{nearest_header}'. Mark as negative mention.")
+            has_negative_mention = True
+            continue
         
         # Find sentence for this occurrence (respecting dots, semicolons and colons)
         rel_pos = match.start() - start_search
@@ -183,17 +184,29 @@ def check_string_negation(target_str, full_text, bank_key=None, is_generic_brand
         
         sentence = window[sent_start:sent_end]
         
+        # 🎯 NEXT-LINE NEGATION EXTENSION: Turkish bank texts often structure exclusions as:
+        #   "Bankomat Kartlar ile yapılan işlemler, ...\ndahil değildir."
+        # The \n boundary cuts "dahil değildir" into the next sentence, breaking detection.
+        # Fix: If the text right after sent_end starts with a negation keyword, extend sentence.
+        text_after_sent = window[sent_end:].lstrip()
+        for neg_check in NEGATION_KEYWORDS:
+            neg_check_norm = normalize_text(neg_check)
+            if text_after_sent.startswith(neg_check_norm):
+                # Extend sentence to include this negation
+                next_boundary = re.search(r"[\.!\?•;]|\n", text_after_sent)
+                extension_end = sent_end + (next_boundary.end() if next_boundary else len(text_after_sent))
+                sentence = window[sent_start:extension_end]
+                break
+        
         # 🛡️ POSITIVE CHECK (Ensuring it's not a negated positive like 'dahil değildir')
         positive_stoppers = r"(?i)(?:^|\s|,)(?:gecerli|faydalanabilir|faydalanabilecektir|yararlanabilir|dahildir|gecerlidir|dahil olup|dahil olan|dâhil olup|dâhil olan)(?![ \s]*(?:degil|olmadigini|olmadigi))(?:$|\s|,|;|:|\.)"
         # Special check for 'dahil' to ensure it's not followed by 'değil/değildir/olmadığını'
         # normalized sentence will have 'dahil' and 'olmadigini'
         if re.search(r"(?i)(?:^|\s|,)dahil(?![\s]*(?:degil|olmadigini|olmadigi))", sentence):
             sentence_has_positive = True
-            has_positive_mention = True
         
         if re.search(positive_stoppers, sentence):
             sentence_has_positive = True
-            has_positive_mention = True
             
         # 🎯 Always check for negation, even if there's a positive keyword in the sentence
         # (to handle compound sentences like 'X is included, but Y is not')
@@ -225,10 +238,8 @@ def check_string_negation(target_str, full_text, bank_key=None, is_generic_brand
                 
                 has_boundary = re.search(rf"[.!?•;][ \s\n]*|\n", part_between)
                 has_pos_mid = re.search(positive_stoppers, part_between)
-                is_very_close = len(part_between) < 80
                 
                 # 🎯 FIX: If there is a boundary (sentence end), we MUST respect it.
-                # is_very_close should only help if there is NO clear boundary.
                 if not has_boundary and not has_pos_mid:
                     is_this_negated = True
                     break
@@ -323,7 +334,7 @@ def filter_excluded_cards(cards, text, bank_name=None):
                 continue
             
         is_excluded = False
-        is_generic = card_clean in ["world", "paraf", "maximum", "maximiles", "bonus", "axess", "bankkart"]
+        is_generic = card_clean in ["world", "paraf", "maximum", "maximiles", "bonus", "axess", "bankkart", "bankomat"]
         
         # 1. Try full name match
         if check_string_negation(card_clean, text_normalized, is_generic_brand=is_generic):
@@ -340,6 +351,13 @@ def filter_excluded_cards(cards, text, bank_name=None):
                         is_excluded = True
                         break
         
+        # 3. HALLUCINATION GUARD: If the card name is not found anywhere in the text,
+        #    it was likely invented by the AI. Reject it unless it's a known trailing type.
+        trailing_types = {"ek kartlar", "sanal kartlar", "ek kart", "sanal kart"}
+        if not is_excluded and not card_found_in_text and card_clean not in trailing_types:
+            print(f"   🧠 Hallucination Guard: Removed card not found in text '{card}'")
+            is_excluded = True
+
         if not is_excluded:
             filtered_cards.append(card)
         else:

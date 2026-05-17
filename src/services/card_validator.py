@@ -76,6 +76,12 @@ class CardValidator:
         
         for v in validated:
             v_norm = self._normalize(v)
+            
+            # 1. Passthrough bypass: Never deduplicate these key categories
+            if v_norm in CARD_PASSTHROUGH_TERMS:
+                final_validated.append(v)
+                continue
+                
             v_core = {w for w in v_norm.split() if len(w) > 2 and w not in self.stop_words}
             if not v_core:
                  if v_norm in text_normalized:
@@ -83,17 +89,29 @@ class CardValidator:
                  continue
 
             is_subset = False
-            power_brands = {"maximum", "maximiles", "bonus", "world", "paraf", "axess", "wings", "bankkart"}
+            power_brands = {"maximum", "maximiles", "bonus", "world", "paraf", "parafly", "axess", "wings", "bankkart"}
             for f in final_validated:
                 f_norm = self._normalize(f)
                 f_core = {w for w in f_norm.split() if len(w) > 2 and w not in self.stop_words}
                 if v_core.issubset(f_core):
+                    # 2. Both explicitly present in text bypass: Keep distinct cards listed separately by name
+                    if v_norm in text_normalized and f_norm in text_normalized:
+                        continue
+                    if "troy" in v_norm:
+                        continue
                     if len(v_core) == 1 and list(v_core)[0] in power_brands:
                         continue
                     is_subset = True
                     break
             if not is_subset:
                 final_validated.append(v)
+
+        # 7. TROY FILTERING: If any card in the list contains "troy", remove generic parent brands
+        # to prevent users from assuming Visa/Mastercard versions are also eligible.
+        has_troy = any("troy" in self._normalize(v) for v in final_validated)
+        if has_troy:
+            generic_brands = {"paraf", "bonus", "world", "maximum", "axess", "bankkart", "maximiles", "wings"}
+            final_validated = [v for v in final_validated if self._normalize(v) not in generic_brands]
 
         def get_pos(card_name):
             c_norm = self._normalize(card_name)
@@ -123,14 +141,19 @@ class CardValidator:
             
         any_valid_mention = False
         for idx in occurrences:
-            window = text_normalized[idx:idx+200]
+            window = text_normalized[max(0, idx - 150):min(len(text_normalized), idx + 250)]
             short_window = text_normalized[idx:idx+40]
-            if any(k in short_window for k in service_keywords):
+            
+            if any(re.search(rf"\b{re.escape(k)}\b", short_window) for k in service_keywords):
                 continue
-            if any(k in window for k in ["dahil", "gecerli", "faydalan", "indirim", "firsat", "kazan"]):
+            
+            # Robust suffix-friendly positive keywords check (Turkish agglutinative support)
+            positive_kws = ["dahil", "gecerli", "faydalan", "indirim", "firsat", "kazan", "puan", "taksit", "hediye", "kampanya", "alisveris", "odul", "worldpuan"]
+            if any(k in window for k in positive_kws):
                 any_valid_mention = True
                 break
-            is_this_trap = any(k in window for k in privacy_keywords + infra_keywords + app_keywords + service_keywords)
+                
+            is_this_trap = any(re.search(rf"\b{re.escape(k)}\b", window) for k in privacy_keywords + infra_keywords + app_keywords + service_keywords)
             if not is_this_trap:
                 any_valid_mention = True
                 break
@@ -154,6 +177,17 @@ class CardValidator:
         # 🛡️ RELAXED THRESHOLD FOR 2-WORD CARDS
         # If it has 2 words and at least one matches, we check if it's a 'Power Word' for this bank
         power_words = {"maximum", "maximiles", "privia", "bankamatik", "bonus", "axess", "wings", "world", "paraf", "bankkart"}
+        
+        # Ziraat Fix: "Bankkart" kelimesi geçince "Bankkart Business/Başak/Genç" kartlarının zorla
+        # eklenmesini engellemek için, Ziraat bankasında bankkart kelimesini power_word olmaktan çıkarıyoruz.
+        if bank_key.lower() == "ziraat":
+            power_words.discard("bankkart")
+            
+        # Denizbank Fix: Metinde sadece "bonus" geçince normalizer "denizbonus" kelimesini "deniz bonus" 
+        # olarak böldüğü için "bonus" gücüyle zorla listeye ekleniyordu. 
+        if bank_key.lower() == "denizbank":
+            power_words.discard("bonus")
+
         if len(core_words) == 2 and matched == 1:
             matched_word = next((w for w in core_words if re.search(rf"(?<![a-z0-9])(?<![a-z]\.){re.escape(w)}(?![a-z0-9]|\.[a-z])", text_normalized)), "")
             if matched_word in power_words:
@@ -203,6 +237,19 @@ class CardValidator:
                     continue
                 is_generic = kc_norm in ["world", "paraf", "maximum", "bonus", "axess", "bankkart"]
                 if check_string_negation(kc, raw_text, bank_key, is_generic_brand=is_generic):
+                    continue
+                
+                # 🛡️ SNIPER NEGATION CONTEXT GUARD: Skip if keyword ONLY appears near negation markers.
+                # e.g. "Platinum, Kampüs kart... dahil değildir" should not add Platinum/Kampüs.
+                _neg_markers = ["dahil degil", "gecerli degil", "harictir", "haric", "kapsam disi", "gecersiz"]
+                def _only_in_negation(kw_norm, txt_norm):
+                    import re as _re
+                    for m in _re.finditer(rf'(?<![a-z0-9]){_re.escape(kw_norm)}(?![a-z0-9])', txt_norm):
+                        window = txt_norm[max(0, m.start()-250):m.end()+250]
+                        if not any(neg in window for neg in _neg_markers):
+                            return False
+                    return True
+                if _only_in_negation(kc_norm, text_normalized):
                     continue
                 
                 is_overlap = False

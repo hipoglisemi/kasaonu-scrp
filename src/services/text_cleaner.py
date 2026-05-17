@@ -177,6 +177,29 @@ def clean_campaign_text(raw_text: str, og_title: Optional[str] = None, title: Op
     ]
 
     final_text = '\n'.join(cleaned_lines)
+
+    # ── Step 2.5: Header Sniper (og_title / title) & Bank specific header markers ──
+    # This runs BEFORE boilerplate chopping to ensure navigation links (which may contain
+    # "KVKK" or "Çerez" terms in menus) are discarded before boilerplate matching.
+    title_to_find = og_title or title
+    if title_to_find and len(title_to_find) > 5:
+        words = title_to_find.split()
+        first_few_words = " ".join(words[:3]) if len(words) >= 3 else title_to_find
+        match = re.search(re.escape(first_few_words), final_text, re.IGNORECASE)
+        if match and 0 < match.start() < 2500:
+            final_text = final_text[match.start():].strip()
+            
+    # 🛡️ Yapı Kredi Specific Markers (Fallback/Legacy Safety)
+    yapi_header_markers = ["world nedir?", "worldcard kredi kartı başvurusu", "world'e özel hizmetler"]
+    final_lower = final_text.lower()
+    for marker in yapi_header_markers:
+        m_pos = final_lower.find(marker)
+        if 0 <= m_pos < 1000:
+            restart_pos = final_lower.find("ana sayfa", m_pos)
+            if restart_pos != -1 and restart_pos < 2500:
+                final_text = final_text[restart_pos:].strip()
+                break
+
     tr_map = {ord('I'): 'ı', ord('İ'): 'i', ord('Ş'): 'ş', ord('Ğ'): 'ğ', ord('Ç'): 'ç', ord('Ö'): 'ö', ord('Ü'): 'ü'}
     text_lower = final_text.translate(tr_map).lower()
     
@@ -190,8 +213,9 @@ def clean_campaign_text(raw_text: str, og_title: Optional[str] = None, title: Op
     # 🎯 Apply high-confidence boilerplate chopping
     for marker in BOILERPLATE_CHOP_MARKERS:
         marker_pos = text_lower.find(marker)
-        # Only trip if it's not literally the first 200 chars (to be safe)
-        if marker_pos != -1 and marker_pos > 200:
+        # Only trip if it is deep in the text (to avoid menu/utility link matches)
+        min_safe_pos = max(1500, int(len(text_lower) * 0.45))
+        if marker_pos != -1 and marker_pos > min_safe_pos:
             legal_limit_idx = min(legal_limit_idx, marker_pos)
             break
     
@@ -230,6 +254,14 @@ def clean_campaign_text(raw_text: str, og_title: Optional[str] = None, title: Op
         r"(?i)^geçmiş kampanyalarımız\s*$",
         r"(?i)^geçmiş kampanyalar\s*$",
         r"(?i)^diğer kampanyalarımız\s*$",
+        # 🛑 Yapı Kredi Footer Gürültüsü
+        r"(?i)^finansal çözümler\s*$",
+        r"(?i)^banka ve kredi kartları\s*$",
+        r"(?i)^sık ziyaret edilenler\s*$",
+        r"(?i)^faydalı sayfalar\s*$",
+        r"(?i)^diğer yapı kredi kartları\s*$",
+        r"(?i)^öne çıkan kampanyalar\s*$",
+        r"(?i)^diğer kampanyalar\s*$",
     ]
     
     # 1. First evaluate hard cuts (no minimum percentage threshold required)
@@ -248,20 +280,6 @@ def clean_campaign_text(raw_text: str, og_title: Optional[str] = None, title: Op
     if earliest_noise_idx < len(final_text):
         final_text = final_text[:earliest_noise_idx].strip()
 
-    # ── Step 4: Header Sniper (og_title / title) ─────────────
-    # This is the "Secret Sauce" from legacy. If the title is found deep in the text,
-    # it means there was a massive navigation menu before it. CHOP IT.
-    
-    # 🛡️ Sub-Step 4.1: Yapı Kredi Specific Markers (Fallback/Legacy Safety)
-    yapi_header_markers = ["world nedir?", "worldcard kredi kartı başvurusu", "world'e özel hizmetler"]
-    final_lower = final_text.lower()
-    for marker in yapi_header_markers:
-        m_pos = final_lower.find(marker)
-        if 0 <= m_pos < 1000:
-            restart_pos = final_lower.find("ana sayfa", m_pos)
-            if restart_pos != -1 and restart_pos < 2500:
-                final_text = final_text[restart_pos:].strip()
-                break
 
     # 🎯 Sub-Step 4.3: Aggressive Cookie Header Removal
     # If the text starts with cookie notification boilerplate, strip it.

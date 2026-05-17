@@ -19,7 +19,7 @@ if project_root not in sys.path:
 
 # Internal Imports
 from src.services.ai_parser import AIParser  # type: ignore
-from src.services.ai_parser_golden import parse_api_campaign  # type: ignore
+from src.services.ai_parser_golden import parse_api_campaign, get_golden_parser  # type: ignore
 from src.services.brand_normalizer import cleanup_brands  # type: ignore
 from src.utils.scraper_utils import is_url_blocked, upsert_campaign  # type: ignore
 from src.models import Campaign, Sector, Brand, CampaignBrand  # type: ignore
@@ -104,7 +104,7 @@ class DenizbankScraper:
         options.add_experimental_option('useAutomationExtension', False)
         
         # Performance & Stability
-        options.page_load_strategy = 'normal'  # 'eager' yerine 'normal' - daha güvenilir
+        options.page_load_strategy = 'eager'  # 'eager' prevents getting stuck on slow resources
         options.add_argument('--no-sandbox')
         options.add_argument('--disable-dev-shm-usage')
         options.add_argument('--disable-gpu')
@@ -112,15 +112,22 @@ class DenizbankScraper:
         options.add_argument("--ignore-certificate-errors")
         options.add_argument("--disable-web-security")
         
-        # Headless Mode (opsiyonel - bot detection riski var)
-        # options.add_argument('--headless=new')  # Eğer headless çalıştırmak istersen
-        
+        # Headless Mode for CI / Server environments
+        if os.getenv("CI") == "true" or sys.platform.startswith('linux'):
+            print("   🤖 CI or Linux detected. Enabling Headless Chrome to prevent system freezes...")
+            options.add_argument('--headless=new')
+        else:
+            # Optionally use headless locally to be less intrusive
+            options.add_argument('--headless=new')
+            
         # Gerçek User Agent
         options.add_argument("user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36")
         
         try:
             service = Service(ChromeDriverManager().install())
             self.driver = webdriver.Chrome(service=service, options=options)
+            self.driver.set_page_load_timeout(35)  # Max 35s limit to prevent infinite hangs
+            print("   ⏱️ Set Page Load Timeout to 35 seconds.")
             
             # ✅ STEALTH MODE UYGULA - ÇOK ÖNEMLİ!
             stealth(self.driver,
@@ -209,11 +216,17 @@ class DenizbankScraper:
             # Önce ana sayfaya git (referrer yaratmak için)
             if url != self.CAMPAIGNS_URL:
                 print("   👤 First visiting homepage for natural browsing...")
-                self.driver.get(self.BASE_URL)
+                try:
+                    self.driver.get(self.BASE_URL)
+                except Exception as e:
+                    print(f"   ⚠️ Homepage load timed out or hit resource freeze: {e}. Proceeding...")
                 time.sleep(random.uniform(2.0, 4.0))
             
             # Hedef sayfaya git
-            self.driver.get(url)
+            try:
+                self.driver.get(url)
+            except Exception as e:
+                print(f"   ⚠️ Target page load timed out or hit resource freeze: {e}. Proceeding to extract DOM...")
             
             # ✅ Sayfa yüklenmesini bekle
             time.sleep(random.uniform(4.0, 7.0))
@@ -415,10 +428,33 @@ class DenizbankScraper:
         try:
             raw_text_js = self.driver.execute_script("""
                 let text = "";
+                let extra = "";
                 const left = document.querySelector('.campaign-detail-text') || document.querySelector('.campaign-detail');
                 const right = document.querySelector('.container-right') || document.querySelector('.campaign-startend-date');
+                
+                // Heuristic for missing info (Participation, Dates)
+                const headings = Array.from(document.querySelectorAll('h1, h2, h3, h4, h5, h6'));
+                const targets = headings.filter(h => 
+                    h.innerText && (
+                        h.innerText.includes('KATILMAK İÇİN') || 
+                        h.innerText.includes('KAMPANYA BAŞLANGIÇ') || 
+                        h.innerText.includes('ÖDÜL GEÇERLİLİK')
+                    )
+                );
+                
+                targets.forEach(h => {
+                    const parent = h.parentElement;
+                    if (parent && !extra.includes(parent.innerText.substring(0, 30))) {
+                        extra += "\\n\\n" + parent.innerText;
+                    }
+                });
+                
+                // Put extra info (Participation, Dates) at the TOP!
+                if (extra) text += "--- ÖNEMLİ BİLGİLER (KATILIM VE TARİHLER) ---" + extra + "\\n\\n--------------------------------------\\n\\n";
+                
                 if (left) text += left.innerText + "\\n\\n";
                 if (right) text += right.innerText + "\\n\\n";
+                
                 return text;
             """)
             if raw_text_js and len(raw_text_js.strip()) > 100:
@@ -462,14 +498,13 @@ class DenizbankScraper:
         # AI Parsing
         if self.ai_parser:
             print("   🧠 Analyzing with Gemini AI...")
-            ai_data = parse_api_campaign(
-                title=title,
-                short_description=None,
-                content_html=html,  # Full fetched HTML for centralized BS4 cleaning
+            parser = get_golden_parser()
+            ai_data = parser.parse_campaign(
+                raw_html=raw_text, # Passing the extracted text to bypass aggressive cleaning
                 bank_name="Denizbank",
-                scraper_sector=None,
-                tracking_url=url,
-                og_title=title  # og:title already extracted as title above
+                title=title,
+                og_title=title,
+                scraper_sector=None
             ) or {}
         else:
             print("   ⚠️ AI Parser unavailable, using basic extraction.")
@@ -526,6 +561,7 @@ class DenizbankScraper:
             "reward_text": ai_data.get('reward_text'),
             "reward_value": ai_data.get('reward_value'),
             "reward_type": ai_data.get('reward_type'),
+            "clean_text": raw_text
         }
 
         return self._save_to_db(campaign_data, ai_data.get('brands', []))  # type: ignore # pyre-ignore[7]
@@ -601,7 +637,8 @@ class DenizbankScraper:
                 participation=data.get('participation'),
                 image_url=data.get('image_url'),
                 tracking_url=data.get('tracking_url'),
-                is_active=True
+                is_active=True,
+                clean_text=data.get('clean_text')
             )
 
             # 3. Use upsert_campaign for revival/quality
