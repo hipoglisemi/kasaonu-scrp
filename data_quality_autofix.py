@@ -29,6 +29,7 @@ logging.getLogger("google_genai.models").setLevel(logging.WARNING)
 from src.models import Campaign, Sector, Brand, CampaignBrand, Card, Bank # type: ignore
 from src.database import get_db_session # type: ignore
 from src.services.ai_parser_golden import AIParserGolden # type: ignore
+from src.services.fact_checker import FactCheckerAgent # type: ignore
 from src.services.text_cleaner import clean_campaign_text # type: ignore
 from src.services.point_blank_matcher import get_point_blank_matcher, _GLOBAL_BRAND_EXCLUSIONS # type: ignore
 from sqlalchemy.orm import joinedload # type: ignore
@@ -948,6 +949,7 @@ def run_autofix(limit: int = 250, campaign_id: Optional[int] = None, force_all: 
                         updated = True
 
                 # --- Marka tamiri (Safe-Update & Multi-Brand) ---
+                added_brand_ids = set()
                 needs_brand_fix = False
                 if not c.brands or (campaign_id or ids_file):
                     needs_brand_fix = True
@@ -984,7 +986,7 @@ def run_autofix(limit: int = 250, campaign_id: Optional[int] = None, force_all: 
                     correct_brands_to_keep = []
                     if not (campaign_id or ids_file):
                         for b in c.brands:
-                            if b.name not in wrong_bank_brands:
+                            if b.brand.name not in wrong_bank_brands:
                                 correct_brands_to_keep.append(b)
                     
                     # Kampanya bağlarını sıfırla
@@ -995,9 +997,9 @@ def run_autofix(limit: int = 250, campaign_id: Optional[int] = None, force_all: 
                     
                     if correct_brands_to_keep:
                         for b in correct_brands_to_keep:
-                            db.add(CampaignBrand(campaign_id=c.id, brand_id=b.id))
-                            added_brand_ids.add(b.id)
-                        print(f"   🛡️ Preserved Brands: {', '.join([b.name for b in correct_brands_to_keep])}")
+                            db.add(CampaignBrand(campaign_id=c.id, brand_id=b.brand_id))
+                            added_brand_ids.add(b.brand_id)
+                        print(f"   🛡️ Preserved Brands: {', '.join([b.brand.name for b in correct_brands_to_keep])}")
                     else:
                         print(f"   🧹 Purged all existing brands for fresh repair.")
 
@@ -1019,6 +1021,132 @@ def run_autofix(limit: int = 250, campaign_id: Optional[int] = None, force_all: 
                         except Exception as be:
                             print(f"   ⚠️ Brand fix failed for {b_name}: {be}")
                     db.flush()
+
+                # -------------------------------------------------------------
+                # 📊 DYNAMIC QUALITY SCORE CALCULATION & PEER-REVIEW FACT-CHECKER
+                # -------------------------------------------------------------
+                score = 0
+                
+                # 1. Title Validation (20 pts)
+                has_valid_title = c.title and len(c.title.strip()) > 5 and not any(gt in c.title.lower() for gt in ["çerez", "cookie", "aydınlatma", "nays'ın kazandıran", "opet kampanyası", "ayrıcalıklar", "kampanyalar", "fırsatlar", "akaryakıt standartları"])
+                if has_valid_title:
+                    score += 20
+                
+                # 2. Description Validation (20 pts)
+                has_valid_desc = c.description and len(c.description.strip()) > 20 and not corrupted_regex.search(c.description)
+                if has_valid_desc:
+                    score += 20
+                
+                # 3. Eligible Cards Validation (15 pts)
+                has_valid_cards = c.eligible_cards and c.eligible_cards.strip() != "" and c.eligible_cards.strip() != "-" and "Kampanyaya Dahil Kartlar" not in c.eligible_cards and not corrupted_regex.search(c.eligible_cards)
+                if has_valid_cards:
+                    score += 15
+                
+                # 4. Reward Text Validation (15 pts)
+                has_valid_reward = c.reward_text and c.reward_text.strip() != "" and not any(p in c.reward_text for p in ["Detayları İnceleyin", "Hemen Faydalanın", "Harcamadan Önce"])
+                if has_valid_reward:
+                    score += 15
+                
+                # 5. Participation Validation (10 pts)
+                has_valid_part = c.participation and c.participation.strip() != "" and not any(p in c.participation for p in useless_participations)
+                if has_valid_part:
+                    score += 10
+                
+                # 6. Sector Validation (10 pts)
+                has_valid_sector = c.sector_id and final_sector_slug != "diger"
+                if has_valid_sector:
+                    score += 10
+                
+                # 7. Brands Validation (10 pts)
+                has_valid_brands = len(added_brand_ids) > 0 or len([b for b in c.brands if b.brand.name not in wrong_bank_brands]) > 0
+                if has_valid_brands:
+                    score += 10
+
+                c.quality_score = score
+                print(f"   📊 Computed Base Quality Score: {score}/100")
+
+                # Run Peer-Review Fact-Checker if score is promising (>= 70)
+                fact_checker_passed = False
+                if score >= 70 and text_to_parse:
+                    print("   🔬 [Fact-Checker] Initiating Peer-Review NLI Verification...")
+                    try:
+                        checker = FactCheckerAgent()
+                        candidate = {
+                            "reward_text": c.reward_text,
+                            "reward_value": float(c.reward_value) if c.reward_value is not None else None,
+                            "reward_type": c.reward_type,
+                            "cards": c.eligible_cards.split(", ") if c.eligible_cards else [],
+                            "participation": c.participation,
+                            "sector": c.sector.name if c.sector else "Diğer",
+                            "brands": [b.brand.name for b in c.brands]
+                        }
+                        verification = checker.verify_campaign(text_to_parse, candidate)
+                        
+                        if verification.get("is_grounded") is True:
+                            fact_checker_passed = True
+                            c.quality_score = max(c.quality_score, 95) # Boost score to at least 95 if fact-checker completely validates it!
+                            print(f"   🏆 [Fact-Checker] 100% Grounded! Score boosted to: {c.quality_score}/100")
+                        else:
+                            # Check if we can heal simple card or brand errors (Self-healing)
+                            verifications = verification.get("verifications", {})
+                            
+                            cards_verification = verifications.get("eligible_cards", {})
+                            unsupported_cards = cards_verification.get("unsupported_cards", [])
+                            
+                            brands_verification = verifications.get("brands", {})
+                            unsupported_brands = brands_verification.get("unsupported_brands", [])
+                            
+                            if (unsupported_cards and cards_verification.get("status") in ["NO", "CONTRADICTION"]) or \
+                               (unsupported_brands and brands_verification.get("status") in ["NO", "CONTRADICTION"]):
+                                
+                                remaining_cards = candidate["cards"]
+                                if unsupported_cards:
+                                    print(f"   🩹 [Fact-Checker] Self-Healing Triggered! Removing unsupported cards: {unsupported_cards}")
+                                    current_cards = [card.strip() for card in c.eligible_cards.split(", ") if card.strip()]
+                                    remaining_cards = [card for card in current_cards if card not in unsupported_cards]
+                                    c.eligible_cards = ", ".join(remaining_cards) if remaining_cards else "-"
+                                    updated = True
+                                    
+                                remaining_brands = candidate["brands"]
+                                if unsupported_brands:
+                                    print(f"   🩹 [Fact-Checker] Self-Healing Triggered! Removing unsupported brands: {unsupported_brands}")
+                                    # Purge from campaign brands join table
+                                    for b in list(c.brands):
+                                        if b.brand.name in unsupported_brands:
+                                            db.delete(b)
+                                    db.flush()
+                                    remaining_brands = [bname for bname in candidate["brands"] if bname not in unsupported_brands]
+                                    updated = True
+                                
+                                # Re-verify with remaining items
+                                print("   🔬 [Fact-Checker] Re-running NLI Verification after self-healing...")
+                                candidate["cards"] = remaining_cards
+                                candidate["brands"] = remaining_brands
+                                re_verification = checker.verify_campaign(text_to_parse, candidate)
+                                if re_verification.get("is_grounded") is True:
+                                    fact_checker_passed = True
+                                    c.quality_score = max(c.quality_score, 95)
+                                    print(f"   🏆 [Fact-Checker] Grounded after Self-Healing! Score: {c.quality_score}/100")
+                                else:
+                                    c.quality_score = min(c.quality_score, 60) # Downgrade score since it failed twice
+                                    print(f"   ❌ [Fact-Checker] Grounding Failed after Self-Healing. Score downgraded to: {c.quality_score}/100")
+                            else:
+                                c.quality_score = min(c.quality_score, 60) # Downgrade score
+                                print(f"   ❌ [Fact-Checker] Hallucination/Grounding Error Detected! Score downgraded to: {c.quality_score}/100")
+                                if verification.get("reason"):
+                                    print(f"      Reason: {verification.get('reason')}")
+                    except Exception as fe:
+                        print(f"   ⚠️ Fact-Checker execution failed: {fe}")
+
+                # Gated Approval logic (Shadow Mode canary stage)
+                # Keep is_approved = False for all campaigns as requested,
+                # but print a very prominent dry-run notice if it would have been approved.
+                c.is_approved = False  # Strict request: stays manual for now!
+                
+                if c.quality_score >= 95 and fact_checker_passed:
+                    print(f"   ✨ 🚀 [SHADOW MODE] Campaign WOULD HAVE BEEN AUTO-APPROVED! Score: {c.quality_score}/100 (Fact-Checker Verified)")
+                else:
+                    print(f"   ⚠️ [QUEUE] Campaign will remain in manual approval queue. Score: {c.quality_score}/100")
 
                 # ALWAYS mark as auto_corrected so we don't try again forever (even if Gemini failed to find missing data)
                 c.auto_corrected = True
