@@ -344,33 +344,6 @@ class AkbankBaseScraper:
                 error_details.append({"url": url, "error": str(e)})
             time.sleep(1) # Polite delay
             
-        # --- ORPHAN CLEANUP (SYNC DELETION) ---
-        if not urls and process_urls:
-            with get_db_session() as db:
-                from src.models import Campaign
-                print("\n🧹 Running Orphan Cleanup (Detecting silently removed campaigns)...")
-                
-                active_campaigns = db.query(Campaign).filter(
-                    Campaign.card_id == self.card_id,
-                    Campaign.is_active == True,
-                    Campaign.is_approved == True
-                ).all()
-                
-                fresh_urls = {u.strip().lower() for u in process_urls}
-                orphans_deactivated = 0
-                
-                for c in active_campaigns:
-                    if c.tracking_url and c.tracking_url.strip().lower() not in fresh_urls:
-                        print(f"   👻 Detected removed campaign, marking passive: {c.title}")
-                        c.is_active = False
-                        orphans_deactivated += 1
-                        
-                if orphans_deactivated > 0:
-                    db.commit()
-                    print(f"   ✅ Automatically deactivated {orphans_deactivated} orphaned campaigns!")
-                else:
-                    print("   ✅ No orphaned campaigns found.")
-            
         print(f"🏁 Scraping finished. Found: {total_found}, Saved: {total_saved}, Skipped: {total_skipped}, Failed: {total_failed}")
         
         # Determine status
