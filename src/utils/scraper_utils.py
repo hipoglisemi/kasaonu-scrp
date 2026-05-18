@@ -35,13 +35,11 @@ def upsert_campaign(db: Session, campaign: Campaign) -> Tuple[Campaign, str]:
     If it was passive (is_active=False), it revives it and requires re-approval.
     Returns (campaign, status) where status is "saved" or "revived".
     """
-    # Extract the original slug directly from the tracking URL 
-    # (because campaign.slug might be modified by get_unique_slug to be artificially unique like -2, -3)
-    url_slug = campaign.tracking_url.strip('/').split('/')[-1]
+    from sqlalchemy import func
     
-    # Try matching by EXACT tracking_url, OR if the old URL ends with the same slug (handles bank URL migrations)
+    # Try matching by EXACT tracking_url, OR if the title exactly matches (handles extreme bank URL migrations where even the slug text changed)
     existing = db.query(Campaign).filter(
-        (Campaign.tracking_url == campaign.tracking_url) | (Campaign.tracking_url.like(f"%/{url_slug}%")),
+        (Campaign.tracking_url == campaign.tracking_url) | (func.lower(Campaign.title) == campaign.title.lower()),
         Campaign.card_id == campaign.card_id
     ).first()
     
