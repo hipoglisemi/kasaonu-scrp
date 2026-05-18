@@ -305,6 +305,11 @@ class AkbankBaseScraper:
                         ).first()
                         
                         if existing and existing.is_active:
+                            # 🔄 MIGRATION FIX: If the URL prefix changed, update it in the DB silently!
+                            if existing.tracking_url != url:
+                                existing.tracking_url = url
+                                db.commit()
+                                
                             print(f"⏭️  Skipped (Already exists & active): {existing.title}")
                             total_skipped += 1
                             continue
