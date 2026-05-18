@@ -293,14 +293,20 @@ class AkbankBaseScraper:
                             print(f"⏭️  Skipped (Blocked): {url}")
                             total_skipped += 1
                             continue
+                        
+                        existing = db.query(Campaign).filter(Campaign.tracking_url == url, Campaign.card_id == self.card_id).first()
+                        if existing and existing.is_active:
+                            print(f"⏭️  Skipped (Already exists & active): {existing.title}")
+                            total_skipped += 1
+                            continue
                             
                 # Process (Sub-classes may override this)
                 # If we found an existing but passive campaign, force a re-parse to get fresh data
                 current_force = force
                 with get_db_session() as db:
                     existing = db.query(Campaign).filter(Campaign.tracking_url == url, Campaign.card_id == self.card_id).first()
-                    # ♻️ Force re-parse if campaign is passive OR pending approval
-                    if existing and (not existing.is_active or not existing.is_approved):
+                    # ♻️ Force re-parse if campaign is passive
+                    if existing and not existing.is_active:
                         current_force = True
                 
                 res = self._process_campaign(url, force=current_force)
