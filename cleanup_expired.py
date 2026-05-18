@@ -110,34 +110,45 @@ def cleanup_campaigns():
     print(f"🧹 Starting SEO-Friendly Campaign Cleanup: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
     
     RETENTION_DAYS = 90
+    today = datetime.now().date()
+    retention_cutoff = today - timedelta(days=RETENTION_DAYS)
     
+    # --- STAGE 0: Fetch URLs to Check (Short DB Session) ---
+    print("🔍 Stage 0: Fetching active campaigns for dead link detection...")
+    campaigns_to_check = []
     with get_db_session() as db:
-        today = datetime.now().date()
-        retention_cutoff = today - timedelta(days=RETENTION_DAYS)
-        
-        # --- STAGE 0: Dead Link Detection (Orphan Cleanup) ---
-        print("🔍 Stage 0: Checking for silently removed campaigns (Dead Links)...")
-        active_campaigns = db.query(Campaign).filter(
+        active_campaigns = db.query(Campaign.id, Campaign.tracking_url, Campaign.title).filter(
             Campaign.is_active == True,
             Campaign.tracking_url.isnot(None)
         ).all()
+        # Copy to python list to release DB session
+        campaigns_to_check = [{"id": c.id, "url": c.tracking_url, "title": c.title} for c in active_campaigns]
         
-        dead_links_found = 0
+    # --- STAGE 0.5: Concurrent HTTP Checks (Outside DB Session to prevent connection drops) ---
+    dead_campaign_ids = []
+    if campaigns_to_check:
+        print(f"🌐 Checking {len(campaigns_to_check)} URLs for 404/removal...")
         with ThreadPoolExecutor(max_workers=10) as executor:
-            futures = {executor.submit(is_link_dead, c.tracking_url): c for c in active_campaigns}
+            futures = {executor.submit(is_link_dead, c["url"]): c for c in campaigns_to_check}
             for future in as_completed(futures):
                 c = futures[future]
                 try:
                     if future.result() == True:
-                        print(f"   👻 Dead link detected, marking passive: {c.title}")
-                        c.is_active = False
-                        dead_links_found += 1
+                        print(f"   👻 Dead link detected: {c['title']}")
+                        dead_campaign_ids.append(c["id"])
                 except Exception as e:
                     pass
-                    
-        if dead_links_found > 0:
+
+    # --- STAGE 1 & 2: Database Updates (New DB Session) ---
+    with get_db_session() as db:
+        if dead_campaign_ids:
+            print(f"💾 Marking {len(dead_campaign_ids)} dead campaigns as passive...")
+            for dead_id in dead_campaign_ids:
+                camp = db.query(Campaign).filter(Campaign.id == dead_id).first()
+                if camp:
+                    camp.is_active = False
             db.flush()
-            print(f"✅ Successfully deactivated {dead_links_found} dead/removed campaigns.")
+            print(f"✅ Successfully deactivated {len(dead_campaign_ids)} dead/removed campaigns.")
         else:
             print("✅ All active campaign links are healthy.")
             
@@ -178,8 +189,6 @@ def cleanup_campaigns():
             else:
                 db.commit()
                 print("✅ Deactivation complete. No old campaigns to delete yet.")
-            
-    print("🏁 Cleanup completed!")
             
     print("🏁 Cleanup completed!")
 
