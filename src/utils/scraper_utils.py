@@ -35,8 +35,9 @@ def upsert_campaign(db: Session, campaign: Campaign) -> Tuple[Campaign, str]:
     If it was passive (is_active=False), it revives it and requires re-approval.
     Returns (campaign, status) where status is "saved" or "revived".
     """
+    # Try matching by tracking_url or by slug to handle URL migrations
     existing = db.query(Campaign).filter(
-        Campaign.tracking_url == campaign.tracking_url,
+        (Campaign.tracking_url == campaign.tracking_url) | (Campaign.slug == campaign.slug),
         Campaign.card_id == campaign.card_id
     ).first()
     
@@ -50,6 +51,8 @@ def upsert_campaign(db: Session, campaign: Campaign) -> Tuple[Campaign, str]:
             
         # Update fields
         existing.title = campaign.title
+        existing.tracking_url = campaign.tracking_url  # Update tracking_url to handle migrations
+        existing.slug = campaign.slug                  # Update slug just in case
         existing.reward_text = campaign.reward_text
         existing.reward_value = campaign.reward_value
         existing.reward_type = campaign.reward_type

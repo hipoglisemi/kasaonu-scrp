@@ -294,7 +294,14 @@ class AkbankBaseScraper:
                             total_skipped += 1
                             continue
                         
-                        existing = db.query(Campaign).filter(Campaign.tracking_url == url, Campaign.card_id == self.card_id).first()
+                        # Extract the slug from the URL to handle URL structure migrations (kampanyadetay -> kampanyalar)
+                        url_slug = url.strip('/').split('/')[-1]
+                        
+                        existing = db.query(Campaign).filter(
+                            Campaign.card_id == self.card_id,
+                            Campaign.tracking_url.like(f"%/{url_slug}%")
+                        ).first()
+                        
                         if existing and existing.is_active:
                             print(f"⏭️  Skipped (Already exists & active): {existing.title}")
                             total_skipped += 1
@@ -304,7 +311,11 @@ class AkbankBaseScraper:
                 # If we found an existing but passive campaign, force a re-parse to get fresh data
                 current_force = force
                 with get_db_session() as db:
-                    existing = db.query(Campaign).filter(Campaign.tracking_url == url, Campaign.card_id == self.card_id).first()
+                    url_slug = url.strip('/').split('/')[-1]
+                    existing = db.query(Campaign).filter(
+                        Campaign.card_id == self.card_id,
+                        Campaign.tracking_url.like(f"%/{url_slug}%")
+                    ).first()
                     # ♻️ Force re-parse if campaign is passive
                     if existing and not existing.is_active:
                         current_force = True
