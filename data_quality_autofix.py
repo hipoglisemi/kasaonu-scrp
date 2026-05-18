@@ -40,7 +40,8 @@ from google.genai import types # type: ignore
 class _AutofixGeminiClient:
     """Wraps generate_with_rotation for AIParserGolden compatibility."""
     def __init__(self, model=None, fallback_model=None):
-        self.model = model or os.getenv("GEMINI_MODEL", "models/gemini-3.1-flash-lite")
+        # Gece otomatik tamircisi (AutoFix) için Başdenetçi Model Gemma 4 31B IT olarak ayarlandı
+        self.model = model or os.getenv("GEMINI_MODEL", "models/gemma-4-31b-it")
         self.fallback_model = fallback_model or os.getenv("FALLBACK_MODEL")
         
     def generate_content(self, prompt):
