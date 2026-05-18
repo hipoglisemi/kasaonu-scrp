@@ -56,9 +56,54 @@ def notify_google_deleted(slugs: list[str]):
         print(f"⚠️  Google servis hatası: {e}")
         return False
 
+import requests # type: ignore
+import urllib3 # type: ignore
+from concurrent.futures import ThreadPoolExecutor, as_completed # type: ignore
+import time # type: ignore
+
+urllib3.disable_warnings()
+
+def is_link_dead(url: str) -> bool:
+    """
+    Safely pings a tracking URL. Returns True ONLY if we are 100% sure it's dead.
+    Tolerates slow banks (retries) and prevents false-positives on 403 Forbidden.
+    """
+    if not url: return False
+    
+    session = requests.Session()
+    session.headers.update({'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/120.0.0.0 Safari/537.36'})
+    
+    for attempt in range(3):
+        try:
+            resp = session.get(url, allow_redirects=True, timeout=15, verify=False)
+            
+            # Explicit 404 means the campaign is definitely gone
+            if resp.status_code == 404:
+                return True
+                
+            final_url = resp.url.lower()
+            
+            # AKBANK / WINGS RULE: If it redirects to the generic list, it's silently removed
+            if 'axess.com.tr' in url or 'wingscard.com.tr' in url:
+                if final_url.endswith('/kampanyalar') or final_url.endswith('/kampanyalar/'):
+                    return True
+            
+            # If it's a 200 OK or 403 Forbidden (Anti-Bot), we MUST assume it's alive to be safe.
+            return False
+            
+        except requests.exceptions.Timeout:
+            if attempt == 2: return False # Never delete just because a bank is slow
+            time.sleep(2)
+        except Exception:
+            if attempt == 2: return False # Network error, play it safe
+            time.sleep(2)
+            
+    return False
+
 def cleanup_campaigns():
     """
     Cleans up expired campaigns with a 90-day retention policy for SEO:
+    0. Mark as inactive if bank removed the URL (Dead Link).
     1. Mark as inactive (isActive=False) if end_date is in the past.
     2. Permanently delete ONLY if end_date is older than 90 days.
     """
@@ -70,6 +115,32 @@ def cleanup_campaigns():
         today = datetime.now().date()
         retention_cutoff = today - timedelta(days=RETENTION_DAYS)
         
+        # --- STAGE 0: Dead Link Detection (Orphan Cleanup) ---
+        print("🔍 Stage 0: Checking for silently removed campaigns (Dead Links)...")
+        active_campaigns = db.query(Campaign).filter(
+            Campaign.is_active == True,
+            Campaign.tracking_url.isnot(None)
+        ).all()
+        
+        dead_links_found = 0
+        with ThreadPoolExecutor(max_workers=10) as executor:
+            futures = {executor.submit(is_link_dead, c.tracking_url): c for c in active_campaigns}
+            for future in as_completed(futures):
+                c = futures[future]
+                try:
+                    if future.result() == True:
+                        print(f"   👻 Dead link detected, marking passive: {c.title}")
+                        c.is_active = False
+                        dead_links_found += 1
+                except Exception as e:
+                    pass
+                    
+        if dead_links_found > 0:
+            db.flush()
+            print(f"✅ Successfully deactivated {dead_links_found} dead/removed campaigns.")
+        else:
+            print("✅ All active campaign links are healthy.")
+            
         # --- STAGE 1: Deactivate (Soft-Delete) ---
         to_deactivate = db.query(Campaign).filter(
             Campaign.end_date < today,
