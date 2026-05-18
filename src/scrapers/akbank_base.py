@@ -289,6 +289,8 @@ class AkbankBaseScraper:
                 if not force:
                     with get_db_session() as db:
                         from src.utils.scraper_utils import is_url_blocked
+                        from src.models import Campaign
+                        
                         if is_url_blocked(db, url):
                             print(f"⏭️  Skipped (Blocked): {url}")
                             total_skipped += 1
