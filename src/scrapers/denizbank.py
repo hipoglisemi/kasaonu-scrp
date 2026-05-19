@@ -429,36 +429,53 @@ class DenizbankScraper:
             raw_text_js = self.driver.execute_script("""
                 let text = "";
                 let extra = "";
-                const left = document.querySelector('.campaign-detail-text') || document.querySelector('.campaign-detail');
-                const right = document.querySelector('.container-right') || document.querySelector('.campaign-startend-date');
+                
+                // Content areas
+                const left = document.querySelector('.campaign-detail-text') || document.querySelector('.campaign-detail') || document.querySelector('.col-md-8') || document.querySelector('.col-lg-8');
+                const right = document.querySelector('.container-right') || document.querySelector('.campaign-startend-date') || document.querySelector('.col-md-4') || document.querySelector('.col-lg-4') || document.querySelector('.campaign-sidebar');
                 
                 // Heuristic for missing info (Participation, Dates)
-                const headings = Array.from(document.querySelectorAll('h1, h2, h3, h4, h5, h6'));
-                const targets = headings.filter(h => 
-                    h.innerText && (
-                        h.innerText.includes('KATILMAK İÇİN') || 
-                        h.innerText.includes('KAMPANYA BAŞLANGIÇ') || 
-                        h.innerText.includes('ÖDÜL GEÇERLİLİK')
-                    )
-                );
+                // Search all common tags, not just headers
+                const elements = Array.from(document.querySelectorAll('h1, h2, h3, h4, h5, h6, strong, b, div, p, span'));
+                const targets = elements.filter(el => {
+                    const t = el.innerText || "";
+                    // Make sure it's a relatively short node containing the keywords, not the entire body
+                    return t.length > 0 && t.length < 150 && (
+                        t.includes('KATILMAK İÇİN') || 
+                        t.includes('KAMPANYA BAŞLANGIÇ') || 
+                        t.includes('ÖDÜL GEÇERLİLİK')
+                    );
+                });
                 
-                targets.forEach(h => {
-                    const parent = h.parentElement;
-                    if (parent && !extra.includes(parent.innerText.substring(0, 30))) {
-                        extra += "\\n\\n" + parent.innerText;
+                const addedParents = new Set();
+                
+                targets.forEach(el => {
+                    // Usually the text is in the parent element
+                    let parent = el.parentElement;
+                    // Go up one more level if parent is just a formatting tag
+                    if (parent && (parent.tagName === 'STRONG' || parent.tagName === 'B' || parent.tagName === 'SPAN' || parent.tagName === 'P')) {
+                        if (parent.parentElement) parent = parent.parentElement;
+                    }
+                    
+                    if (parent && !addedParents.has(parent)) {
+                        const parentText = parent.innerText;
+                        if (parentText && !extra.includes(parentText.substring(0, 30))) {
+                            extra += "\\n\\n" + parentText;
+                            addedParents.add(parent);
+                        }
                     }
                 });
                 
                 // Put extra info (Participation, Dates) at the TOP!
-                if (extra) text += "--- ÖNEMLİ BİLGİLER (KATILIM VE TARİHLER) ---" + extra + "\\n\\n--------------------------------------\\n\\n";
+                if (extra) text += "--- ÖNEMLİ BİLGİLER (KATILIM VE TARİHLER) ---\\n\\n" + extra + "\\n\\n--------------------------------------\\n\\n";
                 
-                if (left) text += left.innerText + "\\n\\n";
-                if (right) text += right.innerText + "\\n\\n";
+                if (left && !text.includes(left.innerText.substring(0, 50))) text += left.innerText + "\\n\\n";
+                if (right && !text.includes(right.innerText.substring(0, 50))) text += right.innerText + "\\n\\n";
                 
                 return text;
             """)
             if raw_text_js and len(raw_text_js.strip()) > 100:
-                print(f"   ✨ Extracted {len(raw_text_js)} chars via JS from .campaign-detail-text and .container-right")
+                print(f"   ✨ Extracted {len(raw_text_js)} chars via JS from content areas.")
                 raw_text = raw_text_js
             else:
                 # Fallback to BeautifulSoup if JS fails or returns too little
