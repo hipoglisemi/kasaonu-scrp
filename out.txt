@@ -1,0 +1,53 @@
+🚀 Starting Data Quality Auto-Fixer (Limit: 1)...
+
+🔍 Scanning for defective campaigns...
+   📊 Checking 1 active campaigns for defects.
+   ⚠️ Reached limit of 1 campaigns. Stopping search.
+   📊 Found defects: 0 new, 1 retries. (Skipped permanently or by cooldown: 0)
+⚠️ Total campaigns to process in this run: 1 (FORCE_ALL=True)
+
+🛠️ Fixing: [18696] Jimmy Key'de 400 TL MaxiPuan!... (Reasons: Manual Force Repair (List Mode))
+   🔗 URL: https://www.maximum.com.tr/kampanyalar/jimmy-keyde-maxipuan-kampanyasi
+   🌐 Logic: RESCUE! (Force mode or text issue). Fetching fresh HTML...
+   🏷️ Valid H1 title found: Jimmy Key'de 400 TL MaxiPuan!
+   ✨ Trafilatura successfully extracted 2281 chars.
+🔍 DEBUG RAW EXTRACTED TEXT: Temassız Özellikli Kredi Kartı
+Alışveriş keyfini ve hayatı maksimumda yaşamak isteyenlerin kartı!
+Maximum Kart ile Türkiye çapında sayısı 440.000’i aşan Maximum üye işyerinde alışverişlerinizden MaxiPuan kazanıp, biriktirdiğiniz MaxiPuanları Maximum üye işyerlerinde kullanabilirsiniz.
+Alışveriş keyfini ve hayatı maksimumda yaşamak isteyenlerin kartı!
+Maximum Kart ile Türkiye çapında sayısı 440.000’i aşan Maximum üye işyerinde alışverişlerinizden MaxiPuan kazanıp, biriktirdiğiniz MaxiPuanları Maximum üye işyerlerinde kullanabilirsiniz.
+Maximum Kart’ınızla Jimmy Key mağazaları ve www.jimmykey.com adresinden tek seferde yapacağınız 4.000 TL ve üzeri ilk alışverişe 400 TL MaxiPuan kazanın!
+İşCep'ten kampanyaya katılın, 1 - 31 Mart 2026 tarihleri arasında Maximum Kart’ınızla Jimmy Key mağazaları ve www.jimmykey.com adresinden tek seferde yapacağınız 3.500 TL ve üzeri ilk alışverişe 350 TL MaxiPuan kazanın!
+İşCep'ten kampanyaya katılın, 1 - 28 Şubat 2026 tarihleri arasında Maximum Kart’ınızla Jimmy Key mağazaları ve www.jimmykey.com adresinden tek seferde yapacağınız 3.500 TL ve üzeri ilk alışverişe 350 TL MaxiPuan kazanın!
+İşCep'ten kampanyaya katılın, 1 - 30 Kasım 2025 tarihleri arasında Maximum Kart’ınızla Jimmy Key mağazaları ve www.jimmykey.com adresinden tek seferde yapacağınız 3.500 TL ve üzeri ilk alışverişe 500 TL MaxiPuan kazanın!
+İşCep'ten kampanyaya katılın, 1 - 30 Haziran 2025 tarihleri arasında Maximum Kart’ınızla Jimmy Key mağazaları ve www.jimmykey.com adresinden tek seferde yapacağınız 3.000 TL ve üzeri ilk alışverişe 300 TL MaxiPuan kazanın!
+İşCep'ten kampanyaya katılın, 1 -31 Mayıs 2025 tarihleri arasında Bankamatik Kartı ve Maximum Kart’ınızla Jimmy Key mağazaları ve www.jimmykey.com adresinden tek seferde yapacağınız 3.000 TL ve üzeri ilk alışverişe 300 TL MaxiPuan kazanın!
+İşCep'ten kampanyaya katılın, 1 – 30 Nisan 2025 tarihleri arasında Maximum Kart’ınızla Jimmy Key mağazaları ve www.jimmykey.com adresinden tek seferde yapacağınız 3.000 TL ve üzeri ilk alışverişe 300 TL MaxiPuan kazanın!
+İşCep'ten kampanyaya katılın, 1 - 28 Şubat 2025 tarihleri arasında Bankamatik Kartı ve Maximum Kart’ınızla Jimmy Key mağazaları ve www.jimmykey.com adresinden tek seferde yapacağınız 3.000 TL ve üzeri ilk alışverişe 300 TL MaxiPuan kazanın!
+   ✅ URL fetch successful (2281 chars)
+   🤖 [GOLDEN V3] Sending 2281 chars to AI... (Bank: İşbankası)
+   🔍 DEBUG: Context snippet: Temassız Özellikli Kredi Kartı Alışveriş keyfini ve hayatı maksimumda yaşamak isteyenlerin kartı! Maximum Kart ile Türkiye çapında sayısı 440.000’i aşan Maximum üye işyerinde alışverişlerinizden MaxiP...
+[KeyLoop] ⚠️  Key #1 failed for models/gemini-3.1-flash-lite-preview (ClientError).  Trying next key... (2/8) | Waiting 6.5s...
+[KeyLoop] ✨ Success with Key #2 using Primary model (models/gemini-3.1-flash-lite-preview)
+   🤖 AI EXTRACTION: ['Maximum Kart']
+   🏷️ BRANDS: ['Jimmy Key']
+   ✨ Repaired Description!
+   ✨ Repaired Reward Text: 400 TL MaxiPuan
+   ✨ Repaired Reward Value: 400.0
+   ✨ Repaired Reward Type: puan
+   ✨ Repaired Eligible Cards: Maximum Kart
+   ✨ Repaired Start Date: 2026-05-10
+   ✨ Repaired End Date: 2026-05-31
+   ✨ Repaired Conditions!
+   ✨ Repaired Participation: İşCep üzerinden kampanyaya katılın ve ödemenizi Ma...
+   ✨ Repaired Marketing Summary!
+   💾 Saving fresh text_to_parse to DB clean_text (2281 chars)
+   🧹 Purged all existing brands for fresh repair.
+   ✨ Added Brand: Ji̇Mmy Key
+
+---AIPARSER_JSON_START---
+{"title": "Jimmy Key'de 400 TL MaxiPuan!", "description": "Maximum Kart ile Jimmy Key mağazalarından veya internet sitesinden yapacağınız 4.000 TL ve üzeri ilk alışverişinize 400 TL MaxiPuan hediye ediliyor.", "ai_marketing_text": "Jimmy Key'in şık dünyasında alışveriş keyfiniz Maximum ile katlanıyor! 🛍️ 4.000 TL ve üzeri alışverişinize tam 400 TL MaxiPuan kazanmak için hemen İşCep üzerinden kampanyaya katılın. Tarzınızı yenilerken puanlarınızı toplamayı unutmayın! ✨", "reward_value": 400.0, "reward_type": "puan", "reward_text": "400 TL MaxiPuan", "min_spend": 4000.0, "start_date": "2026-05-10", "end_date": "2026-05-31", "sector": "giyim-aksesuar", "brands": ["Jimmy Key"], "cards": ["Maximum Kart"], "participation": "İşCep üzerinden kampanyaya katılın ve ödemenizi Maximum Kart ile gerçekleştirin.", "conditions": ["Kampanya Jimmy Key mağazalarında ve www.jimmykey.com adresinde geçerlidir.", "4.000 TL ve üzeri ilk alışverişte geçerlidir.", "Kampanyaya katılmak için İşCep uygulamasını kullanmanız gerekmektedir."], "_clean_text": "Temassız Özellikli Kredi Kartı\nAlışveriş keyfini ve hayatı maksimumda yaşamak isteyenlerin kartı!\nMaximum Kart ile Türkiye çapında sayısı 440.000’i aşan Maximum üye işyerinde alışverişlerinizden MaxiPuan kazanıp, biriktirdiğiniz MaxiPuanları Maximum üye işyerlerinde kullanabilirsiniz.\nAlışveriş keyfini ve hayatı maksimumda yaşamak isteyenlerin kartı!\nMaximum Kart ile Türkiye çapında sayısı 440.000’i aşan Maximum üye işyerinde alışverişlerinizden MaxiPuan kazanıp, biriktirdiğiniz MaxiPuanları Maximum üye işyerlerinde kullanabilirsiniz.\nMaximum Kart’ınızla Jimmy Key mağazaları ve www.jimmykey.com adresinden tek seferde yapacağınız 4.000 TL ve üzeri ilk alışverişe 400 TL MaxiPuan kazanın!\nİşCep'ten kampanyaya katılın, 1 - 31 Mart 2026 tarihleri arasında Maximum Kart’ınızla Jimmy Key mağazaları ve www.jimmykey.com adresinden tek seferde yapacağınız 3.500 TL ve üzeri ilk alışverişe 350 TL MaxiPuan kazanın!\nİşCep'ten kampanyaya katılın, 1 - 28 Şubat 2026 tarihleri arasında Maximum Kart’ınızla Jimmy Key mağazaları ve www.jimmykey.com adresinden tek seferde yapacağınız 3.500 TL ve üzeri ilk alışverişe 350 TL MaxiPuan kazanın!\nİşCep'ten kampanyaya katılın, 1 - 30 Kasım 2025 tarihleri arasında Maximum Kart’ınızla Jimmy Key mağazaları ve www.jimmykey.com adresinden tek seferde yapacağınız 3.500 TL ve üzeri ilk alışverişe 500 TL MaxiPuan kazanın!\nİşCep'ten kampanyaya katılın, 1 - 30 Haziran 2025 tarihleri arasında Maximum Kart’ınızla Jimmy Key mağazaları ve www.jimmykey.com adresinden tek seferde yapacağınız 3.000 TL ve üzeri ilk alışverişe 300 TL MaxiPuan kazanın!\nİşCep'ten kampanyaya katılın, 1 -31 Mayıs 2025 tarihleri arasında Bankamatik Kartı ve Maximum Kart’ınızla Jimmy Key mağazaları ve www.jimmykey.com adresinden tek seferde yapacağınız 3.000 TL ve üzeri ilk alışverişe 300 TL MaxiPuan kazanın!\nİşCep'ten kampanyaya katılın, 1 – 30 Nisan 2025 tarihleri arasında Maximum Kart’ınızla Jimmy Key mağazaları ve www.jimmykey.com adresinden tek seferde yapacağınız 3.000 TL ve üzeri ilk alışverişe 300 TL MaxiPuan kazanın!\nİşCep'ten kampanyaya katılın, 1 - 28 Şubat 2025 tarihleri arasında Bankamatik Kartı ve Maximum Kart’ınızla Jimmy Key mağazaları ve www.jimmykey.com adresinden tek seferde yapacağınız 3.000 TL ve üzeri ilk alışverişe 300 TL MaxiPuan kazanın!", "repair_metadata": {"source": "LIVE", "status": "LIVE_SUCCESS", "reasons": ["Manual Force Repair (List Mode)"], "campaign_id": 18696}}
+---AIPARSER_JSON_END---
+   ✅ Campaign successfully repaired and saved! (Marked as auto_corrected)
+
+🏁 Auto-fixer complete. Successfully repaired 1/1 campaigns.

@@ -33,7 +33,7 @@ if not DB_URL:
 from src.utils.gemini_client import generate_with_rotation
 from google.genai import types
 
-_GEMINI_MODEL_NAME = os.getenv("GEMINI_MODEL", "gemma-4-31b-it")
+_GEMINI_MODEL_NAME = os.getenv("GEMINI_PRIMARY_MODEL", "gemini-3-flash-preview")
 MODEL_NAME = _GEMINI_MODEL_NAME
 
 # Minimum kaç kez aratılmış olması gerektiği

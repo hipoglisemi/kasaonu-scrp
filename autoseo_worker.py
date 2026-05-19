@@ -6,8 +6,8 @@ from src.utils.gemini_client import generate_with_rotation
 load_dotenv()
 
 DB_URL = os.getenv("DATABASE_URL")
-# Use the requested lite model for efficient bulk processing
-MODEL = os.getenv("GEMINI_MODEL", "gemma-4-31b-it")
+# Default olarak hızlı ve ucuz olan 2.5 Flash kullan
+MODEL = os.getenv("GEMINI_PRIMARY_MODEL", "gemini-3-flash-preview")
 
 def get_connection():
     return psycopg2.connect(DB_URL)

@@ -64,7 +64,7 @@ async def health():
     return {"status": "ok", "service": "repair-api", "version": "1.0.1"}
 
 @app.post("/repair/{campaign_id}")
-async def repair_campaign(campaign_id: int, force: bool = True, authorization: Optional[str] = Header(None)):
+async def repair_campaign(campaign_id: int, force: bool = True, model: Optional[str] = None, authorization: Optional[str] = Header(None)):
     """
     Repair a single campaign using data_quality_autofix.py
     """
@@ -92,7 +92,8 @@ async def repair_campaign(campaign_id: int, force: bool = True, authorization: O
                     limit=1,
                     campaign_id=campaign_id,
                     force_all=force,
-                    ui_mode=True
+                    ui_mode=True,
+                    model=model
                 )
             except Exception as run_err:
                 logger.error(f"run_autofix crashed: {run_err}")

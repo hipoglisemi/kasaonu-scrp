@@ -29,7 +29,7 @@ class CardValidator:
         from src.services.negation_filter import normalize_text
         return normalize_text(text)
 
-    def validate(self, cards: List[str], raw_text: str, bank_key: str) -> List[str]:
+    def validate(self, cards: List[str], raw_text: str, bank_key: str, excluded_cards: Optional[List[str]] = None) -> List[str]:
         if not raw_text:
             return cards
 
@@ -67,7 +67,7 @@ class CardValidator:
                 validated.append(card)
 
         # 5. SNIPER RECOVERY
-        validated = self._run_sniper(validated, raw_text, text_normalized, bank_key)
+        validated = self._run_sniper(validated, raw_text, text_normalized, bank_key, excluded_cards)
 
         # 6. FINAL DEDUPLICATION: Remove subsets
         final_validated = []
@@ -219,9 +219,13 @@ class CardValidator:
                     return True
         return False
 
-    def _run_sniper(self, validated: List[str], raw_text: str, text_normalized: str, bank_key: str) -> List[str]:
+    def _run_sniper(self, validated: List[str], raw_text: str, text_normalized: str, bank_key: str, excluded_cards: Optional[List[str]] = None) -> List[str]:
         if not bank_key or bank_key not in self.bank_card_keywords:
             return validated
+
+        if excluded_cards is None:
+            excluded_cards = []
+        excluded_norm = {self._normalize(c) for c in excluded_cards}
 
         bank_keywords = self.bank_card_keywords[bank_key]
         validated_norm = {self._normalize(c) for c in validated}
@@ -232,6 +236,16 @@ class CardValidator:
 
         for kc in bank_keywords:
             kc_norm = self._normalize(kc)
+            
+            # 🛡️ EXCLUDED CARDS SHIELD: If AI explicitly excluded this card, NEVER snipe it
+            is_shielded = False
+            for excl in excluded_norm:
+                if kc_norm in excl or excl in kc_norm:
+                    is_shielded = True
+                    break
+            if is_shielded:
+                continue
+                
             if self._match_core_words(kc_norm, text_normalized, raw_text, bank_key) and kc_norm not in validated_norm:
                 if self._is_in_trap_context(kc_norm, text_normalized, bank_key):
                     continue

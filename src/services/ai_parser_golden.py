@@ -378,7 +378,8 @@ JSON FORMATI:
   "end_date": "YYYY-MM-DD",
   "sector": "sektor-slug",
   "brands": ["Marka1", "Marka2"], // ⛔ TROY TRAP: 'TROY logolu kartlar', 'TROY kartlar' veya 'TROY özellikli' ifadelerindeki TROY bir marka/mağaza DEĞİL, Visa/Mastercard gibi bir ödeme altyapısıdır. Bunları KESİNLİKLE 'brands' listesine ekleme. Sadece 'Troy Apple Mağazası' veya 'troyestore.com' gibi bir alışveriş yeri bağlamı varsa ekle. ⛔ NEGATION TRAP: Metinde 'hariçtir','dahil değildir', 'geçerli değildir', 'kapsam dışıdır' gibi kelimelerin 10-15 kelime yakınında geçen markaları KESİNLİKLE LİSTEYE EKLEME. 🚨 DİKKAT: 'X dışında ... faydalanamaz' veya 'X hariç ... kazanamaz' gibi yapılar X'in GEÇERLİ olduğunu belirtir (özel vurgu), bu durumda X'i listeye ekle.
-  "cards": ["Ana ödül için geçerli olan kart tanımlarını (Örn: 'Bonus', 'Axess', 'Mastercard logolu TEB Bireysel Kredi Kartı') listele. 🚨 TROY KURALI: Eğer metinde 'TROY logolu banka kartı', 'TROY logolu kredi kartı', 'TROY logolu ön ödemeli kart' veya 'TROY logolu kartlar' gibi TROY-özel ifadeler geçiyorsa, bunları MUTLAKA bu şekilde netçe listele (Örn: 'TROY logolu banka kartı', 'TROY logolu kredi kartı', 'TROY logolu ön ödemeli kartlar'). Genel parent kart adını (örn: 'Paraf', 'Bonus') buraya ASLA ekleme ki Visa/Mastercard sürümleriyle karışmasın. 🚨 SIRALAMA KURALI: 'Ek kartlar' ve 'Sanal kartlar' ibarelerini MUTLAKA listenin EN SONUNA ekle (Örn: ['TROY logolu banka kartı', 'Sanal kartlar'])."],
+  "cards": ["Ana ödül için geçerli olan kart tanımlarını (Örn: 'Bonus', 'Axess', 'Mastercard logolu TEB Bireysel Kredi Kartı') listele. 🚨 TROY KURALI: Eğer metinde 'TROY logolu banka kartı', 'TROY logolu kredi kartı', 'TROY logolu ön ödemeli kart' veya 'TROY logolu kartlar' gibi TROY-özel ifadeler geçiyorsa, bunları MUTLAKA bu şekilde netçe listele (Örn: 'TROY logolu banka kartı', 'TROY logolu kredi kartı', 'TROY logolu ön ödemeli kartlar'). Genel parent kart adını (örn: 'Paraf', 'Bonus') buraya ASLA ekleme ki Visa/Mastercard sürümleriyle karışmasın. 🚨 SIRALAMA KURALI: 'Ek kartlar' ve 'Sanal kartlar' ibarelerini MUTLAKA listenin EN SONUNA ekle (Örn: ['TROY logolu banka kartı', 'Sanal kartlar']). 🚨 NEGATION KURALI: 'hariçtir', 'dahil değildir', 'kapsam dışıdır', 'geçerli değildir' ifadelerinin yakınında geçen kartları KESİNLİKLE bu listeye EKLEME — onlar excluded_cards listesine gider."],
+  "excluded_cards": ["Metinde 'hariçtir', 'dahil değildir', 'kapsam dışıdır', 'geçerli değildir', 'yararlanamaz' gibi OLUMSUZLUK ifadeleriyle birlikte geçen kartları buraya yaz. 🚨 SADECE açıkça yasaklanan kartlar buraya girer. 'Sadece X yararlanabilir' gibi WHITELIST ifadelerinde bu liste BOŞ kalır — o durumda zaten cards listesine yalnızca X yazılır. Hiç yasaklı kart yoksa boş bırak: []"],
   "participation": "🚨 KRİTİK KURAL: Metinde 'KATILMAK İÇİN', 'NASIL KATILIRIM', 'Hemen Katıl', 'SMS', 'yazıp', 'numarasına', 'ÖNEMLİ BİLGİLER' gibi ifadeler VARSA, o bölümdeki bilgiyi AYNEN kopyala — özetleme ve kısaltma. SMS varsa 'X yazıp 1234'e SMS gönderin' formatıyla, buton varsa 'Uygulamadan Hemen Katıl butonuna tıklayın' formatıyla yaz. 🚫 YASAK: 'Otomatik Katılım' — metinde katılımla ilgili HERHANGİ bir bilgi (kelime, cümle, yönlendirme) varsa bunu ASLA yazma. Gerçekten hiçbir katılım yöntemi belirtilmemişse (metni dikkatlice okuduktan sonra), o zaman yazabilirsin. Eğer katılım bilgisi bulamıyorsan, kampanyadan yararlanmak için yapılması gereken eylemi (POS, taksit seçimi, kasada belirtme) yaz.",
   "conditions": ["Önemli Şart 1", "İkincil ödül (örn: taksit) varsa ve farklı kartlar için geçerliyse mutlaka belirt.", "Önemli Şart 2"]
 }}
@@ -553,9 +554,12 @@ ANALİZ EDİLECEK METİN:
 
         # ── 3. CARD GUARD (Core Word Matching + Sniper) ──────────────
         # 3. KART DOĞRULAMA (Hallucination Guard)
-        cards = self._to_clean_list(data.get("cards"))
+        # Dual-list: excluded kartları cards'dan çıkar
+        raw_cards = set(self._to_clean_list(data.get("cards")))
+        raw_excluded = set(self._to_clean_list(data.get("excluded_cards")))
+        cards = list(raw_cards - raw_excluded)
         if cards:
-            cards = self.card_validator.validate(cards, raw_text, bank_key)
+            cards = self.card_validator.validate(cards, raw_text, bank_key, excluded_cards=list(raw_excluded))
         
         # Final armored safety pass: ensure the filtered list is what actually goes into the data
         from src.services.negation_filter import filter_excluded_cards

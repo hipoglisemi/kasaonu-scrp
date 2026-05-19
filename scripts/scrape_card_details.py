@@ -241,7 +241,7 @@ METİN:
 """
     
     response = client.models.generate_content(
-        model="gemma-4-31b-it",
+        model="gemini-3-flash-preview",
         contents=prompt,
         config=types.GenerateContentConfig(
             temperature=0.1,

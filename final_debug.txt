@@ -1,0 +1,52 @@
+/Users/hipoglisemi/Library/Python/3.9/lib/python/site-packages/urllib3/__init__.py:35: NotOpenSSLWarning: urllib3 v2 only supports OpenSSL 1.1.1+, currently the 'ssl' module is compiled with 'LibreSSL 2.8.3'. See: https://github.com/urllib3/urllib3/issues/3020
+  warnings.warn(
+/Users/hipoglisemi/Library/Python/3.9/lib/python/site-packages/google/auth/__init__.py:54: FutureWarning: You are using a Python version 3.9 past its end of life. Google will update google-auth with critical bug fixes on a best-effort basis, but not with any other fixes or features. Please upgrade your Python version, and then update google-auth.
+  warnings.warn(eol_message.format("3.9"), FutureWarning)
+/Users/hipoglisemi/Library/Python/3.9/lib/python/site-packages/google/oauth2/__init__.py:40: FutureWarning: You are using a Python version 3.9 past its end of life. Google will update google-auth with critical bug fixes on a best-effort basis, but not with any other fixes or features. Please upgrade your Python version, and then update google-auth.
+  warnings.warn(eol_message.format("3.9"), FutureWarning)
+Warning: there are non-text parts in the response: ['thought_signature'], returning concatenated text result from text parts. Check the full candidates.content.parts accessor to get the full model response.
+🚀 Starting Data Quality Auto-Fixer (Limit: 1)...
+
+🔍 Scanning for defective campaigns...
+   📊 Checking 1 active campaigns for defects.
+   ⚠️ Reached limit of 1 campaigns. Stopping search.
+   📊 Found defects: 0 new, 1 retries. (Skipped permanently or by cooldown: 0)
+⚠️ Total campaigns to process in this run: 1 (FORCE_ALL=True)
+
+🛠️ Fixing: [18641] Dyson’da Peşin Fiyatına 9 Aya Varan Taks... (Reasons: Manual Force Repair (List Mode))
+   🔗 URL: https://dunyakatilim.com.tr/kampanyalar/dyson
+   🌐 Logic: RESCUE! (Force mode or text issue). Fetching fresh HTML...
+   🏷️ Valid H1 title found: Dyson’da Peşin Fiyatına 9 Aya Varan Taksit Fırsatı!
+   🚀 SPA/Tabbed Site Detected (https://dunyakatilim.com.tr/kampanyalar/dyson). Booting Headless Chrome...
+🔍 DEBUG RAW EXTRACTED TEXT: Dyson’da Peşin Fiyatına 9 Aya Varan Taksit Fırsatı! Paraf ile 31 Mayıs 2026 tarihine kadar dyson.com.tr'den peşin fiyatına 9 aya varan taksit fırsatından faydalanabilirsiniz. 9 taksit avantajı firmanın belirlediği tutarın üzerinde yapacağınız alışverişlerde geçerlidir. Taksitten yararlanabilmek için dyson.com.tr üzerinden taksitin seçilmesi gerekmektedir. İşlem anındaki üye işyeri uygulamalarına ve satın alınan ürüne bağlı olarak taksit sayıları değişkenlik gösterebilmektedir. Bireysel ve ticari kartlar için uygulanan azami taksit sayısı yasal düzenlemelere göre farklılık gösterebilmektedir. Kampanyadan Dünya Katılım Paraf kartlar faydalanabilecektir. Sanal kartlar kampanyaya dahildir. ParafPara kullanılarak yapılan işlemler ile iptal ve iade işlemleri dahil değildir. Yasal mevzuat gereği, elektronik eşya alımlarında (Video, kamera, ses sistemleri, fiyatı 5.000 Türk lirasının üzerinde olan televizyon vb) 4 ay, tablet alımlarında, kulüp ve derneklere yapılan ödemelerde 6 ay, sağlık ürünü alımlarında, mobilya ve elektrikli eşya (Buzdolabı, çamaşır makinesi, bulaşık makinesi, elektrikli ev aletleri vb.) alımlarında ve fiyatı 5.000 Türk Lirasına kadar olan televizyon alımlarında 9 ay, vergi ödemelerinde, eğitimle ilgili harcamalarda, bilgisayar alımı, taşımacılık, sağlık ve sosyal hizmetler ile ilgili harcamalarda ve ’’yenileme merkezi’’ veya ’’yetkili satıcı’’ niteliğindeki iş yerlerinden alınan yenilenmiş ürün niteliğinde olan cep telefonu alımlarında 12 ay, yurt içine ilişkin havayolları, seyahat acenteleri ve konaklama ile ilgili harcamalarda 18 ay olarak uygulanır. Dünya Katılım Bankası A.Ş. kampanya koşullarının tamamında değişiklik yapma ve/veya kampanyayı durdurma hakkını saklı tutar.
+   ✅ URL fetch successful (1676 chars)
+   🤖 [GOLDEN V3] Sending 1676 chars to AI... (Bank: Dünya Katılım)
+   🔍 DEBUG: Context snippet: Dyson’da Peşin Fiyatına 9 Aya Varan Taksit Fırsatı! Paraf ile 31 Mayıs 2026 tarihine kadar dyson.com.tr'den peşin fiyatına 9 aya varan taksit fırsatından faydalanabilirsiniz. 9 taksit avantajı firmanı...
+DEBUG_MATCH: Testing dunya katilim karti for bank dünya katılım
+DEBUG_MATCH: Testing dunya katilim banka karti for bank dünya katılım
+DEBUG_MATCH: Testing dunya katilim kredi karti for bank dünya katılım
+DEBUG_MATCH: Testing dkart for bank dünya katılım
+DEBUG_MATCH: Testing dkart debit for bank dünya katılım
+DEBUG_MATCH: Testing dunya katilim paraf for bank dünya katılım
+DEBUG_MATCH: Testing dunya katilim troy for bank dünya katılım
+   🤖 AI EXTRACTION: ['Dünya Katılım Paraf']
+   🏷️ BRANDS: ['Dyson']
+   ✨ Repaired Description!
+   ✨ Repaired Reward Text: 9 Aya Varan Taksit
+   ✨ Repaired Reward Value: 9.0
+   ✨ Repaired Reward Type: taksit
+   ✨ Repaired Eligible Cards: Dünya Katılım Paraf
+   ✨ Repaired Start Date: 2026-05-09
+   ✨ Repaired End Date: 2026-05-31
+   ✨ Repaired Conditions!
+   ✨ Repaired Participation: Dyson.com.tr üzerinden yapacağınız alışverişlerde ...
+   ✨ Repaired Marketing Summary!
+   🧹 Purged all existing brands for fresh repair.
+   ✨ Added Brand: Dyson
+
+---AIPARSER_JSON_START---
+{"title": "Dyson’da Peşin Fiyatına 9 Aya Varan Taksit Fırsatı!", "description": "Dyson.com.tr üzerinden yapacağınız alışverişlerde Paraf kartınızla peşin fiyatına 9 aya varan taksit imkanı sizi bekliyor. Kampanya, belirlenen tutar üzerindeki alışverişlerde geçerlidir.", "ai_marketing_text": "Dyson teknolojilerine sahip olmak şimdi çok daha kolay! 🚀 Dyson.com.tr'den yapacağınız alışverişlerde Paraf kartınıza özel peşin fiyatına 9 aya varan taksit fırsatını kaçırmayın. Hemen alışverişe başlayın, avantajın keyfini çıkarın! ✨", "reward_value": 9.0, "reward_type": "taksit", "reward_text": "9 Aya Varan Taksit", "min_spend": 0.0, "start_date": "2026-05-09", "end_date": "2026-05-31", "sector": "elektronik", "brands": ["Dyson"], "cards": ["Dünya Katılım Paraf"], "participation": "Dyson.com.tr üzerinden yapacağınız alışverişlerde ödeme ekranında taksit seçeneğini işaretleyerek kampanyadan yararlanabilirsiniz.", "conditions": ["Kampanya sadece dyson.com.tr üzerinden yapılan alışverişlerde geçerlidir.", "9 taksit avantajı, firmanın belirlediği tutarın üzerindeki alışverişlerde geçerlidir.", "Sanal kartlar kampanyaya dahildir.", "ParafPara kullanılarak yapılan işlemler kampanyaya dahil değildir.", "İptal ve iade işlemleri kampanyaya dahil değildir.", "Taksit sayıları, işlem anındaki üye işyeri uygulamalarına ve satın alınan ürüne bağlı olarak değişkenlik gösterebilir."], "_clean_text": "Dyson’da Peşin Fiyatına 9 Aya Varan Taksit Fırsatı! Paraf ile 31 Mayıs 2026 tarihine kadar dyson.com.tr'den peşin fiyatına 9 aya varan taksit fırsatından faydalanabilirsiniz. 9 taksit avantajı firmanın belirlediği tutarın üzerinde yapacağınız alışverişlerde geçerlidir. Taksitten yararlanabilmek için dyson.com.tr üzerinden taksitin seçilmesi gerekmektedir. İşlem anındaki üye işyeri uygulamalarına ve satın alınan ürüne bağlı olarak taksit sayıları değişkenlik gösterebilmektedir. Bireysel ve ticari kartlar için uygulanan azami taksit sayısı yasal düzenlemelere göre farklılık gösterebilmektedir. Kampanyadan Dünya Katılım Paraf kartlar faydalanabilecektir. Sanal kartlar kampanyaya dahildir. ParafPara kullanılarak yapılan işlemler ile iptal ve iade işlemleri dahil değildir. Yasal mevzuat gereği, elektronik eşya alımlarında (Video, kamera, ses sistemleri, fiyatı 5.000 Türk lirasının üzerinde olan televizyon vb) 4 ay, tablet alımlarında, kulüp ve derneklere yapılan ödemelerde 6 ay, sağlık ürünü alımlarında, mobilya ve elektrikli eşya (Buzdolabı, çamaşır makinesi, bulaşık makinesi, elektrikli ev aletleri vb.) alımlarında ve fiyatı 5.000 Türk Lirasına kadar olan televizyon alımlarında 9 ay, vergi ödemelerinde, eğitimle ilgili harcamalarda, bilgisayar alımı, taşımacılık, sağlık ve sosyal hizmetler ile ilgili harcamalarda ve ’’yenileme merkezi’’ veya ’’yetkili satıcı’’ niteliğindeki iş yerlerinden alınan yenilenmiş ürün niteliğinde olan cep telefonu alımlarında 12 ay, yurt içine ilişkin havayolları, seyahat acenteleri ve konaklama ile ilgili harcamalarda 18 ay olarak uygulanır. Dünya Katılım Bankası A.Ş. kampanya koşullarının tamamında değişiklik yapma ve/veya", "repair_metadata": {"source": "LIVE", "status": "LIVE_SUCCESS", "reasons": ["Manual Force Repair (List Mode)"], "campaign_id": 18641}}
+---AIPARSER_JSON_END---
+   ✅ Campaign successfully repaired and saved! (Marked as auto_corrected)
+
+🏁 Auto-fixer complete. Successfully repaired 1/1 campaigns.

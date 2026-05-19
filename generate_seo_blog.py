@@ -13,7 +13,7 @@ if not DB_URL:
     raise ValueError("DATABASE_URL must be set in .env")
 
 # ── Gemini modeli (3'lü key rotation kullanılır) ─────────────────────────────
-BLOG_MODEL = os.getenv("BLOG_MODEL", "gemma-4-31b-it")
+BLOG_MODEL = os.getenv("BLOG_MODEL", os.getenv("GEMINI_PRIMARY_MODEL", "gemini-3-flash-preview"))
 
 # ── Unsplash görselleri ──────────────────────────────────────────────────────
 import random
