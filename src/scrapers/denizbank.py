@@ -655,7 +655,9 @@ class DenizbankScraper:
                 image_url=data.get('image_url'),
                 tracking_url=data.get('tracking_url'),
                 is_active=True,
-                clean_text=data.get('clean_text')
+                clean_text=data.get('clean_text'),
+                start_date=data.get('start_date'),
+                end_date=data.get('end_date')
             )
 
             # 3. Use upsert_campaign for revival/quality
