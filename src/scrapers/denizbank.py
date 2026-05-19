@@ -638,11 +638,32 @@ class DenizbankScraper:
                 print(f"   🚫 Skipped (Blocklisted): {data['title']}")
                 return "skipped"
 
+            # Check if campaign already exists or generate new unique slug
+            from sqlalchemy import func
+            from src.utils.slug_generator import get_unique_slug
+            
+            existing = db.query(Campaign).filter(
+                (Campaign.tracking_url == data['tracking_url']) | (func.lower(Campaign.title) == data['title'].lower()),
+                Campaign.card_id == self.card_id
+            ).first()
+            
+            if existing:
+                campaign_slug = existing.slug
+            else:
+                campaign_slug = get_unique_slug(
+                    title=data['title'],
+                    db_session=db,
+                    campaign_model=Campaign,
+                    tracking_url=data['tracking_url'],
+                    card_name="DenizBonus",
+                    bank_name="Denizbank"
+                )
+
             # 2. Prepare Campaign Object
             campaign = Campaign(
                 card_id=self.card_id,
                 sector_id=data.get('sector_id'),
-                slug=data.get('slug'),
+                slug=campaign_slug,
                 title=data.get('title'),
                 description=data.get('description'),
                 ai_marketing_text=data.get('ai_marketing_text'),
