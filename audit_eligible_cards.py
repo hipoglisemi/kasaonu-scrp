@@ -3,7 +3,7 @@ import sys
 import json
 import time
 from dotenv import load_dotenv
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy.orm import sessionmaker, joinedload
 
 # Setup paths and environment
 sys.path.append(os.getcwd())
@@ -127,7 +127,9 @@ def main():
 
     db = next(get_db())
     
-    query = db.query(Campaign).filter(
+    query = db.query(Campaign).options(
+        joinedload(Campaign.card).joinedload(Card.bank)
+    ).filter(
         Campaign.clean_text != None,
         Campaign.is_active == True
     ).order_by(Campaign.id.desc())
