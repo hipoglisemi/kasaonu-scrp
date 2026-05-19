@@ -289,9 +289,15 @@ class DunyaKatilimScraper:
             text = data.get("title", "").lower()
             text = text.replace("ı", "i").replace("ğ", "g").replace("ü", "u").replace("ş", "s").replace("ö", "o").replace("ç", "c")
             slug = re.sub(r'[^a-z0-9-]', '-', text)
-            slug = re.sub(r'-+', '-', slug).strip('-')
-            url_hash = hashlib.md5(url.encode()).hexdigest()[:8]  # type: ignore # pyre-ignore[16,6]
-            slug = f"{slug}-{url_hash}"
+            from src.utils.slug_generator import get_unique_slug
+            slug = get_unique_slug(
+                title=data.get("title"),
+                db_session=self.db,
+                campaign_model=Campaign,
+                tracking_url=url,
+                card_name="Dünya Katılım Kartı",
+                bank_name="Dünya Katılım"
+            )
             
             # AIParser returns conditions as a list, ensure it's mapped properly.
             conditions_data = data.get("conditions", [])

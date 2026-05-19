@@ -316,7 +316,15 @@ class AlbarakaScraper:
             if is_url_blocked(self.session, url):
                 print(f"   🚫 Skipped (Safety: Blocklisted): {formatted_title}")
                 return None
-            slug = self._get_or_create_slug(formatted_title)
+            from src.utils.slug_generator import get_unique_slug
+            slug = get_unique_slug(
+                title=formatted_title,
+                db_session=self.session,
+                campaign_model=Campaign,
+                tracking_url=url,
+                card_name="Albaraka Kredi Kartı",
+                bank_name="Albaraka Türk"
+            )
 
             db_sector_name = data.get("sector", "diger")
             if isinstance(db_sector_name, list):

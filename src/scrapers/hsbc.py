@@ -279,7 +279,15 @@ class HSBCScraper:
             final_image = list_image_url or data.get("image_url")
             
             formatted_title = self._to_title_case(ai_data.get("title") or data["title"])
-            slug = self._get_or_create_slug(formatted_title)
+            from src.utils.slug_generator import get_unique_slug
+            slug = get_unique_slug(
+                title=formatted_title,
+                db_session=self.db,
+                campaign_model=Campaign,
+                tracking_url=url,
+                card_name="HSBC Advantage",
+                bank_name="HSBC"
+            )
             
             sector_slug = ai_data.get("sector", "diger")
             sector = self.db.query(Sector).filter(Sector.slug == sector_slug).first()

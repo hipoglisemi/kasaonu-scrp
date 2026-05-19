@@ -244,12 +244,15 @@ class ZiraatScraper:
             sector = self._get_sector(ai_sector_slug)
             
             # Slug
-            base_slug = re.sub(r'[^a-z0-9]+', '-', title.lower()).strip('-')
-            slug = base_slug
-            counter = 1
-            while self.db.query(Campaign).filter(Campaign.slug == slug).first():  # type: ignore # pyre-ignore[16]
-                slug = f"{base_slug}-{counter}"
-                counter += 1  # type: ignore # pyre-ignore[58]
+            from src.utils.slug_generator import get_unique_slug
+            slug = get_unique_slug(
+                title=title,
+                db_session=self.db,
+                campaign_model=Campaign,
+                tracking_url=url,
+                card_name="Bankkart",
+                bank_name="Ziraat Bankası"
+            )
 
             # Conditions & Participation
             conds = ai_data.get("conditions", [])

@@ -354,8 +354,17 @@ class TEBScraper:
             eligible_cards_str = eligible_cards_str[:255]  # type: ignore # pyre-ignore[16,6]
 
         # Slug: use weblink path segment + timestamp for uniqueness
-        link_slug = slugify(tracking_url.rstrip("/").split("/")[-1] or title)
-        slug = f"{link_slug}-{int(time.time())}" if not link_slug else link_slug
+        from src.utils.slug_generator import get_unique_slug
+        from src.database import SessionLocal
+        with SessionLocal() as temp_db:
+            slug = get_unique_slug(
+                title=title,
+                db_session=temp_db,
+                campaign_model=Campaign,
+                tracking_url=tracking_url,
+                card_name=card_def["name"],
+                bank_name="TEB"
+            )
 
         # Sector: prefer AI result, fallback to API hint
         sector_name = ai_data.get("sector") or api_sector

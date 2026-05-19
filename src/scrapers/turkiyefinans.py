@@ -383,10 +383,17 @@ class TurkiyeFinansScraper:
                 except Exception as e:
                     print(f"      ⚠️ AI Error: {e}")
 
-            link_slug = slugify(url.rstrip("/").split("/")[-1].replace(".aspx", ""))
-            if not link_slug or link_slug == "default":
-                link_slug = slugify(title)
-            slug = f"{link_slug}-{int(time.time())}"
+            from src.utils.slug_generator import get_unique_slug
+            from src.database import SessionLocal
+            with SessionLocal() as temp_db:
+                slug = get_unique_slug(
+                    title=title,
+                    db_session=temp_db,
+                    campaign_model=Campaign,
+                    tracking_url=url,
+                    card_name=card_def["name"],
+                    bank_name="Türkiye Finans"
+                )
 
             conditions_lines = []
             participation = ai_data.get("participation")

@@ -318,7 +318,15 @@ class MasterpassScraper:
         try:
             raw_title = ai_data.get("title") or data.get("title") or ""
             formatted_title = self._to_title_case(raw_title)
-            slug = self._get_or_create_slug(formatted_title)
+            from src.utils.slug_generator import get_unique_slug
+            slug = get_unique_slug(
+                title=formatted_title,
+                db_session=self.db,
+                campaign_model=Campaign,
+                tracking_url=url,
+                card_name="Masterpass",
+                bank_name="Masterpass"
+            )
             
             ai_cat = ai_data.get("sector", "Diğer")
             sector = self.db.query(Sector).filter(Sector.slug == ai_cat).first()  # type: ignore # pyre-ignore[16]

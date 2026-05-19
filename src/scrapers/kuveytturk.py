@@ -359,8 +359,16 @@ class KuveytTurkScraper:
 
     def _save_campaign(self, bank_id: int, card_id: int, parsed_data: Dict[str, Any], raw_data: Dict[str, Any]):  # type: ignore # pyre-ignore[16,6]
         title = raw_data["title"]
-        slug = self._generate_slug(title)
         source_url = raw_data["source_url"]
+        from src.utils.slug_generator import get_unique_slug
+        slug = get_unique_slug(
+            title=title,
+            db_session=self.db,
+            campaign_model=Campaign,
+            tracking_url=source_url,
+            card_name="Kuveyt Türk Kredi Kartı",
+            bank_name="Kuveyt Türk"
+        )
         campaign = Campaign(
             card_id=card_id,
             sector_id=self._get_sector_id(str(parsed_data.get("sector") or "diger")),

@@ -537,7 +537,15 @@ class IsbankMaximumScraper:
 
             raw_title = data.get("title") or ""
             formatted_title = self._to_title_case(raw_title)
-            slug = self._get_or_create_slug(formatted_title)
+            from src.utils.slug_generator import get_unique_slug
+            slug = get_unique_slug(
+                title=formatted_title,
+                db_session=self.session,
+                campaign_model=Campaign,
+                tracking_url=data["source_url"],
+                card_name="Maximum",
+                bank_name="İş Bankası"
+            )
 
             ai_cat = data.get("sector", "Diğer")
             db_sector_name = ai_cat

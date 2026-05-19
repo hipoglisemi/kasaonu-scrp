@@ -265,12 +265,15 @@ class ParafGencScraper:
             brand_ids = self._get_or_create_brands(data.get("brands", []), sector.id if sector else None)  # type: ignore # pyre-ignore[16]
             
             # Slug
-            text = data.get("title", "").lower()
-            text = text.replace("ı", "i").replace("ğ", "g").replace("ü", "u").replace("ş", "s").replace("ö", "o").replace("ç", "c")
-            slug = re.sub(r'[^a-z0-9-]', '-', text)
-            slug = re.sub(r'-+', '-', slug).strip('-')
-            url_hash = hashlib.md5(url.encode()).hexdigest()[:8]  # type: ignore # pyre-ignore[16,6]
-            slug = f"{slug}-{url_hash}"
+            from src.utils.slug_generator import get_unique_slug
+            slug = get_unique_slug(
+                title=data.get("title"),
+                db_session=self.db,
+                campaign_model=Campaign,
+                tracking_url=url,
+                card_name="Paraf Genç",
+                bank_name="Halkbank"
+            )
             
             campaign = Campaign(
                 card_id=primary_card.id,  # type: ignore # pyre-ignore[16]

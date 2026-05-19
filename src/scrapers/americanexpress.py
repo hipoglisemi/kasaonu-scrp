@@ -321,14 +321,15 @@ class AmericanExpressScraper:
 
         # Extract values
         final_title = ai_data.get('title', raw_title)
-        parsed_slug = self._slugify(final_title)
-        
-        # Check by AI-generated slug
-        existing_ai_slug = self.db.query(Campaign).filter(Campaign.slug == parsed_slug).first()  # type: ignore # pyre-ignore[16]
-        if existing_ai_slug:
-            print(f"  -> Campaign already exists (ai slug): {parsed_slug}")
-            self.stats["skipped"] += 1  # type: ignore # pyre-ignore[58]
-            return
+        from src.utils.slug_generator import get_unique_slug
+        parsed_slug = get_unique_slug(
+            title=final_title,
+            db_session=self.db,
+            campaign_model=Campaign,
+            tracking_url=url,
+            card_name="American Express",
+            bank_name="American Express"
+        )
 
         # Dates
         def parse_date(date_str):

@@ -291,8 +291,19 @@ class ChippinScraper:
                 except Exception as e:
                     print(f"   ❌ DB Pre-check Error: {e}")
 
-                slug_base = slugify(title)
-                slug = f"{slug_base}-{cid}"
+                # Use get_unique_slug
+                from src.utils.slug_generator import get_unique_slug
+                # We need a temporary session for slug generation before Campaign instantiation
+                from src.database import SessionLocal
+                with SessionLocal() as temp_db:
+                    slug = get_unique_slug(
+                        title=title,
+                        db_session=temp_db,
+                        campaign_model=Campaign,
+                        tracking_url=tracking_url,
+                        card_name="Chippin",
+                        bank_name="Chippin"
+                    )
 
                 content_raw = c.get("webDescription") or ""
                 content_text = html_to_text(content_raw)

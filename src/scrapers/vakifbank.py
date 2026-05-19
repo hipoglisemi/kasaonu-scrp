@@ -227,12 +227,15 @@ class VakifbankScraper:
             if not sector: sector = self.db.query(Sector).filter(Sector.slug == 'diger').first()  # type: ignore # pyre-ignore[16]
             
             # Generate Unique Slug
-            base_slug = re.sub(r'[^a-z0-9]+', '-', title.lower()).strip('-')
-            slug = base_slug
-            counter = 1
-            while self.db.query(Campaign).filter(Campaign.slug == slug).first():  # type: ignore # pyre-ignore[16]
-                slug = f"{base_slug}-{counter}"
-                counter += 1  # type: ignore # pyre-ignore[58]
+            from src.utils.slug_generator import get_unique_slug
+            slug = get_unique_slug(
+                title=title,
+                db_session=self.db,
+                campaign_model=Campaign,
+                tracking_url=url,
+                card_name="Vakıfworld",
+                bank_name="Vakıfbank"
+            )
 
             # Prepare Conditions
             conds = ai_data.get("conditions", [])

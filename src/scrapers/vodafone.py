@@ -275,10 +275,15 @@ class VodafoneScraper:
             brand_ids = self._get_or_create_brands(data.get("brands", []), sector.id if sector else None)  # type: ignore # pyre-ignore[16]
             
             # Slug - always use generate_slug for consistency
-            from src.utils.slug_generator import generate_slug  # type: ignore # pyre-ignore[21]
-            url_hash = uuid.uuid5(uuid.NAMESPACE_URL, url).hex[:8]  # type: ignore # pyre-ignore[16,6]
-            base_slug = generate_slug(data.get("title", ""))
-            slug = f"{base_slug}-{url_hash}"
+            from src.utils.slug_generator import get_unique_slug
+            slug = get_unique_slug(
+                title=data.get("title", ""),
+                db_session=self.db,
+                campaign_model=Campaign,
+                tracking_url=url,
+                card_name="Vodafone",
+                bank_name="Vodafone"
+            )
             
             # Format for CampaignDetailClient.tsx
             participation = data.get("participation", "")
