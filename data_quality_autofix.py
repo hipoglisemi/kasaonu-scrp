@@ -1255,24 +1255,19 @@ def audit_approved_campaign_cards():
                 db.commit()
                 continue
                 
-            # 1. Fetch text via Trafilatura
+            # 1. Fetch text via our robust fetch_html function (handles SPA, headless Chrome, trafilatura fallbacks)
             clean_text = None
             try:
-                downloaded = trafilatura.fetch_url(url)
-                if downloaded:
-                    clean_text = trafilatura.extract(
-                        downloaded, 
-                        include_tables=True, 
-                        include_links=True, 
-                        include_comments=True
-                    )
-            except Exception as te:
-                print(f"   ⚠️ Trafilatura fetch failed: {te}")
+                fetched_text, status = fetch_html(url)
+                if fetched_text and len(fetched_text) >= 100:
+                    clean_text = fetched_text
+            except Exception as fe:
+                print(f"   ⚠️ fetch_html failed: {fe}")
                 
             if not clean_text or len(clean_text) < 50:
                 # Fallback to campaign description/clean_text if we failed to fetch
                 clean_text = camp.clean_text or camp.description or ""
-                print("   ⚠️ Could not fetch body text via Trafilatura. Using description/clean_text fallback.")
+                print("   ⚠️ Could not fetch body text via live fetch. Using description/clean_text fallback.")
                 
             if len(clean_text) < 30:
                 print("   ⚠️ Text content too short to analyze. Skipping.")
