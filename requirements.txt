@@ -13,3 +13,7 @@ google-auth
 google-api-python-client
 thefuzz==0.20.0
 webdriver-manager==4.0.2
+trafilatura==1.8.0
+lxml_html_clean==0.4.5
+
+
