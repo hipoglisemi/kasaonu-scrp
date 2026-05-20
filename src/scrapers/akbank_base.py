@@ -224,7 +224,8 @@ class AkbankBaseScraper:
                 is_active=True,  # type: ignore
                 created_at=datetime.utcnow(),  # type: ignore
                 updated_at=datetime.utcnow(),  # type: ignore
-                tracking_url=source_url  # type: ignore
+                tracking_url=source_url,  # type: ignore
+                clean_text=ai_data.get('_clean_text') or ai_data.get('clean_text')
             )
 
             from src.utils.scraper_utils import upsert_campaign
