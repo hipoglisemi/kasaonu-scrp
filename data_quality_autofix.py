@@ -570,7 +570,9 @@ def run_autofix(limit: int = 250, campaign_id: Optional[int] = None, force_all: 
             print(f"⚠️ Total campaigns to process in this run: {len(to_fix_ids)} (FORCE_ALL={FORCE_ALL})")
             
             if not to_fix_ids:
-                print("✅ All active campaigns look healthy! Exiting.")
+                print("✅ All active campaigns look healthy!")
+                if not ui_mode:
+                    audit_approved_campaign_cards()
                 return
                 
         fixed_count = 0
