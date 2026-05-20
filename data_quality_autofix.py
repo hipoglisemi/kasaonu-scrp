@@ -787,7 +787,17 @@ def run_autofix(limit: int = 250, campaign_id: Optional[int] = None, force_all: 
 
                 if is_cards_empty or is_cards_corrupted or is_cards_incomplete or is_cards_wrong or FORCE_ALL:
                     if ai_data.get("cards") is not None:
-                        cards_str = ", ".join(ai_data["cards"]) if len(ai_data["cards"]) > 0 else "-"
+                        from audit_eligible_cards import normalize_card_name
+
+                        current_cards = [x.strip() for x in (c.eligible_cards or "").split(",") 
+                                         if x.strip() and x.strip() != "-"]
+                        ai_cards = ai_data.get("cards") or []
+                        normalized_current = {normalize_card_name(x) for x in current_cards}
+                        for ac in ai_cards:
+                            if normalize_card_name(ac) not in normalized_current:
+                                current_cards.append(ac)
+                        cards_str = ", ".join(current_cards) if len(current_cards) > 0 else "-"
+
                         if is_cards_incomplete:
                             print(f"   ✨ Upgraded Incomplete Cards: {c.eligible_cards} → {cards_str}")
                         elif is_cards_wrong:
@@ -1183,11 +1193,130 @@ def run_autofix(limit: int = 250, campaign_id: Optional[int] = None, force_all: 
             time.sleep(3)
             
         print(f"\n🏁 Auto-fixer complete. Successfully repaired {fixed_count}/{len(to_fix_ids)} campaigns.")
+        
+        if not ui_mode:
+            audit_approved_campaign_cards()
     except Exception as e:
         print(f"\n📛 CRITICAL ERROR during auto-fix: {e}")
         import traceback
         traceback.print_exc()
         sys.exit(1)
+
+def audit_approved_campaign_cards():
+    """
+    Gece taranan onaylı/aktif kampanyaların kartlarını denetler ve eksik olanları zenginleştirir.
+    cards_audited_at alanı None olanları hedefler.
+    """
+    print("\n------------------------------------------------------------")
+    print("🔍 Starting Campaign Cards Audit for APPROVED Campaigns...")
+    print("------------------------------------------------------------")
+    
+    from src.database import SessionLocal
+    from src.models import Campaign, Card
+    from audit_eligible_cards import extract_cards_via_ai, normalize_card_name
+    from sqlalchemy.orm import joinedload
+    from datetime import datetime
+    import trafilatura
+    import time
+    
+    db = SessionLocal()
+    try:
+        # Sorgu: is_active=True, is_approved=True, cards_audited_at=None
+        query = db.query(Campaign).options(
+            joinedload(Campaign.card).joinedload(Card.bank)
+        ).filter(
+            Campaign.is_active == True,
+            Campaign.is_approved == True,
+            Campaign.cards_audited_at == None,
+            Campaign.tracking_url != None
+        ).order_by(Campaign.id.desc()).limit(250)
+        
+        campaigns = query.all()
+        print(f"📋 Found {len(campaigns)} approved campaigns to audit.")
+        
+        if not campaigns:
+            print("✅ No approved campaigns to audit.")
+            return
+            
+        updated_count = 0
+        
+        for idx, camp in enumerate(campaigns):
+            print(f"\n[{idx+1}/{len(campaigns)}] Auditing Approved ID: {camp.id} - {camp.title[:50]}...")
+            
+            # Bank adını bul
+            bank_name = "Bilinmeyen Banka"
+            if camp.card and camp.card.bank:
+                bank_name = camp.card.bank.name
+                
+            url = camp.tracking_url
+            if not url or len(url) < 10:
+                print("   ⚠️ Invalid tracking URL. Skipping.")
+                camp.cards_audited_at = datetime.utcnow()
+                db.commit()
+                continue
+                
+            # 1. Fetch text via Trafilatura
+            clean_text = None
+            try:
+                downloaded = trafilatura.fetch_url(url)
+                if downloaded:
+                    clean_text = trafilatura.extract(
+                        downloaded, 
+                        include_tables=True, 
+                        include_links=True, 
+                        include_comments=True
+                    )
+            except Exception as te:
+                print(f"   ⚠️ Trafilatura fetch failed: {te}")
+                
+            if not clean_text or len(clean_text) < 50:
+                # Fallback to campaign description/clean_text if we failed to fetch
+                clean_text = camp.clean_text or camp.description or ""
+                print("   ⚠️ Could not fetch body text via Trafilatura. Using description/clean_text fallback.")
+                
+            if len(clean_text) < 30:
+                print("   ⚠️ Text content too short to analyze. Skipping.")
+                camp.cards_audited_at = datetime.utcnow()
+                db.commit()
+                continue
+                
+            # 2. Extract cards via AI (uses extract_cards_via_ai from audit_eligible_cards with key rotation)
+            ai_cards, card_section = extract_cards_via_ai(clean_text, bank_name)
+            
+            # 3. Merge logic
+            if ai_cards:
+                current_cards_str = camp.eligible_cards or ""
+                current_cards = [x.strip() for x in current_cards_str.split(",") if x.strip() and x.strip() != "-"]
+                normalized_current = {normalize_card_name(x) for x in current_cards if x}
+                
+                added_cards = []
+                for ac in ai_cards:
+                    if ac and normalize_card_name(ac) not in normalized_current:
+                        current_cards.append(ac)
+                        added_cards.append(ac)
+                        
+                if added_cards:
+                    cards_str = ", ".join(current_cards)
+                    print(f"   ✨ Added Missing Cards: {added_cards}")
+                    print(f"     Old: {camp.eligible_cards}")
+                    print(f"     New: {cards_str}")
+                    camp.eligible_cards = cards_str
+                    updated_count += 1
+                else:
+                    print("   ✅ Cards match existing database entry.")
+            else:
+                print("   ℹ️ AI returned empty card list or rate-limited.")
+                
+            # 4. Mark audited date to avoid scanning again
+            camp.cards_audited_at = datetime.utcnow()
+            db.commit()
+            
+            # API cooldown delay
+            time.sleep(1.0)
+            
+        print(f"\n🏁 Approved Campaigns Audit Complete. Enriched {updated_count} campaigns.")
+    finally:
+        db.close()
 
 if __name__ == "__main__":
     import argparse

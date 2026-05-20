@@ -49,6 +49,7 @@ def upsert_campaign(db: Session, campaign: Campaign) -> Tuple[Campaign, str]:
             print(f"   🔄 Reviving passive campaign: {existing.title[:40]}...")
             existing.is_active = True
             existing.is_approved = False  # Require admin re-approval
+            existing.cards_audited_at = None
             status = "revived"
             
         # Update fields

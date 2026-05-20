@@ -16,6 +16,10 @@ on:
         type: boolean
         default: false
 
+concurrency:
+  group: data-quality-autofix
+  cancel-in-progress: false
+
 jobs:
   autofix:
     runs-on: ubuntu-22.04
