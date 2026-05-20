@@ -529,6 +529,7 @@ class IsbankMaximumGencScraper:
                 start_date=start_date, end_date=end_date,
                 is_active=True, tracking_url=url,
                 created_at=datetime.utcnow(), updated_at=datetime.utcnow(),
+                clean_text=ai_data.get('_clean_text') or ai_data.get('clean_text')
             )
             
             # Use centralized upsert_campaign for revival and quality control

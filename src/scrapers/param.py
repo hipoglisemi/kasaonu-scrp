@@ -444,6 +444,7 @@ class ParamScraper:
                 existing.start_date = start_date or existing.start_date
                 existing.end_date = end_date or existing.end_date
                 existing.updated_at = func.now()
+                existing.clean_text = ai_data.get('_clean_text') or ai_data.get('clean_text')
                 campaign = existing
             else:
                 campaign = Campaign(  # type: ignore
@@ -466,6 +467,7 @@ class ParamScraper:
                     tracking_url=url,  # type: ignore
                     created_at=func.now(),  # type: ignore
                     updated_at=func.now(),  # type: ignore
+                    clean_text=ai_data.get('_clean_text') or ai_data.get('clean_text'),
                 )
             # Use centralized upsert_campaign for revival and quality control
             campaign, op_status = upsert_campaign(self.db, campaign)

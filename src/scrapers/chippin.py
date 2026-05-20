@@ -378,7 +378,8 @@ class ChippinScraper:
                             end_date=ai_data.get("end_date") or c.get("campaignEndDate"),
                             is_active=True,
                             tracking_url=tracking_url,
-                            updated_at=datetime.utcnow()
+                            updated_at=datetime.utcnow(),
+                            clean_text=ai_data.get('_clean_text') or ai_data.get('clean_text')
                         )
 
                         # Use centralized upsert_campaign for revival and quality control

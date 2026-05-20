@@ -333,7 +333,8 @@ class TotalEnergiesScraper:
                         start_date=start_dt,
                         end_date=end_dt,
                         is_active=True,
-                        slug=get_unique_slug(final_title, self.db, Campaign)
+                        slug=get_unique_slug(final_title, self.db, Campaign),
+                        clean_text=campaign_data.get('_clean_text') or campaign_data.get('clean_text')
                     )
                     
                     # Use centralized upsert_campaign for revival and quality control
