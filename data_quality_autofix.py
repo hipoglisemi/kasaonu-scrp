@@ -33,6 +33,7 @@ from src.services.fact_checker import FactCheckerAgent # type: ignore
 from src.services.text_cleaner import clean_campaign_text # type: ignore
 from src.services.point_blank_matcher import get_point_blank_matcher, _GLOBAL_BRAND_EXCLUSIONS # type: ignore
 from sqlalchemy.orm import joinedload # type: ignore
+from sqlalchemy import func # type: ignore
 from src.utils.gemini_client import generate_with_rotation # type: ignore
 from google.genai import types # type: ignore
 
@@ -518,6 +519,95 @@ def run_autofix(limit: int = 250, campaign_id: Optional[int] = None, force_all: 
                             reasons.append("Review 'Genel' Brand")
                             break
 
+                # ---------------------------------------------------------------
+                # 🔍 YENİ KONTROL 1: Duplicate Brand Pattern (Footer/Sidebar Scraping)
+                # Aynı card_id'ye sahip kampanyalarda birebir aynı marka setinin
+                # 3+ farklı kampanyada tekrarlanması → scraper footer'ı çekiyor demektir.
+                # ---------------------------------------------------------------
+                if c.brands and c.card_id and not is_defective:
+                    try:
+                        campaign_brand_ids = frozenset(b.brand_id for b in c.brands)
+                        if len(campaign_brand_ids) >= 2:  # En az 2 marka varsa anlamlı
+                            # Aynı card_id'li diğer kampanyaları ara
+                            sibling_campaigns = db.query(Campaign).filter(
+                                Campaign.card_id == c.card_id,
+                                Campaign.id != c.id,
+                                Campaign.is_active == True
+                            ).options(joinedload(Campaign.brands)).limit(200).all()
+                            
+                            duplicate_count = 0
+                            for sib in sibling_campaigns:
+                                sib_brand_ids = frozenset(b.brand_id for b in sib.brands)
+                                if sib_brand_ids == campaign_brand_ids:
+                                    duplicate_count += 1
+                                if duplicate_count >= 3:
+                                    break
+                            
+                            if duplicate_count >= 3:
+                                is_defective = True
+                                reasons.append(f"Duplicate Brand Pattern ({duplicate_count} sibling campaigns share identical brand set)")
+                    except Exception as _dbe:
+                        pass  # Brand kontrol hatası asıl süreci engellemesin
+
+                # ---------------------------------------------------------------
+                # 🔍 YENİ KONTROL 2: Irrelevant Brand / Over-Tagging
+                # Kampanya başlığında HİÇBİR marka adı geçmiyorsa
+                # VE kampanyada 5+ marka etiketliyse
+                # VE bu markalar aynı karta ait diğer kampanyalarda da aynıysa
+                # → over-tagging şüphesi
+                # ---------------------------------------------------------------
+                if c.brands and c.card_id and not is_defective:
+                    try:
+                        brand_names_for_check = [b.name if hasattr(b, 'name') else str(b) for b in c.brands]
+                        # brand_ids üzerinden erişimi dene (CampaignBrand ilişkisi)
+                        brand_names_for_check = []
+                        for cb in c.brands:
+                            if hasattr(cb, 'brand') and cb.brand:
+                                brand_names_for_check.append(cb.brand.name)
+                            elif hasattr(cb, 'name'):
+                                brand_names_for_check.append(cb.name)
+
+                        if len(brand_names_for_check) >= 5:
+                            title_lower = (c.title or "").lower()
+                            # Başlıkta hiçbir marka adı geçmiyor mu?
+                            title_has_any_brand = any(
+                                brand_name.lower() in title_lower
+                                for brand_name in brand_names_for_check
+                                if len(brand_name) > 3
+                            )
+
+                            if not title_has_any_brand:
+                                # Bu marka seti diğer kampanyalarda da var mı?
+                                campaign_brand_ids = frozenset(b.brand_id for b in c.brands)
+                                sibling_campaigns = db.query(Campaign).filter(
+                                    Campaign.card_id == c.card_id,
+                                    Campaign.id != c.id,
+                                    Campaign.is_active == True
+                                ).options(joinedload(Campaign.brands)).limit(200).all()
+
+                                overlap_count = 0
+                                for sib in sibling_campaigns:
+                                    sib_brand_ids = frozenset(b.brand_id for b in sib.brands)
+                                    # En az %60 örtüşme → şüpheli
+                                    if campaign_brand_ids and sib_brand_ids:
+                                        intersection = len(campaign_brand_ids & sib_brand_ids)
+                                        union = len(campaign_brand_ids | sib_brand_ids)
+                                        overlap_ratio = intersection / union if union > 0 else 0
+                                        if overlap_ratio >= 0.6:
+                                            overlap_count += 1
+                                    if overlap_count >= 2:
+                                        break
+
+                                if overlap_count >= 2:
+                                    is_defective = True
+                                    reasons.append(
+                                        f"Irrelevant Brand / Over-Tagging Suspected "
+                                        f"({len(brand_names_for_check)} brands, none in title, "
+                                        f"{overlap_count} siblings with ≥60% overlap)"
+                                    )
+                    except Exception as _obe:
+                        pass  # Over-tagging kontrol hatası asıl süreci engellemesin
+
                 # FORCE REPAIR IF:
                 # 1. SPECIFIC ID IS PROVIDED
                 # 2. IDS_FILE MODE IS ACTIVE
@@ -964,12 +1054,17 @@ def run_autofix(limit: int = 250, campaign_id: Optional[int] = None, force_all: 
                 # --- Marka tamiri (Safe-Update & Multi-Brand) ---
                 added_brand_ids = set()
                 needs_brand_fix = False
+                is_brand_consistency_fix = False  # Duplicate/Over-Tagging düzeltmesi işareti
                 if not c.brands or (campaign_id or ids_file):
                     needs_brand_fix = True
                 elif reasons_list:
                     for r in reasons_list:
                         if "Invalid Bank Brand" in r:
                             needs_brand_fix = True
+                            break
+                        if "Duplicate Brand Pattern" in r or "Over-Tagging Suspected" in r:
+                            needs_brand_fix = True
+                            is_brand_consistency_fix = True
                             break
 
                 if needs_brand_fix and "brands" in ai_data:
@@ -994,13 +1089,18 @@ def run_autofix(limit: int = 250, campaign_id: Optional[int] = None, force_all: 
                         if b_name and b_name != "Genel":
                             new_brand_names.append(b_name)
                     
-                    # If we are in force/id-file mode, we PURGE all old brands to ensure clean slate
+                    # If we are in force/id-file mode OR brand consistency fix → PURGE all brands for a clean slate
                     # Otherwise, we only purge the ones identified as bank brands
                     correct_brands_to_keep = []
-                    if not (campaign_id or ids_file):
+                    if is_brand_consistency_fix:
+                        # Duplicate Pattern veya Over-Tagging durumunda tüm markalar temizlenir,
+                        # sadece AI'ın yeniden ürettiği markalar yazılır.
+                        print(f"   🧹 [Brand Consistency Fix] Purging ALL brands for clean re-tagging.")
+                    elif not (campaign_id or ids_file):
                         for b in c.brands:
                             if b.brand.name not in wrong_bank_brands:
                                 correct_brands_to_keep.append(b)
+                    # is_brand_consistency_fix=True durumunda correct_brands_to_keep [] kalır (full purge)
                     
                     # Kampanya bağlarını sıfırla
                     db.query(CampaignBrand).filter(CampaignBrand.campaign_id == c.id).delete()
