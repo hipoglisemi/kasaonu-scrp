@@ -4,7 +4,7 @@ python-dotenv==1.0.0
 playwright==1.41.0
 beautifulsoup4==4.12.3
 google-genai>=1.0.0
-lxml==5.1.0
+lxml>=5.2.0,<6.0.0
 requests==2.31.0
 undetected-chromedriver==3.5.5
 groq>=0.13.0
@@ -14,6 +14,6 @@ google-api-python-client
 thefuzz==0.20.0
 webdriver-manager==4.0.2
 trafilatura==1.8.0
-lxml_html_clean==0.4.5
+lxml_html_clean==0.1.1
 
 
