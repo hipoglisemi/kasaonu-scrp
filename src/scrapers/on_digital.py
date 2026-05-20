@@ -205,7 +205,7 @@ class ONDigitalScraper:
         return unique
 
     def _fetch_detail(self, url: str) -> str:
-        """Load a detail page with scrolling and extract text content."""
+        """Load a detail page with scrolling and extract clean HTML content."""
         driver = self.driver
         if not driver:
             return ""
@@ -220,38 +220,23 @@ class ONDigitalScraper:
 
         soup = BeautifulSoup(driver.page_source, 'html.parser')
 
-        # ON Digital's campaign detail lives in .box-content or .raw-data
-        content_parts = []
+        # Clean noise directly in soup before passing to AI parser
+        for noise_sel in ['.owl-carousel', 'select.mobile-equal-level-pages', '.horizontal-scroller', 'footer', 'header', 'nav']:
+            for el in soup.select(noise_sel):
+                el.decompose()
 
-        # Find all .box-content blocks first
-        box_contents = soup.select('.box-content')
-        if box_contents:
-            for box in box_contents:
-                content_parts.append(box.get_text(separator='\n', strip=True))
-        else:
-            # Fallback to all .raw-data blocks
-            raw_datas = soup.select('.raw-data')
-            if raw_datas:
-                for raw in raw_datas:
-                    content_parts.append(raw.get_text(separator='\n', strip=True))
-            else:
-                fallback = soup.select_one('.kampanya-detay-icerik') or soup.select_one('article') or soup.select_one('.detail-content')
-                if fallback:
-                    content_parts.append(fallback.get_text(separator='\n', strip=True))
+        # Target the main campaign content
+        main_content = soup.select_one('#main-html-content') or soup.select_one('#main-content')
+        if main_content:
+            return str(main_content)
 
-        # Also grab any tab panels (conditions, etc.) if they exist separately
-        for tab_sel in ['#kampanya-kosullari', '.tab-pane', '.conditions']:
-            tab_els = soup.select(tab_sel)
-            for tab_el in tab_els:
-                content_parts.append(f"KAMPANYA KOŞULLARI:\n{tab_el.get_text(separator=chr(10), strip=True)}")
+        # Fallbacks
+        for sel in ['.box-content', '.raw-data', '.kampanya-detay-icerik', 'article', '.detail-content', 'main']:
+            el = soup.select_one(sel)
+            if el:
+                return str(el)
 
-        if not content_parts:
-            # Last resort: entire main/body
-            fallback = soup.select_one('main') or soup.find('body')
-            if fallback:
-                content_parts.append(fallback.get_text(separator='\n', strip=True))
-
-        return "\n\n".join(content_parts)
+        return str(soup.find('body') or soup)
 
     # ── PROCESSING ────────────────────────────────────────────────────────────
 
