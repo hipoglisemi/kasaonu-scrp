@@ -121,6 +121,57 @@ class CardValidator:
                             parent_brands_with_troy.add(gb)
             final_validated = [v for v in final_validated if self._normalize(v) not in parent_brands_with_troy]
 
+        # 7.1 MASTERCARD FILTERING: If any card in the list contains "mastercard", remove generic parent brands
+        # to prevent users from assuming Visa/Troy versions are also eligible.
+        # Targeted parent brand filtering: only remove parent brand if its specific Mastercard counterpart is listed.
+        has_mastercard = any("mastercard" in self._normalize(v) for v in final_validated)
+        if has_mastercard:
+            parent_brands_with_mc = set()
+            for v in final_validated:
+                v_norm = self._normalize(v)
+                if "mastercard" in v_norm:
+                    generic_brands = {"paraf", "bonus", "world", "maximum", "axess", "bankkart", "maximiles", "wings"}
+                    for gb in generic_brands:
+                        if gb in v_norm:
+                            parent_brands_with_mc.add(gb)
+            # Also remove generic bank brands if they are present alongside network-specific ones
+            if any("bireysel" in self._normalize(v) and "mastercard" in self._normalize(v) for v in final_validated):
+                parent_brands_with_mc.add("world")
+                parent_brands_with_mc.add("paraf")
+                parent_brands_with_mc.add("bonus")
+                parent_brands_with_mc.add("maximum")
+                parent_brands_with_mc.add("axess")
+                parent_brands_with_mc.add("bankkart")
+            final_validated = [v for v in final_validated if self._normalize(v) not in parent_brands_with_mc]
+
+        # 8. NETWORK SPECIFICITY FILTERING: If the list contains both a network-specific card
+        # (e.g., containing "mastercard", "troy", "visa", "amex") and a generic non-network card
+        # whose words are a subset of the network-specific one, remove the generic card.
+        network_keywords = {"mastercard", "troy", "visa", "amex"}
+        to_remove = set()
+        for i, card_a in enumerate(final_validated):
+            a_norm = self._normalize(card_a)
+            a_words = set(a_norm.split())
+            a_networks = a_words.intersection(network_keywords)
+            if not a_networks:
+                continue
+            
+            for card_b in final_validated:
+                if card_a == card_b:
+                    continue
+                b_norm = self._normalize(card_b)
+                b_words = set(b_norm.split())
+                if not b_words.intersection(network_keywords):
+                    a_clean = {w for w in a_words if w not in self.stop_words and w not in network_keywords}
+                    b_clean = {w for w in b_words if w not in self.stop_words and w not in network_keywords}
+                    if b_clean and b_clean.issubset(a_clean):
+                        to_remove.add(card_b)
+                    elif not b_clean and b_norm in a_norm:
+                        to_remove.add(card_b)
+
+        if to_remove:
+            final_validated = [v for v in final_validated if v not in to_remove]
+
         def get_pos(card_name):
             c_norm = self._normalize(card_name)
             pos = text_normalized.find(c_norm)

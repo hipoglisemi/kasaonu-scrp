@@ -880,16 +880,8 @@ def run_autofix(limit: int = 250, campaign_id: Optional[int] = None, force_all: 
 
                 if is_cards_empty or is_cards_corrupted or is_cards_incomplete or is_cards_wrong or FORCE_ALL:
                     if ai_data.get("cards") is not None:
-                        from audit_eligible_cards import normalize_card_name
-
-                        current_cards = [x.strip() for x in (c.eligible_cards or "").split(",") 
-                                         if x.strip() and x.strip() != "-"]
                         ai_cards = ai_data.get("cards") or []
-                        normalized_current = {normalize_card_name(x) for x in current_cards}
-                        for ac in ai_cards:
-                            if normalize_card_name(ac) not in normalized_current:
-                                current_cards.append(ac)
-                        cards_str = ", ".join(current_cards) if len(current_cards) > 0 else "-"
+                        cards_str = ", ".join(ai_cards) if len(ai_cards) > 0 else "-"
 
                         if is_cards_incomplete:
                             print(f"   ✨ Upgraded Incomplete Cards: {c.eligible_cards} → {cards_str}")
