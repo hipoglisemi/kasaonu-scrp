@@ -611,8 +611,8 @@ def run_autofix(limit: int = 250, campaign_id: Optional[int] = None, force_all: 
                 # FORCE REPAIR IF:
                 # 1. SPECIFIC ID IS PROVIDED
                 # 2. IDS_FILE MODE IS ACTIVE
-                # 3. IT'S A PENDING CAMPAIGN THAT HAS NEVER BEEN REPAIRED (Strict First-Pass Rule)
-                is_never_repaired_pending = (not c.is_approved and c.repair_count == 0)
+                # 3. IT'S A PENDING CAMPAIGN THAT HAS NEVER BEEN SUCCESSFULLY REPAIRED (Strict First-Pass Rule)
+                is_never_repaired_pending = (not c.is_approved and (c.repair_count == 0 or c.quality_score is None or c.quality_score < 70))
                 
                 if (campaign_id or ids_file or is_never_repaired_pending) and not is_defective:
                     is_defective = True
@@ -624,12 +624,20 @@ def run_autofix(limit: int = 250, campaign_id: Optional[int] = None, force_all: 
                 if is_defective and c.tracking_url:
                     # COOLDOWN & PERMANENT SKIP LOGIC
                     # REPAIR COUNT & FORCE UPGRADE LOGIC
-                    if c.repair_count >= 2 and not FORCE_ALL and not campaign_id:
+                    max_repairs = 4 if (c.quality_score is None or c.quality_score < 70) else 2
+                    if c.repair_count >= max_repairs and not FORCE_ALL and not campaign_id:
                         stats["skipped_cooldown"] += 1
                         continue
                     
-                    if c.auto_corrected or c.repair_count > 0:
-                        # If already corrected once, ONLY retry if:
+                    # Cooldown check for retries (if repair_count > 0)
+                    if c.repair_count > 0 and not FORCE_ALL and not campaign_id:
+                        last_update = c.updated_at or c.created_at
+                        if now - last_update < cooldown_period:
+                            stats["skipped_cooldown"] += 1
+                            continue
+                    
+                    if (c.auto_corrected or c.repair_count > 0) and (c.quality_score is not None and c.quality_score >= 70):
+                        # If already corrected once and has a passing score, ONLY retry if:
                         # 1. Severe text corruption
                         # 2. OR it STILL has an Invalid Bank Brand (New rules need to clean this up)
                         # 3. OR it has Incomplete Metadata (Cards/Participation missed by AI)
@@ -638,12 +646,6 @@ def run_autofix(limit: int = 250, campaign_id: Optional[int] = None, force_all: 
                         has_metadata_error = any("Incomplete Cards" in r or "Incomplete Participation" in r for r in reasons)
                         
                         if not (is_corrupted or has_mojibake or has_bank_error or has_metadata_error) and not FORCE_ALL:
-                            stats["skipped_cooldown"] += 1
-                            continue
-                            
-                        # Cooldown check for retries
-                        last_update = c.updated_at or c.created_at
-                        if now - last_update < cooldown_period and not FORCE_ALL:
                             stats["skipped_cooldown"] += 1
                             continue
                         stats["retry"] += 1
@@ -786,7 +788,7 @@ def run_autofix(limit: int = 250, campaign_id: Optional[int] = None, force_all: 
                     bank_name=bank_name or '',
                     title=ai_title_pass,
                     og_title=og_title,
-                    scraper_sector=c.sector.slug if c.sector else None,
+                    scraper_sector=None,
                     is_already_clean=True
                 )
                 
@@ -1133,6 +1135,7 @@ def run_autofix(limit: int = 250, campaign_id: Optional[int] = None, force_all: 
                         except Exception as be:
                             print(f"   ⚠️ Brand fix failed for {b_name}: {be}")
                     db.flush()
+                    db.refresh(c)
 
                 # -------------------------------------------------------------
                 # 📊 DYNAMIC QUALITY SCORE CALCULATION & PEER-REVIEW FACT-CHECKER
@@ -1272,7 +1275,7 @@ def run_autofix(limit: int = 250, campaign_id: Optional[int] = None, force_all: 
                     ui_response["title"] = c.title
                     ui_response["description"] = c.description
                     ui_response["reward_text"] = c.reward_text
-                    ui_response["reward_value"] = c.reward_value
+                    ui_response["reward_value"] = float(c.reward_value) if c.reward_value is not None else None
                     ui_response["reward_type"] = c.reward_type
                     ui_response["cards"] = c.eligible_cards.split(", ") if c.eligible_cards else []
                     ui_response["participation"] = c.participation

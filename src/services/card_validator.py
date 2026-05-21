@@ -108,10 +108,18 @@ class CardValidator:
 
         # 7. TROY FILTERING: If any card in the list contains "troy", remove generic parent brands
         # to prevent users from assuming Visa/Mastercard versions are also eligible.
+        # Targeted parent brand filtering: only remove parent brand if its specific TROY counterpart is listed.
         has_troy = any("troy" in self._normalize(v) for v in final_validated)
         if has_troy:
-            generic_brands = {"paraf", "bonus", "world", "maximum", "axess", "bankkart", "maximiles", "wings"}
-            final_validated = [v for v in final_validated if self._normalize(v) not in generic_brands]
+            parent_brands_with_troy = set()
+            for v in final_validated:
+                v_norm = self._normalize(v)
+                if "troy" in v_norm:
+                    generic_brands = {"paraf", "bonus", "world", "maximum", "axess", "bankkart", "maximiles", "wings"}
+                    for gb in generic_brands:
+                        if gb in v_norm:
+                            parent_brands_with_troy.add(gb)
+            final_validated = [v for v in final_validated if self._normalize(v) not in parent_brands_with_troy]
 
         def get_pos(card_name):
             c_norm = self._normalize(card_name)
