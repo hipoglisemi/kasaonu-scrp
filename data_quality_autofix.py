@@ -304,7 +304,7 @@ def fetch_html(url: str) -> str:
     status_code = "LIVE_SUCCESS" if len(text) > 200 else "LIVE_EMPTY"
     return text, status_code
 
-def run_autofix(limit: int = 250, campaign_id: Optional[int] = None, force_all: bool = False, ids_file: Optional[str] = None, ui_mode: bool = False, pending: bool = False, model: Optional[str] = None, fallback_model: Optional[str] = None):
+def run_autofix(limit: int = 250, campaign_id: Optional[int] = None, force_all: bool = False, ids_file: Optional[str] = None, ui_mode: bool = False, pending: bool = False, model: Optional[str] = None, fallback_model: Optional[str] = None, force_rescue: bool = False):
     print(f"🚀 Starting Data Quality Auto-Fixer (Limit: {limit})...")
     
     try:
@@ -694,17 +694,16 @@ def run_autofix(limit: int = 250, campaign_id: Optional[int] = None, force_all: 
                 is_spa_url = any(spa in (c.tracking_url or "") for spa in spa_domains_block)
                 db_text_len = len(c.clean_text) if c.clean_text else 0
                 
+                is_rescue_active = force_rescue
                 if is_spa_url and db_text_len > 600:
-                    force_rescue = False  # Never force-fetch SPAs with good DB data
+                    is_rescue_active = False  # Never force-fetch SPAs with good DB data
                     print(f"   🔒 SPA domain detected. Force-rescue disabled. Using DB text ({db_text_len} chars).")
-                else:
-                    force_rescue = FORCE_ALL
                 
                 # Initialize repair metadata
                 repair_meta = {"source": "DB", "status": "CLEAN_TEXT_USED"}
                 og_title = None
                 
-                if c.clean_text and len(c.clean_text) >= 600 and not is_truncated and not mojibake_pattern.search(c.clean_text) and not force_rescue:
+                if c.clean_text and len(c.clean_text) >= 600 and not is_truncated and not mojibake_pattern.search(c.clean_text) and not is_rescue_active:
                     print(f"   ⚡ Using pre-cleaned text from DB ({len(c.clean_text)} chars)")
                     text_to_parse = c.clean_text
                 else:
@@ -1422,6 +1421,7 @@ if __name__ == "__main__":
     parser.add_argument("--id", type=int, help="Fix a specific campaign ID")
     parser.add_argument("--ids-file", type=str, help="Fix a list of IDs from a text file")
     parser.add_argument("--force", action="store_true", help="Force AI re-parse even if data exists")
+    parser.add_argument("--force-rescue", action="store_true", help="Force fetching fresh HTML from bank site")
     parser.add_argument("--ui-mode", action="store_true", help="Output JSON for UI bridge")
     parser.add_argument("--pending", action="store_true", help="Process only unapproved (pending) campaigns")
     parser.add_argument("--model", type=str, help="Primary AI model to use")
@@ -1440,5 +1440,6 @@ if __name__ == "__main__":
         ui_mode=args.ui_mode, 
         pending=args.pending,
         model=args.model,
-        fallback_model=args.fallback_model
+        fallback_model=args.fallback_model,
+        force_rescue=args.force_rescue
     )
