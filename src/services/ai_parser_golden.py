@@ -35,9 +35,9 @@ BANK_CARD_KEYWORDS = {
     "teb": ["teb bonus", "cepteteb", "teb banka kartı"],
     "kuveyt türk": ["sağlam kart"],
     "türkiye finans": ["happy card", "âlâ kart", "happy zero"],
-    "enpara": ["enpara.com kredi kartı", "enpara kredi kartı"],
+    "enpara": ["enpara kredi kartı"],
     "hsbc": ["hsbc premier"],
-    "şekerbank": ["şekerbank bonus", "şekerbank diamond", "şeker bonus"],
+    "şekerbank": ["şekerbank bonus", "şekerbank diamond"],
     "burgan": ["on kredi kartı", "on banka kartı"],
     "albaraka": ["albaraka worldcard"],
     "türk telekom": ["türk telekom müşterileri", "prime", "selfy"],
@@ -52,6 +52,8 @@ BANK_CARD_KEYWORDS = {
     "opet": ["opet kart", "opet mobil", "opet müşterileri"],
     "nays": ["nays kart", "nays kullanıcıları"],
     "dünya katılım": ["dünya katılım kartı", "dünya katılım banka kartı", "dünya katılım kredi kartı", "dkart", "dkart debit", "dünya katılım paraf", "dünya katılım troy"],
+    "garanti": ["garanti bonus", "bonus", "bonus genç", "bonus flexi", "money bonus", "flexi", "american express", "miles&smiles", "shop&fly", "ticari kartlar", "ek kartlar", "sanal kartlar"],
+    "american express": ["american express", "american express card", "american express gold card", "american express platinum card", "metal the platinum card", "centurion card", "ticari kartlar", "ek kartlar", "sanal kartlar", "miles&smiles", "shop&fly"],
 }
 
 BANK_APP_NAMES = {
@@ -338,7 +340,7 @@ Kampanya Sahibi Banka/Kurum: {bank_name}
    - 🚨 PARTNER BANKALAR (CRITICAL): Eğer metinde "Anadolu Bank", "Albaraka", "Vakıfbank" veya "Worldcard lisanslı bankalar" geçiyorsa, MUTLAKA 'cards' alanına KURTARARAK ekle.
    - 🚨 ZİRAAT BANKKART KURALI (ÇOK KRİTİK): Ziraat Bankası kampanyalarında; eğer metin 'Bireysel Bankkart' veya 'Bankkart' diyorsa bu 'Bankkart, Bankkart Genç, Bankkart Prestij' kartlarını kapsar, bunları yaz (Ticari kartları, Business, Başak ASLA ekleme). Eğer metinde sadece tek bir kart (örn: sadece 'Prestij') diyorsa diğerlerini ekleme. Ayrıca metin 'ek kartlar' veya 'sanal kartlar' geçerli diyorsa bu terimleri de aynen listeye ekle. Açıkça adı geçmeyen hiçbir kartı ezbere UYDURMA.
    - 🚨 DENİZBANK KURALI (ÇOK KRİTİK): Denizbank kampanyalarında "Tüm bonus özellikli DenizBank Bireysel Kredi Kartları" diyorsa KESİNLİKLE "Denizbonus" diye UYDURMA, kelimesi kelimesine "DenizBank Bireysel Kredi Kartları" olarak al. Eğer metinde açıkça "Denizbonus" kelimesi geçmiyorsa listeye asla ekleme. "Net Kart", "sanal kart" geçiyorsa ekle.
-   - ⛔ YASAK: Eğer metinde geçerli kart/müşteri adı (örn: 'Opet Kart', 'Türk Telekom müşterileri') geçmiyorsa ASLA uydurarak ekleme. Yoksa boş bırak `[-]`.
+   - ⛔ YASAK: Eğer metinde geçerli kart/müşteri adı (örn: 'Opet Kart', 'Türk Telekom müşterileri') geçmiyorsa ASLA uydurarak ekleme. Yoksa boş bırak `[]`.
 
 4. **TARİHLER**: 
     - Tüm tarihleri 'YYYY-MM-DD' formatında ver.
@@ -646,7 +648,11 @@ ANALİZ EDİLECEK METİN:
             data["participation"] = p[0].upper() + p[1:]
             
         if data.get("cards"):
-            data["cards"] = [c[0].upper() + c[1:] if c else c for c in data["cards"]]
+            cleaned_cards = []
+            for c in data["cards"]:
+                if c and c.strip() not in ["", "-", "[-]", "[]"]:
+                    cleaned_cards.append(c[0].upper() + c[1:])
+            data["cards"] = cleaned_cards
 
         # ── 10. MARKETING SPICER (Lazy AI Guard) ────────────────────
         mkt = data.get("ai_marketing_text")
@@ -655,6 +661,45 @@ ANALİZ EDİLECEK METİN:
              # AI was lazy, let's add some flair to make them distinct
              suffix = " 🚀 Bu fırsatı kaçırmayın, hemen katılın! ✨"
              data["ai_marketing_text"] = mkt.strip() + suffix
+
+        # ── 11. CARD NAME STANDARDIZATION (Specifically restoring '&' symbol) ─────
+        def _standardize_names(text: str) -> str:
+            if not text:
+                return text
+            # Restore & for Miles & Smiles
+            text = re.sub(r"(?i)\bmiles\s*(?:&|and|n)?\s*smiles\b", "Miles & Smiles", text)
+            # Restore & for Shop & Fly
+            text = re.sub(r"(?i)\bshop\s*(?:&|and|n)?\s*fly\b", "Shop & Fly", text)
+            # Restore & for M&S
+            text = re.sub(r"(?i)\bm\s*&\s*s\b", "M&S", text)
+            text = re.sub(r"(?i)\bm\s+s\b", "M&S", text)
+            text = re.sub(r"(?i)\bm&s\b", "M&S", text)
+            # Restore & for S&F
+            text = re.sub(r"(?i)\bs\s*&\s*f\b", "S&F", text)
+            text = re.sub(r"(?i)\bs\s+f\b", "S&F", text)
+            text = re.sub(r"(?i)\bs&f\b", "S&F", text)
+            return text
+
+        if data.get("cards"):
+            data["cards"] = [_standardize_names(c) for c in data["cards"]]
+            
+        if data.get("title"):
+            data["title"] = _standardize_names(data["title"])
+            
+        if data.get("description"):
+            data["description"] = _standardize_names(data["description"])
+            
+        if data.get("ai_marketing_text"):
+            data["ai_marketing_text"] = _standardize_names(data["ai_marketing_text"])
+            
+        if data.get("reward_text"):
+            data["reward_text"] = _standardize_names(data["reward_text"])
+            
+        if data.get("conditions"):
+            data["conditions"] = [_standardize_names(c) for c in data["conditions"]]
+            
+        if data.get("participation"):
+            data["participation"] = _standardize_names(data["participation"])
 
         return data
 

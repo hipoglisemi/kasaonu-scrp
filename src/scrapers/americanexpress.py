@@ -58,7 +58,7 @@ class AmericanExpressScraper:
     BANK_SLUG = "american-express"
 
     def __init__(self):
-        self.engine = create_engine(DATABASE_URL, pool_pre_ping=True, pool_recycle=300)
+        self.engine = create_engine(str(DATABASE_URL), pool_pre_ping=True, pool_recycle=300)
         Session = sessionmaker(bind=self.engine)
         self.db = Session()
         
@@ -370,9 +370,9 @@ class AmericanExpressScraper:
         if not conditions_lines:
             conditions_lines.append(full_conditions[:1500] + "...") # fallback  # type: ignore # pyre-ignore[16,6]
             
-        # Format as bullet points (except for our custom headers)
+        # Join conditions cleanly without redundant dash prefixes (frontend handles bullet lists)
         final_conditions = "\n".join(
-            f"- {c}" if not c.startswith("KATILIM:") and not c.startswith("GEÇERLİ KARTLAR:") else c 
+            c.strip().lstrip("-").strip() if not c.startswith("KATILIM:") and not c.startswith("GEÇERLİ KARTLAR:") else c 
             for c in conditions_lines if c
         )
 
