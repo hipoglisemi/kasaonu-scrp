@@ -71,6 +71,9 @@ class PointBlankMatcher:
                 PointBlankRule.is_verified == True
             ).all()
             
+            # Sort by keyword length descending so specific rules (longer keywords) are matched first
+            self.rules.sort(key=lambda r: len(r.keyword) if r.keyword else 0, reverse=True)
+            
             # 2. Load Brand Blocklist (Dynamic Exclusions)
             try:
                 db_blocklist = self.db.query(BrandBlocklist.name).all()
@@ -90,10 +93,16 @@ class PointBlankMatcher:
     def _build_pattern(self, keyword: str) -> str:
         """
         Build regex pattern for a keyword with Turkish-aware word boundaries.
+        Supports '*' wildcard to match non-contiguous phrases (e.g. 'Obilet*Otel').
         
-        v2.1: Improved word boundaries and suffix handling.
+        v2.2: Added wildcard support for multi-concept brand-sector mapping.
         """
-        kw_pattern = re.escape(keyword)
+        if "*" in keyword:
+            parts = keyword.split("*")
+            escaped_parts = [re.escape(p.strip()) for p in parts if p.strip()]
+            kw_pattern = ".*?".join(escaped_parts)
+        else:
+            kw_pattern = re.escape(keyword)
         
         # Turkish letter set for word boundary checks
         tr_letters = r"a-z\u00e7\u011f\u0131\u00f6\u015f\u00fcA-Z\u00c7\u011e\u0130\u00d6\u015e\u00dc"
@@ -102,7 +111,7 @@ class PointBlankMatcher:
         pattern = (
             f"(?i)"
             f"(?<![{tr_letters}])"       # Not preceded by a letter
-            f"{kw_pattern}"               # The keyword
+            f"{kw_pattern}"               # The keyword or wildcard pattern
             f"(?:['\u2018\u2019][a-z\u00e7\u011f\u0131\u00f6\u015f\u00fc]{{1,4}})?"  # Apostrophe + short suffix
             f"(?![{tr_letters}])"         # Not followed by a letter
         )
