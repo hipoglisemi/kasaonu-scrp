@@ -301,7 +301,6 @@ class AkbankBaseScraper:
                         url_slug = url.strip('/').split('/')[-1]
                         
                         existing = db.query(Campaign).filter(
-                            Campaign.card_id == self.card_id,
                             Campaign.tracking_url.like(f"%/{url_slug}%")
                         ).first()
                         
@@ -311,7 +310,7 @@ class AkbankBaseScraper:
                                 existing.tracking_url = url
                                 db.commit()
                                 
-                            print(f"⏭️  Skipped (Already exists & active): {existing.title}")
+                            print(f"⏭️  Skipped (Already exists & active under card {existing.card_id}): {existing.title}")
                             total_skipped += 1
                             continue
                             

@@ -37,11 +37,17 @@ def upsert_campaign(db: Session, campaign: Campaign) -> Tuple[Campaign, str]:
     """
     from sqlalchemy import func
     
-    # Try matching by EXACT tracking_url, OR if the title exactly matches (handles extreme bank URL migrations where even the slug text changed)
+    # 1. Match by EXACT tracking_url across ANY card ID to prevent duplication of the unique bank page
     existing = db.query(Campaign).filter(
-        (Campaign.tracking_url == campaign.tracking_url) | (func.lower(Campaign.title) == campaign.title.lower()),
-        Campaign.card_id == campaign.card_id
+        Campaign.tracking_url == campaign.tracking_url
     ).first()
+    
+    # 2. Fallback: match by Title + Card ID (handles cases where URL changed but title/card remains same)
+    if not existing:
+        existing = db.query(Campaign).filter(
+            func.lower(Campaign.title) == campaign.title.lower(),
+            Campaign.card_id == campaign.card_id
+        ).first()
     
     if existing:
         status = "saved"
