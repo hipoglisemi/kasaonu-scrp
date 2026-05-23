@@ -127,6 +127,7 @@ IS BANKASI/MAXIMUM/MAXIMİLES SPECIFIC RULES:
     - YAZMA: Tarihleri, katılım yöntemini, zaten ayrı bir listede verdiğin dahil kart isimlerini tekrar YAZMA.
 - BRANDS (SECTOR TAGGING):
     - ONEMLI: Kampanya belirli bir marka/zincir içinse (Zara, Emirates, Migros vb.) o marka ismini 'brands' listesine ekle.
+    - 🚨 BRAND EXCLUSION (CRITICAL): "Getir", "GetirFinans" ve "Business" kelimeleri kampanya metninde sadece kart markası/adı olarak geçmektedir (Örn: "Getir ve Business kartları"). Bunları ASLA 'brands' listesine birer partner marka olarak ekleme, tamamen hariç tut!
     - Sektör için: "MaxiMil" -> Turizm veya Ulaşım olabilir (metne bak); "Duty Free" -> Turizm & Konaklama veya Ulaşım; "Pazarama" -> E-Ticaret.
 """,
     'vakıfbank': """
