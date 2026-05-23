@@ -1,3 +1,4 @@
+from __future__ import annotations
 import os
 """
 SQLAlchemy models matching Prisma schema
@@ -10,7 +11,7 @@ from sqlalchemy import (
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
-from datetime import datetime
+from datetime import datetime, date
 from decimal import Decimal
 import uuid
 
@@ -115,61 +116,61 @@ class Campaign(Base):
     """Campaign entity - stores credit card campaigns with all details"""
     __tablename__ = "test_campaigns" if os.environ.get("TEST_MODE") == "1" else "campaigns"
 
-    id = Column(Integer, primary_key=True, autoincrement=True)
-    card_id = Column(Integer, ForeignKey("cards.id", ondelete="CASCADE"), nullable=False)
-    sector_id = Column(Integer, ForeignKey("sectors.id"), nullable=True)
+    id: int = Column(Integer, primary_key=True, autoincrement=True)
+    card_id: int = Column(Integer, ForeignKey("cards.id", ondelete="CASCADE"), nullable=False)
+    sector_id: int | None = Column(Integer, ForeignKey("sectors.id"), nullable=True)
     
     # SEO slug
-    slug = Column(String, unique=True, nullable=False)
+    slug: str = Column(String, unique=True, nullable=False)
     
     # Core campaign data
-    title = Column(String, nullable=False)
-    reward_text = Column(String, nullable=True)
-    reward_value = Column(Numeric(10, 2), nullable=True)
-    reward_type = Column(String, nullable=True)  # cashback, points, discount, installment
+    title: str = Column(String, nullable=False)
+    reward_text: str | None = Column(String, nullable=True)
+    reward_value: Decimal | None = Column(Numeric(10, 2), nullable=True)
+    reward_type: str | None = Column(String, nullable=True)  # cashback, points, discount, installment
     
     # Updated fields matching Prisma Schema
-    description = Column(Text, nullable=True)   # Was details_text
-    conditions = Column(Text, nullable=True)    # Was conditions_text
+    description: str | None = Column(Text, nullable=True)   # Was details_text
+    conditions: str | None = Column(Text, nullable=True)    # Was conditions_text
     
-    image_url = Column(String, nullable=True)
+    image_url: str | None = Column(String, nullable=True)
     
     # Custom Fields from Prisma
-    ai_marketing_text = Column(String, nullable=True)
-    participation = Column(String, nullable=True)
-    eligible_cards = Column(String, nullable=True)
-    category = Column(String, nullable=True)
-    badge_color = Column(String, nullable=True)
-    card_logo_url = Column(String, nullable=True)
-    clean_text = Column(Text, nullable=True)
+    ai_marketing_text: str | None = Column(String, nullable=True)
+    participation: str | None = Column(String, nullable=True)
+    eligible_cards: str | None = Column(String, nullable=True)
+    category: str | None = Column(String, nullable=True)
+    badge_color: str | None = Column(String, nullable=True)
+    card_logo_url: str | None = Column(String, nullable=True)
+    clean_text: str | None = Column(Text, nullable=True)
 
     # Quality Control
-    quality_score = Column(Integer, nullable=True)
-    auto_corrected = Column(Boolean, default=False, nullable=False)
-    brand_search_attempts = Column(Integer, default=0, nullable=False)
-    no_brand_verified = Column(Boolean, default=False, nullable=False)
-    repair_count = Column(Integer, default=0, nullable=False)
-    is_approved = Column(Boolean, default=False, nullable=False)
-    cards_audited_at = Column(DateTime, nullable=True, default=None)
+    quality_score: int | None = Column(Integer, nullable=True)
+    auto_corrected: bool = Column(Boolean, default=False, nullable=False)
+    brand_search_attempts: int = Column(Integer, default=0, nullable=False)
+    no_brand_verified: bool = Column(Boolean, default=False, nullable=False)
+    repair_count: int = Column(Integer, default=0, nullable=False)
+    is_approved: bool = Column(Boolean, default=False, nullable=False)
+    cards_audited_at: datetime | None = Column(DateTime, nullable=True, default=None)
 
     # Dates
-    start_date = Column(Date, nullable=True)
-    end_date = Column(Date, nullable=True)
+    start_date: date | None = Column(Date, nullable=True)
+    end_date: date | None = Column(Date, nullable=True)
     
     # Status and tracking
-    is_active = Column(Boolean, default=True, nullable=False)
-    tracking_url = Column(String, nullable=True)
-    affiliate_network = Column(String, nullable=True)
-    view_count = Column(Integer, default=0, nullable=False)
-    click_count = Column(Integer, default=0, nullable=False)
+    is_active: bool = Column(Boolean, default=True, nullable=False)
+    tracking_url: str | None = Column(String, nullable=True)
+    affiliate_network: str | None = Column(String, nullable=True)
+    view_count: int = Column(Integer, default=0, nullable=False)
+    click_count: int = Column(Integer, default=0, nullable=False)
     
     # AI embedding (vector for semantic search)
     # Note: Using String for now, Prisma uses vector(1536)
     # embedding = Column(String, nullable=True)  # Skip for now
     
     # Timestamps
-    created_at = Column(DateTime, default=func.now(), nullable=False)
-    updated_at = Column(DateTime, default=func.now(), onupdate=func.now(), nullable=False)
+    created_at: datetime = Column(DateTime, default=func.now(), nullable=False)
+    updated_at: datetime = Column(DateTime, default=func.now(), onupdate=func.now(), nullable=False)
 
     # Relationships
     card = relationship("Card", back_populates="campaigns")
@@ -302,15 +303,15 @@ class PointBlankRule(Base):
     """Point-Blank Matching Rules (Dictionary in DB)"""
     __tablename__ = "point_blank_rules"
 
-    id = Column(Integer, primary_key=True, autoincrement=True)
-    keyword = Column(String, unique=True, nullable=False)
-    brand_name = Column(String, nullable=True) # Explicitly nullable for sector-only matches
-    sector_slug = Column(String, nullable=True)
-    is_verified = Column(Boolean, default=False, nullable=False)
-    match_count = Column(Integer, default=0, nullable=False)
-    sample_campaign_id = Column(Integer, ForeignKey("test_campaigns.id" if os.environ.get("TEST_MODE") == "1" else "campaigns.id"), nullable=True)
-    created_at = Column(DateTime, default=func.now(), nullable=False)
-    updated_at = Column(DateTime, default=func.now(), onupdate=func.now(), nullable=False)
+    id: int = Column(Integer, primary_key=True, autoincrement=True)
+    keyword: str = Column(String, unique=True, nullable=False)
+    brand_name: str | None = Column(String, nullable=True) # Explicitly nullable for sector-only matches
+    sector_slug: str | None = Column(String, nullable=True)
+    is_verified: bool = Column(Boolean, default=False, nullable=False)
+    match_count: int = Column(Integer, default=0, nullable=False)
+    sample_campaign_id: int | None = Column(Integer, ForeignKey("test_campaigns.id" if os.environ.get("TEST_MODE") == "1" else "campaigns.id"), nullable=True)
+    created_at: datetime = Column(DateTime, default=func.now(), nullable=False)
+    updated_at: datetime = Column(DateTime, default=func.now(), onupdate=func.now(), nullable=False)
 
     # Indexes
     __table_args__ = (

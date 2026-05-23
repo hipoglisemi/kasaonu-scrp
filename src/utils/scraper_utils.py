@@ -2,7 +2,7 @@
 from typing import Any, Tuple
 from sqlalchemy.orm import Session
 from src.models import CampaignBlocklist, Campaign
-from datetime import datetime
+from datetime import datetime, timezone
 
 def is_url_blocked(db: Session, url: str) -> bool:
     """Check if a URL is in the blocklist."""
@@ -74,7 +74,7 @@ def upsert_campaign(db: Session, campaign: Campaign) -> Tuple[Campaign, str]:
         existing.end_date = campaign.end_date
         existing.clean_text = campaign.clean_text
         existing.ai_marketing_text = campaign.ai_marketing_text
-        existing.updated_at = datetime.utcnow()
+        existing.updated_at = datetime.now(timezone.utc).replace(tzinfo=None)
         
         return existing, status
     else:
