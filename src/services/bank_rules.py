@@ -99,13 +99,14 @@ AMERICAN EXPRESS SPECIFIC RULES:
 IS BANKASI/MAXIMUM/MAXIMİLES SPECIFIC RULES:
 - TERMINOLOGY: "Maxipuan" (Points) or "MaxiMil" (Miles).
 - ELIGIBLE CARDS (cards):
+    - 🚨 **ELIGIBLE CARDS DIRECTORY**: Maximum, Maximiles, Maximum Genç, Maximiles Black, Maximiles Select, Privia, Privia Black, Bankamatik Kartı, TROY logolu kartlar, MercedesCard, Maximum Pati Kart, Maximum Tema Kart, İşte Üniversiteli, MaxiPara Kartı, Ticari Kredi Kartları, Fibabanka Gold, Fibabanka Prestige, Getir, Business, İmece Kart, Vergi Kart, KOSGEB Kart, Bayi Kart.
     - 🚨 **METNE SADIK SIRALI LİSTE (CRITICAL)**: Kart isimlerini metinde geçtiği sırayla, virgülle ayrılmış temiz bir liste olarak yaz. **Maximum** ve **Maximiles** ana markalarını parantez içinde bile olsa (Örn: "... (Maximum, Maximiles) ...") MUTLAKA ayrı kalemler olarak ekle. "Maximum" kelimesini "Maximum Genç" ile karıştırıp listeden ELEME. Her ikisi de metinde varsa her ikisini de yaz.
-    - 🚨 **KAYNAK KONTROLÜ (SAFE ZONE)**: Geçerli kart listesini **MUTLAKA** metinde geçen **"Kampanyaya dahil/dâhil olan kartlar:"**, **"Kampanyaya dahil/dâhil olan kartlar ve işlemler:"** veya **"KAMPANYAYA DÂHİL OLAN KARTLAR VE İŞLEMLER:"** başlıklarının altından harfiyen çıkar. Bu başlıkların altındaki her bir kart tanımı (Maximum, Maximiles, TROY logolu kartlar, Bankamatik Kartı, MaxiPara vb.) KESİNLİKLE geçerlidir ve hiçbirini atlamadan listele.
+    - 🚨 **KAYNAK KONTROLÜ (SAFE ZONE)**: Geçerli kart listesini **MUTLAKA** metinde geçen **"Kampanyaya dahil/dâhil olan kartlar:"**, **"Kampanyaya dahil/dâhil olan kartlar ve işlemler:"** veya **"KAMPANYAYA DÂHİL OLAN KARTLAR VE İŞLEMLER:"** başlıklarının altından harfiyen çıkar. Bu başlıkların altındaki her bir kart tanımı (Maximum, Maximiles, TROY logolu kartlar, Bankamatik Kartı, MaxiPara Kartı vb.) KESİNLİKLE geçerlidir ve hiçbirini atlamadan listele.
     - RAW EXTRACTION (LITERAL): Metinde ne yazıyorsa (Örn: "İş Bankası TROY logolu bireysel ve ticari kredi kartı") DIREKT ONU YAZ.
     - ONEMLI: "Sanal kartlar", "Ticari kartlar" vb. ifadeleri sadece **dahil/geçerli** oldukları belirtilmişse listeye ekle. Eğer "hariçtir" deniyorsa ASLA yazma.
     - 🚨 **BAŞLIK KURALI (CRITICAL)**: "Kampanyaya dahil/dâhil olmayan kartlar:" başlığı altında listelenen hiçbir kartı `cards` listesine EKLEME. 🚨 **İSTİSNA**: Bir alt varyasyonun (Örn: "Maximum Fırsat", "Maximum Aidatsız") hariç tutulması, ana kartın (Örn: "Maximum") hariç tutulduğu anlamına GELMEZ. Eğer metin başında "Maximum Kart" dahil deniyorsa onu MUTLAKA listeye ekle.
     - Örnek: "İş Bankası Maximum özellikli kredi kartları (Maximum, Maximiles...)" yazıyorsa AYNEN AL.
-    - KESIN YASAK: Fibabanka, Ziraat gibi diğer banka kartlarını ASLA YAZMA. Sadece İş Bankası kartlarını listele.
+    - 🚨 **ORTAK KART İSTİSNASI**: Eğer "Kampanyaya dahil olan kartlar" bloğunda Fibabanka Gold/Prestige veya GetirFinans gibi başka banka kartları/markaları açıkça listelenmişse, bunları KESİNLİKLE listeye ekle. Başka bankalardan sadece kampanya metninde adı geçen ortak/partner kartları yazabilirsin; bunun dışındaki bankaları yazma.
 - PARTICIPATION (katilim_sekli):
     - PRIORITY ORDER:
       1. Primary App: Look for "Katıl" button in "Maximum Mobil", "İşCep" or "Pazarama". -> Extract as "Maximum Mobil, İşCep veya Pazarama'dan katılabilirsiniz."
