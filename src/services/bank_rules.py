@@ -185,11 +185,14 @@ KUVEYT TÜRK (SAĞLAM KART) SPECIFIC RULES:
 HALKBANK (PARAF / PARAFLY) SPECIFIC RULES:
 - TERMINOLOGY: "ParafPara". 1 ParafPara = 1 TL.
 - ELIGIBLE CARDS (cards):
-    - STRICT & EXHAUSTIVE: Metindeki kart listesinde geçen HER İSMİ tek tek al.
-    - 🚨 ASLA ATLANMAYACAK KARTLAR: "Parafree", "Paraf Esnaf", "Paraf KOBİ", "Eczacı Paraf", "Eczacı Paraf KOBİ", "Paraf Business", "Sanal kartlar", "Ek kartlar".
-    - Common CARDS: "Paraf", "Parafly", "Halkcard" (🚨 **DİKKAT**: Metinde "Halkcard dahil değildir" deniyorsa ASLA ekleme).
-    - 🚨 **SPESİFİK İSTİSNA**: Eğer "Paraf Debit", "Paraf Business" veya "Ticari kartlar" dahil değil deniyorsa, bu sadece o kartlar içindir. Metinde ana "Paraf" kartının dahil olduğu yazıyorsa mutlaka ekle.
-    - Exclusions: "Paraf Genç" ve "Debit kartlar" (Banka kartları) genellikle dahil değildir, metni dikkatli oku.
+    - 🚨 **ELIGIBLE CARDS DIRECTORY**: Paraf, Parafly, Parafree, Paraf Genç, Paraf Debit, Paraf Banka Kartı, Paraf Esnaf, Paraf KOBİ, Paraf Business, Eczacı Paraf, Eczacı Paraf KOBİ, Halkcard, Sanal kartlar, Ek kartlar, TROY logolu kartlar, Paraf Troy, Halkbank Kredi Kartları, Halkbank Banka Kartı.
+    - 🚨 **METNE SADIK SIRALI LİSTE (CRITICAL)**: Kart isimlerini metinde geçtiği sırayla, virgülle ayrılmış temiz bir liste olarak yaz. **Paraf** ve **Parafly** ana markalarını parantez içinde bile olsa (Örn: "... (Paraf, Parafly) ...") MUTLAKA ayrı kalemler olarak ekle. "Paraf" kelimesini "Parafree" veya "Paraf Genç" ile karıştırıp listeden ELEME. Her ikisi de metinde varsa her ikisini de yaz.
+    - 🚨 **KAYNAK KONTROLÜ (SAFE ZONE)**: Geçerli kart listesini **MUTLAKA** metinde geçen **"Kampanyaya dahil/dâhil olan kartlar:"**, **"Kampanyaya dahil/dâhil olan kartlar ve işlemler:"**, **"Kampanyaya katılabilen kartlar:"** veya **"KAMPANYAYA DÂHİL OLAN KARTLAR VE İŞLEMLER:"** başlıklarının altından harfiyen çıkar. Bu başlıkların altındaki her bir kart tanımı (Paraf, Parafly, Parafree, Paraf Debit, TROY logolu kartlar, Sanal kartlar vb.) KESİNLİKLE geçerlidir ve hiçbirini atlamadan listele.
+    - RAW EXTRACTION (LITERAL): Metinde ne yazıyorsa (Örn: "Paraf TROY logolu bireysel kredi kartı") DIREKT ONU YAZ.
+    - ONEMLI: "Sanal kartlar", "Ticari kartlar" vb. ifadeleri sadece **dahil/geçerli** oldukları belirtilmişse listeye ekle. Eğer "hariçtir" deniyorsa ASLA yazma.
+    - 🚨 **BAŞLIK KURALI (CRITICAL)**: "Kampanyaya dahil/dâhil olmayan kartlar:" veya "Kampanyaya katılamayan kartlar:" başlığı altında listelenen hiçbir kartı `cards` listesine EKLEME. 🚨 **İSTİSNA**: Bir alt varyasyonun (Örn: "Paraf Esnaf", "Paraf Business") hariç tutulması, ana kartın (Örn: "Paraf") hariç tutulduğu anlamına GELMEZ. Eğer metin başında "Paraf" dahil deniyorsa onu MUTLAKA listeye ekle.
+    - Örnek: "Paraf kredi kartları (Paraf, Parafly, Parafree...)" yazıyorsa AYNEN AL.
+    - 🚨 **ORTAK KART İSTİSNASI**: Eğer "Kampanyaya dahil olan kartlar" bloğunda Dünya Katılım Paraf veya başka banka ortak kartları açıkça listelenmişse, bunları KESİNLİKLE listeye ekle. Başka bankalardan sadece kampanya metninde adı geçen ortak/partner kartları yazabilirsin; bunun dışındaki bankaları yazma.
 - PARTICIPATION (katilim_sekli):
     - PRIORITY ORDER:
       1. SMS: Look for "3404'e SMS" or "3404'e KEYWORD" -> Extract as "3404'e [KEYWORD] SMS"
