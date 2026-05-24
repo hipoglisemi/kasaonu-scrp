@@ -12,6 +12,31 @@ def is_url_blocked(db: Session, url: str) -> bool:
         print(f"   ⚠️ Blocklist check error: {e}")
         return False
 
+def clean_url_for_matching(url: str) -> str:
+    """
+    Cleans a URL for robust comparison by stripping query parameters,
+    trailing slashes, protocols (http/https), and subdomains (www).
+    """
+    if not url:
+        return ""
+    # Strip query parameters
+    url = url.split("?")[0]
+    # Strip trailing slashes
+    url = url.rstrip("/")
+    # Strip protocols and www
+    url = url.replace("https://", "").replace("http://", "")
+    url = url.replace("www.", "")
+    return url.strip().lower()
+
+def clean_title_for_matching(title: str) -> str:
+    """
+    Cleans a title for robust comparison by converting to lowercase
+    and keeping only alphanumeric characters to ignore minor punctuation differences.
+    """
+    if not title:
+        return ""
+    return "".join(c for c in title.lower() if c.isalnum())
+
 def should_skip_campaign(db: Session, url: str, card_id: Any = None) -> bool:
     """
     Check if a campaign should be skipped because:
@@ -22,12 +47,18 @@ def should_skip_campaign(db: Session, url: str, card_id: Any = None) -> bool:
     if is_url_blocked(db, url):
         return True
         
-    # 2. Existence check
-    query = db.query(Campaign).filter(Campaign.tracking_url == url)
-    if card_id:
-        query = query.filter(Campaign.card_id == card_id)
+    # 2. Existence check (robust clean URL comparison)
+    if url:
+        clean_target = clean_url_for_matching(url)
+        all_camps = db.query(Campaign.tracking_url).filter(Campaign.tracking_url.isnot(None))
+        if card_id:
+            all_camps = all_camps.filter(Campaign.card_id == card_id)
         
-    return query.first() is not None
+        for (c_url,) in all_camps.all():
+            if clean_url_for_matching(c_url) == clean_target:
+                return True
+                
+    return False
 
 def upsert_campaign(db: Session, campaign: Campaign) -> Tuple[Campaign, str]:
     """
@@ -42,12 +73,30 @@ def upsert_campaign(db: Session, campaign: Campaign) -> Tuple[Campaign, str]:
         Campaign.tracking_url == campaign.tracking_url
     ).first()
     
-    # 2. Fallback: match by Title + Card ID (handles cases where URL changed but title/card remains same)
+    # 1b. Robust Fallback: Match by cleaned tracking_url across ANY card ID
+    if not existing and campaign.tracking_url:
+        clean_target = clean_url_for_matching(campaign.tracking_url)
+        all_camps = db.query(Campaign.id, Campaign.tracking_url).filter(Campaign.tracking_url.isnot(None)).all()
+        for c_id, c_url in all_camps:
+            if clean_url_for_matching(c_url) == clean_target:
+                existing = db.query(Campaign).filter(Campaign.id == c_id).first()
+                break
+    
+    # 2. Match by EXACT Title + Card ID (handles cases where URL changed but title/card remains same)
     if not existing:
         existing = db.query(Campaign).filter(
             func.lower(Campaign.title) == campaign.title.lower(),
             Campaign.card_id == campaign.card_id
         ).first()
+        
+    # 2b. Robust Fallback: Match by cleaned alphanumeric Title + Card ID
+    if not existing:
+        clean_target_title = clean_title_for_matching(campaign.title)
+        all_card_camps = db.query(Campaign.id, Campaign.title).filter(Campaign.card_id == campaign.card_id).all()
+        for c_id, c_title in all_card_camps:
+            if clean_title_for_matching(c_title) == clean_target_title:
+                existing = db.query(Campaign).filter(Campaign.id == c_id).first()
+                break
     
     if existing:
         status = "saved"
