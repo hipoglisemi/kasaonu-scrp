@@ -51,7 +51,10 @@ def clean_campaign_text(raw_text: str, og_title: Optional[str] = None, title: Op
                 '.top-menu', '.sidebar', '.ad-panel', '.social-share',
                 '.slider-container', '.camp-slider', '.camp-slider-container', '.swiper-container',
                 # TEB
-                '#headerUp', '#headerDown', '#headerMain', '#headerSrc', '#headerLoginPanelNew',
+                '#header', '#footer', '#headerUp', '#headerDown', '#headerMain', '#headerSrc', '#headerLoginPanelNew',
+                '#footerBant', '#footerQuickMenu', '#socialFooter', '#fDown', '#fDownLinks',
+                '[id^="lblBanner2618"]', '[id^="lblBanner2697"]', '[id^="lblBanner2624"]', '[id^="lblBanner2626"]', '[id^="lblBanner2627"]',
+                '.kutuArama', '.subMenuDiv', '.subMenuHolder', '.sizinIcinMenu', '.htMenu', '.firmaSec', '.fDownLinks',
                 # QNB
                 '.Header-navigation-top', '.Header-navigation-main', '.Header-navigation-bottom',
                 '.online-islemler', '.Header-navigation-mobil',
