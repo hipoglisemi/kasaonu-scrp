@@ -6,7 +6,7 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 from src.database import get_db_session
 from src.models import Campaign
-from scratch.audit_teb_precision import clean_old_text
+from src.services.text_cleaner import clean_campaign_text
 
 def inspect_beymen():
     with get_db_session() as db:
@@ -21,7 +21,7 @@ def inspect_beymen():
         print(c.clean_text[-1000:])
         
         print("\n====== DYNAMICALLY CLEANED TEXT ======")
-        cleaned = clean_old_text(c.clean_text)
+        cleaned = clean_campaign_text(c.clean_text, title=c.title)
         print(cleaned)
 
 if __name__ == "__main__":

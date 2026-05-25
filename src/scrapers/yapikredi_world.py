@@ -141,8 +141,23 @@ class YapikrediWorldScraper:
             if browser_html:
                 content_html = browser_html
         except Exception as e:
-            print(f"      ⚠️ Browser fetch failed, falling back to API content: {e}")
-            content_html = item.get('Content') or ''
+            print(f"      ⚠️ Browser fetch failed, attempting standard HTTP fallback: {e}")
+            try:
+                headers = {
+                    'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+                }
+                resp = requests.get(full_url, headers=headers, timeout=15)
+                resp.raise_for_status()
+                browser_html = resp.text
+                print(f"      ✅ HTTP fallback successful! (Length: {len(browser_html)} chars)")
+            except Exception as httpe:
+                print(f"      ❌ HTTP fallback failed too: {httpe}")
+                browser_html = ""
+            
+            if browser_html:
+                content_html = browser_html
+            else:
+                content_html = item.get('Content') or ''
 
         # COMBINE: API data is usually cleaner, so we keep that context for AI too.
         api_desc = item.get('Description') or ''

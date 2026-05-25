@@ -46,7 +46,7 @@ class TurkTelekomScraper:
         "https://www.selfy.com.tr/kampanyalar"
     ]
     
-    def __init__(self, max_campaigns: int = 250, headless: bool = True, manual_json: str = None):
+    def __init__(self, max_campaigns: int = 250, headless: bool = True, manual_json: Optional[str] = None):
         self.max_campaigns = max_campaigns
         self.manual_json_path = manual_json
         # headless param kept for compatibility with other scrapers even if not used here

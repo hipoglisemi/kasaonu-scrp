@@ -21,8 +21,8 @@ class CardValidator:
     def __init__(self, bank_card_keywords: Dict[str, List[str]]):
         self.bank_card_keywords = bank_card_keywords
         self.stop_words = {"ve", "ile", "için", "&", "and", "the", "logolu", "özellikli",
-                           "temassız", "bireysel", "ticari", "ödemeli", "kartları", "kartlarla",
-                           "kartlarıyla", "sahipleri", "müşterileri", "karti", "kart", "bankasi", "banka", "kredi"}
+                           "temassız", "ödemeli", "kartları", "kartlarla",
+                           "kartlarıyla", "sahipleri", "müşterileri", "karti", "kart", "bankasi"}
 
     def _normalize(self, text: str) -> str:
         if not text: return ""
@@ -289,7 +289,10 @@ class CardValidator:
         if len(core_words) == 2 and matched == 1:
             matched_word = next((w for w in core_words if re.search(rf"(?<![a-z0-9])(?<![a-z]\.){re.escape(w)}(?![a-z0-9]|\.[a-z])", text_normalized)), "")
             if matched_word in power_words:
-                matched = threshold # Force pass
+                missing_word = next((w for w in core_words if w != matched_word), "")
+                specific_modifiers = {"platinum", "gold", "eko", "eco", "crystal", "adios", "play", "genc", "genç", "free", "flexi", "business", "debit", "fly", "milplus", "prime"}
+                if missing_word not in specific_modifiers:
+                    matched = threshold # Force pass
         
         if matched >= threshold:
             # 🛡️ BANK NAME GUARD

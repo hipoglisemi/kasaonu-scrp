@@ -124,6 +124,7 @@ def check_string_negation(target_str, full_text, bank_key=None, is_generic_brand
         
         # 🧪 EVALUATE THIS SPECIFIC OCCURRENCE
         is_this_negated = False
+        nearest_header = ""
         sentence_has_positive = False
 
         # ── 1. HEADER GUARD (New) ───────────────────────────────────
@@ -218,6 +219,10 @@ def check_string_negation(target_str, full_text, bank_key=None, is_generic_brand
                 neg_pos_in_sentence = sentence.find(neg_norm)
                 card_pos_in_sentence = rel_pos - sent_start
                 if neg_pos_in_sentence < card_pos_in_sentence:
+                    # Turkish postpositions govern words to their left (before them).
+                    # If a postposition appears BEFORE our card, it governs some other card, not ours.
+                    if any(p in neg_norm for p in ['hariç', 'haric', 'dışında', 'disinda']):
+                        continue
                     part_between = sentence[neg_pos_in_sentence+len(neg_norm):card_pos_in_sentence]
                 else:
                     part_between = sentence[card_pos_in_sentence+len(target_norm):neg_pos_in_sentence]
@@ -232,6 +237,8 @@ def check_string_negation(target_str, full_text, bank_key=None, is_generic_brand
                 card_pos_in_window = rel_pos
                 
                 if pos_of_neg < card_pos_in_window:
+                    if any(p in neg_norm for p in ['hariç', 'haric', 'dışında', 'disinda']):
+                        continue
                     part_between = window[pos_of_neg+len(neg_norm):card_pos_in_window]
                 else:
                     part_between = window[card_pos_in_window+len(target_norm):pos_of_neg]
@@ -375,7 +382,17 @@ def filter_excluded_cards(cards, text, bank_name=None):
                     is_power_safe = True
                     break
                     
-        card_found_in_text = card_clean in text_normalized or card_stripped in text_normalized or is_power_safe
+        # Robust core card words check to bypass Hallucination Guard
+        card_words = set(card_clean.split())
+        bank_name_words = {"yapi", "akbank", "is", "isbank", "garanti", "bbva", "ziraat", "vakifbank", "halkbank", "denizbank", "qnb", "finansbank", "teb", "burgan", "albaraka"}
+        stop_words_for_guard = {"ve", "ile", "icin", "&", "and", "the", "logolu", "ozellikli", "temassiz", "odemeli", "kartlari", "kart", "karti", "banka", "kredi"}
+        core_card_words = {w for w in card_words if w not in bank_name_words and w not in stop_words_for_guard and len(w) > 2}
+        
+        core_words_matched = False
+        if core_card_words:
+            core_words_matched = all(w in text_normalized for w in core_card_words)
+            
+        card_found_in_text = card_clean in text_normalized or card_stripped in text_normalized or is_power_safe or core_words_matched
         if not is_excluded and not is_generic and not card_found_in_text:
             bank_names = ["albaraka", "anadolubank", "vakifbank", "denizbank", "akbank", "is bankasi", "isbank", "garanti", "yapi kredi", "qnb", "finansbank", "teb", "kuveyt turk", "turkiye finans", "ziraat", "bankkart"]
             for bank in bank_names:

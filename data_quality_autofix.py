@@ -57,7 +57,7 @@ class _AutofixGeminiClient:
             fallback_model=self.fallback_model,
             config=config
         )
-        return str(result) if result else "{}"
+        return result if result else "{}"
 
 def _get_golden_parser(model=None, fallback_model=None):
     return AIParserGolden(_AutofixGeminiClient(model=model, fallback_model=fallback_model))
@@ -777,6 +777,9 @@ def run_autofix(limit: int = 250, campaign_id: Optional[int] = None, force_all: 
                 if len(ai_title_pass.split()) > 15:
                     print(f"   🔓 DB Title is too long - Erasing lock for AI.")
                     ai_title_pass = ''
+                elif any(delim in ai_title_pass for delim in ["|", " - ", " – "]) and "vodafone" in ai_title_pass.lower():
+                    print(f"   🔓 DB Title contains Vodafone suffix - Erasing lock for AI to allow clean H1/AI extraction.")
+                    ai_title_pass = ''
 
                 # AI Parsing
                 print(f"   🤖 [GOLDEN V3] Sending {len(text_to_parse)} chars to AI... (Bank: {bank_name or 'Unknown'})")
@@ -1040,7 +1043,7 @@ def run_autofix(limit: int = 250, campaign_id: Optional[int] = None, force_all: 
                     sector = db.query(Sector).filter(Sector.slug == final_sector_slug).first()
                     if sector:
                         old_name = c.sector.name if c.sector else 'Yok'
-                        c.sector_id = sector.id
+                        c.sector_id = int(sector.id)
                         print(f"   ✨ Repaired Sector: {old_name} → {sector.name}")
                         updated = True
 
@@ -1311,7 +1314,7 @@ def audit_approved_campaign_cards():
     from src.models import Campaign, Card
     from audit_eligible_cards import extract_cards_via_ai, normalize_card_name
     from sqlalchemy.orm import joinedload
-    from datetime import datetime
+    from datetime import datetime, timezone
     import trafilatura
     import time
     
@@ -1347,7 +1350,7 @@ def audit_approved_campaign_cards():
             url = camp.tracking_url
             if not url or len(url) < 10:
                 print("   ⚠️ Invalid tracking URL. Skipping.")
-                camp.cards_audited_at = datetime.utcnow()
+                camp.cards_audited_at = datetime.now(timezone.utc)
                 db.commit()
                 continue
                 
@@ -1367,7 +1370,7 @@ def audit_approved_campaign_cards():
                 
             if len(clean_text) < 30:
                 print("   ⚠️ Text content too short to analyze. Skipping.")
-                camp.cards_audited_at = datetime.utcnow()
+                camp.cards_audited_at = datetime.now(timezone.utc)
                 db.commit()
                 continue
                 
@@ -1399,7 +1402,7 @@ def audit_approved_campaign_cards():
                 print("   ℹ️ AI returned empty card list or rate-limited.")
                 
             # 4. Mark audited date to avoid scanning again
-            camp.cards_audited_at = datetime.utcnow()
+            camp.cards_audited_at = datetime.now(timezone.utc)
             db.commit()
             
             # API cooldown delay

@@ -243,7 +243,7 @@ class VodafoneScraper:
                 bank_name="Vodafone",
                 scraper_sector=None,
                 tracking_url=url,
-                og_title=og_title
+                og_title=None
             )
 
             if not ai_data:
@@ -310,8 +310,9 @@ class VodafoneScraper:
                 image_url=image_url or "https://www.vodafone.com.tr/assets/img/vdf-logo.png",
                 tracking_url=url,
                 is_active=True,
+                participation=data.get("participation"),
                 ai_marketing_text=ai_marketing_text,
-                eligible_cards="Vodafone Müşterileri",
+                eligible_cards=", ".join(data.get("cards", [])) if isinstance(data.get("cards"), list) and data.get("cards") else "Vodafone Müşterileri",
                 category=data.get("category"),
                 badge_color=data.get("badge_color"),
                 clean_text=data.get("_clean_text"),
