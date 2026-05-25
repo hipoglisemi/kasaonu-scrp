@@ -342,7 +342,40 @@ def filter_excluded_cards(cards, text, bank_name=None):
             
         # 2. Bank-name fallback: ONLY if the full card name is NOT in the text at all.
         #    If Step 1 found the card and said "not negated", trust that result.
-        card_found_in_text = card_clean in text_normalized
+        # Check both the full name and stripped base name to bypass Hallucination Guard for distributed prefixes
+        card_stripped = card_clean
+        for prefix in ["mastercard logolu", "troy logolu", "visa logolu"]:
+            if card_clean.startswith(prefix):
+                card_stripped = card_clean[len(prefix):].strip()
+                break
+                
+        # Define power word mappings to allow brand name variations to bypass Hallucination Guard
+        brand_power_keywords = {
+            "world": ["world", "yapi kredi", "yapı kredi"],
+            "worldcard": ["world", "yapi kredi", "yapı kredi"],
+            "tlcard": ["tlcard", "tl card", "yapi kredi", "yapı kredi"],
+            "play": ["play", "yapi kredi", "yapı kredi"],
+            "adios": ["adios", "yapi kredi", "yapı kredi"],
+            "crystal": ["crystal", "yapi kredi", "yapı kredi"],
+            "axess": ["axess", "akbank"],
+            "wings": ["wings", "akbank"],
+            # "free" kasıtlı çıkarıldı — çok genel kelime, false positive riski yüksek
+            "maximum": ["maximum", "is bankasi", "isbank", "iş bankası"],
+            "maximiles": ["maximiles", "is bankasi", "isbank", "iş bankası"],
+            "paraf": ["paraf", "halkbank"],
+            "parafly": ["parafly", "halkbank"],
+            "bonus": ["bonus", "garanti"],
+            "bankkart": ["bankkart", "ziraat"],
+        }
+        
+        is_power_safe = False
+        for brand_key, keywords in brand_power_keywords.items():
+            if brand_key in card_clean:
+                if any(kw in text_normalized for kw in keywords):
+                    is_power_safe = True
+                    break
+                    
+        card_found_in_text = card_clean in text_normalized or card_stripped in text_normalized or is_power_safe
         if not is_excluded and not is_generic and not card_found_in_text:
             bank_names = ["albaraka", "anadolubank", "vakifbank", "denizbank", "akbank", "is bankasi", "isbank", "garanti", "yapi kredi", "qnb", "finansbank", "teb", "kuveyt turk", "turkiye finans", "ziraat", "bankkart"]
             for bank in bank_names:

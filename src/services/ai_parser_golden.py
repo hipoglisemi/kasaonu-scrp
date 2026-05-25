@@ -26,10 +26,10 @@ logger = logging.getLogger(__name__)
 BANK_CARD_KEYWORDS = {
     "akbank": ["axess", "wings", "free", "akbank kart", "bank’o card axess", "bank'o card", "ticari kartlar", "ticari", "ek kartlar", "sanal kartlar", "troy logolu banka kartı", "troy logolu kredi kartı", "troy logolu ön ödemeli kartlar", "troy logolu ön ödemeli kart", "troy logolu banka kartları", "troy logolu kredi kartları", "troy logolu kartlar"],
     "işbankası": ["maximum", "maximiles", "maximum genç", "maximiles black", "maximiles select", "privia", "bankamatik kartı", "troy logolu banka kartı", "troy logolu kredi kartı", "troy logolu ön ödemeli kartlar", "troy logolu ön ödemeli kart", "troy logolu banka kartları", "troy logolu kredi kartları", "troy logolu kartlar", "maximum troy", "mercedescard", "pati kart", "ticari kredi kartları", "ticari kartlar", "ticari", "maxipara", "maxipara kart", "maxipara kartı", "maximum tema kart", "tema kart", "iş'te üniversiteli", "işte üniversiteli", "iş te üniversiteli", "maximum pati kart", "privia black", "fibabanka gold", "fibabanka prestige", "getir", "business", "imece kart", "vergi kart", "kosgeb kart", "bayi kart", "ticari bankamatik kartı"],
-    "yapı kredi": ["worldcard", "world", "play", "adios", "crystal", "bireysel kredi kartları", "banka kartları", "tlcard", "vakıfbank worldcard", "albaraka worldcard", "anadolubank worldcard", "opet worldcard", "vakıfbank", "albaraka", "anadolubank", "troy logolu banka kartı", "troy logolu kredi kartı", "troy logolu ön ödemeli kartlar", "troy logolu ön ödemeli kart", "troy logolu banka kartları", "troy logolu kredi kartları", "troy logolu kartlar"],
+    "yapı kredi": ["worldcard", "world", "play", "adios", "crystal", "bireysel kredi kartları", "banka kartları", "tlcard", "vakıfbank worldcard", "albaraka worldcard", "anadolubank worldcard", "opet worldcard", "vakıfbank", "albaraka", "anadolubank", "troy logolu banka kartı", "troy logolu kredi kartı", "troy logolu ön ödemeli kartlar", "troy logolu ön ödemeli kart", "troy logolu banka kartları", "troy logolu kredi kartları", "troy logolu kartlar", "world eko", "world platinum", "world gold", "yapı kredi bireysel kredi kartları", "yapı kredi banka kartları", "tl card", "metal crystal", "metal crystal kart", "mastercard logolu metal crystal kart", "mastercard logolu crystal kart", "adios premium", "play card"],
     "ziraat": ["bankkart", "bankkart başak", "bankkart genç", "bankkart prestij", "bankkart business", "troy logolu banka kartı", "troy logolu kredi kartı", "troy logolu ön ödemeli kartlar", "troy logolu ön ödemeli kart", "troy logolu banka kartları", "troy logolu kredi kartları", "troy logolu kartlar", "bankkart troy"],
     "vakıfbank": ["vakıfbank worldcard", "express card", "platinum", "milplus", "sky", "gold", "rail card", "meclis kart", "taraftar kart", "kampüs kart", "bankomat", "troy logolu banka kartı", "troy logolu kredi kartı", "troy logolu ön ödemeli kartlar", "troy logolu ön ödemeli kart", "troy logolu banka kartları", "troy logolu kredi kartları", "troy logolu kartlar", "vakıfbank troy"],
-    "halkbank": ["paraf", "parafly", "paraf business", "parafree", "paraf esnaf", "paraf kobi", "eczacı paraf", "eczacı paraf kobi", "halkcard", "paraf genç", "paraf gençiz", "paraf debit", "paraf banka kartı", "halkbank banka kartı", "halkbank kredi kartı", "halkbank kredi kartları", "sanal kartlar", "ek kartlar", "troy logolu banka kartı", "troy logolu kredi kartı", "troy logolu ön ödemeli kartlar", "troy logolu ön ödemeli kart", "troy logolu banka kartları", "troy logolu kredi kartları", "troy logolu kartlar", "paraf troy"],
+    "halkbank": ["paraf", "parafly", "paraf business", "parafree", "paraf esnaf", "paraf kobi", "eczacı paraf", "eczacı paraf kobi", "halkcard", "paraf genç", "paraf gençiz", "paraf debit", "paraf banka kartı", "halkbank banka kartı", "halkbank kredi kartı", "halkbank kredi kartları", "sanal kartlar", "ek kartlar", "troy logolu banka kartı", "troy logolu kredi kartı", "troy logolu ön ödemeli kartlar", "troy logolu ön ödemeli kart", "troy logolu banka kartları", "troy logolu kredi kartları", "troy logolu kartlar", "paraf troy", "paraf kadin", "paraf ureten kadin", "paraf premium", "parafly platinum", "paraf platinum", "emlak katilim paraf", "dunya katilim paraf", "emlak katilim", "dunya katilim"],
     "denizbank": ["denizbonus", "net kart"],
     "qnb": ["qnb card", "qnb troy"],
     "teb": ["teb bonus", "cepteteb", "teb banka kartı"],
@@ -642,16 +642,35 @@ ANALİZ EDİLECEK METİN:
         data["reward_text"] = data.get("reward_text") or "Kampanya Fırsatı"
         data["min_spend"] = self._safe_decimal(data.get("min_spend")) or 0.0
 
-        # ── 9. FINAL PRETTIFIER (Capitalization) ────────────────────
+        # ── 9. FINAL PRETTIFIER (Capitalization & Brand Styling) ─────
         p = data.get("participation")
         if p and p != "-":
-            data["participation"] = p[0].upper() + p[1:]
+            brands_to_title = {
+                "yapi kredi": "Yapı Kredi", "yapı kredi": "Yapı Kredi",
+                "worldcard": "Worldcard", "world card": "Worldcard",
+                "world mobil": "World Mobil", "world pay": "World Pay",
+                "troy": "TROY", "mastercard": "Mastercard", "visa": "Visa",
+                "tlcard": "TLcard", "tl card": "TLcard", "chippin": "ChipPin"
+            }
+            p_clean = p.strip()
+            for lower_brand, proper_brand in brands_to_title.items():
+                p_clean = re.sub(rf"(?i)\b{re.escape(lower_brand)}\b", proper_brand, p_clean)
+            
+            if p_clean:
+                first_char = p_clean[0]
+                if first_char == 'ı':
+                    first_char = 'I'
+                elif first_char == 'i':
+                    first_char = 'İ'
+                else:
+                    first_char = first_char.upper()
+                data["participation"] = first_char + p_clean[1:]
             
         if data.get("cards"):
             cleaned_cards = []
             for c in data["cards"]:
                 if c and c.strip() not in ["", "-", "[-]", "[]"]:
-                    cleaned_cards.append(c[0].upper() + c[1:])
+                    cleaned_cards.append(self.clean_and_format_card(c))
             data["cards"] = cleaned_cards
 
         # ── 10. MARKETING SPICER (Lazy AI Guard) ────────────────────
@@ -982,6 +1001,24 @@ ANALİZ EDİLECEK METİN:
 
         return self.parse_campaign(raw_html=raw_text, bank_name=bank_name or "", title=title or "", og_title=og_title)
 
+    def clean_and_format_card(self, card: str) -> str:
+        # Standardize capitalization of brands dynamically
+        brands_to_title = {
+            "yapi kredi": "Yapı Kredi", "yapı kredi": "Yapı Kredi",
+            "worldcard": "Worldcard", "world card": "Worldcard",
+            "vakifbank": "Vakıfbank", "vakıfbank": "Vakıfbank",
+            "albaraka": "Albaraka", "anadolubank": "Anadolubank",
+            "opet": "Opet", "fenerbahce": "Fenerbahçe", "fenerbahçe": "Fenerbahçe",
+            "troy": "TROY", "mastercard": "Mastercard", "visa": "Visa",
+            "axess": "Axess", "wings": "Wings", "free": "Free",
+            "paraf": "Paraf", "parafly": "Parafly", "bankkart": "Bankkart",
+            "tlcard": "TLcard", "tl card": "TLcard"
+        }
+        card_clean = card.strip()
+        for lower_brand, proper_brand in brands_to_title.items():
+            card_clean = re.sub(rf"(?i)\b{re.escape(lower_brand)}\b", proper_brand, card_clean)
+        return card_clean[0].upper() + card_clean[1:] if card_clean else ""
+
 
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 #  MODULE-LEVEL FACTORY & STANDALONE FUNCTIONS
@@ -1147,7 +1184,7 @@ def parse_api_campaign(
                             '.tabs-content .tab-content', '.campaign-detail'],
         "vakıfbank":     ['.kampanyaDetay', '.kampanyaDetayIcerik',
                           '.campaign-detail'],
-        "yapı kredi":    ['.campaign-detail-tab-details', '.campaign-detail-box',
+        "yapı kredi":    ['.sub-content', '.campaign-detail-tab-details', '.campaign-detail-box',
                           '.campaign-detail-content', '.campaign-detail'],
         "işbankası":     ['.campaign-detail-content', '.campaign-detail',
                           '.cmsContent', '#campaignDetailContent'],

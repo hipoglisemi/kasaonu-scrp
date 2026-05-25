@@ -2,7 +2,7 @@ import os # type: ignore
 import sys # type: ignore
 import json # type: ignore
 import hashlib # type: ignore
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 import sqlalchemy  # type: ignore
 from sqlalchemy import text # type: ignore
 import google.oauth2  # type: ignore # pyre-ignore[21]
@@ -110,7 +110,8 @@ def cleanup_campaigns():
     print(f"🧹 Starting SEO-Friendly Campaign Cleanup: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
     
     RETENTION_DAYS = 90
-    today = datetime.now().date()
+    # Calculate today's date in Turkey Timezone (UTC+3) to avoid runner timezone discrepancy
+    today = (datetime.now(timezone.utc) + timedelta(hours=3)).date()
     retention_cutoff = today - timedelta(days=RETENTION_DAYS)
     
     # --- STAGE 0: Fetch URLs to Check (Short DB Session) ---

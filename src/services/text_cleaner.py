@@ -21,32 +21,77 @@ def clean_campaign_text(raw_text: str, og_title: Optional[str] = None, title: Op
             soup = BeautifulSoup(raw_text, "html.parser")
             
             # 1. Global Tag Removal (Kökten ayıklama)
-            for element in soup(["script", "style", "nav", "footer", "header", "noscript", "meta", "iframe", "svg", "link"]):
+            for element in soup(["script", "style", "nav", "footer", "header", "noscript", "meta", "iframe", "svg", "link", "aside", "title"]):
                 element.decompose()
             
-            # 2. Specific Noise Selectors (Reklam ve Yan Alanlar)
-            noise_selectors = [
-                # Common Noise
-                '.other-campaigns', '.featured-campaigns', '.similar-campaigns', 
-                '.campaign-recommendations', 'section.news-carousel', 
+            # 2a. Keyword-based structural noise decomposer (class/id matching)
+            def is_noise_tag(tag):
+                if tag.name not in ["div", "section", "ul", "li", "span"]: return False
+                tag_classes = tag.get("class") or []
+                tag_id = tag.get("id") or ""
+                keywords = ["footer", "header", "menu", "nav", "sidebar", "breadcrumb", "cookie", "cookie-consent", "modal", "popup", "sitemap", "quick-links"]
+                for kw in keywords:
+                    if kw in tag_id: return True
+                    if any(kw in str(c).lower() for c in tag_classes): return True
+                return False
+
+            for tag in soup.find_all(is_noise_tag):
+                try:
+                    tag.decompose()
+                except Exception:
+                    pass
+
+            # 2b. Bank-specific CSS selectors (TEB, QNB, Akbank, Garanti etc.)
+            bank_noise_selectors = [
+                # Common noise
+                '.other-campaigns', '.featured-campaigns', '.similar-campaigns',
+                '.campaign-recommendations', 'section.news-carousel',
                 '#related-campaigns', '.campaignDetail-others', '.campaign-recommendations-box',
                 '.footer-bottom', '.social-links', '.navigation-wrapper', '.cookie-banner',
                 '.top-menu', '.sidebar', '.ad-panel', '.social-share',
                 '.slider-container', '.camp-slider', '.camp-slider-container', '.swiper-container',
-                
-                # Bank Specifics (Research based)
-                '#headerUp', '#headerDown', '#headerMain', '#headerSrc', '#headerLoginPanelNew', # TEB
-                '.Header-navigation-top', '.Header-navigation-main', '.Header-navigation-bottom', # QNB
-                '.online-islemler', '.Header-navigation-mobil', # QNB
-                '.headerContent', '.logoBox', '.verisign', '.push', # Akbank
-                '.header-v2', '.footer-v2', '.nav-v2', '.sidebar-v2', # Garanti
-                '.top-nav', '.left-menu', '.breadcrumb', # Generic
-                '.modal-default', '.icon-close', # Modals
-                '#documentBody > header', '#documentBody > footer' # Structural
+                # TEB
+                '#headerUp', '#headerDown', '#headerMain', '#headerSrc', '#headerLoginPanelNew',
+                # QNB
+                '.Header-navigation-top', '.Header-navigation-main', '.Header-navigation-bottom',
+                '.online-islemler', '.Header-navigation-mobil',
+                # Akbank
+                '.headerContent', '.logoBox', '.verisign', '.push',
+                '.campaignOtherCampaigns', '.footer-banner', '.listing-box',
+                # Yapı Kredi
+                '.credit-card-apply', '.credit-card-wrap', '.credit-card-text', '.world-mobil-box', '.home-modal', '.modal-qr-box',
+                # Garanti
+                '.header-v2', '.footer-v2', '.nav-v2', '.sidebar-v2',
+                # Generic
+                '.top-nav', '.left-menu', '.breadcrumb',
+                '.modal-default', '.icon-close',
+                '#documentBody > header', '#documentBody > footer',
             ]
-            for selector in noise_selectors:
+            for selector in bank_noise_selectors:
                 for element in soup.select(selector):
-                    element.decompose()
+                    try:
+                        element.decompose()
+                    except Exception:
+                        pass
+
+            # 2c. Boilerplate text blocks (Yapı Kredi sitemap links vb.)
+            boilerplate_keywords = [
+                "world nedir", "worldcard kredi karti basvurusu", "kvkk aydinlatma metni",
+                "cerez politikasi", "kredi karti uyelik sozlesmesi", "faiz ve ucretler",
+                "ek kart sifre belirleme", "dijital kart guvenli alisveris", "bkm express",
+                "masterpass", "visa tek tikla ode", "arac kiralama", "kayip/calinti guvencesi",
+                "alisveris guvencesi", "seyahat ve guvence"
+            ]
+            for tag in soup.find_all(["p", "span", "a", "li"]):
+                text = tag.get_text().strip()
+                if not text or len(text) > 150: # Only delete if it's a short boilerplate link/text
+                    continue
+                txt_norm = "".join(c for c in text.lower() if c.isalnum() or c.isspace())
+                if any(kw in txt_norm for kw in boilerplate_keywords):
+                    try:
+                        tag.decompose()
+                    except Exception:
+                        pass
             
             # 3. Content Targeting
             # Use space instead of newline to prevent "ladder text" (Vakifbank issue)
@@ -199,6 +244,47 @@ def clean_campaign_text(raw_text: str, og_title: Optional[str] = None, title: Op
             if restart_pos != -1 and restart_pos < 2500:
                 final_text = final_text[restart_pos:].strip()
                 break
+
+    # 🛡️ Crystal / Adios / Play Navigasyon Bloğu Temizleyici
+    # Bu siteler sol nav menüsünü sayfa metnine dahil ediyor.
+    # Nav başlığı kampanya metninin SONUNDA görünür — bu noktadan itibaren kes.
+    niche_nav_chop_markers = [
+        # Crystal nav blocks
+        "Crystal Kart İle Kazanmanın En Kolay Yolu",
+        "Crystal Dünyası Crystal Nedir",
+        "Ara Crystal Dünyası",
+        "Crystal Nedir? Crystal Kredi Kartı Başvurusu",
+        "Yurt İçi Anlaşmalı Otel Restoran İndirimleri",
+        "Crystal Ek Kart Varlığa Bağlı Crystal Ayrıcalıkları",
+        # Adios nav blocks
+        "Adios Kart İle Kazanmanın En Kolay Yolu",
+        "Ara Adios Dünyası Adios Nedir",
+        "Adios Dünyası Adios Nedir",
+        "Adios Nedir? Adios Ayrıcalıkları",
+        "Adios Nedir? Adios Kredi Kartı Başvuru",
+        "Kampanyalar: Adios Card ile Kazançlı",
+        # Play nav blocks
+        "Play Kart İle Kazanmanın En Kolay Yolu",
+        "Play Nedir? Play Kredi Kartı Başvuru",
+        "Play Kredi Kartı Başvuru Puan Puan Kazanma",
+        "Kampanyalar: Yapı Kredi Play Kampanyaları",
+        "Yapı Kredi Play Kampanyaları - G",
+    ]
+    # Türkçe büyük harf → küçük harf (Python'un İ→i̇ hatasını önler)
+    def _tr_lower(s):
+        return (s
+            .replace("İ", "i").replace("I", "ı")
+            .replace("Ş", "ş").replace("Ğ", "ğ")
+            .replace("Ç", "ç").replace("Ö", "ö").replace("Ü", "ü")
+            .lower()
+            .replace("'", "").replace("'", "")
+        )
+
+    for marker in niche_nav_chop_markers:
+        match = re.search(re.escape(marker), final_text, re.IGNORECASE)
+        if match and match.start() > 500: # Only chop if it's after the main content (not in the header)
+            final_text = final_text[:match.start()].strip()
+            break
 
     tr_map = {ord('I'): 'ı', ord('İ'): 'i', ord('Ş'): 'ş', ord('Ğ'): 'ğ', ord('Ç'): 'ç', ord('Ö'): 'ö', ord('Ü'): 'ü'}
     text_lower = final_text.translate(tr_map).lower()

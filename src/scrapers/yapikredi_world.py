@@ -92,8 +92,8 @@ class YapikrediWorldScraper:
                 return "skipped"  # type: ignore # pyre-ignore[7]
             
             existing = db.query(Campaign).filter(Campaign.tracking_url == full_url).first()  # type: ignore # pyre-ignore[16]
-            if existing and existing.is_active and existing.is_approved:
-                print(f"   ⏭️ Skipped (Already exists and active): {title}")
+            if existing and existing.is_active and existing.is_approved and existing.clean_text and len(existing.clean_text) >= 600:
+                print(f"   ⏭️ Skipped (Already exists, active and fully scraped): {title}")
                 return "skipped"  # type: ignore # pyre-ignore[7]
 
         print(f"   Processing: {title}")
@@ -121,8 +121,8 @@ class YapikrediWorldScraper:
                 context = browser.new_context(user_agent="Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
                 page = context.new_page()
                 
-                # Go to URL and wait for network idle
-                page.goto(full_url, wait_until="networkidle", timeout=30000)
+                # Go to URL and wait for domcontentloaded
+                page.goto(full_url, wait_until="domcontentloaded", timeout=20000)
                 
                 # SCROLL to load lazy elements
                 page.evaluate("window.scrollTo(0, document.body.scrollHeight)")

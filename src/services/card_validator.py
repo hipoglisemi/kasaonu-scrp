@@ -148,6 +148,7 @@ class CardValidator:
         # (e.g., containing "mastercard", "troy", "visa", "amex") and a generic non-network card
         # whose words are a subset of the network-specific one, remove the generic card.
         network_keywords = {"mastercard", "troy", "visa", "amex"}
+        bank_words = set(self._normalize(bank_key).split())
         to_remove = set()
         for i, card_a in enumerate(final_validated):
             a_norm = self._normalize(card_a)
@@ -162,8 +163,8 @@ class CardValidator:
                 b_norm = self._normalize(card_b)
                 b_words = set(b_norm.split())
                 if not b_words.intersection(network_keywords):
-                    a_clean = {w for w in a_words if w not in self.stop_words and w not in network_keywords}
-                    b_clean = {w for w in b_words if w not in self.stop_words and w not in network_keywords}
+                    a_clean = {w for w in a_words if w not in self.stop_words and w not in network_keywords and w not in bank_words}
+                    b_clean = {w for w in b_words if w not in self.stop_words and w not in network_keywords and w not in bank_words}
                     if b_clean and b_clean.issubset(a_clean):
                         to_remove.add(card_b)
                     elif not b_clean and b_norm in a_norm:
@@ -171,6 +172,44 @@ class CardValidator:
 
         if to_remove:
             final_validated = [v for v in final_validated if v not in to_remove]
+
+        # 8.1 NETWORK PREFIX DISTRIBUTION: If a campaign is network-restricted (Mastercard, TROY, Visa),
+        # distribute the network prefix to generic bank card names (e.g., TLcard, kredi kartı) to maintain precision.
+        network_prefixes = {
+            "mastercard": "Mastercard logolu",
+            "troy": "TROY logolu",
+            "visa": "Visa logolu"
+        }
+        
+        active_prefix = None
+        for net, prefix in network_prefixes.items():
+            if any(prefix.lower() in self._normalize(v) for v in final_validated):
+                active_prefix = prefix
+                break
+                
+        if active_prefix:
+            generic_targets = {
+                "bireysel kredi kartlari", "bireysel kredi karti",
+                "banka kartlari", "banka karti", "bireysel banka kartlari",
+                "tlcard", "tl card", "bireysel tlcard", "bireysel tlcardlar",
+                "bireysel tlcard'lar", "kredi kartlari", "kredi karti",
+                "on odemeli kartlar", "on odemeli kart",
+                "crystal", "crystal kart", "metal crystal", "metal crystal kart",
+                "adios", "adios card", "adios premium", "play", "play card"
+            }
+            
+            distributed = []
+            for c in final_validated:
+                c_norm = self._normalize(c)
+                is_target = c_norm in generic_targets
+                has_any_prefix = any(p.lower() in c_norm for p in network_prefixes.values())
+                
+                if is_target and not has_any_prefix:
+                    prefix_added = f"{active_prefix} {c}"
+                    distributed.append(prefix_added)
+                else:
+                    distributed.append(c)
+            final_validated = distributed
 
         def get_pos(card_name):
             c_norm = self._normalize(card_name)
@@ -293,9 +332,39 @@ class CardValidator:
         if bank_key.lower() == "teb":
             return validated
 
+        # 🎯 YAPI KREDİ: "world" SNIPER GUARD
+        # "World Mobil", "Worldpuan", "World POS" ibarelerinin kart olarak eklenmesini engelle.
+        # Eğer listede sadece Crystal/adios/Play gibi niş kartlar varsa "world" ekleme.
+        yapi_kredi_niche_cards = {"crystal", "adios", "play", "metal crystal"}
+        
         for kc in bank_keywords:
             kc_norm = self._normalize(kc)
-            
+
+            # 🛡️ YAPI KREDİ WORLD GUARD: "world" sniper'ı,
+            # sadece niş kart (Crystal/adios/Play) kampanyalarında "World Mobil/Worldpuan" gibi
+            # gürültü ibarelerinin kart olarak eklenmesini engeller.
+            if bank_key.lower() == "yapı kredi" and kc_norm == "world":
+                generic_modifiers = {"ek kartlar", "ek kart", "sanal kartlar", "sanal kart", "ek", "sanal"}
+                non_niche_validated = [
+                    v for v in validated
+                    if not any(n in self._normalize(v) for n in yapi_kredi_niche_cards)
+                    and self._normalize(v) not in generic_modifiers
+                ]
+                import re as _re_w
+                _txt_n = self._normalize(raw_text)
+                # Metinde sadece gürültü ibareleri (worldpuan, world mobil vb.) mi var?
+                _has_noise = bool(_re_w.search(
+                    r"world\s*(?:mobil|pay|puan|pos|uye|uyesi|isyeri|uyg)",
+                    _txt_n
+                ))
+                # Metinde gerçek kart referansı var mı? (worldcard, worldla, worlddan vb.)
+                _has_real_card = bool(_re_w.search(
+                    r"(?<![a-z0-9])world(?:card|kart|la|le|dan|den|a\b|e\b|i\b|u\b)(?![a-z0-9])",
+                    _txt_n
+                ))
+                if not non_niche_validated and _has_noise and not _has_real_card:
+                    continue  # Sadece niş kart var, world sadece gürültüde geçiyor — ekleme
+
             # 🛡️ EXCLUDED CARDS SHIELD: If AI explicitly excluded this card, NEVER snipe it
             is_shielded = False
             for excl in excluded_norm:
@@ -304,7 +373,7 @@ class CardValidator:
                     break
             if is_shielded:
                 continue
-                
+
             if self._match_core_words(kc_norm, text_normalized, raw_text, bank_key) and kc_norm not in validated_norm:
                 if self._is_in_trap_context(kc_norm, text_normalized, bank_key):
                     continue
