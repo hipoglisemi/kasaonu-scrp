@@ -50,6 +50,7 @@ BANK_CARD_KEYWORDS = {
     "uption": ["uption kart"],
     "masterpass": ["masterpass"],
     "opet": ["opet kart", "opet mobil", "opet müşterileri"],
+    "petrol ofisi": ["positive card", "positive kart", "petrol ofisi kart", "petrol ofisi müşterileri"],
     "nays": ["nays kart", "nays kullanıcıları"],
     "dünya katılım": ["dünya katılım kartı", "dünya katılım banka kartı", "dünya katılım kredi kartı", "dkart", "dkart debit", "dünya katılım paraf", "dünya katılım troy"],
     "garanti": ["garanti bonus", "bonus", "bonus genç", "bonus flexi", "money bonus", "flexi", "american express", "miles&smiles", "shop&fly", "ticari kartlar", "ek kartlar", "sanal kartlar"],
@@ -113,6 +114,7 @@ BANK_SELF_NAMES = {
     "burgan": ["burgan", "burgan bank"],
     "albaraka": ["albaraka"],
     "opet": ["opet", "opet kart", "yakıt puan", "opet kampanyası", "opet mobil"],
+    "petrol ofisi": ["petrol ofisi", "petrol ofisi kart", "positive card", "positive kart", "petrol ofisi müşterileri"],
     "nays": ["nays", "nays kart"],
     "dünya katılım": ["dünya katılım", "dunya katilim", "dunya katılım", "dünya katilim"],
 }
@@ -601,8 +603,8 @@ ANALİZ EDİLECEK METİN:
         if not data.get("cards"):
             brands_lower = [str(b).lower() for b in data.get("brands", [])]
             if any(po in brands_lower for po in ["petrol ofisi", "poaş", "poas"]) or "petrol ofisi" in title_lower or "petrol ofisi" in raw_text_lower[:500]:
-                data["cards"] = ["Petrol Ofisi Müşterileri"]
-                print(f"   ⛽ FALLBACK: Petrol Ofisi detected with no cards, using 'Petrol Ofisi Müşterileri'")
+                data["cards"] = ["Positive Card"]
+                print(f"   ⛽ FALLBACK: Petrol Ofisi detected with no cards, using 'Positive Card'")
 
         # ── 5. CONDITION GUARD ───────────────────────────────────────
         conditions = self._to_clean_list(data.get("conditions"))

@@ -279,7 +279,7 @@ class PetrolOfisiScraper:
                         title=title,
                         short_description=None,
                         content_html=raw_html,
-                        bank_name="Genel",
+                        bank_name="Petrol Ofisi",
                         scraper_sector=None,
                         tracking_url=detail_url,
                         og_title=og_title
