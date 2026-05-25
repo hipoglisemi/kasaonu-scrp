@@ -452,7 +452,7 @@ class TurkTelekomScraper:
 
         if is_url_blocked(self.db, url):
             print(f"      🚫 Skipping (Blocklisted): {url}")
-            return False
+            return "skipped"
 
         try:
             # Handle Selfy base URL if needed for requests
@@ -577,7 +577,7 @@ class TurkTelekomScraper:
                     end_dt = datetime.fromisoformat(end_date_str) if 'T' in end_date_str else datetime.strptime(end_date_str[:10], "%Y-%m-%d")
                     if end_dt < datetime.now() - timedelta(days=1):
                         print(f"      🕰️ Skipping (Expired date {end_date_str} < Now): {url}")
-                        return False
+                        return "skipped"
                 except Exception as e:
                     pass
 
