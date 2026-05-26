@@ -697,6 +697,13 @@ def run_autofix(limit: int = 250, campaign_id: Optional[int] = None, force_all: 
                 db_text_len = len(c.clean_text) if c.clean_text else 0
                 
                 is_rescue_active = force_rescue
+                
+                # Eğer kampanya 3. denemeden sonra da düzeltilemediyse (yani repair_count >= 3 ise, 4. deneme ve sonrası),
+                # veritabanındaki yetersiz/eksik clean_text'i baypas edip siteden sıfırdan canlı HTML çekiyoruz (rescue).
+                if (c.repair_count or 0) >= 3:
+                    is_rescue_active = True
+                    print(f"   💡 Defective after {c.repair_count} attempts: Forcing live rescue fetch from scratch.")
+
                 if is_spa_url and db_text_len > 600:
                     is_rescue_active = False  # Never force-fetch SPAs with good DB data
                     print(f"   🔒 SPA domain detected. Force-rescue disabled. Using DB text ({db_text_len} chars).")
