@@ -608,16 +608,18 @@ def run_autofix(limit: int = 250, campaign_id: Optional[int] = None, force_all: 
                     except Exception as _obe:
                         pass  # Over-tagging kontrol hatası asıl süreci engellemesin
 
+                # Onay bekleyen (unapproved) kampanyalar için bekleme süresi ve deneme sınırlarını kaldırarak
+                # her zaman en taze ve en kaliteli AI onarımını (tıpkı paneldeki 'Tamir Et' gibi) zorla!
+                force_campaign = FORCE_ALL or (not c.is_approved)
+
                 # FORCE REPAIR IF:
                 # 1. SPECIFIC ID IS PROVIDED
                 # 2. IDS_FILE MODE IS ACTIVE
-                # 3. IT'S A PENDING CAMPAIGN THAT HAS NEVER BEEN SUCCESSFULLY REPAIRED (Strict First-Pass Rule)
-                is_never_repaired_pending = (not c.is_approved and (c.repair_count == 0 or c.quality_score is None or c.quality_score < 70))
-                
-                if (campaign_id or ids_file or is_never_repaired_pending) and not is_defective:
+                # 3. IT'S A PENDING CAMPAIGN (Always run force repair for unapproved campaigns to maximize quality)
+                if (campaign_id or ids_file or not c.is_approved) and not is_defective:
                     is_defective = True
-                    if is_never_repaired_pending:
-                        reasons.append("Mandatory First-Pass for Pending Approval")
+                    if not c.is_approved:
+                        reasons.append("Force Repair for Pending Approval")
                     else:
                         reasons.append(f"Manual Force Repair (List Mode)")
 
@@ -625,12 +627,12 @@ def run_autofix(limit: int = 250, campaign_id: Optional[int] = None, force_all: 
                     # COOLDOWN & PERMANENT SKIP LOGIC
                     # REPAIR COUNT & FORCE UPGRADE LOGIC
                     max_repairs = 4 if (c.quality_score is None or c.quality_score < 70) else 2
-                    if c.repair_count >= max_repairs and not FORCE_ALL and not campaign_id:
+                    if c.repair_count >= max_repairs and not force_campaign and not campaign_id:
                         stats["skipped_cooldown"] += 1
                         continue
                     
                     # Cooldown check for retries (if repair_count > 0)
-                    if c.repair_count > 0 and not FORCE_ALL and not campaign_id:
+                    if c.repair_count > 0 and not force_campaign and not campaign_id:
                         last_update = c.updated_at or c.created_at
                         if now - last_update < cooldown_period:
                             stats["skipped_cooldown"] += 1
@@ -641,11 +643,11 @@ def run_autofix(limit: int = 250, campaign_id: Optional[int] = None, force_all: 
                         # 1. Severe text corruption
                         # 2. OR it STILL has an Invalid Bank Brand (New rules need to clean this up)
                         # 3. OR it has Incomplete Metadata (Cards/Participation missed by AI)
-                        # 4. OR FORCE_ALL is active
+                        # 4. OR force_campaign is active
                         has_bank_error = any("Invalid Bank Brand" in r for r in reasons)
                         has_metadata_error = any("Incomplete Cards" in r or "Incomplete Participation" in r for r in reasons)
                         
-                        if not (is_corrupted or has_mojibake or has_bank_error or has_metadata_error) and not FORCE_ALL:
+                        if not (is_corrupted or has_mojibake or has_bank_error or has_metadata_error) and not force_campaign:
                             stats["skipped_cooldown"] += 1
                             continue
                         stats["retry"] += 1
@@ -681,6 +683,9 @@ def run_autofix(limit: int = 250, campaign_id: Optional[int] = None, force_all: 
                 if not c:
                     print(f"\n🛠️ Skipping: [{c_id}] (Campaign no longer in DB)")
                     continue
+                
+                # Onay bekleyen kampanyalar için en yüksek kaliteyi sağlamak adına force modunu aç!
+                force_campaign = FORCE_ALL or (not c.is_approved)
                     
                 print(f"\n🛠️ Fixing: [{c.id}] {c.title[:40]}... (Reasons: {summary_reasons})")
                 print(f"   🔗 URL: {c.tracking_url}")
@@ -839,7 +844,7 @@ def run_autofix(limit: int = 250, campaign_id: Optional[int] = None, force_all: 
                 is_title_generic = c.title and c.title.lower().strip() in generic_titles
                 
                 # Update Title
-                if not c.title or is_title_generic or FORCE_ALL:
+                if not c.title or is_title_generic or force_campaign:
                     if ai_data.get("title") and ai_data["title"] != c.title:
                         ai_title = ai_data["title"]
                         if any(kw in ai_title.lower() for kw in ["çerez", "cookie", "aydınlatma metni"]):
@@ -850,7 +855,7 @@ def run_autofix(limit: int = 250, campaign_id: Optional[int] = None, force_all: 
                             updated = True
 
                 # Update Description
-                if not c.description or len(c.description.strip()) < 15 or FORCE_ALL:
+                if not c.description or len(c.description.strip()) < 15 or force_campaign:
                     if ai_data.get("description"):
                         print(f"   ✨ Repaired Description!")
                         c.description = ai_data["description"]
@@ -858,19 +863,19 @@ def run_autofix(limit: int = 250, campaign_id: Optional[int] = None, force_all: 
                         
                 # Update Reward Text
                 is_reward_bad = not c.reward_text or c.reward_text.strip() == "" or "Detayları İnceleyin" in c.reward_text
-                if is_reward_bad or FORCE_ALL:
+                if is_reward_bad or force_campaign:
                     if ai_data.get("reward_text"):
                         print(f"   ✨ Repaired Reward Text: {ai_data['reward_text']}")
                         c.reward_text = ai_data["reward_text"]
                         updated = True
                         
-                if c.reward_value is None or FORCE_ALL:
+                if c.reward_value is None or force_campaign:
                     if ai_data.get("reward_value") is not None:
                         print(f"   ✨ Repaired Reward Value: {ai_data['reward_value']}")
                         c.reward_value = ai_data["reward_value"]
                         updated = True
                         
-                if not c.reward_type or c.reward_type.strip() == "" or FORCE_ALL:
+                if not c.reward_type or c.reward_type.strip() == "" or force_campaign:
                     if ai_data.get("reward_type"):
                         print(f"   ✨ Repaired Reward Type: {ai_data['reward_type']}")
                         c.reward_type = ai_data["reward_type"]
@@ -888,7 +893,7 @@ def run_autofix(limit: int = 250, campaign_id: Optional[int] = None, force_all: 
                 current_cards_set = set((c.eligible_cards or "").split(", ")) if c.eligible_cards else set()
                 is_cards_wrong = bool(ai_cards_set) and ai_cards_set != current_cards_set
 
-                if is_cards_empty or is_cards_corrupted or is_cards_incomplete or is_cards_wrong or FORCE_ALL:
+                if is_cards_empty or is_cards_corrupted or is_cards_incomplete or is_cards_wrong or force_campaign:
                     if ai_data.get("cards") is not None:
                         ai_cards = ai_data.get("cards") or []
                         cards_str = ", ".join(ai_cards) if len(ai_cards) > 0 else "-"
@@ -912,7 +917,7 @@ def run_autofix(limit: int = 250, campaign_id: Optional[int] = None, force_all: 
                 baseline_date = c.created_at or datetime.now()
 
                 # Start Date Repair
-                if not c.start_date or FORCE_ALL:
+                if not c.start_date or force_campaign:
                     new_start = None
                     if ai_data.get("start_date"):
                         try:
@@ -930,7 +935,7 @@ def run_autofix(limit: int = 250, campaign_id: Optional[int] = None, force_all: 
                         print(f"   ✨ Repaired Start Date: {c.start_date}")
 
                 # End Date Repair
-                if not c.end_date or FORCE_ALL:
+                if not c.end_date or force_campaign:
                     new_end = None
                     if ai_data.get("end_date"):
                         try:
@@ -949,8 +954,8 @@ def run_autofix(limit: int = 250, campaign_id: Optional[int] = None, force_all: 
                         updated = True
                         print(f"   ✨ Repaired End Date: {c.end_date}")
                         
-                # Update Conditions if missing, corrupted or FORCE_ALL
-                if not c.conditions or c.conditions.strip() == "" or corrupted_regex.search(c.conditions) or FORCE_ALL:
+                # Update Conditions if missing, corrupted or force_campaign
+                if not c.conditions or c.conditions.strip() == "" or corrupted_regex.search(c.conditions) or force_campaign:
                     if ai_data.get("conditions"):
                         print(f"   ✨ Repaired Conditions!")
                         c.conditions = "\n".join(cond for cond in ai_data.get("conditions", []))
@@ -959,7 +964,7 @@ def run_autofix(limit: int = 250, campaign_id: Optional[int] = None, force_all: 
 
                 # Clean and update Participation
                 is_curr_p_bad = not c.participation or c.participation.strip() == "" or any(p in (c.participation or "") for p in useless_participations) or corrupted_regex.search(c.participation) or "Otomatik Katılım" in (c.participation or "")
-                if is_curr_p_bad or FORCE_ALL:
+                if is_curr_p_bad or force_campaign:
                     if ai_data.get("participation"):
                         print(f"   ✨ Repaired Participation: {ai_data['participation'][:50]}...")
                         c.participation = ai_data["participation"]
