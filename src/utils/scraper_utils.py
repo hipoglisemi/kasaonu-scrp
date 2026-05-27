@@ -103,13 +103,12 @@ def upsert_campaign(db: Session, campaign: Campaign) -> Tuple[Campaign, str]:
         if existing.is_active is False:
             print(f"   🔄 Reviving passive campaign: {existing.title[:40]}...")
             existing.is_active = True
-            # If the campaign was already approved before being deactivated, keep it approved
-            # to prevent spamming the admin panel with temporary deactivations.
-            if existing.is_approved:
-                print("      ✨ Campaign was already approved. Keeping approved status.")
-            else:
-                existing.is_approved = False
-                existing.cards_audited_at = None
+            
+            # User request: "yeniden canlananlar bir süre daha onaya düşsün"
+            # We always force resurrected campaigns to go to the approval queue (is_approved = False)
+            existing.is_approved = False
+            existing.cards_audited_at = None
+            
             status = "revived"
             
         # Update fields

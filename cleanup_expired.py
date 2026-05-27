@@ -29,7 +29,7 @@ def notify_google_deleted(slugs: list[str]):
         return False
     try:
         # JSON verisindeki olası ekstra tırnakları veya boşlukları temizle
-        key_raw = str(key_raw).strip()
+        key_raw = key_raw.strip()
         if key_raw.startswith("'") and key_raw.endswith("'"):
             key_raw = key_raw[1:-1] # type: ignore
         if key_raw.startswith('"') and key_raw.endswith('"'):
@@ -100,14 +100,113 @@ def is_link_dead(url: str) -> bool:
             
     return False
 
+def proactive_expiry_audit():
+    """
+    Checks campaigns expiring soon (within next 3 days or today).
+    Fetches their tracking URL and parses them with AI to get the actual end_date.
+    If a date in the future (later than current end_date) is found, updates it.
+    This prevents unnecessary deactivations and rescraping/AI parsing cost.
+    """
+    print("🕰️ Stage -1: Starting Proactive Expiry Audit (Grace Period check via AI)...")
+    today = (datetime.now(timezone.utc) + timedelta(hours=3)).date()
+    audit_end = today + timedelta(days=3)
+    
+    # Fetch campaigns expiring soon
+    campaigns_to_audit = []
+    try:
+        with get_db_session() as db:
+            soon_expiring = db.query(Campaign).filter(
+                Campaign.is_active == True,
+                Campaign.end_date >= today,
+                Campaign.end_date <= audit_end,
+                Campaign.tracking_url.isnot(None)
+            ).all()
+            
+            campaigns_to_audit = [
+                {
+                    "id": c.id,
+                    "url": c.tracking_url,
+                    "title": c.title,
+                    "end_date": c.end_date
+                }
+                for c in soon_expiring
+            ]
+    except Exception as e:
+        print(f"   ⚠️ Error fetching soon expiring campaigns: {e}")
+        return
+        
+    if not campaigns_to_audit:
+        print("✅ No campaigns expiring within the next 3 days.")
+        return
+        
+    print(f"🔍 Found {len(campaigns_to_audit)} campaigns expiring soon. Checking for extension using AI...")
+    
+    from src.services.ai_parser_golden import parse_api_campaign
+    
+    extended_count = 0
+    session = requests.Session()
+    session.headers.update({'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/120.0.0.0 Safari/537.36'})
+    
+    for c in campaigns_to_audit:
+        url = c["url"]
+        current_end = c["end_date"]
+        try:
+            resp = session.get(url, allow_redirects=True, timeout=15, verify=False)
+            if resp.status_code != 200:
+                continue
+                
+            html = resp.text
+            
+            # Call AI parser with force=True to bypass cache and get fresh page parse!
+            result = parse_api_campaign(
+                title=c["title"],
+                short_description="",
+                content_html=html,
+                bank_name="",
+                tracking_url=url,
+                force=True
+            )
+            
+            ai_end_date_str = result.get("end_date")
+            if not ai_end_date_str:
+                continue
+                
+            try:
+                latest_date = datetime.strptime(ai_end_date_str, "%Y-%m-%d").date()
+            except ValueError:
+                continue
+            
+            # Safety range: must be strictly later than current_end and no more than 1 year in the future
+            if latest_date > current_end and latest_date <= today + timedelta(days=365):
+                print(f"   🎉 Campaign Extended via AI! '{c['title']}'")
+                print(f"      Old End Date: {current_end} ➔ New End Date: {latest_date}")
+                
+                # Update in DB
+                with get_db_session() as db:
+                    db_camp = db.query(Campaign).filter(Campaign.id == c["id"]).first()
+                    if db_camp:
+                        db_camp.end_date = latest_date
+                        db_camp.updated_at = datetime.now()
+                        db.commit()
+                        extended_count += 1
+                
+        except Exception as e:
+            print(f"   ⚠️ Error auditing {c['title']} with AI: {e}")
+            
+    print(f"✅ Proactive Expiry Audit complete. Extended {extended_count} campaigns.")
+
 def cleanup_campaigns():
     """
     Cleans up expired campaigns with a 90-day retention policy for SEO:
+    -1. Run Proactive Grace Period Expiry Audit to catch and extend campaigns before they expire.
     0. Mark as inactive if bank removed the URL (Dead Link).
     1. Mark as inactive (isActive=False) if end_date is in the past.
     2. Permanently delete ONLY if end_date is older than 90 days.
     """
     print(f"🧹 Starting SEO-Friendly Campaign Cleanup: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+    
+    # Run proactive grace period audit first
+    proactive_expiry_audit()
     
     RETENTION_DAYS = 90
     # Calculate today's date in Turkey Timezone (UTC+3) to avoid runner timezone discrepancy
@@ -118,7 +217,7 @@ def cleanup_campaigns():
     print("🔍 Stage 0: Fetching active campaigns for dead link detection...")
     campaigns_to_check = []
     with get_db_session() as db:
-        active_campaigns = db.query(Campaign.id, Campaign.tracking_url, Campaign.title).filter(
+        active_campaigns = db.query(Campaign).filter(
             Campaign.is_active == True,
             Campaign.tracking_url.isnot(None)
         ).all()
