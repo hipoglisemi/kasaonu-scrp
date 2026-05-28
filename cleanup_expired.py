@@ -100,6 +100,89 @@ def is_link_dead(url: str) -> bool:
             
     return False
 
+import re
+from google.genai import types # type: ignore
+from src.utils.gemini_client import generate_with_rotation # type: ignore
+
+def clean_html_to_text(html: str) -> str:
+    """Removes script, style, nav, and other HTML tags to produce clean text."""
+    if not html:
+        return ""
+    # remove script, style, head, nav, footer, etc.
+    text = re.sub(r'<(script|style|head|nav|footer)[^>]*>([\s\S]*?)<\/\1>', ' ', html)
+    # strip other HTML tags
+    text = re.sub(r'<[^>]+>', ' ', text)
+    # compress whitespaces
+    text = re.sub(r'\s+', ' ', text).strip()
+    return text[:8000] # Limit to 8000 characters to keep prompt/tokens tiny
+
+def extract_end_date_via_ai(title: str, html: str) -> str | None:
+    """
+    Extracts only the campaign end date from the campaign HTML text using Gemini.
+    Returns date string in YYYY-MM-DD format, or None if not found/error.
+    """
+    clean_text = clean_html_to_text(html)
+    if not clean_text:
+        return None
+        
+    system_instruction = (
+        "Sen KartAvantaj projesinde sadece kampanya bitiş tarihlerini tespit eden uzman bir veri analistisin.\n"
+        "Gönderilen metni analiz ederek kampanyanın son geçerlilik tarihini (bitiş tarihini) bulmalısın.\n\n"
+        "Kurallar:\n"
+        "1. Tarihi YYYY-MM-DD formatında döndür.\n"
+        "2. Metinde açıkça yazan kampanya bitiş tarihini tespit et. (Örnek: '30 Haziran 2026', '31.12.2026' vb.)\n"
+        "3. Çıktıyı her zaman belirtilen JSON formatında ver.\n"
+    )
+    
+    prompt = f"""
+KAMPANYA BAŞLIĞI: {title}
+KAMPANYA SAYFA METNİ:
+---
+{clean_text}
+---
+
+GÖREV: Sayfa metnini ve kampanya başlığını inceleyerek kampanyanın son geçerlilik tarihini tespit et. Çıktıyı kesinlikle aşağıdaki JSON şemasına göre üret:
+
+```json
+{{
+  "end_date": "YYYY-MM-DD" // Tespit edilen tarih (örn. "2026-06-30"), eğer kesin olarak bulunamadıysa null.
+}}
+```
+"""
+    config = types.GenerateContentConfig(
+        temperature=0.0,
+        top_p=0.1,
+        top_k=1,
+        response_mime_type="application/json",
+        system_instruction=system_instruction
+    )
+    
+    try:
+        # We reuse the robust key-rotating Gemini client here
+        result_str = generate_with_rotation(
+            prompt=prompt,
+            model="models/gemini-3.1-flash-lite",
+            config=config
+        )
+        
+        if not result_str:
+            return None
+            
+        cleaned_result = result_str.strip()
+        if cleaned_result.startswith("```"):
+            lines = cleaned_result.split("\n")
+            if lines[0].startswith("```"):
+                lines = lines[1:]
+            if lines[-1].startswith("```"):
+                lines = lines[:-1]
+            cleaned_result = "\n".join(lines).strip()
+            
+        data = json.loads(cleaned_result)
+        return data.get("end_date")
+    except Exception as e:
+        print(f"      ⚠️  Tarih çıkartma hatası: {e}")
+        return None
+
 def proactive_expiry_audit():
     """
     Checks campaigns expiring soon (within next 3 days or today).
@@ -141,33 +224,47 @@ def proactive_expiry_audit():
         
     print(f"🔍 Found {len(campaigns_to_audit)} campaigns expiring soon. Checking for extension using AI...")
     
-    from src.services.ai_parser_golden import parse_api_campaign
+    # Sort campaigns to prioritize those expiring earliest
+    campaigns_to_audit.sort(key=lambda x: x["end_date"])
     
+    # Capping AI audits per run to prevent 6-hour GitHub Actions timeout
+    MAX_AUDITS_PER_RUN = 200
+    if len(campaigns_to_audit) > MAX_AUDITS_PER_RUN:
+        print(f"⚡ Capping AI audits to the top {MAX_AUDITS_PER_RUN} soonest-expiring campaigns to prevent workflow timeout.")
+        campaigns_to_audit = campaigns_to_audit[:MAX_AUDITS_PER_RUN]
     extended_count = 0
     session = requests.Session()
     session.headers.update({'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/120.0.0.0 Safari/537.36'})
     
-    for c in campaigns_to_audit:
+    # Fetch HTML pages in parallel first to speed up the network bottleneck
+    print(f"🌐 Fetching {len(campaigns_to_audit)} campaign pages in parallel...")
+    campaigns_with_html = []
+    
+    def fetch_html(c):
+        try:
+            resp = session.get(c["url"], allow_redirects=True, timeout=15, verify=False)
+            if resp.status_code == 200:
+                return {**c, "html": resp.text}
+        except Exception:
+            pass
+        return None
+        
+    with ThreadPoolExecutor(max_workers=10) as executor:
+        futures = [executor.submit(fetch_html, c) for c in campaigns_to_audit]
+        for future in as_completed(futures):
+            res = future.result()
+            if res:
+                campaigns_with_html.append(res)
+                
+    print(f"📥 Successfully fetched {len(campaigns_with_html)} pages. Starting AI parsing...")
+    
+    for c in campaigns_with_html:
         url = c["url"]
         current_end = c["end_date"]
+        html = c["html"]
         try:
-            resp = session.get(url, allow_redirects=True, timeout=15, verify=False)
-            if resp.status_code != 200:
-                continue
-                
-            html = resp.text
-            
-            # Call AI parser with force=True to bypass cache and get fresh page parse!
-            result = parse_api_campaign(
-                title=c["title"],
-                short_description="",
-                content_html=html,
-                bank_name="",
-                tracking_url=url,
-                force=True
-            )
-            
-            ai_end_date_str = result.get("end_date")
+            # Call dedicated lightweight AI date extractor helper
+            ai_end_date_str = extract_end_date_via_ai(c["title"], html)
             if not ai_end_date_str:
                 continue
                 
