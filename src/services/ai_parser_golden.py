@@ -1249,7 +1249,7 @@ def parse_api_campaign(
     # Combine title + description + body for full context
     raw_text = f"{title}\n{short_description or ''}\n{clean_content}"
 
-    # 2.5 Check if the campaign already exists and has EXACTLY identical text (ignoring dates/digits)
+    # 2.5 Check if the campaign already exists and has HIGHLY similar text (using Fuzzy Match > 92% similarity)
     # If it matches, we reuse the existing AI-extracted details and skip Gemini call!
     if tracking_url and not force:
         try:
@@ -1279,8 +1279,19 @@ def parse_api_campaign(
                         return t
                     
                     old_text = existing.clean_text or existing.description
-                    if normalize_text_for_comparison(raw_text) == normalize_text_for_comparison(old_text):
-                        print(f"   🎉 [Bypass] Campaign text is identical to existing DB record for: {title[:40]}...")
+                    
+                    # Fuzzy match ratio calculation
+                    import difflib
+                    t1_norm = normalize_text_for_comparison(raw_text)
+                    t2_norm = normalize_text_for_comparison(old_text)
+                    
+                    similarity = 0.0
+                    if t1_norm and t2_norm:
+                        similarity = difflib.SequenceMatcher(None, t1_norm, t2_norm).ratio()
+                        
+                    # 92% is the sweet spot for natural text comparison
+                    if similarity >= 0.92:
+                        print(f"   🎉 [Bypass] Campaign text is highly similar ({similarity:.1%}) to DB record for: {title[:40]}...")
                         print(f"      Bypassing full Gemini parsing and reusing cached AI fields!")
                         
                         from src.models import Sector
@@ -1314,6 +1325,9 @@ def parse_api_campaign(
                             "_clean_text": existing.clean_text or existing.description or ""
                         }
                         return cached_res
+                    else:
+                        if similarity > 0.4:
+                            print(f"   ℹ️ Campaign text changed (similarity: {similarity:.1%}). Re-parsing with Gemini.")
             finally:
                 db_session.close()
         except Exception as e:
