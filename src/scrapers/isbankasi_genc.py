@@ -522,6 +522,12 @@ class IsbankMaximumGencScraper:
             cards_raw = ai_data.get("cards", [])
             if isinstance(cards_raw, str):
                 cards_raw = [c.strip() for c in cards_raw.split(",") if c.strip()]
+            else:
+                cards_raw = [str(c) for c in cards_raw] if cards_raw else []
+            
+            # Smart-inject "Maximum Genç" if not already present
+            if not any("genç" in c.lower() or "genc" in c.lower() for c in cards_raw):
+                cards_raw.append("Maximum Genç")
 
             campaign = Campaign(
                 card_id=self.card_id, sector_id=sector.id if sector else None,  # type: ignore # pyre-ignore[16]

@@ -511,18 +511,37 @@ class TurkTelekomScraper:
             image_url = urljoin(self.BASE_URL, img_tag['src']) if img_tag else None
             
             if "selfy.com.tr" in url:
-                # 1. Try og:image meta tag
-                og_image_el = soup.find("meta", property="og:image")
-                if og_image_el and og_image_el.get("content"):
-                    image_url = urljoin(url, og_image_el.get("content").strip())
+                # 1. Try specific campaign visual container first (.campaign-col img)
+                campaign_col_img = soup.select_one(".campaign-col img, .campaign-row img")
+                if campaign_col_img and campaign_col_img.get("src"):
+                    image_url = urljoin(url, campaign_col_img.get("src").strip())
                 
-                # 2. Fallback to /media/ images if not found or is logo/placeholder
+                # 2. If not found or looks like a logo/placeholder, try og:image meta tag
                 if not image_url or "logo" in image_url.lower():
+                    og_image_el = soup.find("meta", property="og:image")
+                    if og_image_el and og_image_el.get("content"):
+                        image_url = urljoin(url, og_image_el.get("content").strip())
+                
+                # 3. Fallback to general /media/ images, excluding known generic background images or logos
+                if not image_url or "logo" in image_url.lower() or "tiktak_arka" in image_url.lower() or "selfy_tiktak" in image_url.lower():
                     for img in soup.find_all("img", src=True):
                         src = img["src"]
-                        if "/media/" in src and "logo" not in src.lower():
+                        if "/media/" in src and "logo" not in src.lower() and "tiktak_arka" not in src.lower() and "selfy_tiktak" not in src.lower():
                             image_url = urljoin(url, src)
                             break
+                            
+            # Clean Turk Telekom CDN optimize wrappers to get clean, direct image URLs
+            if image_url and "imageurl=" in image_url.lower():
+                try:
+                    from urllib.parse import urlparse, parse_qs
+                    parsed = urlparse(image_url)
+                    qs = parse_qs(parsed.query)
+                    for k, v in qs.items():
+                        if k.lower() == "imageurl" and v:
+                            image_url = v[0]
+                            break
+                except Exception:
+                    pass
             
             # 3. Extract Accordion and Static Box Content
             content_parts = []
@@ -564,10 +583,35 @@ class TurkTelekomScraper:
             # og:title for Header Sniper
             og_title_el = soup.find("meta", property="og:title")
             og_title = og_title_el.get("content", "").strip() if og_title_el else title
+            
+            if og_title:
+                suffixes = [
+                    " | İndirimler | Selfy", 
+                    " | Fırsatlar | Selfy", 
+                    " | Kampanyalar | Selfy", 
+                    " | Selfy",
+                    " | Türk Telekom Prime",
+                    " | Prime",
+                    " | Türk Telekom"
+                ]
+                for suffix in suffixes:
+                    if og_title.endswith(suffix):
+                        og_title = og_title[:-len(suffix)].strip()
 
-            # Full body HTML → parse_api_campaign centralised pipeline
-            body_el = soup.find("body")
-            raw_html = str(body_el) if body_el else response.text
+            # Build a super clean HTML containing only the relevant campaign content
+            # to prevent AI parser from getting confused by footer links, KVKK texts, or expired campaign lists.
+            clean_html_parts = []
+            if og_title:
+                clean_html_parts.append(f"<h1>{og_title}</h1>")
+            else:
+                clean_html_parts.append(f"<h1>{title}</h1>")
+                
+            if content_parts:
+                clean_html_parts.append("\n".join(content_parts))
+            if participation_text:
+                clean_html_parts.append(f"<h2>Nasıl Katılırım / Katılım Şartları</h2>\n{participation_text}")
+                
+            raw_html = "\n".join(clean_html_parts)
 
             # AI Parsing
             print(f"      🧠 Sending to AI Parser...")
@@ -586,6 +630,9 @@ class TurkTelekomScraper:
                 return "error"  # type: ignore # pyre-ignore[7]
 
             # Override/Fixes
+            if "selfy.com.tr" in url and title:
+                ai_data["title"] = title
+                
             if image_url and (not ai_data.get('image_url') or 'logo' in ai_data.get('image_url', '').lower()):
                 ai_data['image_url'] = image_url
             
@@ -627,6 +674,25 @@ class TurkTelekomScraper:
             ai_marketing_text = data.get("ai_marketing_text")
             participation_text = data.get("participation", "")
                 
+            # Determine eligible cards
+            cards_list = data.get("cards") or []
+            if not isinstance(cards_list, list):
+                cards_list = [str(cards_list)]
+            else:
+                cards_list = [str(c) for c in cards_list]
+            
+            # Smart-inject card names based on campaign URL context
+            if "selfy.com.tr" in url or "selfy" in url.lower():
+                if not any("selfy" in c.lower() for c in cards_list):
+                    cards_list.append("Selfy")
+            elif "prime" in url.lower():
+                if not any("prime" in c.lower() for c in cards_list):
+                    cards_list.append("Prime")
+            
+            eligible_cards_str = ", ".join(cards_list) if cards_list else "Türk Telekom Müşterileri"
+            if len(eligible_cards_str) > 255:
+                eligible_cards_str = eligible_cards_str[:255]
+
             campaign = Campaign(
                 card_id=card.id,  # type: ignore # pyre-ignore[16]
                 sector_id=sector.id if sector else None,  # type: ignore # pyre-ignore[16]
@@ -644,7 +710,7 @@ class TurkTelekomScraper:
                 is_active=True,
                 ai_marketing_text=ai_marketing_text,
                 participation=participation_text,
-                eligible_cards=data.get("eligible_cards") or "Türk Telekom Müşterileri",
+                eligible_cards=eligible_cards_str,
                 category=data.get("category"),
                 badge_color=data.get("badge_color"),
                 clean_text=data.get("_clean_text"),
