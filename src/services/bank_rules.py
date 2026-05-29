@@ -391,5 +391,14 @@ OPET SPECIFIC RULES:
 - CONDITIONS: 
     - Akaryakıt harici harcamalar (örn: market, araç yıkama) veya belirli ürün grupları (Parex, Karcher) için geçerliyse belirt.
     - Puan kullanım tarihleri ve geçerli istasyon kısıtlamalarını ekle.
+""",
+    'türk telekom': """
+TÜRK TELEKOM SPECIFIC RULES:
+- ELIGIBLE CARDS / CUSTOMER SEGMENTS (cards):
+    - 🚨 **TEMİZ KART GRUPLARI**: "Selfy", "Prime", "Türk Telekom Prime", "Türk Telekom Mobil müşterileri", "Türk Telekom Evde İnternet müşterileri" gibi ifadeleri doğrudan kart/müşteri grubu olarak ekle.
+    - 🚨 **SELFY / PRIME KART VURGUSU**: Eğer kampanya Selfy sayfasında veya Prime sayfasında yayınlanıyorsa, 'cards' alanına mutlaka "Selfy" veya "Prime" (hangisi geçerliyse) kart adını ekle.
+- PARTICIPATION (participation):
+    - SMS: Look for keyword + short number "6262". Format: "[KEYWORD] yazıp 6262'ye SMS gönderin."
+    - App: "Türk Telekom Online İşlemler" or "Türk Telekom Mobil".
 """
 }

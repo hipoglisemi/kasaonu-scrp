@@ -474,6 +474,12 @@ class TurkTelekomScraper:
             # Use Predefined Title from listing page if available (as it has the .card-desc)
             title = predefined_title or ""
             
+            # If it's a Selfy page, prioritize the main H3 as the campaign title (e.g. "Selfy’lilere özel ByNoGame indirimi!")
+            if "selfy.com.tr" in url:
+                h3_el = soup.find("h3")
+                if h3_el and len(h3_el.get_text(strip=True)) > 5:
+                    title = h3_el.get_text(strip=True)
+            
             if not title or title.lower() == brand_name.lower():
                 # Look for the first meaningful paragraph text (Prime/Partnerships style)
                 # usually .detail-content p, .campaign-spot, .sub-title
@@ -503,6 +509,20 @@ class TurkTelekomScraper:
             # Image extraction
             img_tag = soup.select_one(".detail-text-img img")
             image_url = urljoin(self.BASE_URL, img_tag['src']) if img_tag else None
+            
+            if "selfy.com.tr" in url:
+                # 1. Try og:image meta tag
+                og_image_el = soup.find("meta", property="og:image")
+                if og_image_el and og_image_el.get("content"):
+                    image_url = urljoin(url, og_image_el.get("content").strip())
+                
+                # 2. Fallback to /media/ images if not found or is logo/placeholder
+                if not image_url or "logo" in image_url.lower():
+                    for img in soup.find_all("img", src=True):
+                        src = img["src"]
+                        if "/media/" in src and "logo" not in src.lower():
+                            image_url = urljoin(url, src)
+                            break
             
             # 3. Extract Accordion and Static Box Content
             content_parts = []

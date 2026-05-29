@@ -327,6 +327,15 @@ class IsbankMaximumGencScraper:
                             image_url = urljoin(self.BASE_URL, match.group(1))
                             break
 
+            # 3. Clean incomplete/empty base paths and fallback to og:image meta tag
+            if image_url and (image_url.rstrip("/").endswith("/Medium/Campaign/Image") or "logo" in image_url.lower()):
+                image_url = None
+
+            if not image_url:
+                og_img = soup.find("meta", property="og:image")
+                if og_img and og_img.get("content"):
+                    image_url = urljoin(self.BASE_URL, og_img.get("content").strip())
+
             # Date
             date_text = ""
             date_el = soup.select_one("div.mobile-date, .date, .campaign-date")
