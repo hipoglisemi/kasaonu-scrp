@@ -1249,6 +1249,76 @@ def parse_api_campaign(
     # Combine title + description + body for full context
     raw_text = f"{title}\n{short_description or ''}\n{clean_content}"
 
+    # 2.5 Check if the campaign already exists and has EXACTLY identical text (ignoring dates/digits)
+    # If it matches, we reuse the existing AI-extracted details and skip Gemini call!
+    if tracking_url and not force:
+        try:
+            from src.database import SessionLocal as _SL
+            from src.models import Campaign
+            db_session = _SL()
+            try:
+                existing = db_session.query(Campaign).filter(
+                    Campaign.tracking_url == tracking_url
+                ).first()
+                
+                if existing and (existing.clean_text or existing.description):
+                    def normalize_text_for_comparison(text: str) -> str:
+                        if not text:
+                            return ""
+                        # Turkish lowercasing and normalising character differences
+                        t = text.replace("İ", "i").replace("I", "ı").lower()
+                        # Remove all digits (dates/prices/numbers are ignored to capture date-only updates)
+                        t = _re.sub(r'\d+', '', t)
+                        # Remove Turkish month names
+                        months = ["ocak", "şubat", "subat", "mart", "nisan", "mayıs", "mayis", "haziran", 
+                                  "temmuz", "ağustos", "agustos", "eylül", "eylul", "ekim", "kasım", "kasim", "aralık", "aralik"]
+                        for m in months:
+                            t = _re.sub(rf'\b{m}\b', '', t)
+                        # Remove punctuation and spaces, keeping only alphabetic characters
+                        t = _re.sub(r'[^a-zıişğüç]', '', t)
+                        return t
+                    
+                    old_text = existing.clean_text or existing.description
+                    if normalize_text_for_comparison(raw_text) == normalize_text_for_comparison(old_text):
+                        print(f"   🎉 [Bypass] Campaign text is identical to existing DB record for: {title[:40]}...")
+                        print(f"      Bypassing full Gemini parsing and reusing cached AI fields!")
+                        
+                        from src.models import Sector
+                        sector_name = "diger"
+                        if existing.sector_id:
+                            sec = db_session.query(Sector).filter(Sector.id == existing.sector_id).first()
+                            if sec:
+                                sector_name = sec.slug
+                                
+                        brands = []
+                        if existing.brands:
+                            for cb in existing.brands:
+                                if cb.brand:
+                                    brands.append(cb.brand.name)
+                                    
+                        cached_res = {
+                            "title": existing.title,
+                            "short_title": existing.title,
+                            "description": existing.description or "",
+                            "reward_text": existing.reward_text or "",
+                            "reward_value": float(existing.reward_value) if existing.reward_value else None,
+                            "reward_type": existing.reward_type,
+                            "conditions": existing.conditions.split("\n") if existing.conditions else [],
+                            "cards": existing.eligible_cards.split(", ") if existing.eligible_cards else [],
+                            "participation": existing.participation or "",
+                            "start_date": existing.start_date.strftime("%Y-%m-%d") if existing.start_date else None,
+                            "end_date": existing.end_date.strftime("%Y-%m-%d") if existing.end_date else None,
+                            "sector": sector_name,
+                            "brands": brands,
+                            "_cached": True,
+                            "_clean_text": existing.clean_text or existing.description or ""
+                        }
+                        return cached_res
+            finally:
+                db_session.close()
+        except Exception as e:
+            print(f"   ⚠️ Bypass comparison failed: {e}")
+
     # 3. Call AI Parser Golden
     # Pass structured_cards_text down to the main parser to bypass guessing
     result = parser.parse_campaign(
