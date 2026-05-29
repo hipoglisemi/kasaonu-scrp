@@ -228,7 +228,8 @@ def proactive_expiry_audit():
     campaigns_to_audit.sort(key=lambda x: x["end_date"])
     
     # Capping AI audits per run to prevent 6-hour GitHub Actions timeout
-    MAX_AUDITS_PER_RUN = 200
+    # Increased to 2000 because we process AI parsing in parallel now!
+    MAX_AUDITS_PER_RUN = 2000
     if len(campaigns_to_audit) > MAX_AUDITS_PER_RUN:
         print(f"⚡ Capping AI audits to the top {MAX_AUDITS_PER_RUN} soonest-expiring campaigns to prevent workflow timeout.")
         campaigns_to_audit = campaigns_to_audit[:MAX_AUDITS_PER_RUN]
@@ -256,9 +257,13 @@ def proactive_expiry_audit():
             if res:
                 campaigns_with_html.append(res)
                 
-    print(f"📥 Successfully fetched {len(campaigns_with_html)} pages. Starting AI parsing...")
+    print(f"📥 Successfully fetched {len(campaigns_with_html)} pages. Starting AI parsing in parallel...")
     
-    for c in campaigns_with_html:
+    import threading
+    extended_lock = threading.Lock()
+    
+    def audit_single_campaign(c):
+        nonlocal extended_count
         url = c["url"]
         current_end = c["end_date"]
         html = c["html"]
@@ -266,12 +271,12 @@ def proactive_expiry_audit():
             # Call dedicated lightweight AI date extractor helper
             ai_end_date_str = extract_end_date_via_ai(c["title"], html)
             if not ai_end_date_str:
-                continue
+                return False
                 
             try:
                 latest_date = datetime.strptime(ai_end_date_str, "%Y-%m-%d").date()
             except ValueError:
-                continue
+                return False
             
             # Safety range: must be strictly later than current_end and no more than 1 year in the future
             if latest_date > current_end and latest_date <= today + timedelta(days=365):
@@ -285,10 +290,19 @@ def proactive_expiry_audit():
                         db_camp.end_date = latest_date
                         db_camp.updated_at = datetime.now()
                         db.commit()
-                        extended_count += 1
-                
+                        with extended_lock:
+                            extended_count += 1
+                        return True
         except Exception as e:
             print(f"   ⚠️ Error auditing {c['title']} with AI: {e}")
+        return False
+        
+    # Parallel AI Parsing using ThreadPoolExecutor
+    # 12 workers is a great sweet spot to avoid getting aggressive 429s, but still extremely fast!
+    with ThreadPoolExecutor(max_workers=12) as executor:
+        ai_futures = [executor.submit(audit_single_campaign, c) for c in campaigns_with_html]
+        for future in as_completed(ai_futures):
+            pass
             
     print(f"✅ Proactive Expiry Audit complete. Extended {extended_count} campaigns.")
 
