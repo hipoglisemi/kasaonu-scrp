@@ -63,30 +63,81 @@ import time # type: ignore
 
 urllib3.disable_warnings()
 
-def is_link_dead(url: str) -> bool:
+def is_link_dead(url: str, title: str = "") -> bool:
     """
     Safely pings a tracking URL. Returns True ONLY if we are 100% sure it's dead.
     Tolerates slow banks (retries) and prevents false-positives on 403 Forbidden.
+    Supports soft-redirect and soft 404 (generic listing redirect) detection.
     """
     if not url: return False
     
     session = requests.Session()
-    session.headers.update({'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/120.0.0.0 Safari/537.36'})
+    session.headers.update({
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/120.0.0.0 Safari/537.36',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+        'Accept-Language': 'tr-TR,tr;q=0.9,en-US;q=0.8,en;q=0.7'
+    })
     
     for attempt in range(3):
         try:
             resp = session.get(url, allow_redirects=True, timeout=15, verify=False)
             
             # Explicit 404 means the campaign is definitely gone
-            if resp.status_code == 404:
+            if resp.status_code in [404, 410]:
                 return True
                 
             final_url = resp.url.lower()
             
-            # AKBANK / WINGS RULE: If it redirects to the generic list, it's silently removed
+            # Extract path without query parameters or trailing slash
+            path = ""
+            try:
+                from urllib.parse import urlparse
+                path = urlparse(resp.url.lower()).path.rstrip('/')
+            except Exception:
+                pass
+            
+            # 1. AKBANK / WINGS RULE: If it redirects to the generic list, it's silently removed
             if 'axess.com.tr' in url or 'wingscard.com.tr' in url:
                 if final_url.endswith('/kampanyalar') or final_url.endswith('/kampanyalar/'):
                     return True
+                    
+            # 2. TÜRK TELEKOM RULE: If it redirects to the listing or home/portal page
+            if 'turktelekom.com.tr' in final_url:
+                listing_endpoints = ('/prime-ayricaliklari', '/ayricaliklar', '/kampanyalar', '/firsatlar', '/bireysel')
+                if path.endswith(listing_endpoints) or path == "":
+                    return True
+                    
+            # 3. GENERIC LISTING PATH RULE
+            generic_listing_paths = (
+                '/kampanyalar', '/kampanyalar/', '/firsatlar', '/firsatlar/', 
+                '/ayricaliklar', '/ayricaliklar/', '/indirimler', '/indirimler/',
+                '/kampanya-listesi', '/kampanyalarimiz'
+            )
+            if any(final_url.endswith(p) for p in generic_listing_paths):
+                return True
+                
+            # 4. SOFT 404 TITLE HEURISTICS
+            try:
+                from bs4 import BeautifulSoup
+                soup = BeautifulSoup(resp.text, 'html.parser')
+                if soup.title and soup.title.string:
+                    page_title = soup.title.string.strip().lower()
+                    generic_titles = [
+                        "kampanyalar", "prime ayrıcalıkları", "tüm kampanyalar", 
+                        "fırsatlar", "ayrıcalıklar", "kampanyaları", "axess kampanyalar",
+                        "hata", "sayfa bulunamadı", "404", "arama sonuçları"
+                    ]
+                    if any(gt in page_title for gt in generic_titles) and len(page_title) < 45:
+                        if title:
+                            # Verify if any specific content words from original title are in the page title
+                            words = [w.strip(".,!?\"'") for w in title.lower().split() if len(w) > 3]
+                            matches = [w for w in words if w in page_title]
+                            if not matches:
+                                return True
+                        else:
+                            return True
+            except Exception:
+                pass
             
             # If it's a 200 OK or 403 Forbidden (Anti-Bot), we MUST assume it's alive to be safe.
             return False
@@ -340,7 +391,7 @@ def cleanup_campaigns():
     if campaigns_to_check:
         print(f"🌐 Checking {len(campaigns_to_check)} URLs for 404/removal...")
         with ThreadPoolExecutor(max_workers=10) as executor:
-            futures = {executor.submit(is_link_dead, c["url"]): c for c in campaigns_to_check}
+            futures = {executor.submit(is_link_dead, c["url"], c["title"]): c for c in campaigns_to_check}
             for future in as_completed(futures):
                 c = futures[future]
                 try:
