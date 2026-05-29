@@ -396,7 +396,7 @@ def cleanup_campaigns():
                 c = futures[future]
                 try:
                     if future.result() == True:
-                        print(f"   👻 Dead link detected: {c['title']}")
+                        print(f"   👻 Dead link detected: '{c['title']}' | URL: {c['url']}")
                         dead_campaign_ids.append(c["id"])
                 except Exception as e:
                     pass
@@ -409,6 +409,7 @@ def cleanup_campaigns():
                 camp = db.query(Campaign).filter(Campaign.id == dead_id).first()
                 if camp:
                     camp.is_active = False
+                    print(f"   ➔ Deactivated (Dead Link): '{camp.title}' | URL: {camp.tracking_url}")
             db.flush()
             print(f"✅ Successfully deactivated {len(dead_campaign_ids)} dead/removed campaigns.")
         else:
@@ -421,9 +422,10 @@ def cleanup_campaigns():
         ).all()
         
         if to_deactivate:
-            print(f"💤 Deactivating {len(to_deactivate)} expired campaigns (Soft-Delete for SEO).")
+            print(f"💤 Deactivating {len(to_deactivate)} expired campaigns (Soft-Delete for SEO)...")
             for c in to_deactivate:
                 c.is_active = False
+                print(f"   ➔ Deactivated (Expired): '{c.title}' | End Date: {c.end_date} | URL: {c.tracking_url}")
             db.flush()
         
         # --- STAGE 2: Permanent Delete (After Retention) ---
