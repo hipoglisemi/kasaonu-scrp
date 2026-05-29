@@ -111,6 +111,43 @@ def upsert_campaign(db: Session, campaign: Campaign) -> Tuple[Campaign, str]:
             
             status = "revived"
             
+        # Check if only the date was extended (Fuzzy similarity of text >= 92%)
+        import re as _re
+        import difflib
+        
+        def normalize_text_for_comparison(text: str) -> str:
+            if not text:
+                return ""
+            # Turkish lowercasing and normalising character differences
+            t = text.replace("İ", "i").replace("I", "ı").lower()
+            # Remove all digits (dates/prices/numbers are ignored)
+            t = _re.sub(r'\d+', '', t)
+            # Remove Turkish month names
+            months = ["ocak", "şubat", "subat", "mart", "nisan", "mayıs", "mayis", "haziran", 
+                      "temmuz", "ağustos", "agustos", "eylül", "eylul", "ekim", "kasım", "kasim", "aralık", "aralik"]
+            for m in months:
+                t = _re.sub(rf'\b{m}\b', '', t)
+            # Remove punctuation and spaces, keeping only alphabetic characters
+            t = _re.sub(r'[^a-zıişğüç]', '', t)
+            return t
+
+        old_text = existing.clean_text or existing.description
+        new_text = campaign.clean_text or campaign.description
+        
+        is_date_only_ext = False
+        if old_text and new_text:
+            t1_norm = normalize_text_for_comparison(new_text)
+            t2_norm = normalize_text_for_comparison(old_text)
+            similarity = 0.0
+            if t1_norm and t2_norm:
+                similarity = difflib.SequenceMatcher(None, t1_norm, t2_norm).ratio()
+            
+            if similarity >= 0.92:
+                is_date_only_ext = True
+                print(f"      🎉 [Date-Only Extension] Similarity is {similarity:.1%}, marking date_extended=True")
+
+        existing.date_extended = is_date_only_ext
+            
         # Update fields
         existing.title = campaign.title
         existing.tracking_url = campaign.tracking_url  # Update tracking_url to handle migrations

@@ -151,6 +151,7 @@ class Campaign(Base):
     no_brand_verified: bool = Column(Boolean, default=False, nullable=False)
     repair_count: int = Column(Integer, default=0, nullable=False)
     is_approved: bool = Column(Boolean, default=False, nullable=False)
+    date_extended: bool = Column(Boolean, default=False, nullable=False)
     cards_audited_at: datetime | None = Column(DateTime, nullable=True, default=None)
 
     # Dates
