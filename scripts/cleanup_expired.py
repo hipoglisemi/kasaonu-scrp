@@ -11,7 +11,7 @@ from googleapiclient.discovery import build # type: ignore
 from google.oauth2 import service_account # pyre-ignore[21]
 
 # Setup path to include project root for src.* imports
-project_root = os.getcwd()
+project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if project_root not in sys.path:
     sys.path.insert(0, project_root)
 

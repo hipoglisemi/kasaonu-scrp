@@ -17,10 +17,12 @@ from typing import Optional
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# Add project root to path
+# Add project root and scripts directory to path
 current_dir = os.path.dirname(os.path.abspath(__file__))
-if current_dir not in sys.path:
-    sys.path.insert(0, current_dir)
+project_root = os.path.dirname(current_dir)
+for p in [current_dir, project_root]:
+    if p not in sys.path:
+        sys.path.insert(0, p)
 
 try:
     from fastapi import FastAPI, HTTPException, Header, Request

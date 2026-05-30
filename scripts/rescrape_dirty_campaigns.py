@@ -4,10 +4,14 @@ yeniden scrape eden script. Sadece detail page'i Playwright ile çeker,
 text_cleaner ile temizler, ai_parser_golden ile parse eder.
 """
 import sys, os, time
-sys.path.insert(0, "/Users/hipoglisemi/Desktop/kartavantaj-scraper")
+
+# Add project root to python path
+project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if project_root not in sys.path:
+    sys.path.insert(0, project_root)
 
 from dotenv import load_dotenv
-load_dotenv("/Users/hipoglisemi/Desktop/kartavantaj-scraper/.env")
+load_dotenv(os.path.join(project_root, ".env"))
 
 from playwright.sync_api import sync_playwright
 from src.database import get_db

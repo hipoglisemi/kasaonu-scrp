@@ -8,7 +8,7 @@ Bu workflow, sistemdeki SEO özeti eksik olan tüm banka ve kartları tespit ede
 1. Bağımlılıkları ve ortam değişkenlerini kontrol et.
 2. Otomatik SEO işçisini çalıştır:
    ```bash
-   export PYTHONPATH=$PYTHONPATH:. && python3 autoseo_worker.py
+   export PYTHONPATH=$PYTHONPATH:. && python3 scripts/autoseo_worker.py
    ```
 3. Güncellenen kayıt sayısını ve başarı durumunu raporla.
 

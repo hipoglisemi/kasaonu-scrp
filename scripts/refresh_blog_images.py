@@ -1,10 +1,17 @@
 import os
+import sys
+
+# Add project root to python path
+project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if project_root not in sys.path:
+    sys.path.insert(0, project_root)
+
 import time
 import requests
 import psycopg2
 from dotenv import load_dotenv
 
-load_dotenv()
+load_dotenv(os.path.join(project_root, ".env"))
 DB_URL = os.getenv("DATABASE_URL")
 UNSPLASH_ACCESS_KEY = os.getenv("UNSPLASH_ACCESS_KEY")
 
