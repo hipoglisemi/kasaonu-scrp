@@ -203,7 +203,7 @@ def pick_best_missing_topic(trending: List[Tuple[str, int]], existing_titles: Se
         already_exists = any(keyword in t for t in existing_titles)
         if not already_exists:
             print(f"[SEÇİM] Konu: '{keyword}' (aranma: {count}x) — Henüz sayfası yok, seçildi!")
-            return str(keyword)
+            return keyword
     return None
 
 

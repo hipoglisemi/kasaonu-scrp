@@ -197,15 +197,15 @@ def generate_topics(banks: List[Any], sectors: List[Any], existing_titles: Set[s
     """Banka + sektör kombinasyonlarından yazılmamış konu listesi üret."""
     topics: List[Dict[str, Any]] = []
     for template_raw, ttype in TOPIC_TEMPLATES:
-        template = str(template_raw)
+        template = template_raw
         if ttype == "bank":
-            for bank in cast(List[Any], banks):
+            for bank in banks:
                 title = template.format(bank=bank[1], year=year)
                 slug = slugify(title)
                 if title.lower() not in existing_titles and slug not in existing_slugs:
                     topics.append({"title": title, "bank": bank, "sector": None})
         elif ttype == "sector":
-            for sector in cast(List[Any], sectors):
+            for sector in sectors:
                 title = template.format(sector=sector[1], year=year)
                 slug = slugify(title)
                 if title.lower() not in existing_titles and slug not in existing_slugs:
