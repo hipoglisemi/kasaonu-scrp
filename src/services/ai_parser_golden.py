@@ -642,6 +642,20 @@ ANALİZ EDİLECEK METİN:
                 raw_title = match.group(1).strip()
                 break # stripped the main prefix
         
+        # Hard strip Türk Telekom and Selfy suffixes from title
+        suffixes_to_strip = [
+            " | İndirimler | Selfy", 
+            " | Fırsatlar | Selfy", 
+            " | Kampanyalar | Selfy", 
+            " | Selfy",
+            " | Türk Telekom Prime",
+            " | Prime",
+            " | Türk Telekom"
+        ]
+        for suffix in suffixes_to_strip:
+            if raw_title.endswith(suffix):
+                raw_title = raw_title[:-len(suffix)].strip()
+        
         data["title"] = raw_title
         data["description"] = data.get("description") or ""
         data["ai_marketing_text"] = data.get("ai_marketing_text") or ""
