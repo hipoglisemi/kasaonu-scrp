@@ -37,6 +37,7 @@ jobs:
           GEMINI_API_KEY_7: ${{ secrets.GEMINI_API_KEY_7 }}
           USE_VERTEX_AI: "False"
           GEMINI_MODEL: ${{ vars.GEMINI_PRIMARY_MODEL }}
+          REVERSE_KEYS: "True"
         run: |
           python auto_seo_pillar_generator.py
 

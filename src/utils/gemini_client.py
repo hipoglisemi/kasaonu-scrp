@@ -83,13 +83,25 @@ def generate_with_rotation(
         config = _types.GenerateContentConfig(**kwargs) if kwargs else None
 
     keys = _load_keys()
+    
+    # Check for reverse keys env
+    reverse_keys = os.getenv("REVERSE_KEYS", "False").lower() == "true"
+    
+    # Pair keys with their original 1-based index
+    indexed_keys = [{"value": val, "original_index": i + 1} for i, val in enumerate(keys)]
+    if reverse_keys:
+        indexed_keys = list(reversed(indexed_keys))
+        print(f"[KeyLoop] 🔀 Running in Reverse Key Order (Starting from Key #{indexed_keys[0]['original_index']} down to Key #{indexed_keys[-1]['original_index']})...")
+        
     last_error: Optional[Exception] = None
     
     for current_model, model_role in models_to_try:
         if model_role == "Fallback":
             print(f"[KeyLoop] 🔄 Primary model ({primary_model_name}) failed on all keys. Switching to Fallback: {current_model}")
             
-        for idx, key in enumerate(keys):
+        for idx, key_info in enumerate(indexed_keys):
+            key = key_info["value"]
+            orig_idx = key_info["original_index"]
             try:
                 client = _sdk.Client(api_key=key)
                 response = client.models.generate_content(
@@ -99,8 +111,8 @@ def generate_with_rotation(
                 )
                 
                 # Success Log
-                if idx > 0 or model_role == "Fallback":
-                    print(f"[KeyLoop] ✨ Success with Key #{idx + 1} using {model_role} model ({current_model})")
+                if idx > 0 or model_role == "Fallback" or reverse_keys:
+                    print(f"[KeyLoop] ✨ Success with Key #{orig_idx} using {model_role} model ({current_model})")
                 return response.text.strip()
 
             except Exception as e:
@@ -117,20 +129,21 @@ def generate_with_rotation(
                     # Add jitter
                     current_delay += random.uniform(0, 2)
                     
-                    msg = f"[KeyLoop] ⚠️  Key #{idx + 1} failed for {current_model} ({type(e).__name__})."
-                    if idx + 1 < len(keys):
-                        print(f"{msg} {'(HIGH DEMAND)' if is_503 else ''} Trying next key... ({idx + 2}/{len(keys)}) | Waiting {current_delay:.1f}s...")
+                    msg = f"[KeyLoop] ⚠️  Key #{orig_idx} failed for {current_model} ({type(e).__name__})."
+                    if idx + 1 < len(indexed_keys):
+                        next_orig_idx = indexed_keys[idx + 1]["original_index"]
+                        print(f"{msg} {'(HIGH DEMAND)' if is_503 else ''} Trying next key... (Key #{next_orig_idx}) | Waiting {current_delay:.1f}s...")
                         time.sleep(current_delay)
                     else:
-                        print(f"{msg} All {len(keys)} keys exhausted for {current_model}.")
+                        print(f"{msg} All {len(indexed_keys)} keys exhausted for {current_model}.")
                     last_error = e
                     continue # Try next key
                 else:
                     # Fatal error
-                    print(f"[KeyLoop] ❌ Fatal Error with Key #{idx + 1} on {current_model}: {e}")
+                    print(f"[KeyLoop] ❌ Fatal Error with Key #{orig_idx} on {current_model}: {e}")
                     raise
 
-    raise RuntimeError(f"Tüm Gemini API anahtarları ({len(keys)} adet) denendi fakat başarısız oldu. Son hata: {last_error}")
+    raise RuntimeError(f"Tüm Gemini API anahtarları ({len(indexed_keys)} adet) denendi fakat başarısız oldu. Son hata: {last_error}")
 
 
 # ─── API Studio Client Helper ────────────────────────────────────
