@@ -147,6 +147,9 @@ def upsert_campaign(db: Session, campaign: Campaign) -> Tuple[Campaign, str]:
                 print(f"      🎉 [Date-Only Extension] Similarity is {similarity:.1%}, marking date_extended=True")
 
         existing.date_extended = is_date_only_ext
+        if is_date_only_ext and status == "revived":
+            print(f"      🎉 [Auto-Approve] Revived campaign is a Date-Only Extension. Auto-approving!")
+            existing.is_approved = True
             
         # Update fields
         existing.title = campaign.title

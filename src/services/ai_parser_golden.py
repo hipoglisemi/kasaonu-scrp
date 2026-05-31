@@ -971,6 +971,13 @@ ANALİZ EDİLECEK METİN:
                     if not existing.is_active or not existing.is_approved:
                         return None
                         
+                    # ♻️ EXPIRY CHECK BYPASS: If campaign is expiring today, tomorrow, or has already expired,
+                    # bypass cache to detect potential date extensions on the live page!
+                    from datetime import datetime, timedelta, timezone
+                    today_local = (datetime.now(timezone.utc) + timedelta(hours=3)).date()
+                    if existing.end_date and existing.end_date <= today_local + timedelta(days=1):
+                        return None
+                        
                     sector_name = "Diğer"
                     if existing.sector_id:
                         sec = db.query(Sector).filter(Sector.id == existing.sector_id).first()
