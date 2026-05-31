@@ -42,7 +42,7 @@ class _AutofixGeminiClient:
     """Wraps generate_with_rotation for AIParserGolden compatibility."""
     def __init__(self, model=None, fallback_model=None):
         # Gece otomatik tamircisi (AutoFix) için Başdenetçi Model
-        self.model = model or os.getenv("GEMINI_PRIMARY_MODEL", "gemini-3-flash-preview")
+        self.model = model or os.getenv("GEMINI_PRIMARY_MODEL", "gemini-3.1-flash-lite")
         self.fallback_model = fallback_model or os.getenv("FALLBACK_MODEL")
         
     def generate_content(self, prompt):
