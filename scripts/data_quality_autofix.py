@@ -699,7 +699,7 @@ def run_autofix(limit: int = 250, campaign_id: Optional[int] = None, force_all: 
                     ).filter(Campaign.id == c_id).first()
                     if not c:
                         print(f"\n🛠️ Skipping: [{c_id}] (Campaign no longer in DB)")
-                    return False
+                        return False
                     
                     # Onay bekleyen kampanyalar için en yüksek kaliteyi sağlamak adına force modunu aç!
                     force_campaign = FORCE_ALL or (not c.is_approved)
