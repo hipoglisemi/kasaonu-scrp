@@ -319,6 +319,12 @@ def proactive_expiry_audit():
         current_end = c["end_date"]
         html = c["html"]
         try:
+            # 🕰️ Rate Limit Staggering: Introduce a small safe random delay (1.0 to 4.0 seconds) 
+            # to make sure parallel threads don't make concurrent Gemini requests at the exact same millisecond!
+            import random
+            import time
+            time.sleep(random.uniform(1.0, 4.0))
+            
             # Call dedicated lightweight AI date extractor helper
             ai_end_date_str = extract_end_date_via_ai(c["title"], html)
             if not ai_end_date_str:
@@ -348,13 +354,12 @@ def proactive_expiry_audit():
             print(f"   ⚠️ Error auditing {c['title']} with AI: {e}")
         return False
         
-    # Sequential AI Parsing with a safe 3-second sleep between requests.
-    # This guarantees we stay comfortably under the 15 Requests Per Minute (RPM) free tier rate limit
-    # and completely avoids key exhaustion due to 429 concurrency bursts.
-    import time
-    for c in campaigns_with_html:
-        audit_single_campaign(c)
-        time.sleep(3.0)
+    # Parallel AI Parsing using ThreadPoolExecutor with 3 workers.
+    # Staggered with random delays inside the thread function to stay strictly under the 15 RPM limit.
+    with ThreadPoolExecutor(max_workers=3) as executor:
+        ai_futures = [executor.submit(audit_single_campaign, c) for c in campaigns_with_html]
+        for future in as_completed(ai_futures):
+            pass
             
     print(f"✅ Proactive Expiry Audit complete. Extended {extended_count} campaigns.")
 
