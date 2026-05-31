@@ -5,6 +5,7 @@ from datetime import datetime, timedelta, timezone
 import requests
 import urllib3
 from concurrent.futures import ThreadPoolExecutor, as_completed
+import threading
 import time
 
 # Setup path to include project root for src.* imports
@@ -110,6 +111,7 @@ def proactive_expiry_audit(max_audits=2000):
     """
     print("🕰️ Starting Proactive Expiry Audit (Grace Period check via AI)...")
     today = (datetime.now(timezone.utc) + timedelta(hours=3)).date()
+    session_start = datetime.now(timezone.utc)  # Track when THIS run started
     
     # Fetch campaigns expiring strictly today
     campaigns_to_audit = []
@@ -117,9 +119,10 @@ def proactive_expiry_audit(max_audits=2000):
         with get_db_session() as db:
             soon_expiring = db.query(Campaign).filter(
                 Campaign.is_active == True,
-                Campaign.end_date >= today - timedelta(days=1),
-                Campaign.end_date <= today,
-                Campaign.tracking_url.isnot(None)
+                Campaign.end_date >= today,                    # Bugün biten kampanyalar
+                Campaign.end_date <= today + timedelta(days=1), # ve Yarın biten kampanyalar
+                Campaign.tracking_url.isnot(None),
+                Campaign.updated_at < session_start  # Bu seansta zaten analiz edilenleri atla
             ).all()
             
             campaigns_to_audit = [
@@ -173,56 +176,73 @@ def proactive_expiry_audit(max_audits=2000):
             if res:
                 campaigns_with_html.append(res)
                  
-    print(f"📥 Successfully fetched {len(campaigns_with_html)} pages. Starting AI parsing sequentially...")
-    
-    for idx, c in enumerate(campaigns_with_html):
-        url = c["url"]
+    print(f"📥 Successfully fetched {len(campaigns_with_html)} pages. Starting AI parsing with 9 parallel workers...")
+
+    extended_count = 0
+    processed_count = 0
+    lock = threading.Lock()
+    total = len(campaigns_with_html)
+
+    def audit_one(c):
+        """Audit a single campaign: sleep → AI parse → DB update. Thread-safe."""
         current_end = c["end_date"]
-        html = c["html"]
         try:
-            print(f"\n🔍 [Audit] ID: #{c['id']} | Current End: {current_end} | Title: {c['title'][:60]}")
-            
-            # Fixed 5s sleep to stay safe under 15 RPM
-            if idx > 0:
-                time.sleep(5.0)
-            
-            clean_text = clean_html_to_text(html)
+            # Each worker sleeps 5s before its AI call → 9 workers × 12 RPM = 108 RPM total
+            # Distributed across 9 API keys = 12 RPM/key, safely under 15 RPM limit
+            time.sleep(5.0)
+
+            clean_text = clean_html_to_text(c["html"])
             ai_end_date_str = extract_end_date_via_ai(c["title"], clean_text)
+
             if not ai_end_date_str:
-                print(f"   ❌ No end date found in page text for ID: #{c['id']}")
-                continue
-                
+                print(f"   ❌ No end date found | ID: #{c['id']} | {c['title'][:50]}")
+                return False
+
             try:
                 latest_date = datetime.strptime(ai_end_date_str, "%Y-%m-%d").date()
             except ValueError:
-                print(f"   ❌ Malformed end date returned from AI: {ai_end_date_str}")
-                continue
-            
-            # Safety range: must be strictly later than current_end and no more than 1 year in the future
+                print(f"   ❌ Malformed date from AI: {ai_end_date_str} | ID: #{c['id']}")
+                return False
+
+            # Safety: must be strictly later than current end, max 1 year ahead
             if latest_date > current_end and latest_date <= today + timedelta(days=365):
-                print(f"   🎉 Campaign Extended via AI! '{c['title']}'")
-                print(f"      Old End Date: {current_end} ➔ New End Date: {latest_date}")
-                
-                # Update in DB
+                print(f"   🎉 Extended! #{c['id']} | {current_end} ➔ {latest_date} | {c['title'][:50]}")
                 with get_db_session() as db:
                     db_camp = db.query(Campaign).filter(Campaign.id == c["id"]).first()
                     if db_camp:
                         db_camp.end_date = latest_date
-                        db_camp.clean_text = clean_text  # Save the fresh clean text!
-                        db_camp.date_extended = True     # Fall to extended screen!
-                        db_camp.is_approved = True      # Keep approved and live!
+                        db_camp.clean_text = clean_text
+                        db_camp.date_extended = True
+                        db_camp.is_approved = True
                         db_camp.updated_at = datetime.now()
                         db.commit()
-                        extended_count += 1
+                return True
             else:
-                print(f"   ℹ️ Not extended. AI Parsed Date: {latest_date} | Reason: Not later than current end ({current_end}) or exceeds safety limit.")
+                print(f"   ℹ️ Not extended | #{c['id']} | AI date: {latest_date} (current: {current_end})")
+                # Touch updated_at so this campaign is skipped on any rerun today
+                with get_db_session() as db:
+                    db_camp = db.query(Campaign).filter(Campaign.id == c["id"]).first()
+                    if db_camp:
+                        db_camp.updated_at = datetime.now()
+                        db.commit()
+                return False
+
         except Exception as e:
-            print(f"   ⚠️ Error auditing {c['title']} with AI: {e}")
-            
-        if (idx + 1) % 25 == 0:
-            print(f"   📊 Progress: {idx + 1}/{len(campaigns_with_html)} audited, {extended_count} extended so far...")
-            
-    print(f"✅ Proactive Expiry Audit complete. Extended {extended_count} campaigns.")
+            print(f"   ⚠️ Error | #{c['id']} | {c['title'][:50]} | {e}")
+            return False
+
+    with ThreadPoolExecutor(max_workers=9) as executor:
+        futures = {executor.submit(audit_one, c): c for c in campaigns_with_html}
+        for future in as_completed(futures):
+            result = future.result()
+            with lock:
+                processed_count += 1
+                if result:
+                    extended_count += 1
+                if processed_count % 25 == 0:
+                    print(f"   📊 Progress: {processed_count}/{total} audited, {extended_count} extended so far...")
+
+    print(f"✅ Proactive Expiry Audit complete. Extended {extended_count}/{total} campaigns.")
 
 if __name__ == "__main__":
     max_audits = 2000

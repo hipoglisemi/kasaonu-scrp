@@ -43,12 +43,13 @@ jobs:
         GEMINI_API_KEY_5: ${{ secrets.GEMINI_API_KEY_5 }}
         GEMINI_API_KEY_6: ${{ secrets.GEMINI_API_KEY_6 }}
         GEMINI_API_KEY_7: ${{ secrets.GEMINI_API_KEY_7 }}
+        GEMINI_API_KEY_8: ${{ secrets.GEMINI_API_KEY_8 }}
         REVERSE_KEYS: "False"
       run: |
         # Use dispatch input or default to 2000
         MAX_AUDITS="${{ github.event.inputs.max_audits || '2000' }}"
         echo "🚀 Running proactive expiry audit with max_audits=$MAX_AUDITS"
-        python scripts/proactive_expiry_audit.py $MAX_AUDITS
+        python -u scripts/proactive_expiry_audit.py $MAX_AUDITS
 
     - name: Bildirim Gönder
       if: always()
