@@ -166,7 +166,7 @@ def upsert_campaign(db: Session, campaign: Campaign) -> Tuple[Campaign, str]:
             # only update fields if the new parsed fields are NOT empty/broken.
             # This protects populated DB columns from being overwritten by empty/junk scraper data.
             
-            def _update_if_better(field_name: str, new_val: any):
+            def _update_if_better(field_name: str, new_val: Any):
                 old_val = getattr(existing, field_name)
                 # Convert string values to stripped versions for checking
                 old_str = str(old_val).strip() if old_val is not None else ""
