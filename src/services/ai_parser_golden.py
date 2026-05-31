@@ -464,19 +464,33 @@ ANALİZ EDİLECEK METİN:
 
     # ── JSON EXTRACTOR ───────────────────────────────────────────────
     def _extract_json(self, text: str) -> Dict[str, Any]:
-        """Robust JSON extractor with bracket counting."""
+        """Robust JSON extractor with bracket counting and auto-repairing for malformed JSON strings."""
+        if not text:
+            return {}
+            
+        cleaned_text = text.strip()
+        
+        # Clean markdown codeblocks if present
+        if cleaned_text.startswith("```"):
+            lines = cleaned_text.split("\n")
+            if lines[0].startswith("```"):
+                lines = lines[1:]
+            if lines and lines[-1].startswith("```"):
+                lines = lines[:-1]
+            cleaned_text = "\n".join(lines).strip()
+
         try:
-            start = text.find('{')
+            start = cleaned_text.find('{')
             if start == -1:
-                return json.loads(text)
+                return {}
 
             depth = 0
             in_string = False
             escape_next = False
             end = start
 
-            for i in range(start, len(text)):
-                c = text[i]
+            for i in range(start, len(cleaned_text)):
+                c = cleaned_text[i]
                 if escape_next:
                     escape_next = False
                     continue
@@ -496,9 +510,48 @@ ANALİZ EDİLECEK METİN:
                         end = i
                         break
 
-            return json.loads(text[start:end + 1])
+            json_str = cleaned_text[start:end + 1]
+            
+            # --- AUTO REPAIR MALFORMED JSON ---
+            # 1. Replace single quotes around keys or string values with double quotes
+            import re
+            # Regex to find single quoted keys or values and replace with double quotes:
+            # Matches single quoted strings, avoiding replacing inner apostrophes (e.g. Domino's stays Domino's if not fully single quoted)
+            # This is a safe heuristic for common Gemini single-quote outputs.
+            def fix_single_quotes(s):
+                # Replace single quotes on key names e.g., 'reward_value': -> "reward_value":
+                s = re.sub(r"'([^'\n\r]+)'\s*:", r'"\1":', s)
+                # Replace single quotes on string values e.g., : 'indirim' -> : "indirim"
+                s = re.sub(r":\s*'([^'\n\r]*)'", r': "\1"', s)
+                # Replace single quotes in lists e.g., ['a', 'b'] -> ["a", "b"]
+                s = re.sub(r"'\s*([^',\n\r]*)\s*'", r'"\1"', s)
+                return s
+
+            try:
+                return json.loads(json_str)
+            except json.JSONDecodeError:
+                # If direct loading failed, apply quote repair rules
+                repaired_str = fix_single_quotes(json_str)
+                # Ensure Python-style None/True/False are converted to JSON null/true/false
+                repaired_str = repaired_str.replace(": None", ": null").replace(": True", ": true").replace(": False", ": false")
+                try:
+                    return json.loads(repaired_str)
+                except Exception as e2:
+                    # Last ditch fallback: Try simple raw string repairs
+                    # If it has single quotes at all, convert them simply:
+                    if "'" in json_str:
+                        double_quoted = json_str.replace("'", '"')
+                        try:
+                            return json.loads(double_quoted)
+                        except:
+                            pass
+                    raise e2
+                    
         except Exception as e:
             logger.error(f"JSON Parsing failed: {e}")
+            # Try to log a snippet of the failed text for easier debugging
+            snippet = cleaned_text[:150] + "..." if len(cleaned_text) > 150 else cleaned_text
+            logger.error(f"Failed string was: {snippet}")
             return {}
 
     # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
