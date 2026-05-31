@@ -279,8 +279,9 @@ def proactive_expiry_audit():
     # Sort campaigns to prioritize those expiring earliest
     campaigns_to_audit.sort(key=lambda x: x["end_date"])
     
-    # Capping AI audits per run to prevent 6-hour GitHub Actions timeout.
-    MAX_AUDITS_PER_RUN = 2000
+    # Safe cap: process max 150 campaigns per run.
+    # With 6 keys × ~500 RPD each, this is well within daily limits even if other workflows ran.
+    MAX_AUDITS_PER_RUN = 150
     if len(campaigns_to_audit) > MAX_AUDITS_PER_RUN:
         print(f"⚡ Capping AI audits to the top {MAX_AUDITS_PER_RUN} soonest-expiring campaigns.")
         campaigns_to_audit = campaigns_to_audit[:MAX_AUDITS_PER_RUN]
@@ -308,47 +309,31 @@ def proactive_expiry_audit():
             if res:
                 campaigns_with_html.append(res)
                 
-    print(f"📥 Successfully fetched {len(campaigns_with_html)} pages. Starting AI parsing in parallel...")
+    print(f"📥 Successfully fetched {len(campaigns_with_html)} pages. Starting AI parsing sequentially (1 worker)...")
     
-    import threading
     import time as _time
-    extended_lock = threading.Lock()
-    # Track if each worker group has already made its first call (for startup offset)
-    _worker_first_call_done = {}
-    _worker_first_call_lock = threading.Lock()
     
-    def audit_single_campaign(c):
-        nonlocal extended_count
+    # 🔧 SEQUENTIAL PROCESSING: Single worker, all keys via rotation, 5s fixed delay.
+    # This is the safest approach to avoid burst throttling on free-tier Gemini API keys.
+    for idx, c in enumerate(campaigns_with_html):
         url = c["url"]
         current_end = c["end_date"]
         html = c["html"]
         try:
-            # 🚀 Startup Offset: First campaign of each worker group gets a staggered initial delay
-            # to prevent all 3 workers from bursting the API simultaneously at startup.
-            # Worker group [8,7] → 0s offset, [6,5] → 5s offset, [4,3] → 10s offset
-            key_group = tuple(c.get("key_indices", []))
-            startup_offset = 0
-            with _worker_first_call_lock:
-                if key_group not in _worker_first_call_done:
-                    group_offsets = {(8, 7): 0, (6, 5): 5, (4, 3): 10}
-                    startup_offset = group_offsets.get(key_group, 0)
-                    _worker_first_call_done[key_group] = True
-                    if startup_offset > 0:
-                        print(f"   ⏳ [Startup Offset] Worker {key_group} waiting {startup_offset}s before first call...")
-
-            # 🕰️ Sleep: startup offset (first call only) + fixed 4s between requests
-            # 4s = 60s / 15 RPM → exactly at the safe limit per key
-            _time.sleep(startup_offset + 4.0)
+            # 🕰️ Fixed 5s sleep between each request to stay well under 15 RPM per key.
+            # gemini_client.py rotates through all available keys automatically.
+            if idx > 0:
+                _time.sleep(5.0)
             
-            # Call dedicated lightweight AI date extractor helper with thread-specific keys
-            ai_end_date_str = extract_end_date_via_ai(c["title"], html, key_indices=c.get("key_indices"))
+            # Call AI date extractor — uses ALL keys via generate_with_rotation (no key_indices)
+            ai_end_date_str = extract_end_date_via_ai(c["title"], html)
             if not ai_end_date_str:
-                return False
+                continue
                 
             try:
                 latest_date = datetime.strptime(ai_end_date_str, "%Y-%m-%d").date()
             except ValueError:
-                return False
+                continue
             
             # Safety range: must be strictly later than current_end and no more than 1 year in the future
             if latest_date > current_end and latest_date <= today + timedelta(days=365):
@@ -362,31 +347,13 @@ def proactive_expiry_audit():
                         db_camp.end_date = latest_date
                         db_camp.updated_at = datetime.now()
                         db.commit()
-                        with extended_lock:
-                            extended_count += 1
-                        return True
+                        extended_count += 1
         except Exception as e:
             print(f"   ⚠️ Error auditing {c['title']} with AI: {e}")
-        return False
-        
-    # Assign thread-specific api keys partition round-robin to avoid cross-thread key collision:
-    # Thread 1 (Worker 0) -> uses Key #8 and Key #7
-    # Thread 2 (Worker 1) -> uses Key #6 and Key #5
-    # Thread 3 (Worker 2) -> uses Key #4 and Key #3
-    for i, c in enumerate(campaigns_with_html):
-        if i % 3 == 0:
-            c["key_indices"] = [8, 7]
-        elif i % 3 == 1:
-            c["key_indices"] = [6, 5]
-        else:
-            c["key_indices"] = [4, 3]
-
-    # Parallel AI Parsing: 3 workers, each with dedicated key pair.
-    # Fixed 4s sleep between requests + 5s startup offset between workers.
-    with ThreadPoolExecutor(max_workers=3) as executor:
-        ai_futures = [executor.submit(audit_single_campaign, c) for c in campaigns_with_html]
-        for future in as_completed(ai_futures):
-            pass
+            
+        # Progress log every 25 campaigns
+        if (idx + 1) % 25 == 0:
+            print(f"   📊 Progress: {idx + 1}/{len(campaigns_with_html)} audited, {extended_count} extended so far...")
             
     print(f"✅ Proactive Expiry Audit complete. Extended {extended_count} campaigns.")
 
