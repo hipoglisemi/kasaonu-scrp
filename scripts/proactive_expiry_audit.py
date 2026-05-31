@@ -179,6 +179,8 @@ def proactive_expiry_audit(max_audits=2000):
         current_end = c["end_date"]
         html = c["html"]
         try:
+            print(f"\n🔍 [Audit] ID: #{c['id']} | Current End: {current_end} | Title: {c['title'][:60]}")
+            
             # Fixed 5s sleep to stay safe under 15 RPM
             if idx > 0:
                 time.sleep(5.0)
@@ -186,11 +188,13 @@ def proactive_expiry_audit(max_audits=2000):
             clean_text = clean_html_to_text(html)
             ai_end_date_str = extract_end_date_via_ai(c["title"], clean_text)
             if not ai_end_date_str:
+                print(f"   ❌ No end date found in page text for ID: #{c['id']}")
                 continue
                 
             try:
                 latest_date = datetime.strptime(ai_end_date_str, "%Y-%m-%d").date()
             except ValueError:
+                print(f"   ❌ Malformed end date returned from AI: {ai_end_date_str}")
                 continue
             
             # Safety range: must be strictly later than current_end and no more than 1 year in the future
@@ -209,6 +213,8 @@ def proactive_expiry_audit(max_audits=2000):
                         db_camp.updated_at = datetime.now()
                         db.commit()
                         extended_count += 1
+            else:
+                print(f"   ℹ️ Not extended. AI Parsed Date: {latest_date} | Reason: Not later than current end ({current_end}) or exceeds safety limit.")
         except Exception as e:
             print(f"   ⚠️ Error auditing {c['title']} with AI: {e}")
             
