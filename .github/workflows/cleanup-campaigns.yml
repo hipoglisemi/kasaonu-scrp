@@ -5,8 +5,8 @@ on:
     paths:
       - '.github/workflows/cleanup-campaigns.yml'
   schedule:
-    # TSİ 01:00 (UTC 22:00) - Audit'ten hemen sonra çalışır
-    - cron: '0 22 * * *'
+    # TSİ 07:00 (UTC 04:00) - Tüm Scraper taramalarından sonra çalışır
+    - cron: '0 4 * * *'
   workflow_dispatch: # Allow manual trigger
 
 jobs:
