@@ -167,7 +167,7 @@ def clean_html_to_text(html: str) -> str:
     text = re.sub(r'\s+', ' ', text).strip()
     return text[:8000] # Limit to 8000 characters to keep prompt/tokens tiny
 
-def extract_end_date_via_ai(title: str, html: str, key_indices: list[int] | None = None) -> str | None:
+def extract_end_date_via_ai(title: str, html: str, key_indices=None):  # key_indices: list[int] | None
     """
     Extracts only the campaign end date from the campaign HTML text using Gemini.
     Returns date string in YYYY-MM-DD format, or None if not found/error.
@@ -279,11 +279,10 @@ def proactive_expiry_audit():
     # Sort campaigns to prioritize those expiring earliest
     campaigns_to_audit.sort(key=lambda x: x["end_date"])
     
-    # Cap AI audits per run to prevent exhausting the Gemini 500-requests-per-day free tier quota!
-    # 150 is the perfect safety sweet spot for manual triggers or transition days.
-    MAX_AUDITS_PER_RUN = 150
+    # Capping AI audits per run to prevent 6-hour GitHub Actions timeout.
+    MAX_AUDITS_PER_RUN = 2000
     if len(campaigns_to_audit) > MAX_AUDITS_PER_RUN:
-        print(f"⚡ Capping AI audits to the top {MAX_AUDITS_PER_RUN} soonest-expiring campaigns to prevent daily quota exhaustion.")
+        print(f"⚡ Capping AI audits to the top {MAX_AUDITS_PER_RUN} soonest-expiring campaigns.")
         campaigns_to_audit = campaigns_to_audit[:MAX_AUDITS_PER_RUN]
     extended_count = 0
     session = requests.Session()
@@ -312,7 +311,11 @@ def proactive_expiry_audit():
     print(f"📥 Successfully fetched {len(campaigns_with_html)} pages. Starting AI parsing in parallel...")
     
     import threading
+    import time as _time
     extended_lock = threading.Lock()
+    # Track if each worker group has already made its first call (for startup offset)
+    _worker_first_call_done = {}
+    _worker_first_call_lock = threading.Lock()
     
     def audit_single_campaign(c):
         nonlocal extended_count
@@ -320,11 +323,22 @@ def proactive_expiry_audit():
         current_end = c["end_date"]
         html = c["html"]
         try:
-            # 🕰️ Rate Limit Staggering: Introduce a small safe random delay (1.0 to 4.0 seconds) 
-            # to make sure parallel threads don't make concurrent Gemini requests at the exact same millisecond!
-            import random
-            import time
-            time.sleep(random.uniform(1.0, 4.0))
+            # 🚀 Startup Offset: First campaign of each worker group gets a staggered initial delay
+            # to prevent all 3 workers from bursting the API simultaneously at startup.
+            # Worker group [8,7] → 0s offset, [6,5] → 5s offset, [4,3] → 10s offset
+            key_group = tuple(c.get("key_indices", []))
+            startup_offset = 0
+            with _worker_first_call_lock:
+                if key_group not in _worker_first_call_done:
+                    group_offsets = {(8, 7): 0, (6, 5): 5, (4, 3): 10}
+                    startup_offset = group_offsets.get(key_group, 0)
+                    _worker_first_call_done[key_group] = True
+                    if startup_offset > 0:
+                        print(f"   ⏳ [Startup Offset] Worker {key_group} waiting {startup_offset}s before first call...")
+
+            # 🕰️ Sleep: startup offset (first call only) + fixed 4s between requests
+            # 4s = 60s / 15 RPM → exactly at the safe limit per key
+            _time.sleep(startup_offset + 4.0)
             
             # Call dedicated lightweight AI date extractor helper with thread-specific keys
             ai_end_date_str = extract_end_date_via_ai(c["title"], html, key_indices=c.get("key_indices"))
@@ -367,8 +381,8 @@ def proactive_expiry_audit():
         else:
             c["key_indices"] = [4, 3]
 
-    # Parallel AI Parsing using ThreadPoolExecutor with 3 workers.
-    # Staggered with random delays inside the thread function to stay strictly under the 15 RPM limit.
+    # Parallel AI Parsing: 3 workers, each with dedicated key pair.
+    # Fixed 4s sleep between requests + 5s startup offset between workers.
     with ThreadPoolExecutor(max_workers=3) as executor:
         ai_futures = [executor.submit(audit_single_campaign, c) for c in campaigns_with_html]
         for future in as_completed(ai_futures):
