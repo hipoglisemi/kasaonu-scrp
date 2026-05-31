@@ -279,11 +279,11 @@ def proactive_expiry_audit():
     # Sort campaigns to prioritize those expiring earliest
     campaigns_to_audit.sort(key=lambda x: x["end_date"])
     
-    # Capping AI audits per run to prevent 6-hour GitHub Actions timeout
-    # Increased to 2000 because we process AI parsing in parallel now!
-    MAX_AUDITS_PER_RUN = 2000
+    # Cap AI audits per run to prevent exhausting the Gemini 500-requests-per-day free tier quota!
+    # 150 is the perfect safety sweet spot for manual triggers or transition days.
+    MAX_AUDITS_PER_RUN = 150
     if len(campaigns_to_audit) > MAX_AUDITS_PER_RUN:
-        print(f"⚡ Capping AI audits to the top {MAX_AUDITS_PER_RUN} soonest-expiring campaigns to prevent workflow timeout.")
+        print(f"⚡ Capping AI audits to the top {MAX_AUDITS_PER_RUN} soonest-expiring campaigns to prevent daily quota exhaustion.")
         campaigns_to_audit = campaigns_to_audit[:MAX_AUDITS_PER_RUN]
     extended_count = 0
     session = requests.Session()
