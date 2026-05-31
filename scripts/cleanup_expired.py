@@ -167,7 +167,7 @@ def clean_html_to_text(html: str) -> str:
     text = re.sub(r'\s+', ' ', text).strip()
     return text[:8000] # Limit to 8000 characters to keep prompt/tokens tiny
 
-def extract_end_date_via_ai(title: str, html: str) -> str | None:
+def extract_end_date_via_ai(title: str, html: str, key_indices: list[int] = None) -> str | None:
     """
     Extracts only the campaign end date from the campaign HTML text using Gemini.
     Returns date string in YYYY-MM-DD format, or None if not found/error.
@@ -213,7 +213,8 @@ GÖREV: Sayfa metnini ve kampanya başlığını inceleyerek kampanyanın son ge
         result_str = generate_with_rotation(
             prompt=prompt,
             model="models/gemini-3.1-flash-lite",
-            config=config
+            config=config,
+            key_indices=key_indices
         )
         
         if not result_str:
@@ -325,8 +326,8 @@ def proactive_expiry_audit():
             import time
             time.sleep(random.uniform(1.0, 4.0))
             
-            # Call dedicated lightweight AI date extractor helper
-            ai_end_date_str = extract_end_date_via_ai(c["title"], html)
+            # Call dedicated lightweight AI date extractor helper with thread-specific keys
+            ai_end_date_str = extract_end_date_via_ai(c["title"], html, key_indices=c.get("key_indices"))
             if not ai_end_date_str:
                 return False
                 
@@ -354,6 +355,18 @@ def proactive_expiry_audit():
             print(f"   ⚠️ Error auditing {c['title']} with AI: {e}")
         return False
         
+    # Assign thread-specific api keys partition round-robin to avoid cross-thread key collision:
+    # Thread 1 (Worker 0) -> uses Key #8 and Key #7
+    # Thread 2 (Worker 1) -> uses Key #6 and Key #5
+    # Thread 3 (Worker 2) -> uses Key #4 and Key #3
+    for i, c in enumerate(campaigns_with_html):
+        if i % 3 == 0:
+            c["key_indices"] = [8, 7]
+        elif i % 3 == 1:
+            c["key_indices"] = [6, 5]
+        else:
+            c["key_indices"] = [4, 3]
+
     # Parallel AI Parsing using ThreadPoolExecutor with 3 workers.
     # Staggered with random delays inside the thread function to stay strictly under the 15 RPM limit.
     with ThreadPoolExecutor(max_workers=3) as executor:

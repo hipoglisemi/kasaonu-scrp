@@ -84,14 +84,19 @@ def generate_with_rotation(
 
     keys = _load_keys()
     
-    # Check for reverse keys env
-    reverse_keys = os.getenv("REVERSE_KEYS", "False").lower() == "true"
-    
     # Pair keys with their original 1-based index
     indexed_keys = [{"value": val, "original_index": i + 1} for i, val in enumerate(keys)]
-    if reverse_keys:
-        indexed_keys = list(reversed(indexed_keys))
-        print(f"[KeyLoop] 🔀 Running in Reverse Key Order (Starting from Key #{indexed_keys[0]['original_index']} down to Key #{indexed_keys[-1]['original_index']})...")
+    
+    # Check if a custom subset of 1-based key indices is specified (e.g. key_indices=[8, 7])
+    key_indices = kwargs.pop("key_indices", None)
+    if key_indices:
+        indexed_keys = [ik for idx in key_indices for ik in indexed_keys if ik["original_index"] == idx]
+    else:
+        # Check for reverse keys env
+        reverse_keys = os.getenv("REVERSE_KEYS", "False").lower() == "true"
+        if reverse_keys:
+            indexed_keys = list(reversed(indexed_keys))
+            print(f"[KeyLoop] 🔀 Running in Reverse Key Order (Starting from Key #{indexed_keys[0]['original_index']} down to Key #{indexed_keys[-1]['original_index']})...")
         
     last_error: Optional[Exception] = None
     
