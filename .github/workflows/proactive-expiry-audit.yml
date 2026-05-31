@@ -12,7 +12,7 @@ on:
       max_audits:
         description: 'Maksimum taranacak kampanya sayısı (Kota limitini korumak için)'
         required: true
-        default: '150'
+        default: '2000'
 
 jobs:
   proactive-expiry-audit:

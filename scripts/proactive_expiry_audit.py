@@ -102,25 +102,23 @@ GÖREV: Sayfa metnini ve kampanya başlığını inceleyerek kampanyanın son ge
         print(f"      ⚠️  Tarih çıkartma hatası: {e}")
         return None
 
-def proactive_expiry_audit(max_audits=150):
+def proactive_expiry_audit(max_audits=2000):
     """
-    Checks campaigns expiring soon (within next 3 days or today).
+    Checks campaigns expiring TODAY.
     Fetches their tracking URL and parses them with AI to get the actual end_date.
     If a date in the future (later than current end_date) is found, updates it.
     This prevents unnecessary deactivations and rescraping/AI parsing cost.
     """
     print("🕰️ Starting Proactive Expiry Audit (Grace Period check via AI)...")
     today = (datetime.now(timezone.utc) + timedelta(hours=3)).date()
-    audit_end = today + timedelta(days=3)
     
-    # Fetch campaigns expiring soon
+    # Fetch campaigns expiring strictly today
     campaigns_to_audit = []
     try:
         with get_db_session() as db:
             soon_expiring = db.query(Campaign).filter(
                 Campaign.is_active == True,
-                Campaign.end_date >= today,
-                Campaign.end_date <= audit_end,
+                Campaign.end_date == today,
                 Campaign.tracking_url.isnot(None)
             ).all()
             
@@ -217,7 +215,7 @@ def proactive_expiry_audit(max_audits=150):
     print(f"✅ Proactive Expiry Audit complete. Extended {extended_count} campaigns.")
 
 if __name__ == "__main__":
-    max_audits = 150
+    max_audits = 2000
     if len(sys.argv) > 1:
         try:
             max_audits = int(sys.argv[1])
