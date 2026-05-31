@@ -117,7 +117,8 @@ def proactive_expiry_audit(max_audits=2000):
         with get_db_session() as db:
             soon_expiring = db.query(Campaign).filter(
                 Campaign.is_active == True,
-                Campaign.end_date == today,
+                Campaign.end_date >= today - timedelta(days=1),
+                Campaign.end_date <= today,
                 Campaign.tracking_url.isnot(None)
             ).all()
             
