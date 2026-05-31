@@ -236,15 +236,10 @@ GÖREV: Sayfa metnini ve kampanya başlığını inceleyerek kampanyanın son ge
         return None
 
 def proactive_expiry_audit():
-    """
-    Checks campaigns expiring soon (within next 3 days or today).
-    Fetches their tracking URL and parses them with AI to get the actual end_date.
-    If a date in the future (later than current end_date) is found, updates it.
-    This prevents unnecessary deactivations and rescraping/AI parsing cost.
-    """
+    # Fetch campaigns expiring soon (Only check today or tomorrow to avoid draining daily RPD limit)
     print("🕰️ Stage -1: Starting Proactive Expiry Audit (Grace Period check via AI)...")
     today = (datetime.now(timezone.utc) + timedelta(hours=3)).date()
-    audit_end = today + timedelta(days=3)
+    audit_end = today + timedelta(days=1)
     
     # Fetch campaigns expiring soon
     campaigns_to_audit = []
@@ -271,7 +266,7 @@ def proactive_expiry_audit():
         return
         
     if not campaigns_to_audit:
-        print("✅ No campaigns expiring within the next 3 days.")
+        print("✅ No campaigns expiring today or tomorrow.")
         return
         
     print(f"🔍 Found {len(campaigns_to_audit)} campaigns expiring soon. Checking for extension using AI...")
@@ -279,8 +274,8 @@ def proactive_expiry_audit():
     # Sort campaigns to prioritize those expiring earliest
     campaigns_to_audit.sort(key=lambda x: x["end_date"])
     
-    # Capping AI audits per run to prevent 6-hour GitHub Actions timeout.
-    MAX_AUDITS_PER_RUN = 2000
+    # Capping AI audits per run to prevent draining daily Gemini RPD (Free limit: 500 per key)
+    MAX_AUDITS_PER_RUN = 150
     if len(campaigns_to_audit) > MAX_AUDITS_PER_RUN:
         print(f"⚡ Capping AI audits to the top {MAX_AUDITS_PER_RUN} soonest-expiring campaigns.")
         campaigns_to_audit = campaigns_to_audit[:MAX_AUDITS_PER_RUN]
