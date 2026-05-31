@@ -474,7 +474,7 @@ def run_autofix(limit: int = 250, campaign_id: Optional[int] = None, force_all: 
                             window = text[max(0,m.start()-200):m.end()+200]
                             if not any(n in window for n in negation_markers):
                                 return False  # at least one non-negated occurrence
-                        return True  # all occurrences are in negation context
+                            return True  # all occurrences are in negation context
 
                     found_cards = [k for k in found_cards if not _keyword_only_in_negation(k, clean_lower)]
 
@@ -680,649 +680,671 @@ def run_autofix(limit: int = 250, campaign_id: Optional[int] = None, force_all: 
                 
         fixed_count = 0
             
-        for c_id, tracking_url, reasons_list in to_fix_ids:
-            summary_reasons = ", ".join(reasons_list)
-            
-            with get_db_session() as db:
-                c = db.query(Campaign).options(
-                    joinedload(Campaign.card).joinedload(Card.bank),
-                    joinedload(Campaign.sector),
-                    joinedload(Campaign.brands)
-                ).filter(Campaign.id == c_id).first()
-                if not c:
-                    print(f"\n🛠️ Skipping: [{c_id}] (Campaign no longer in DB)")
-                    continue
-                
-                # Onay bekleyen kampanyalar için en yüksek kaliteyi sağlamak adına force modunu aç!
-                force_campaign = FORCE_ALL or (not c.is_approved)
-                    
-                print(f"\n🛠️ Fixing: [{c.id}] {c.title[:40]}... (Reasons: {summary_reasons})")
-                print(f"   🔗 URL: {c.tracking_url}")
-                
-                # Determine if we need a fresh fetch (Rescue)
-                is_truncated = any("Short/Truncated Source Text" in r for r in reasons_list)
-                text_to_parse = ""
-                
-                # Force rescue if campaign_id is specifically requested (UI Repair Button)
-                # 🛑 EXCEPTION: SPA domains (maximum.com.tr etc.) must NEVER force live fetch
-                # because requests-based fetching returns broken/partial JS content.
-                spa_domains_block = ["maximum.com.tr", "maximiles.com.tr", "privia.com.tr", "worldcard.com.tr"]
-                is_spa_url = any(spa in (c.tracking_url or "") for spa in spa_domains_block)
-                db_text_len = len(c.clean_text) if c.clean_text else 0
-                
-                is_rescue_active = force_rescue
-                
-                # Eğer kampanya 3. denemeden sonra da düzeltilemediyse (yani repair_count >= 3 ise, 4. deneme ve sonrası),
-                # veritabanındaki yetersiz/eksik clean_text'i baypas edip siteden sıfırdan canlı HTML çekiyoruz (rescue).
-                if (c.repair_count or 0) >= 3:
-                    is_rescue_active = True
-                    print(f"   💡 Defective after {c.repair_count} attempts: Forcing live rescue fetch from scratch.")
+        import threading
+        from concurrent.futures import ThreadPoolExecutor, as_completed
+        lock = threading.Lock()
+        fixed_count_arr = [0]
 
-                if is_spa_url and db_text_len > 600:
-                    is_rescue_active = False  # Never force-fetch SPAs with good DB data
-                    print(f"   🔒 SPA domain detected. Force-rescue disabled. Using DB text ({db_text_len} chars).")
+        def process_campaign(args):
+                item, worker_idx = args
+                c_id, tracking_url, reasons_list = item
+                thread_local.key_index = (worker_idx % 8) + 1
+                summary_reasons = ", ".join(reasons_list)
                 
-                # Initialize repair metadata
-                repair_meta = {"source": "DB", "status": "CLEAN_TEXT_USED"}
-                og_title = None
-                
-                if c.clean_text and len(c.clean_text) >= 600 and not is_truncated and not mojibake_pattern.search(c.clean_text) and not is_rescue_active and not force_campaign:
-                    print(f"   ⚡ Using pre-cleaned text from DB ({len(c.clean_text)} chars)")
-                    text_to_parse = c.clean_text
-                else:
-                    print(f"   🌐 Logic: RESCUE! (Force mode or text issue). Fetching fresh HTML...")
+                with get_db_session() as db:
+                    c = db.query(Campaign).options(
+                        joinedload(Campaign.card).joinedload(Card.bank),
+                        joinedload(Campaign.sector),
+                        joinedload(Campaign.brands)
+                    ).filter(Campaign.id == c_id).first()
+                    if not c:
+                        print(f"\n🛠️ Skipping: [{c_id}] (Campaign no longer in DB)")
+                    return False
                     
-                    # Step 1: Fetch raw HTML for title
-                    try:
-                        import urllib3
-                        urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
-                        headers = {
-                            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36',
-                        }
-                        _raw_resp = requests.get(c.tracking_url, headers=headers, timeout=15, verify=False)
-                        _raw_resp.raise_for_status()
-                        from bs4 import BeautifulSoup as _BS
-                        _raw_soup = _BS(_raw_resp.text, "html.parser")
-                        # 🛡️ Skip H1 title extraction for Opet as it's usually generic "Kampanyalar"
-                        if "opet" not in (c.tracking_url or "").lower():
-                            _h1s = _raw_soup.find_all('h1')
-                            _h1 = None
-                            for h in _h1s:
-                                h_text = h.get_text(strip=True)
-                                if h_text and not any(kw in h_text.lower() for kw in ["çerez", "cookie", "aydınlatma metni"]):
-                                    _h1 = h
-                                    break
-                            
-                            if _h1:
-                                og_title = _h1.get_text(strip=True)
-                                print(f"   🏷️ Valid H1 title found: {og_title}")
-                    except Exception as _e:
-                        print(f"   ⚠️ Raw title fetch failed: {_e}")
-                    
-                    # Step 2: Full HTML Fetch
-                    html_text, live_status = fetch_html(c.tracking_url)
-                    
-                    if html_text and len(html_text) >= 150:
-                        fetched_cleaned = clean_campaign_text(html_text, og_title=og_title, title=c.title)
-                        # 🛡️ DB TEXT PROTECTION: Never overwrite longer DB text with shorter live content UNLESS live content is already long enough and clean (350+ chars)
-                        is_live_trustworthy = len(fetched_cleaned) >= 350 or (campaign_id is not None)
-                        if db_text_len > 0 and len(fetched_cleaned) < db_text_len * 0.7 and not is_live_trustworthy:
-                            print(f"   ⚠️ URL fetch returned significantly less/no data ({len(fetched_cleaned)} vs {db_text_len} DB chars). Falling back to DB content.")
-                            text_to_parse = c.clean_text
-                            repair_meta["source"] = "DB"
-                            repair_meta["status"] = "DB_FALLBACK_LIVE_TOO_SHORT"
-                        else:
-                            text_to_parse = fetched_cleaned
-                            repair_meta["source"] = "LIVE"
-                            repair_meta["status"] = live_status
-                            print(f"   ✅ URL fetch successful ({len(text_to_parse)} chars)")
-                    else:
-                        print(f"   ⚠️ [CODE: {live_status}] URL fetch failed. Falling back to DB content.")
-                        fallback_segments = []
-                        if c.description: fallback_segments.append(c.description)
-                        if c.conditions: fallback_segments.append(c.conditions)
-                        fallback_text = " ".join(fallback_segments)
+                    # Onay bekleyen kampanyalar için en yüksek kaliteyi sağlamak adına force modunu aç!
+                    force_campaign = FORCE_ALL or (not c.is_approved)
                         
-                        if len(fallback_text) > 20:
-                            text_to_parse = fallback_text
-                            repair_meta["source"] = "DB_FALLBACK"
-                            repair_meta["status"] = live_status
-                        else:
-                            print(f"   ❌ [ERR_CODE: CONTENT_NOT_FOUND] Could not extract meaningful text.")
-                            continue
-
-                # Determine bank name for AI parser
-                bank_name = c.card.bank.name if c.card and c.card.bank else None
-                
-                # Title fix logic
-                ai_title_pass = c.title or ''
-                if len(ai_title_pass.split()) > 15:
-                    print(f"   🔓 DB Title is too long - Erasing lock for AI.")
-                    ai_title_pass = ''
-                elif any(delim in ai_title_pass for delim in ["|", " - ", " – "]) and "vodafone" in ai_title_pass.lower():
-                    print(f"   🔓 DB Title contains Vodafone suffix - Erasing lock for AI to allow clean H1/AI extraction.")
-                    ai_title_pass = ''
-
-                # AI Parsing
-                print(f"   🤖 [GOLDEN V3] Sending {len(text_to_parse)} chars to AI... (Bank: {bank_name or 'Unknown'})")
-                print(f"   🔍 DEBUG: Context snippet: {text_to_parse[:200].replace(chr(10), ' ')}...")
-                
-                parser = _get_golden_parser(model=model, fallback_model=fallback_model)
-                ai_data = parser.parse_campaign(
-                    raw_html=text_to_parse,
-                    bank_name=bank_name or '',
-                    title=ai_title_pass,
-                    og_title=og_title,
-                    scraper_sector=None,
-                    is_already_clean=True
-                )
-                
-                if ai_data:
-                    print(f"   🤖 AI EXTRACTION: {ai_data.get('cards')}")
-                    if ai_data.get('brands'):
-                        print(f"   🏷️ BRANDS: {ai_data.get('brands')}")
-                
-                if ai_data:
-                    ai_data["repair_metadata"] = {
-                        "source": repair_meta["source"],
-                        "status": repair_meta["status"],
-                        "reasons": reasons_list,
-                        "campaign_id": c.id
-                    }
-                
-                if not ai_data:
-                    print(f"   ❌ Gemini AI failed to return data. Skipping.")
-                    continue
-
-                # 🛡️ REJECT FAILED AI RESPONSES
-                if ai_data.get("_ai_failed"):
-                    print(f"   ❌ AI returned fallback/failed data (_ai_failed=True). Skipping.")
-                    continue
-                
-                # 🛡️ SANITIZE PLACEHOLDERS — AI bazen tembel cevap veriyor, DB'ye yazılmasını engelle
-                _placeholders = ["detayları inceleyin", "hemen faydalanın", "kampanya dahilinde", "detayları aşağıda"]
-                for field in ["reward_text", "participation"]:
-                    val = (ai_data.get(field) or "").strip()
-                    if val.lower() in _placeholders or len(val) < 3:
-                        ai_data[field] = None  # None = "güncelleme yapma, mevcut değeri koru"
-                        print(f"   🛡️ Placeholder rejected for '{field}': '{val}'")
+                    print(f"\n🛠️ Fixing: [{c.id}] {c.title[:40]}... (Reasons: {summary_reasons})")
+                    print(f"   🔗 URL: {c.tracking_url}")
                     
-                # Update logic
-                updated = False
-                
-                generic_titles = ["nays'ın kazandıran özellikleri", "opet kampanyası", "ayrıcalıklar", "kampanyalar", "fırsatlar", "akaryakıt standartları bilgilendirmesi"]
-                is_title_generic = c.title and c.title.lower().strip() in generic_titles
-                
-                # Update Title
-                if not c.title or is_title_generic or force_campaign:
-                    if ai_data.get("title") and ai_data["title"] != c.title:
-                        ai_title = ai_data["title"]
-                        if any(kw in ai_title.lower() for kw in ["çerez", "cookie", "aydınlatma metni"]):
-                            print(f"   🛡️ AI returned a cookie-related title: '{ai_title}'. Ignoring.")
+                    # Determine if we need a fresh fetch (Rescue)
+                    is_truncated = any("Short/Truncated Source Text" in r for r in reasons_list)
+                    text_to_parse = ""
+                    
+                    # Force rescue if campaign_id is specifically requested (UI Repair Button)
+                    # 🛑 EXCEPTION: SPA domains (maximum.com.tr etc.) must NEVER force live fetch
+                    # because requests-based fetching returns broken/partial JS content.
+                    spa_domains_block = ["maximum.com.tr", "maximiles.com.tr", "privia.com.tr", "worldcard.com.tr"]
+                    is_spa_url = any(spa in (c.tracking_url or "") for spa in spa_domains_block)
+                    db_text_len = len(c.clean_text) if c.clean_text else 0
+                    
+                    is_rescue_active = force_rescue
+                    
+                    # Eğer kampanya 3. denemeden sonra da düzeltilemediyse (yani repair_count >= 3 ise, 4. deneme ve sonrası),
+                    # veritabanındaki yetersiz/eksik clean_text'i baypas edip siteden sıfırdan canlı HTML çekiyoruz (rescue).
+                    if (c.repair_count or 0) >= 3:
+                        is_rescue_active = True
+                        print(f"   💡 Defective after {c.repair_count} attempts: Forcing live rescue fetch from scratch.")
+
+                    if is_spa_url and db_text_len > 600:
+                        is_rescue_active = False  # Never force-fetch SPAs with good DB data
+                        print(f"   🔒 SPA domain detected. Force-rescue disabled. Using DB text ({db_text_len} chars).")
+                    
+                    # Initialize repair metadata
+                    repair_meta = {"source": "DB", "status": "CLEAN_TEXT_USED"}
+                    og_title = None
+                    
+                    if c.clean_text and len(c.clean_text) >= 600 and not is_truncated and not mojibake_pattern.search(c.clean_text) and not is_rescue_active and not force_campaign:
+                        print(f"   ⚡ Using pre-cleaned text from DB ({len(c.clean_text)} chars)")
+                        text_to_parse = c.clean_text
+                    else:
+                        print(f"   🌐 Logic: RESCUE! (Force mode or text issue). Fetching fresh HTML...")
+                        
+                        # Step 1: Fetch raw HTML for title
+                        try:
+                            import urllib3
+                            urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+                            headers = {
+                                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36',
+                            }
+                            _raw_resp = requests.get(c.tracking_url, headers=headers, timeout=15, verify=False)
+                            _raw_resp.raise_for_status()
+                            from bs4 import BeautifulSoup as _BS
+                            _raw_soup = _BS(_raw_resp.text, "html.parser")
+                            # 🛡️ Skip H1 title extraction for Opet as it's usually generic "Kampanyalar"
+                            if "opet" not in (c.tracking_url or "").lower():
+                                _h1s = _raw_soup.find_all('h1')
+                                _h1 = None
+                                for h in _h1s:
+                                    h_text = h.get_text(strip=True)
+                                    if h_text and not any(kw in h_text.lower() for kw in ["çerez", "cookie", "aydınlatma metni"]):
+                                        _h1 = h
+                                        break
+                                
+                                if _h1:
+                                    og_title = _h1.get_text(strip=True)
+                                    print(f"   🏷️ Valid H1 title found: {og_title}")
+                        except Exception as _e:
+                            print(f"   ⚠️ Raw title fetch failed: {_e}")
+                        
+                        # Step 2: Full HTML Fetch
+                        html_text, live_status = fetch_html(c.tracking_url)
+                        
+                        if html_text and len(html_text) >= 150:
+                            fetched_cleaned = clean_campaign_text(html_text, og_title=og_title, title=c.title)
+                            # 🛡️ DB TEXT PROTECTION: Never overwrite longer DB text with shorter live content UNLESS live content is already long enough and clean (350+ chars)
+                            is_live_trustworthy = len(fetched_cleaned) >= 350 or (campaign_id is not None)
+                            if db_text_len > 0 and len(fetched_cleaned) < db_text_len * 0.7 and not is_live_trustworthy:
+                                print(f"   ⚠️ URL fetch returned significantly less/no data ({len(fetched_cleaned)} vs {db_text_len} DB chars). Falling back to DB content.")
+                                text_to_parse = c.clean_text
+                                repair_meta["source"] = "DB"
+                                repair_meta["status"] = "DB_FALLBACK_LIVE_TOO_SHORT"
+                            else:
+                                text_to_parse = fetched_cleaned
+                                repair_meta["source"] = "LIVE"
+                                repair_meta["status"] = live_status
+                                print(f"   ✅ URL fetch successful ({len(text_to_parse)} chars)")
                         else:
-                            print(f"   ✨ Repaired Title: {c.title} -> {ai_title}")
-                            c.title = ai_title
+                            print(f"   ⚠️ [CODE: {live_status}] URL fetch failed. Falling back to DB content.")
+                            fallback_segments = []
+                            if c.description: fallback_segments.append(c.description)
+                            if c.conditions: fallback_segments.append(c.conditions)
+                            fallback_text = " ".join(fallback_segments)
+                            
+                            if len(fallback_text) > 20:
+                                text_to_parse = fallback_text
+                                repair_meta["source"] = "DB_FALLBACK"
+                                repair_meta["status"] = live_status
+                            else:
+                                print(f"   ❌ [ERR_CODE: CONTENT_NOT_FOUND] Could not extract meaningful text.")
+                                return False
+
+                    # Determine bank name for AI parser
+                    bank_name = c.card.bank.name if c.card and c.card.bank else None
+                    
+                    # Title fix logic
+                    ai_title_pass = c.title or ''
+                    if len(ai_title_pass.split()) > 15:
+                        print(f"   🔓 DB Title is too long - Erasing lock for AI.")
+                        ai_title_pass = ''
+                    elif any(delim in ai_title_pass for delim in ["|", " - ", " – "]) and "vodafone" in ai_title_pass.lower():
+                        print(f"   🔓 DB Title contains Vodafone suffix - Erasing lock for AI to allow clean H1/AI extraction.")
+                        ai_title_pass = ''
+
+                    # AI Parsing
+                    print(f"   🤖 [GOLDEN V3] Sending {len(text_to_parse)} chars to AI... (Bank: {bank_name or 'Unknown'})")
+                    print(f"   🔍 DEBUG: Context snippet: {text_to_parse[:200].replace(chr(10), ' ')}...")
+                    
+                    parser = _get_golden_parser(model=model, fallback_model=fallback_model)
+                    ai_data = parser.parse_campaign(
+                        raw_html=text_to_parse,
+                        bank_name=bank_name or '',
+                        title=ai_title_pass,
+                        og_title=og_title,
+                        scraper_sector=None,
+                        is_already_clean=True
+                    )
+                    
+                    if ai_data:
+                        print(f"   🤖 AI EXTRACTION: {ai_data.get('cards')}")
+                        if ai_data.get('brands'):
+                            print(f"   🏷️ BRANDS: {ai_data.get('brands')}")
+                    
+                    if ai_data:
+                        ai_data["repair_metadata"] = {
+                            "source": repair_meta["source"],
+                            "status": repair_meta["status"],
+                            "reasons": reasons_list,
+                            "campaign_id": c.id
+                        }
+                    
+                    if not ai_data:
+                        print(f"   ❌ Gemini AI failed to return data. Skipping.")
+                        return False
+
+                    # 🛡️ REJECT FAILED AI RESPONSES
+                    if ai_data.get("_ai_failed"):
+                        print(f"   ❌ AI returned fallback/failed data (_ai_failed=True). Skipping.")
+                        return False
+                    
+                    # 🛡️ SANITIZE PLACEHOLDERS — AI bazen tembel cevap veriyor, DB'ye yazılmasını engelle
+                    _placeholders = ["detayları inceleyin", "hemen faydalanın", "kampanya dahilinde", "detayları aşağıda"]
+                    for field in ["reward_text", "participation"]:
+                        val = (ai_data.get(field) or "").strip()
+                        if val.lower() in _placeholders or len(val) < 3:
+                            ai_data[field] = None  # None = "güncelleme yapma, mevcut değeri koru"
+                            print(f"   🛡️ Placeholder rejected for '{field}': '{val}'")
+                        
+                    # Update logic
+                    updated = False
+                    
+                    generic_titles = ["nays'ın kazandıran özellikleri", "opet kampanyası", "ayrıcalıklar", "kampanyalar", "fırsatlar", "akaryakıt standartları bilgilendirmesi"]
+                    is_title_generic = c.title and c.title.lower().strip() in generic_titles
+                    
+                    # Update Title
+                    if not c.title or is_title_generic or force_campaign:
+                        if ai_data.get("title") and ai_data["title"] != c.title:
+                            ai_title = ai_data["title"]
+                            if any(kw in ai_title.lower() for kw in ["çerez", "cookie", "aydınlatma metni"]):
+                                print(f"   🛡️ AI returned a cookie-related title: '{ai_title}'. Ignoring.")
+                            else:
+                                print(f"   ✨ Repaired Title: {c.title} -> {ai_title}")
+                                c.title = ai_title
+                                updated = True
+
+                    # Update Description
+                    if not c.description or len(c.description.strip()) < 15 or force_campaign:
+                        if ai_data.get("description"):
+                            print(f"   ✨ Repaired Description!")
+                            c.description = ai_data["description"]
+                            updated = True
+                            
+                    # Update Reward Text
+                    is_reward_bad = not c.reward_text or c.reward_text.strip() == "" or "Detayları İnceleyin" in c.reward_text
+                    if is_reward_bad or force_campaign:
+                        if ai_data.get("reward_text"):
+                            print(f"   ✨ Repaired Reward Text: {ai_data['reward_text']}")
+                            c.reward_text = ai_data["reward_text"]
+                            updated = True
+                            
+                    if c.reward_value is None or force_campaign:
+                        if ai_data.get("reward_value") is not None:
+                            print(f"   ✨ Repaired Reward Value: {ai_data['reward_value']}")
+                            c.reward_value = ai_data["reward_value"]
+                            updated = True
+                            
+                    if not c.reward_type or c.reward_type.strip() == "" or force_campaign:
+                        if ai_data.get("reward_type"):
+                            print(f"   ✨ Repaired Reward Type: {ai_data['reward_type']}")
+                            c.reward_type = ai_data["reward_type"]
+                            updated = True
+                            
+                    # Update Eligible Cards if missing, corrupted, generic, OR incomplete
+                    is_cards_empty = not c.eligible_cards or c.eligible_cards.strip() == ""
+                    is_cards_corrupted = "Kampanyaya Dahil Kartlar" in (c.eligible_cards or "") or corrupted_regex.search(c.eligible_cards or "")
+                    is_cards_incomplete = any("Incomplete Cards" in r for r in reasons_list)
+                    
+                    # 🆕 WRONG CARDS CHECK: If AI produces a DIFFERENT (cleaner) set of cards, always update.
+                    # This catches cases where AI correctly removes excluded cards (Bankomat, Platinum, etc.)
+                    # even when the defect reason is something else (e.g. "Missing Brands").
+                    ai_cards_set = set(ai_data.get("cards") or [])
+                    current_cards_set = set((c.eligible_cards or "").split(", ")) if c.eligible_cards else set()
+                    is_cards_wrong = bool(ai_cards_set) and ai_cards_set != current_cards_set
+
+                    if is_cards_empty or is_cards_corrupted or is_cards_incomplete or is_cards_wrong or force_campaign:
+                        if ai_data.get("cards") is not None:
+                            ai_cards = ai_data.get("cards") or []
+                            cards_str = ", ".join(ai_cards) if len(ai_cards) > 0 else "-"
+
+                            if is_cards_incomplete:
+                                print(f"   ✨ Upgraded Incomplete Cards: {c.eligible_cards} → {cards_str}")
+                            elif is_cards_wrong:
+                                print(f"   ✨ Corrected Wrong Cards: {c.eligible_cards} → {cards_str}")
+                            else:
+                                print(f"   ✨ Repaired Eligible Cards: {cards_str}")
+                            c.eligible_cards = cards_str
                             updated = True
 
-                # Update Description
-                if not c.description or len(c.description.strip()) < 15 or force_campaign:
-                    if ai_data.get("description"):
-                        print(f"   ✨ Repaired Description!")
-                        c.description = ai_data["description"]
-                        updated = True
+                    def get_last_day_of_month(date_obj):
+                        import calendar
+                        last_day = calendar.monthrange(date_obj.year, date_obj.month)[1]
+                        res = date_obj.replace(day=last_day)
+                        # If it's a datetime object, convert to date. If it's already a date, just return it.
+                        return res.date() if hasattr(res, 'date') else res
+
+                    baseline_date = c.created_at or datetime.now()
+
+                    # Start Date Repair
+                    if not c.start_date or force_campaign:
+                        new_start = None
+                        if ai_data.get("start_date"):
+                            try:
+                                new_start = datetime.strptime(ai_data["start_date"], "%Y-%m-%d").date()
+                            except: pass
                         
-                # Update Reward Text
-                is_reward_bad = not c.reward_text or c.reward_text.strip() == "" or "Detayları İnceleyin" in c.reward_text
-                if is_reward_bad or force_campaign:
-                    if ai_data.get("reward_text"):
-                        print(f"   ✨ Repaired Reward Text: {ai_data['reward_text']}")
-                        c.reward_text = ai_data["reward_text"]
-                        updated = True
+                        # Fallback if AI didn't find it
+                        if not new_start:
+                            print(f"   🔄 Falling back Start Date to Created At: {baseline_date.date()}")
+                            new_start = baseline_date.date()
                         
-                if c.reward_value is None or force_campaign:
-                    if ai_data.get("reward_value") is not None:
-                        print(f"   ✨ Repaired Reward Value: {ai_data['reward_value']}")
-                        c.reward_value = ai_data["reward_value"]
-                        updated = True
+                        if new_start:
+                            c.start_date = new_start
+                            updated = True
+                            print(f"   ✨ Repaired Start Date: {c.start_date}")
+
+                    # End Date Repair
+                    if not c.end_date or force_campaign:
+                        new_end = None
+                        if ai_data.get("end_date"):
+                            try:
+                                new_end = datetime.strptime(ai_data["end_date"], "%Y-%m-%d").date()
+                            except: pass
                         
-                if not c.reward_type or c.reward_type.strip() == "" or force_campaign:
-                    if ai_data.get("reward_type"):
-                        print(f"   ✨ Repaired Reward Type: {ai_data['reward_type']}")
-                        c.reward_type = ai_data["reward_type"]
+                        # Fallback if AI didn't find it
+                        if not new_end:
+                            # For continuous campaigns, fallback to 3 months ahead of start_date/reference to keep it active
+                            reference = c.start_date or baseline_date.date()
+                            # Add approx 90 days to reference date
+                            import datetime
+                            future_date = reference + datetime.timedelta(days=90)
+                            new_end = get_last_day_of_month(future_date)
+                            print(f"   🔄 Falling back End Date to Continuous Mode (3 Months Ahead): {new_end}")
+
+                        if new_end:
+                            c.end_date = new_end
+                            updated = True
+                            print(f"   ✨ Repaired End Date: {c.end_date}")
+                            
+                    # Update Conditions if missing, corrupted or force_campaign
+                    if not c.conditions or c.conditions.strip() == "" or corrupted_regex.search(c.conditions) or force_campaign:
+                        if ai_data.get("conditions"):
+                            print(f"   ✨ Repaired Conditions!")
+                            c.conditions = "\n".join(cond for cond in ai_data.get("conditions", []))
+                            updated = True
+
+
+                    # Clean and update Participation
+                    is_curr_p_bad = not c.participation or c.participation.strip() == "" or any(p in (c.participation or "") for p in useless_participations) or corrupted_regex.search(c.participation) or "Otomatik Katılım" in (c.participation or "")
+                    if is_curr_p_bad or force_campaign:
+                        if ai_data.get("participation"):
+                            print(f"   ✨ Repaired Participation: {ai_data['participation'][:50]}...")
+                            c.participation = ai_data["participation"]
+                            updated = True
+
+                    # --- AI Marketing Text (Marketing Summary) update ---
+                    if ai_data.get("ai_marketing_text"):
+                        # We always update this to get fresh summaries
+                        print(f"   ✨ Repaired Marketing Summary!")
+                        c.ai_marketing_text = ai_data["ai_marketing_text"]
                         updated = True
+
+                    # --- Clean Text Update ---
+                    # Update if missing, too short, or has mojibake
+                    if not c.clean_text or len(c.clean_text.strip()) < 50 or mojibake_pattern.search(c.clean_text or ""):
+                        if text_to_parse:
+                            c.clean_text = text_to_parse
+                            updated = True
+
+                    # --- Sektör tamiri ---
+                    ai_sector_raw = ai_data.get("sector", "diger")
+                    if isinstance(ai_sector_raw, list):
+                        ai_sector_raw = ai_sector_raw[0] if len(ai_sector_raw) > 0 else "diger"
+                    
+                    final_sector_slug = SECTOR_MAP.get(ai_sector_raw, ai_sector_raw)
+                    if final_sector_slug not in SECTOR_MAP.values():
+                        final_sector_slug = "diger"
+                    
+                    # 🎯 PBE SEKTÖR OVERRIDE — PBE doğrulanmış veri, AI tahmininden üstündür.
+                    # Ancak Opet, Shell, Vodafone gibi "Host" markaların sektörünün, iş ortağı markanın sektörünü ezmesini engelliyoruz.
+                    pb_matcher = get_point_blank_matcher(db)
+                    pb_matches = pb_matcher.match_campaign(c.title, text_to_parse or "")
+                    
+                    if pb_matches:
+                        # 🛡️ HOST PROTECTION: Eğer birden fazla eşleşme varsa ve biri partner (Guest) ise ona öncelik ver.
+                        host_slugs = {'turk-telekom', 'vodafone', 'turkcell', 'shell', 'opet', 'petrol-ofisi', 'totalenergies'}
+                        guest_matches = [m for m in pb_matches if m.get('sector') not in ['fatura-telekomunikasyon', 'akaryakit']]
+                        if guest_matches:
+                            pb_matches = guest_matches + [m for m in pb_matches if m not in guest_matches]
+
+                    pb_sector_candidates = [m.get("sector") for m in pb_matches if m.get("sector") and m.get("brand")]
+                    if pb_sector_candidates:
+                        pb_sector = pb_sector_candidates[0]  # Önceliklendirilmiş ilk marka eşleşmesinin sektörü
+                        if pb_sector != final_sector_slug and pb_sector != "diger":
+                            print(f"   🎯 PBE Override (Partner Priority): AI said '{final_sector_slug}', PBE says '{pb_sector}' → using PBE")
+                            final_sector_slug = pb_sector
                         
-                # Update Eligible Cards if missing, corrupted, generic, OR incomplete
-                is_cards_empty = not c.eligible_cards or c.eligible_cards.strip() == ""
-                is_cards_corrupted = "Kampanyaya Dahil Kartlar" in (c.eligible_cards or "") or corrupted_regex.search(c.eligible_cards or "")
-                is_cards_incomplete = any("Incomplete Cards" in r for r in reasons_list)
-                
-                # 🆕 WRONG CARDS CHECK: If AI produces a DIFFERENT (cleaner) set of cards, always update.
-                # This catches cases where AI correctly removes excluded cards (Bankomat, Platinum, etc.)
-                # even when the defect reason is something else (e.g. "Missing Brands").
-                ai_cards_set = set(ai_data.get("cards") or [])
-                current_cards_set = set((c.eligible_cards or "").split(", ")) if c.eligible_cards else set()
-                is_cards_wrong = bool(ai_cards_set) and ai_cards_set != current_cards_set
-
-                if is_cards_empty or is_cards_corrupted or is_cards_incomplete or is_cards_wrong or force_campaign:
-                    if ai_data.get("cards") is not None:
-                        ai_cards = ai_data.get("cards") or []
-                        cards_str = ", ".join(ai_cards) if len(ai_cards) > 0 else "-"
-
-                        if is_cards_incomplete:
-                            print(f"   ✨ Upgraded Incomplete Cards: {c.eligible_cards} → {cards_str}")
-                        elif is_cards_wrong:
-                            print(f"   ✨ Corrected Wrong Cards: {c.eligible_cards} → {cards_str}")
-                        else:
-                            print(f"   ✨ Repaired Eligible Cards: {cards_str}")
-                        c.eligible_cards = cards_str
-                        updated = True
-
-                def get_last_day_of_month(date_obj):
-                    import calendar
-                    last_day = calendar.monthrange(date_obj.year, date_obj.month)[1]
-                    res = date_obj.replace(day=last_day)
-                    # If it's a datetime object, convert to date. If it's already a date, just return it.
-                    return res.date() if hasattr(res, 'date') else res
-
-                baseline_date = c.created_at or datetime.now()
-
-                # Start Date Repair
-                if not c.start_date or force_campaign:
-                    new_start = None
-                    if ai_data.get("start_date"):
-                        try:
-                            new_start = datetime.strptime(ai_data["start_date"], "%Y-%m-%d").date()
-                        except: pass
+                    current_sector_slug = c.sector.slug if c.sector else None
                     
-                    # Fallback if AI didn't find it
-                    if not new_start:
-                        print(f"   🔄 Falling back Start Date to Created At: {baseline_date.date()}")
-                        new_start = baseline_date.date()
+                    # --- Sektör Güncelleme Kararı ---
+                    # 1. Mevcut "diger" ise → AI'nın spesifik sektörünü kabul et (upgrade)
+                    # 2. Mevcut spesifik ama bilinen çelişki varsa → düzelt
+                    # 3. Mevcut zaten spesifik ve çelişki yoksa → koru
                     
-                    if new_start:
-                        c.start_date = new_start
-                        updated = True
-                        print(f"   ✨ Repaired Start Date: {c.start_date}")
-
-                # End Date Repair
-                if not c.end_date or force_campaign:
-                    new_end = None
-                    if ai_data.get("end_date"):
-                        try:
-                            new_end = datetime.strptime(ai_data["end_date"], "%Y-%m-%d").date()
-                        except: pass
+                    is_current_diger = not current_sector_slug or current_sector_slug == "diger"
                     
-                    # Fallback if AI didn't find it
-                    if not new_end:
-                        # For continuous campaigns, fallback to 3 months ahead of start_date/reference to keep it active
-                        reference = c.start_date or baseline_date.date()
-                        # Add approx 90 days to reference date
-                        import datetime
-                        future_date = reference + datetime.timedelta(days=90)
-                        new_end = get_last_day_of_month(future_date)
-                        print(f"   🔄 Falling back End Date to Continuous Mode (3 Months Ahead): {new_end}")
-
-                    if new_end:
-                        c.end_date = new_end
-                        updated = True
-                        print(f"   ✨ Repaired End Date: {c.end_date}")
-                        
-                # Update Conditions if missing, corrupted or force_campaign
-                if not c.conditions or c.conditions.strip() == "" or corrupted_regex.search(c.conditions) or force_campaign:
-                    if ai_data.get("conditions"):
-                        print(f"   ✨ Repaired Conditions!")
-                        c.conditions = "\n".join(cond for cond in ai_data.get("conditions", []))
-                        updated = True
-
-
-                # Clean and update Participation
-                is_curr_p_bad = not c.participation or c.participation.strip() == "" or any(p in (c.participation or "") for p in useless_participations) or corrupted_regex.search(c.participation) or "Otomatik Katılım" in (c.participation or "")
-                if is_curr_p_bad or force_campaign:
-                    if ai_data.get("participation"):
-                        print(f"   ✨ Repaired Participation: {ai_data['participation'][:50]}...")
-                        c.participation = ai_data["participation"]
-                        updated = True
-
-                # --- AI Marketing Text (Marketing Summary) update ---
-                if ai_data.get("ai_marketing_text"):
-                    # We always update this to get fresh summaries
-                    print(f"   ✨ Repaired Marketing Summary!")
-                    c.ai_marketing_text = ai_data["ai_marketing_text"]
-                    updated = True
-
-                # --- Clean Text Update ---
-                # Update if missing, too short, or has mojibake
-                if not c.clean_text or len(c.clean_text.strip()) < 50 or mojibake_pattern.search(c.clean_text or ""):
-                    if text_to_parse:
-                        c.clean_text = text_to_parse
-                        updated = True
-
-                # --- Sektör tamiri ---
-                ai_sector_raw = ai_data.get("sector", "diger")
-                if isinstance(ai_sector_raw, list):
-                    ai_sector_raw = ai_sector_raw[0] if len(ai_sector_raw) > 0 else "diger"
-                
-                final_sector_slug = SECTOR_MAP.get(ai_sector_raw, ai_sector_raw)
-                if final_sector_slug not in SECTOR_MAP.values():
-                    final_sector_slug = "diger"
-                
-                # 🎯 PBE SEKTÖR OVERRIDE — PBE doğrulanmış veri, AI tahmininden üstündür.
-                # Ancak Opet, Shell, Vodafone gibi "Host" markaların sektörünün, iş ortağı markanın sektörünü ezmesini engelliyoruz.
-                pb_matcher = get_point_blank_matcher(db)
-                pb_matches = pb_matcher.match_campaign(c.title, text_to_parse or "")
-                
-                if pb_matches:
-                    # 🛡️ HOST PROTECTION: Eğer birden fazla eşleşme varsa ve biri partner (Guest) ise ona öncelik ver.
-                    host_slugs = {'turk-telekom', 'vodafone', 'turkcell', 'shell', 'opet', 'petrol-ofisi', 'totalenergies'}
-                    guest_matches = [m for m in pb_matches if m.get('sector') not in ['fatura-telekomunikasyon', 'akaryakit']]
-                    if guest_matches:
-                        pb_matches = guest_matches + [m for m in pb_matches if m not in guest_matches]
-
-                pb_sector_candidates = [m.get("sector") for m in pb_matches if m.get("sector") and m.get("brand")]
-                if pb_sector_candidates:
-                    pb_sector = pb_sector_candidates[0]  # Önceliklendirilmiş ilk marka eşleşmesinin sektörü
-                    if pb_sector != final_sector_slug and pb_sector != "diger":
-                        print(f"   🎯 PBE Override (Partner Priority): AI said '{final_sector_slug}', PBE says '{pb_sector}' → using PBE")
-                        final_sector_slug = pb_sector
+                    # Bilinen çelişki: Kültür Sanat ama seyahat/ulaşım kelimeleri var
+                    travel_keywords = ['uçak', 'bilet', 'feribot', 'otel', 'hotel', 'konaklama', 'turizm', 'otobüs', 'seyahat']
+                    title_lower = (c.title or "").lower()
+                    text_lower = (text_to_parse or "").lower()[:300]
+                    has_travel_conflict = (
+                        current_sector_slug == "kultur-sanat" and 
+                        any(k in title_lower or k in text_lower for k in travel_keywords)
+                    )
                     
-                current_sector_slug = c.sector.slug if c.sector else None
-                
-                # --- Sektör Güncelleme Kararı ---
-                # 1. Mevcut "diger" ise → AI'nın spesifik sektörünü kabul et (upgrade)
-                # 2. Mevcut spesifik ama bilinen çelişki varsa → düzelt
-                # 3. Mevcut zaten spesifik ve çelişki yoksa → koru
-                
-                is_current_diger = not current_sector_slug or current_sector_slug == "diger"
-                
-                # Bilinen çelişki: Kültür Sanat ama seyahat/ulaşım kelimeleri var
-                travel_keywords = ['uçak', 'bilet', 'feribot', 'otel', 'hotel', 'konaklama', 'turizm', 'otobüs', 'seyahat']
-                title_lower = (c.title or "").lower()
-                text_lower = (text_to_parse or "").lower()[:300]
-                has_travel_conflict = (
-                    current_sector_slug == "kultur-sanat" and 
-                    any(k in title_lower or k in text_lower for k in travel_keywords)
-                )
-                
-                has_pb_override = pb_sector_candidates and pb_sector_candidates[0] == final_sector_slug and final_sector_slug != "diger"
+                    has_pb_override = pb_sector_candidates and pb_sector_candidates[0] == final_sector_slug and final_sector_slug != "diger"
 
-                should_update_sector = False
-                if final_sector_slug == "diger":
-                    # AI "diger" diyorsa hiçbir zaman güncelleme (downgrade etme)
-                    if not is_current_diger:
-                        print(f"   🛡️ Sector '{current_sector_slug}' preserved (AI said 'diger', keeping specific).")
-                elif final_sector_slug == current_sector_slug:
-                    pass  # Aynı sektör, güncelleme gerekmez
-                elif is_current_diger:
-                    should_update_sector = True  # Upgrade: diger → spesifik
-                elif has_pb_override or FORCE_ALL:
-                    should_update_sector = True  # PBE kuralı her zaman AI'ı ve mevcut sektörü ezer
-                    print(f"   🎯 Forcing Sector Update: PBE or FORCE flag is active!")
-                elif has_travel_conflict:
-                    should_update_sector = True  # Bilinen çelişki düzeltmesi
-                    print(f"   🔧 Sector conflict detected: travel keywords + kultur-sanat")
-                else:
-                    # Mevcut spesifik, AI farklı spesifik diyor → mevcut korunur
-                    print(f"   🛡️ Sector '{current_sector_slug}' preserved (AI suggested '{final_sector_slug}', but existing is already specific).")
-                
-                if should_update_sector:
-                    sector = db.query(Sector).filter(Sector.slug == final_sector_slug).first()
-                    if sector:
-                        old_name = c.sector.name if c.sector else 'Yok'
-                        c.sector_id = int(sector.id)
-                        print(f"   ✨ Repaired Sector: {old_name} → {sector.name}")
-                        updated = True
-
-                # --- Marka tamiri (Safe-Update & Multi-Brand) ---
-                added_brand_ids = set()
-                needs_brand_fix = False
-                is_brand_consistency_fix = False  # Duplicate/Over-Tagging düzeltmesi işareti
-                if not c.brands or (campaign_id or ids_file):
-                    needs_brand_fix = True
-                elif reasons_list:
-                    for r in reasons_list:
-                        if "Invalid Bank Brand" in r:
-                            needs_brand_fix = True
-                            break
-                        if "Duplicate Brand Pattern" in r or "Over-Tagging Suspected" in r:
-                            needs_brand_fix = True
-                            is_brand_consistency_fix = True
-                            break
-
-                if needs_brand_fix and "brands" in ai_data:
-                    from src.services.brand_matcher import get_or_create_brand  # type: ignore
-                    brand_cache = {} 
-                    
-                    # Mevcut markaları analiz et (Nokta Atışı ile eşleşenleri korumak için)
-                    existing_brand_ids = {getattr(b, 'id', None) for b in c.brands}
-                    existing_brand_ids = {bid for bid in existing_brand_ids if bid is not None}
-                    new_brand_names = ai_data["brands"]
-                    if not isinstance(new_brand_names, list):
-                        new_brand_names = [new_brand_names] if new_brand_names else []
-                        
-                    # 🎯 AI-FIRST BRAND STRATEGY (GOLDEN PARSER = SOURCE OF TRUTH)
-                    # We no longer manually merge PointBlank brands here because AIParserGolden 
-                    # natively integrates PBE rules, validates them, and strictly filters out
-                    # illusions and self-brands (like Opet, Apple, Google).
-                    
-                    validated_brands = list(new_brand_names)
-                    new_brand_names = []
-                    for b_name in validated_brands:
-                        if b_name and b_name != "Genel":
-                            new_brand_names.append(b_name)
-                    
-                    # If we are in force/id-file mode OR brand consistency fix → PURGE all brands for a clean slate
-                    # Otherwise, we only purge the ones identified as bank brands
-                    correct_brand_ids_to_keep = []
-                    if is_brand_consistency_fix:
-                        # Duplicate Pattern veya Over-Tagging durumunda tüm markalar temizlenir,
-                        # sadece AI'ın yeniden ürettiği markalar yazılır.
-                        print(f"   🧹 [Brand Consistency Fix] Purging ALL brands for clean re-tagging.")
-                    elif not (campaign_id or ids_file):
-                        for cb in db.query(CampaignBrand).filter(CampaignBrand.campaign_id == c.id).all():
-                            b_obj = db.query(Brand).filter(Brand.id == cb.brand_id).first()
-                            if b_obj and b_obj.name not in wrong_bank_brands:
-                                correct_brand_ids_to_keep.append(cb.brand_id)
-                    # is_brand_consistency_fix=True durumunda correct_brand_ids_to_keep [] kalır (full purge)
-                    
-                    # Kampanya bağlarını sıfırla
-                    db.query(CampaignBrand).filter(CampaignBrand.campaign_id == c.id).delete()
-                    db.flush()
-                    
-                    added_brand_ids = set()
-                    
-                    if correct_brand_ids_to_keep:
-                        for bid in correct_brand_ids_to_keep:
-                            db.add(CampaignBrand(campaign_id=c.id, brand_id=bid))
-                            added_brand_ids.add(bid)
-                        
-                        preserved_names = []
-                        for bid in correct_brand_ids_to_keep:
-                            b_obj = db.query(Brand).filter(Brand.id == bid).first()
-                            if b_obj: preserved_names.append(b_obj.name)
-                        print(f"   🛡️ Preserved Brands: {', '.join(preserved_names)}")
+                    should_update_sector = False
+                    if final_sector_slug == "diger":
+                        # AI "diger" diyorsa hiçbir zaman güncelleme (downgrade etme)
+                        if not is_current_diger:
+                            print(f"   🛡️ Sector '{current_sector_slug}' preserved (AI said 'diger', keeping specific).")
+                    elif final_sector_slug == current_sector_slug:
+                        pass  # Aynı sektör, güncelleme gerekmez
+                    elif is_current_diger:
+                        should_update_sector = True  # Upgrade: diger → spesifik
+                    elif has_pb_override or FORCE_ALL:
+                        should_update_sector = True  # PBE kuralı her zaman AI'ı ve mevcut sektörü ezer
+                        print(f"   🎯 Forcing Sector Update: PBE or FORCE flag is active!")
+                    elif has_travel_conflict:
+                        should_update_sector = True  # Bilinen çelişki düzeltmesi
+                        print(f"   🔧 Sector conflict detected: travel keywords + kultur-sanat")
                     else:
-                        print(f"   🧹 Purged all existing brands for fresh repair.")
+                        # Mevcut spesifik, AI farklı spesifik diyor → mevcut korunur
+                        print(f"   🛡️ Sector '{current_sector_slug}' preserved (AI suggested '{final_sector_slug}', but existing is already specific).")
+                    
+                    if should_update_sector:
+                        sector = db.query(Sector).filter(Sector.slug == final_sector_slug).first()
+                        if sector:
+                            old_name = c.sector.name if c.sector else 'Yok'
+                            c.sector_id = int(sector.id)
+                            print(f"   ✨ Repaired Sector: {old_name} → {sector.name}")
+                            updated = True
 
-                    # AI'dan gelen yeni markaları ekle
-                    for b_name in new_brand_names:
-                        if not isinstance(b_name, str) or len(b_name) < 2:
-                            continue
-                        if b_name in wrong_bank_brands:
-                            continue
-                            
-                        try:
-                            brand = get_or_create_brand(db, b_name, brand_cache)
-                            if brand:
-                                if brand.id not in added_brand_ids:
-                                    db.add(CampaignBrand(campaign_id=c.id, brand_id=brand.id))
-                                    added_brand_ids.add(brand.id)
-                                    print(f"   ✨ Added Brand: {brand.name}")
-                                    updated = True
-                        except Exception as be:
-                            print(f"   ⚠️ Brand fix failed for {b_name}: {be}")
-                    db.flush()
-                    db.refresh(c)
+                    # --- Marka tamiri (Safe-Update & Multi-Brand) ---
+                    added_brand_ids = set()
+                    needs_brand_fix = False
+                    is_brand_consistency_fix = False  # Duplicate/Over-Tagging düzeltmesi işareti
+                    if not c.brands or (campaign_id or ids_file):
+                        needs_brand_fix = True
+                    elif reasons_list:
+                        for r in reasons_list:
+                            if "Invalid Bank Brand" in r:
+                                needs_brand_fix = True
+                                break
+                            if "Duplicate Brand Pattern" in r or "Over-Tagging Suspected" in r:
+                                needs_brand_fix = True
+                                is_brand_consistency_fix = True
+                                break
 
-                # -------------------------------------------------------------
-                # 📊 DYNAMIC QUALITY SCORE CALCULATION & PEER-REVIEW FACT-CHECKER
-                # -------------------------------------------------------------
-                score = 0
-                
-                # 1. Title Validation (20 pts)
-                has_valid_title = c.title and len(c.title.strip()) > 5 and not any(gt in c.title.lower() for gt in ["çerez", "cookie", "aydınlatma", "nays'ın kazandıran", "opet kampanyası", "ayrıcalıklar", "kampanyalar", "fırsatlar", "akaryakıt standartları"])
-                if has_valid_title:
-                    score += 20
-                
-                # 2. Description Validation (20 pts)
-                has_valid_desc = c.description and len(c.description.strip()) > 20 and not corrupted_regex.search(c.description)
-                if has_valid_desc:
-                    score += 20
-                
-                # 3. Eligible Cards Validation (15 pts)
-                has_valid_cards = c.eligible_cards and c.eligible_cards.strip() != "" and c.eligible_cards.strip() != "-" and "Kampanyaya Dahil Kartlar" not in c.eligible_cards and not corrupted_regex.search(c.eligible_cards)
-                if has_valid_cards:
-                    score += 15
-                
-                # 4. Reward Text Validation (15 pts)
-                has_valid_reward = c.reward_text and c.reward_text.strip() != "" and not any(p in c.reward_text for p in ["Detayları İnceleyin", "Hemen Faydalanın", "Harcamadan Önce"])
-                if has_valid_reward:
-                    score += 15
-                
-                # 5. Participation Validation (10 pts)
-                has_valid_part = c.participation and c.participation.strip() != "" and not any(p in c.participation for p in useless_participations)
-                if has_valid_part:
-                    score += 10
-                
-                # 6. Sector Validation (10 pts)
-                has_valid_sector = c.sector_id and final_sector_slug != "diger"
-                if has_valid_sector:
-                    score += 10
-                
-                # 7. Brands Validation (10 pts)
-                has_valid_brands = len(added_brand_ids) > 0 or len([b for b in c.brands if b.brand.name not in wrong_bank_brands]) > 0
-                if has_valid_brands:
-                    score += 10
-
-                c.quality_score = score
-                print(f"   📊 Computed Base Quality Score: {score}/100")
-
-                # Run Peer-Review Fact-Checker if score is promising (>= 70)
-                fact_checker_passed = False
-                if score >= 70 and text_to_parse:
-                    print("   🔬 [Fact-Checker] Initiating Peer-Review NLI Verification...")
-                    try:
-                        checker = FactCheckerAgent(model=model or "models/gemini-3.1-flash-lite")
-                        candidate = {
-                            "reward_text": c.reward_text,
-                            "reward_value": float(c.reward_value) if c.reward_value is not None else None,
-                            "reward_type": c.reward_type,
-                            "cards": c.eligible_cards.split(", ") if c.eligible_cards else [],
-                            "participation": c.participation,
-                            "sector": c.sector.name if c.sector else "Diğer",
-                            "brands": [db.query(Brand).filter(Brand.id == cb.brand_id).first().name for cb in db.query(CampaignBrand).filter(CampaignBrand.campaign_id == c.id).all() if db.query(Brand).filter(Brand.id == cb.brand_id).first()]
-                        }
-                        verification = checker.verify_campaign(text_to_parse, candidate)
+                    if needs_brand_fix and "brands" in ai_data:
+                        from src.services.brand_matcher import get_or_create_brand  # type: ignore
+                        brand_cache = {} 
                         
-                        if verification.get("is_grounded") is True:
-                            fact_checker_passed = True
-                            c.quality_score = max(c.quality_score, 95) # Boost score to at least 95 if fact-checker completely validates it!
-                            print(f"   🏆 [Fact-Checker] 100% Grounded! Score boosted to: {c.quality_score}/100")
+                        # Mevcut markaları analiz et (Nokta Atışı ile eşleşenleri korumak için)
+                        existing_brand_ids = {getattr(b, 'id', None) for b in c.brands}
+                        existing_brand_ids = {bid for bid in existing_brand_ids if bid is not None}
+                        new_brand_names = ai_data["brands"]
+                        if not isinstance(new_brand_names, list):
+                            new_brand_names = [new_brand_names] if new_brand_names else []
+                            
+                        # 🎯 AI-FIRST BRAND STRATEGY (GOLDEN PARSER = SOURCE OF TRUTH)
+                        # We no longer manually merge PointBlank brands here because AIParserGolden 
+                        # natively integrates PBE rules, validates them, and strictly filters out
+                        # illusions and self-brands (like Opet, Apple, Google).
+                        
+                        validated_brands = list(new_brand_names)
+                        new_brand_names = []
+                        for b_name in validated_brands:
+                            if b_name and b_name != "Genel":
+                                new_brand_names.append(b_name)
+                        
+                        # If we are in force/id-file mode OR brand consistency fix → PURGE all brands for a clean slate
+                        # Otherwise, we only purge the ones identified as bank brands
+                        correct_brand_ids_to_keep = []
+                        if is_brand_consistency_fix:
+                            # Duplicate Pattern veya Over-Tagging durumunda tüm markalar temizlenir,
+                            # sadece AI'ın yeniden ürettiği markalar yazılır.
+                            print(f"   🧹 [Brand Consistency Fix] Purging ALL brands for clean re-tagging.")
+                        elif not (campaign_id or ids_file):
+                            for cb in db.query(CampaignBrand).filter(CampaignBrand.campaign_id == c.id).all():
+                                b_obj = db.query(Brand).filter(Brand.id == cb.brand_id).first()
+                                if b_obj and b_obj.name not in wrong_bank_brands:
+                                    correct_brand_ids_to_keep.append(cb.brand_id)
+                        # is_brand_consistency_fix=True durumunda correct_brand_ids_to_keep [] kalır (full purge)
+                        
+                        # Kampanya bağlarını sıfırla
+                        db.query(CampaignBrand).filter(CampaignBrand.campaign_id == c.id).delete()
+                        db.flush()
+                        
+                        added_brand_ids = set()
+                        
+                        if correct_brand_ids_to_keep:
+                            for bid in correct_brand_ids_to_keep:
+                                db.add(CampaignBrand(campaign_id=c.id, brand_id=bid))
+                                added_brand_ids.add(bid)
+                            
+                            preserved_names = []
+                            for bid in correct_brand_ids_to_keep:
+                                b_obj = db.query(Brand).filter(Brand.id == bid).first()
+                                if b_obj: preserved_names.append(b_obj.name)
+                            print(f"   🛡️ Preserved Brands: {', '.join(preserved_names)}")
                         else:
-                            # Check if we can heal simple card or brand errors (Self-healing)
-                            verifications = verification.get("verifications", {})
-                            
-                            cards_verification = verifications.get("eligible_cards", {})
-                            unsupported_cards = cards_verification.get("unsupported_cards", [])
-                            
-                            brands_verification = verifications.get("brands", {})
-                            unsupported_brands = brands_verification.get("unsupported_brands", [])
-                            
-                            if (unsupported_cards and cards_verification.get("status") in ["NO", "CONTRADICTION"]) or \
-                               (unsupported_brands and brands_verification.get("status") in ["NO", "CONTRADICTION"]):
+                            print(f"   🧹 Purged all existing brands for fresh repair.")
+
+                        # AI'dan gelen yeni markaları ekle
+                        for b_name in new_brand_names:
+                            if not isinstance(b_name, str) or len(b_name) < 2:
+                                continue
+                            if b_name in wrong_bank_brands:
+                                continue
                                 
-                                remaining_cards = candidate["cards"]
-                                if unsupported_cards:
-                                    print(f"   🩹 [Fact-Checker] Self-Healing Triggered! Removing unsupported cards: {unsupported_cards}")
-                                    current_cards = [card.strip() for card in c.eligible_cards.split(", ") if card.strip()]
-                                    remaining_cards = [card for card in current_cards if card not in unsupported_cards]
-                                    c.eligible_cards = ", ".join(remaining_cards) if remaining_cards else "-"
-                                    updated = True
-                                    
-                                remaining_brands = candidate["brands"]
-                                if unsupported_brands:
-                                    print(f"   🩹 [Fact-Checker] Self-Healing Triggered! Removing unsupported brands: {unsupported_brands}")
-                                    # Purge from campaign brands join table
-                                    for cb in db.query(CampaignBrand).filter(CampaignBrand.campaign_id == c.id).all():
-                                        b_obj = db.query(Brand).filter(Brand.id == cb.brand_id).first()
-                                        if b_obj and b_obj.name in unsupported_brands:
-                                            db.delete(cb)
-                                    db.flush()
-                                    remaining_brands = [bname for bname in candidate["brands"] if bname not in unsupported_brands]
-                                    updated = True
-                                
-                                # Re-verify with remaining items
-                                print("   🔬 [Fact-Checker] Re-running NLI Verification after self-healing...")
-                                candidate["cards"] = remaining_cards
-                                candidate["brands"] = remaining_brands
-                                re_verification = checker.verify_campaign(text_to_parse, candidate)
-                                if re_verification.get("is_grounded") is True:
-                                    fact_checker_passed = True
-                                    c.quality_score = max(c.quality_score, 95)
-                                    print(f"   🏆 [Fact-Checker] Grounded after Self-Healing! Score: {c.quality_score}/100")
-                                else:
-                                    c.quality_score = min(c.quality_score, 60) # Downgrade score since it failed twice
-                                    print(f"   ❌ [Fact-Checker] Grounding Failed after Self-Healing. Score downgraded to: {c.quality_score}/100")
+                            try:
+                                brand = get_or_create_brand(db, b_name, brand_cache)
+                                if brand:
+                                    if brand.id not in added_brand_ids:
+                                        db.add(CampaignBrand(campaign_id=c.id, brand_id=brand.id))
+                                        added_brand_ids.add(brand.id)
+                                        print(f"   ✨ Added Brand: {brand.name}")
+                                        updated = True
+                            except Exception as be:
+                                print(f"   ⚠️ Brand fix failed for {b_name}: {be}")
+                        db.flush()
+                        db.refresh(c)
+
+                    # -------------------------------------------------------------
+                    # 📊 DYNAMIC QUALITY SCORE CALCULATION & PEER-REVIEW FACT-CHECKER
+                    # -------------------------------------------------------------
+                    score = 0
+                    
+                    # 1. Title Validation (20 pts)
+                    has_valid_title = c.title and len(c.title.strip()) > 5 and not any(gt in c.title.lower() for gt in ["çerez", "cookie", "aydınlatma", "nays'ın kazandıran", "opet kampanyası", "ayrıcalıklar", "kampanyalar", "fırsatlar", "akaryakıt standartları"])
+                    if has_valid_title:
+                        score += 20
+                    
+                    # 2. Description Validation (20 pts)
+                    has_valid_desc = c.description and len(c.description.strip()) > 20 and not corrupted_regex.search(c.description)
+                    if has_valid_desc:
+                        score += 20
+                    
+                    # 3. Eligible Cards Validation (15 pts)
+                    has_valid_cards = c.eligible_cards and c.eligible_cards.strip() != "" and c.eligible_cards.strip() != "-" and "Kampanyaya Dahil Kartlar" not in c.eligible_cards and not corrupted_regex.search(c.eligible_cards)
+                    if has_valid_cards:
+                        score += 15
+                    
+                    # 4. Reward Text Validation (15 pts)
+                    has_valid_reward = c.reward_text and c.reward_text.strip() != "" and not any(p in c.reward_text for p in ["Detayları İnceleyin", "Hemen Faydalanın", "Harcamadan Önce"])
+                    if has_valid_reward:
+                        score += 15
+                    
+                    # 5. Participation Validation (10 pts)
+                    has_valid_part = c.participation and c.participation.strip() != "" and not any(p in c.participation for p in useless_participations)
+                    if has_valid_part:
+                        score += 10
+                    
+                    # 6. Sector Validation (10 pts)
+                    has_valid_sector = c.sector_id and final_sector_slug != "diger"
+                    if has_valid_sector:
+                        score += 10
+                    
+                    # 7. Brands Validation (10 pts)
+                    has_valid_brands = len(added_brand_ids) > 0 or len([b for b in c.brands if b.brand.name not in wrong_bank_brands]) > 0
+                    if has_valid_brands:
+                        score += 10
+
+                    c.quality_score = score
+                    print(f"   📊 Computed Base Quality Score: {score}/100")
+
+                    # Run Peer-Review Fact-Checker if score is promising (>= 70)
+                    fact_checker_passed = False
+                    if score >= 70 and text_to_parse:
+                        print("   🔬 [Fact-Checker] Initiating Peer-Review NLI Verification...")
+                        try:
+                            checker = FactCheckerAgent(model=model or "models/gemini-3.1-flash-lite")
+                            candidate = {
+                                "reward_text": c.reward_text,
+                                "reward_value": float(c.reward_value) if c.reward_value is not None else None,
+                                "reward_type": c.reward_type,
+                                "cards": c.eligible_cards.split(", ") if c.eligible_cards else [],
+                                "participation": c.participation,
+                                "sector": c.sector.name if c.sector else "Diğer",
+                                "brands": [db.query(Brand).filter(Brand.id == cb.brand_id).first().name for cb in db.query(CampaignBrand).filter(CampaignBrand.campaign_id == c.id).all() if db.query(Brand).filter(Brand.id == cb.brand_id).first()]
+                            }
+                            verification = checker.verify_campaign(text_to_parse, candidate)
+                            
+                            if verification.get("is_grounded") is True:
+                                fact_checker_passed = True
+                                c.quality_score = max(c.quality_score, 95) # Boost score to at least 95 if fact-checker completely validates it!
+                                print(f"   🏆 [Fact-Checker] 100% Grounded! Score boosted to: {c.quality_score}/100")
                             else:
-                                c.quality_score = min(c.quality_score, 60) # Downgrade score
-                                print(f"   ❌ [Fact-Checker] Hallucination/Grounding Error Detected! Score downgraded to: {c.quality_score}/100")
-                                if verification.get("reason"):
-                                    print(f"      Reason: {verification.get('reason')}")
-                    except Exception as fe:
-                        print(f"   ⚠️ Fact-Checker execution failed: {fe}")
+                                # Check if we can heal simple card or brand errors (Self-healing)
+                                verifications = verification.get("verifications", {})
+                                
+                                cards_verification = verifications.get("eligible_cards", {})
+                                unsupported_cards = cards_verification.get("unsupported_cards", [])
+                                
+                                brands_verification = verifications.get("brands", {})
+                                unsupported_brands = brands_verification.get("unsupported_brands", [])
+                                
+                                if (unsupported_cards and cards_verification.get("status") in ["NO", "CONTRADICTION"]) or \
+                                   (unsupported_brands and brands_verification.get("status") in ["NO", "CONTRADICTION"]):
+                                    
+                                    remaining_cards = candidate["cards"]
+                                    if unsupported_cards:
+                                        print(f"   🩹 [Fact-Checker] Self-Healing Triggered! Removing unsupported cards: {unsupported_cards}")
+                                        current_cards = [card.strip() for card in c.eligible_cards.split(", ") if card.strip()]
+                                        remaining_cards = [card for card in current_cards if card not in unsupported_cards]
+                                        c.eligible_cards = ", ".join(remaining_cards) if remaining_cards else "-"
+                                        updated = True
+                                        
+                                    remaining_brands = candidate["brands"]
+                                    if unsupported_brands:
+                                        print(f"   🩹 [Fact-Checker] Self-Healing Triggered! Removing unsupported brands: {unsupported_brands}")
+                                        # Purge from campaign brands join table
+                                        for cb in db.query(CampaignBrand).filter(CampaignBrand.campaign_id == c.id).all():
+                                            b_obj = db.query(Brand).filter(Brand.id == cb.brand_id).first()
+                                            if b_obj and b_obj.name in unsupported_brands:
+                                                db.delete(cb)
+                                        db.flush()
+                                        remaining_brands = [bname for bname in candidate["brands"] if bname not in unsupported_brands]
+                                        updated = True
+                                    
+                                    # Re-verify with remaining items
+                                    print("   🔬 [Fact-Checker] Re-running NLI Verification after self-healing...")
+                                    candidate["cards"] = remaining_cards
+                                    candidate["brands"] = remaining_brands
+                                    re_verification = checker.verify_campaign(text_to_parse, candidate)
+                                    if re_verification.get("is_grounded") is True:
+                                        fact_checker_passed = True
+                                        c.quality_score = max(c.quality_score, 95)
+                                        print(f"   🏆 [Fact-Checker] Grounded after Self-Healing! Score: {c.quality_score}/100")
+                                    else:
+                                        c.quality_score = min(c.quality_score, 60) # Downgrade score since it failed twice
+                                        print(f"   ❌ [Fact-Checker] Grounding Failed after Self-Healing. Score downgraded to: {c.quality_score}/100")
+                                else:
+                                    c.quality_score = min(c.quality_score, 60) # Downgrade score
+                                    print(f"   ❌ [Fact-Checker] Hallucination/Grounding Error Detected! Score downgraded to: {c.quality_score}/100")
+                                    if verification.get("reason"):
+                                        print(f"      Reason: {verification.get('reason')}")
+                        except Exception as fe:
+                            print(f"   ⚠️ Fact-Checker execution failed: {fe}")
 
-                # Gated Approval logic (Shadow Mode canary stage)
-                # Keep is_approved = False for all campaigns as requested,
-                # but print a very prominent dry-run notice if it would have been approved.
-                c.is_approved = False  # Strict request: stays manual for now!
+                    # Gated Approval logic (Shadow Mode canary stage)
+                    # Keep is_approved = False for all campaigns as requested,
+                    # but print a very prominent dry-run notice if it would have been approved.
+                    c.is_approved = False  # Strict request: stays manual for now!
+                    
+                    if c.quality_score >= 95 and fact_checker_passed:
+                        print(f"   ✨ 🚀 [SHADOW MODE] Campaign WOULD HAVE BEEN AUTO-APPROVED! Score: {c.quality_score}/100 (Fact-Checker Verified)")
+                    else:
+                        print(f"   ⚠️ [QUEUE] Campaign will remain in manual approval queue. Score: {c.quality_score}/100")
+
+                    # ALWAYS mark as auto_corrected so we don't try again forever (even if Gemini failed to find missing data)
+                    c.auto_corrected = True
+                    c.repair_count = (c.repair_count or 0) + 1
+                    
+                    # --- UI MODE JSON OUTPUT (FINAL STATE) ---
+                    if ui_mode:
+                        print("\n---AIPARSER_JSON_START---")
+                        # We send back the full ai_data but ensured it has the final state from DB fields if they were updated
+                        ui_response = dict(ai_data)
+                        ui_response["title"] = c.title
+                        ui_response["description"] = c.description
+                        ui_response["reward_text"] = c.reward_text
+                        ui_response["reward_value"] = float(c.reward_value) if c.reward_value is not None else None
+                        ui_response["reward_type"] = c.reward_type
+                        ui_response["cards"] = c.eligible_cards.split(", ") if c.eligible_cards else []
+                        ui_response["participation"] = c.participation
+                        ui_response["conditions"] = c.conditions.split("\n") if c.conditions else []
+                        ui_response["sector"] = final_sector_slug
+                        ui_response["_clean_text"] = text_to_parse
+                        print(json.dumps(ui_response, ensure_ascii=False))
+                        print("---AIPARSER_JSON_END---")
+
+                    db.commit()
+                with lock:
+                    fixed_count_arr[0] += 1
+                    
+                    if updated:
+                        print(f"   ✅ Campaign successfully repaired and saved! (Marked as auto_corrected)")
+                    else:
+                        print(f"   ⚠️ AI didn't find the missing data. Marked as auto_corrected to prevent loop. No new changes made.")
+
+                # Be gentle to the API limits
+                time.sleep(5.0) # Her isci kendine ayrilan 5 saniyeyi bekler
                 
-                if c.quality_score >= 95 and fact_checker_passed:
-                    print(f"   ✨ 🚀 [SHADOW MODE] Campaign WOULD HAVE BEEN AUTO-APPROVED! Score: {c.quality_score}/100 (Fact-Checker Verified)")
-                else:
-                    print(f"   ⚠️ [QUEUE] Campaign will remain in manual approval queue. Score: {c.quality_score}/100")
+                return True
 
-                # ALWAYS mark as auto_corrected so we don't try again forever (even if Gemini failed to find missing data)
-                c.auto_corrected = True
-                c.repair_count = (c.repair_count or 0) + 1
-                
-                # --- UI MODE JSON OUTPUT (FINAL STATE) ---
-                if ui_mode:
-                    print("\n---AIPARSER_JSON_START---")
-                    # We send back the full ai_data but ensured it has the final state from DB fields if they were updated
-                    ui_response = dict(ai_data)
-                    ui_response["title"] = c.title
-                    ui_response["description"] = c.description
-                    ui_response["reward_text"] = c.reward_text
-                    ui_response["reward_value"] = float(c.reward_value) if c.reward_value is not None else None
-                    ui_response["reward_type"] = c.reward_type
-                    ui_response["cards"] = c.eligible_cards.split(", ") if c.eligible_cards else []
-                    ui_response["participation"] = c.participation
-                    ui_response["conditions"] = c.conditions.split("\n") if c.conditions else []
-                    ui_response["sector"] = final_sector_slug
-                    ui_response["_clean_text"] = text_to_parse
-                    print(json.dumps(ui_response, ensure_ascii=False))
-                    print("---AIPARSER_JSON_END---")
+        NUM_WORKERS = 8
+        print(f"⚡ Starting {NUM_WORKERS} parallel workers for Autofix...")
+        with ThreadPoolExecutor(max_workers=NUM_WORKERS) as executor:
+            futures = {executor.submit(process_campaign, (item, i)): item for i, item in enumerate(to_fix_ids)}
+            for future in as_completed(futures):
+                try:
+                    future.result()
+                except Exception as e:
+                    print(f"   💥 Worker Error: {e}")
 
-                db.commit()
-                fixed_count += 1
-                
-                if updated:
-                    print(f"   ✅ Campaign successfully repaired and saved! (Marked as auto_corrected)")
-                else:
-                    print(f"   ⚠️ AI didn't find the missing data. Marked as auto_corrected to prevent loop. No new changes made.")
-
-            # Be gentle to the API limits
-            time.sleep(3)
-            
+        fixed_count = fixed_count_arr[0]
         print(f"\n🏁 Auto-fixer complete. Successfully repaired {fixed_count}/{len(to_fix_ids)} campaigns.")
         
         if not ui_mode:
