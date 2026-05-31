@@ -717,7 +717,7 @@ def run_autofix(limit: int = 250, campaign_id: Optional[int] = None, force_all: 
                 repair_meta = {"source": "DB", "status": "CLEAN_TEXT_USED"}
                 og_title = None
                 
-                if c.clean_text and len(c.clean_text) >= 600 and not is_truncated and not mojibake_pattern.search(c.clean_text) and not is_rescue_active:
+                if c.clean_text and len(c.clean_text) >= 600 and not is_truncated and not mojibake_pattern.search(c.clean_text) and not is_rescue_active and not force_campaign:
                     print(f"   ⚡ Using pre-cleaned text from DB ({len(c.clean_text)} chars)")
                     text_to_parse = c.clean_text
                 else:
