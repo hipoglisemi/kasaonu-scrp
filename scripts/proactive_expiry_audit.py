@@ -217,7 +217,7 @@ def proactive_expiry_audit(max_audits=2000):
                         db_camp.end_date = latest_date
                         db_camp.clean_text = clean_text
                         db_camp.date_extended = True
-                        db_camp.is_approved = True
+                        db_camp.is_approved = False
                         db_camp.updated_at = datetime.now()
                         db.commit()
                 return True
