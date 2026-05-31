@@ -33,10 +33,11 @@ def clean_html_to_text(html: str) -> str:
     text = re.sub(r'\s+', ' ', text).strip()
     return text[:8000] # Limit to 8000 characters to keep tokens tiny
 
-def extract_end_date_via_ai(title: str, clean_text: str):
+def extract_end_date_via_ai(title: str, clean_text: str, key_index: int = 1):
     """
     Extracts only the campaign end date from the campaign HTML text using Gemini.
     Returns date string in YYYY-MM-DD format, or None if not found/error.
+    key_index: 1-based API key index this worker should start from.
     """
     if not clean_text:
         return None
@@ -77,7 +78,8 @@ GÖREV: Sayfa metnini ve kampanya başlığını inceleyerek kampanyanın son ge
         result_str = generate_with_rotation(
             prompt=prompt,
             model="models/gemini-3.1-flash-lite",
-            config=config
+            config=config,
+            key_indices=[key_index]  # Her işçi kendi anahtarından başlar
         )
         
         if not result_str:
@@ -181,16 +183,19 @@ def proactive_expiry_audit(max_audits=2000):
     lock = threading.Lock()
     total = len(campaigns_with_html)
 
-    def audit_one(c):
+    NUM_WORKERS = 9
+
+    def audit_one(args):
         """Audit a single campaign: sleep → AI parse → DB update. Thread-safe."""
+        c, worker_idx = args
+        # Her işçiye farklı anahtar: işçi 0→Key #1, işçi 1→Key #2, ..., işçi 8→Key #9
+        key_index = (worker_idx % NUM_WORKERS) + 1
         current_end = c["end_date"]
         try:
-            # Each worker sleeps 5s before its AI call → 9 workers × 12 RPM = 108 RPM total
-            # Distributed across 9 API keys = 12 RPM/key, safely under 15 RPM limit
             time.sleep(5.0)
 
             clean_text = clean_html_to_text(c["html"])
-            ai_end_date_str = extract_end_date_via_ai(c["title"], clean_text)
+            ai_end_date_str = extract_end_date_via_ai(c["title"], clean_text, key_index=key_index)
 
             if not ai_end_date_str:
                 print(f"   ❌ No end date found | ID: #{c['id']} | {c['title'][:50]}")
@@ -223,8 +228,9 @@ def proactive_expiry_audit(max_audits=2000):
             print(f"   ⚠️ Error | #{c['id']} | {c['title'][:50]} | {e}")
             return False
 
-    with ThreadPoolExecutor(max_workers=9) as executor:
-        futures = {executor.submit(audit_one, c): c for c in campaigns_with_html}
+    with ThreadPoolExecutor(max_workers=NUM_WORKERS) as executor:
+        # Her kampanyaya (c, worker_idx) tuple geçiyoruz; worker_idx anahtar seçimini belirler
+        futures = {executor.submit(audit_one, (c, i % NUM_WORKERS)): c for i, c in enumerate(campaigns_with_html)}
         for future in as_completed(futures):
             result = future.result()
             with lock:
