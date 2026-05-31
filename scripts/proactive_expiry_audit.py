@@ -45,10 +45,11 @@ def extract_end_date_via_ai(title: str, clean_text: str, key_index: int = 1):
     system_instruction = (
         "Sen KartAvantaj projesinde sadece kampanya bitiş tarihlerini tespit eden uzman bir veri analistisin.\n"
         "Gönderilen metni analiz ederek kampanyanın son geçerlilik tarihini (bitiş tarihini) bulmalısın.\n\n"
-        "Kurallar:\n"
-        "1. Tarihi YYYY-MM-DD formatında döndür.\n"
-        "2. Metinde açıkça yazan kampanya bitiş tarihini tespit et. (Örnek: '30 Haziran 2026', '31.12.2026' vb.)\n"
-        "3. Çıktıyı her zaman belirtilen JSON formatında ver.\n"
+        "ÇOK ÖNEMLİ GÜVENLİK KURALLARI:\n"
+        "1. Eğer metinde kampanyanın bittiğine, yayından kaldırıldığına dair bir ibare varsa ('Kampanya sona ermiştir', 'Süresi doldu', 'Sayfa bulunamadı', '404' vb.) KESİNLİKLE null döndür.\n"
+        "2. Eğer metin tek bir kampanyayı değil, birçok farklı kampanyayı listeliyorsa (genel banka anasayfasına yönlendirilmişse) null döndür.\n"
+        "3. Sadece ve sadece metin aktif bir kampanyadan bahsediyorsa tarihi YYYY-MM-DD formatında döndür.\n"
+        "4. Çıktıyı her zaman belirtilen JSON formatında ver.\n"
     )
     
     prompt = f"""
