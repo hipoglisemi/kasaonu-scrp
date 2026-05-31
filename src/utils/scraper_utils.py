@@ -152,22 +152,48 @@ def upsert_campaign(db: Session, campaign: Campaign) -> Tuple[Campaign, str]:
             existing.is_approved = True
             
         # Update fields
-        existing.title = campaign.title
         existing.tracking_url = campaign.tracking_url  # Update tracking_url to handle migrations
         existing.slug = campaign.slug                  # Update slug just in case
-        existing.reward_text = campaign.reward_text
-        existing.reward_value = campaign.reward_value
-        existing.reward_type = campaign.reward_type
-        existing.description = campaign.description
-        existing.conditions = campaign.conditions
-        existing.participation = campaign.participation
-        existing.eligible_cards = campaign.eligible_cards
-        existing.image_url = campaign.image_url
         existing.start_date = campaign.start_date
         existing.end_date = campaign.end_date
-        existing.clean_text = campaign.clean_text
-        existing.ai_marketing_text = campaign.ai_marketing_text
         existing.updated_at = datetime.now(timezone.utc).replace(tzinfo=None)
+
+        if is_date_only_ext:
+            # 🔒 MEASURE A (Tarih Kilidi): If only the date has changed, DO NOT overwrite existing high-quality fields!
+            print(f"      🔒 [Tarih Kilidi] Campaign '{existing.title[:30]}' is a date-only extension. Content fields locked!")
+        else:
+            # 🛡️ MEASURE B (Veri Kalitesi Kalkanı): If similarity is < 92% (rules changed), 
+            # only update fields if the new parsed fields are NOT empty/broken.
+            # This protects populated DB columns from being overwritten by empty/junk scraper data.
+            
+            def _update_if_better(field_name: str, new_val: any):
+                old_val = getattr(existing, field_name)
+                # Convert string values to stripped versions for checking
+                old_str = str(old_val).strip() if old_val is not None else ""
+                new_str = str(new_val).strip() if new_val is not None else ""
+                
+                # If existing is populated, but new is empty/junk, reject the new value!
+                if old_str and not new_str:
+                    print(f"         🛡️ [Kalkan] Rejection: '{field_name}' is already populated in DB. Shielding from empty override.")
+                    return
+                # Also prevent description/conditions from shrinking to less than 10 chars if old was long
+                if field_name in ["description", "conditions"] and len(old_str) > 20 and len(new_str) < 10:
+                    print(f"         🛡️ [Kalkan] Rejection: '{field_name}' would shrink from {len(old_str)} to {len(new_str)} chars. Shielding.")
+                    return
+                    
+                setattr(existing, field_name, new_val)
+
+            existing.title = campaign.title
+            _update_if_better("reward_text", campaign.reward_text)
+            _update_if_better("reward_value", campaign.reward_value)
+            _update_if_better("reward_type", campaign.reward_type)
+            _update_if_better("description", campaign.description)
+            _update_if_better("conditions", campaign.conditions)
+            _update_if_better("participation", campaign.participation)
+            _update_if_better("eligible_cards", campaign.eligible_cards)
+            _update_if_better("image_url", campaign.image_url)
+            _update_if_better("clean_text", campaign.clean_text)
+            _update_if_better("ai_marketing_text", campaign.ai_marketing_text)
         
         return existing, status
     else:
