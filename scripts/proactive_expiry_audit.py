@@ -77,7 +77,7 @@ GÖREV: Sayfa metnini ve kampanya başlığını inceleyerek kampanyanın son ge
     try:
         result_str = generate_with_rotation(
             prompt=prompt,
-            model="models/gemini-3.1-flash-lite",
+            model="models/gemma-4-31b-it",
             config=config,
             key_indices=[key_index]  # Her işçi kendi anahtarından başlar
         )
@@ -183,7 +183,7 @@ def proactive_expiry_audit(max_audits=2000):
     lock = threading.Lock()
     total = len(campaigns_with_html)
 
-    NUM_WORKERS = 9
+    NUM_WORKERS = 8  # 8 işçi × 8 anahtar, her biri kendi key'ine kilitli
 
     def audit_one(args):
         """Audit a single campaign: sleep → AI parse → DB update. Thread-safe."""
