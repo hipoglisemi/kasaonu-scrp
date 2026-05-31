@@ -279,9 +279,8 @@ def proactive_expiry_audit():
     # Sort campaigns to prioritize those expiring earliest
     campaigns_to_audit.sort(key=lambda x: x["end_date"])
     
-    # Safe cap: process max 150 campaigns per run.
-    # With 6 keys × ~500 RPD each, this is well within daily limits even if other workflows ran.
-    MAX_AUDITS_PER_RUN = 150
+    # Capping AI audits per run to prevent 6-hour GitHub Actions timeout.
+    MAX_AUDITS_PER_RUN = 2000
     if len(campaigns_to_audit) > MAX_AUDITS_PER_RUN:
         print(f"⚡ Capping AI audits to the top {MAX_AUDITS_PER_RUN} soonest-expiring campaigns.")
         campaigns_to_audit = campaigns_to_audit[:MAX_AUDITS_PER_RUN]
