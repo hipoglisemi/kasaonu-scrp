@@ -111,7 +111,6 @@ def proactive_expiry_audit(max_audits=2000):
     """
     print("🕰️ Starting Proactive Expiry Audit (Grace Period check via AI)...")
     today = (datetime.now(timezone.utc) + timedelta(hours=3)).date()
-    session_start = datetime.now(timezone.utc)  # Track when THIS run started
     
     # Fetch campaigns expiring strictly today
     campaigns_to_audit = []
@@ -119,10 +118,9 @@ def proactive_expiry_audit(max_audits=2000):
         with get_db_session() as db:
             soon_expiring = db.query(Campaign).filter(
                 Campaign.is_active == True,
-                Campaign.end_date >= today,                    # Bugün biten kampanyalar
+                Campaign.end_date >= today,                     # Bugün biten kampanyalar
                 Campaign.end_date <= today + timedelta(days=1), # ve Yarın biten kampanyalar
-                Campaign.tracking_url.isnot(None),
-                Campaign.updated_at < session_start  # Bu seansta zaten analiz edilenleri atla
+                Campaign.tracking_url.isnot(None)
             ).all()
             
             campaigns_to_audit = [
@@ -219,12 +217,6 @@ def proactive_expiry_audit(max_audits=2000):
                 return True
             else:
                 print(f"   ℹ️ Not extended | #{c['id']} | AI date: {latest_date} (current: {current_end})")
-                # Touch updated_at so this campaign is skipped on any rerun today
-                with get_db_session() as db:
-                    db_camp = db.query(Campaign).filter(Campaign.id == c["id"]).first()
-                    if db_camp:
-                        db_camp.updated_at = datetime.now()
-                        db.commit()
                 return False
 
         except Exception as e:
