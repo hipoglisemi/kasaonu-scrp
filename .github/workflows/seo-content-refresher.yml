@@ -30,7 +30,7 @@ jobs:
         DATABASE_URL: ${{ secrets.DATABASE_URL }}
         UNSPLASH_ACCESS_KEY: ${{ secrets.UNSPLASH_ACCESS_KEY }}
       run: |
-        python refresh_blog_images.py
+        python scripts/refresh_blog_images.py
         
     - name: Run AI Campaign Content Refresher
       env:
@@ -41,4 +41,4 @@ jobs:
         GEMINI_API_KEY_3: ${{ secrets.GEMINI_API_KEY_3 }}
         UNSPLASH_ACCESS_KEY: ${{ secrets.UNSPLASH_ACCESS_KEY }}
       run: |
-        python refresh_blog_campaigns.py
+        python scripts/refresh_blog_campaigns.py

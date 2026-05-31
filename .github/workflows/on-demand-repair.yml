@@ -57,7 +57,7 @@ jobs:
         fi
         
         echo "🚀 Starting Manual Repair for IDs in $IDS_FILE"
-        python data_quality_autofix.py --ids-file "$IDS_FILE" $FORCE_FLAG
+        python scripts/data_quality_autofix.py --ids-file "$IDS_FILE" $FORCE_FLAG
 
     - name: Bildirim Gönder
       if: always()

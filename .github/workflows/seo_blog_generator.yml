@@ -37,7 +37,7 @@ jobs:
           GEMINI_API_KEY_7: ${{ secrets.GEMINI_API_KEY_7 }}
           BLOG_MODEL: ${{ vars.GEMINI_PRIMARY_MODEL }}
         run: |
-          python generate_seo_blog.py
+          python scripts/generate_seo_blog.py
 
       - name: Bildirim Gönder
         if: always()

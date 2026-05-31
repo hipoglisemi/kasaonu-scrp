@@ -41,7 +41,7 @@ jobs:
         GEMINI_API_KEY_7: ${{ secrets.GEMINI_API_KEY_7 }}
         REVERSE_KEYS: "True"
       run: |
-        python cleanup_expired.py
+        python scripts/cleanup_expired.py
 
     - name: Bildirim Gönder
       if: always()

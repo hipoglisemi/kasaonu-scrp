@@ -62,7 +62,7 @@ jobs:
         if [ "${{ github.event.inputs.force }}" == "true" ]; then
           FORCE_FLAG="--force"
         fi
-        xvfb-run --auto-servernum --server-args="-screen 0 1920x1080x24" python data_quality_autofix.py --limit "$LIMIT" $FORCE_FLAG
+        xvfb-run --auto-servernum --server-args="-screen 0 1920x1080x24" python scripts/data_quality_autofix.py --limit "$LIMIT" $FORCE_FLAG
 
     - name: Bildirim Gönder
       if: always()

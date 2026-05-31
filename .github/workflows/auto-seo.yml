@@ -30,4 +30,4 @@ jobs:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           PYTHONPATH: .
-        run: python3 autoseo_worker.py
+        run: python3 scripts/autoseo_worker.py
