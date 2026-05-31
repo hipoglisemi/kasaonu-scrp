@@ -59,9 +59,9 @@ KAMPANYA SAYFA METNİ:
 GÖREV: Sayfa metnini ve kampanya başlığını inceleyerek kampanyanın son geçerlilik tarihini tespit et. Çıktıyı kesinlikle aşağıdaki JSON şemasına göre üret:
 
 ```json
-{
+{{
   "end_date": "YYYY-MM-DD" // Tespit edilen tarih (örn. "2026-06-30"), eğer kesin olarak bulunamadıysa null.
-}
+}}
 ```
 """
     config = types.GenerateContentConfig(
