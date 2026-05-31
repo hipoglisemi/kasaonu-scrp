@@ -205,7 +205,7 @@ def proactive_expiry_audit(max_audits=2000):
                         db_camp.end_date = latest_date
                         db_camp.clean_text = clean_text  # Save the fresh clean text!
                         db_camp.date_extended = True     # Fall to extended screen!
-                        db_camp.is_approved = False      # Reset approval for manual audit!
+                        db_camp.is_approved = True      # Keep approved and live!
                         db_camp.updated_at = datetime.now()
                         db.commit()
                         extended_count += 1
