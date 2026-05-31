@@ -122,19 +122,13 @@ def generate_with_rotation(
                     if idx > 0 or model_role == "Fallback" or reverse_keys or attempt > 1:
                         print(f"[KeyLoop] ✨ Success with Key #{orig_idx} using {model_role} model ({current_model}) (Global Attempt {attempt}/{max_global_attempts})")
                     return response.text.strip()
+
                 except Exception as e:
                     err_str = str(e).lower()
-                    
-                    # Safe check for HTTP 500: avoid false positives with "limit: 500" or quota limits
-                    has_500_error = False
-                    if "500" in err_str:
-                        if not ("limit: 500" in err_str or "limit 500" in err_str or "quota" in err_str or "exhausted" in err_str):
-                            has_500_error = True
-
                     is_retriable = any(
                         token in err_str
-                        for token in ["429", "resourceexhausted", "quota", "rate_limit", "502", "503", "504", "deadline_exceeded"]
-                    ) or has_500_error
+                        for token in ["429", "resourceexhausted", "quota", "rate_limit", "500", "502", "503", "504", "deadline_exceeded"]
+                    )
                     
                     if is_retriable:
                         # 503 High Demand requires longer wait
