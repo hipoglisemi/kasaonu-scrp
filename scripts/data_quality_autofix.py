@@ -21,6 +21,9 @@ import re
 import uuid
 import logging
 import json
+import threading
+thread_local = threading.local()
+chrome_semaphore = threading.Semaphore(2)
 
 # Suppress noisy INFO logs from underlying AI libraries
 logging.getLogger("httpx").setLevel(logging.WARNING)
@@ -51,12 +54,15 @@ class _AutofixGeminiClient:
             response_mime_type="application/json",
             max_output_tokens=6000
         )
-        result = generate_with_rotation(
-            prompt=prompt, 
-            model=self.model, 
-            fallback_model=self.fallback_model,
-            config=config
-        )
+        kwargs = {
+            "prompt": prompt,
+            "model": self.model,
+            "fallback_model": self.fallback_model,
+            "config": config
+        }
+        if getattr(thread_local, 'key_index', None) is not None:
+            kwargs["key_indices"] = [thread_local.key_index]
+        result = generate_with_rotation(**kwargs)
         return result if result else "{}"
 
 def _get_golden_parser(model=None, fallback_model=None):
@@ -129,6 +135,7 @@ def fetch_html(url: str) -> str:
     is_spa = any(domain in url for domain in spa_domains)
 
     if is_spa:
+        chrome_semaphore.acquire()
         print(f"   🚀 SPA/Tabbed Site Detected ({url}). Booting Headless Chrome...")
         try:
             from selenium import webdriver
@@ -196,6 +203,8 @@ def fetch_html(url: str) -> str:
         except Exception as e:
             print(f"   ⚠️ SPA fetch failed: {e}. Falling back to standard methods.")
             raw_html = ""
+        finally:
+            chrome_semaphore.release()
             
     is_trafilatura_text = False
     if not raw_html or len(raw_html) < 2000:
