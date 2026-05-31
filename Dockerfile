@@ -41,4 +41,4 @@ HEALTHCHECK --interval=30s --timeout=5s --retries=3 \
   CMD curl -f http://localhost:8001/health || exit 1
 
 # Run the repair API
-CMD ["python", "repair_api.py"]
+CMD ["python", "scripts/repair_api.py"]
