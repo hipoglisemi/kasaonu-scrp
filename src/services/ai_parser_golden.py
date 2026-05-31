@@ -569,20 +569,17 @@ ANALİZ EDİLECEK METİN:
         parsed_start = self._safe_date(data.get("start_date"))
         parsed_end = self._safe_date(data.get("end_date"))
 
+        # Strict Rule: If no end_date is found at all, DO NOT fake or guess it!
+        # This prevents expired or faked campaigns from auto-approving.
         if not parsed_start and not parsed_end:
-            parsed_start = today.strftime("%Y-%m-%d")
-            next_month = today.replace(day=28) + timedelta(days=4)
-            parsed_end = (next_month - timedelta(days=next_month.day)).strftime("%Y-%m-%d")
+            parsed_start = None
+            parsed_end = None
         elif not parsed_start and parsed_end:
+            # If we know when it ends, but not when it starts, starting today is a safe fallback
             parsed_start = today.strftime("%Y-%m-%d")
         elif parsed_start and not parsed_end:
-            try:
-                start_dt = datetime.strptime(parsed_start, "%Y-%m-%d")
-                next_m = start_dt.replace(day=28) + timedelta(days=4)
-                parsed_end = (next_m - timedelta(days=next_m.day)).strftime("%Y-%m-%d")
-            except:
-                next_month = today.replace(day=28) + timedelta(days=4)
-                parsed_end = (next_month - timedelta(days=next_month.day)).strftime("%Y-%m-%d")
+            # If we know when it starts, but not when it ends, do not guess end_date!
+            parsed_end = None
 
         data["start_date"] = parsed_start
         data["end_date"] = parsed_end

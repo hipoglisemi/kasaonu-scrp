@@ -73,6 +73,11 @@ def generate_with_rotation(
     primary_model_name = model or os.getenv("GEMINI_MODEL", "gemini-3.1-flash-lite")
     fallback_model_name = fallback_model or os.getenv("FALLBACK_MODEL")
     
+    # 🎯 AUTOMATIC GEMINI-3.1-FLASH-LITE -> GEMMA-4-31B-IT FALLBACK RULE
+    if "gemini-3.1-flash-lite" in primary_model_name.lower() and not fallback_model_name:
+        fallback_model_name = "models/gemma-4-31b-it"
+        print(f"[KeyLoop] 🛡️ Automatic Fallback Armed: gemini-3.1-flash-lite -> {fallback_model_name}")
+    
     models_to_try = [(primary_model_name, "Primary")]
     if fallback_model_name:
         models_to_try.append((fallback_model_name, "Fallback"))
@@ -105,7 +110,7 @@ def generate_with_rotation(
     for attempt in range(1, max_global_attempts + 1):
         for current_model, model_role in models_to_try:
             if model_role == "Fallback":
-                print(f"[KeyLoop] 🔄 Primary model ({primary_model_name}) failed on all keys. Switching to Fallback: {current_model}")
+                print(f"[KeyLoop] 🔄 Switching immediately to Fallback model: {current_model}")
                 
             for idx, key_info in enumerate(indexed_keys):
                 key = key_info["value"]
@@ -131,6 +136,13 @@ def generate_with_rotation(
                     )
                     
                     if is_retriable:
+                        # 🎯 IMMEDIATE FALLBACK RULE: If the failing model is gemini-3.1-flash-lite, 
+                        # and we have a fallback model available, IMMEDIATELY switch to fallback without wasting time on next keys.
+                        if "gemini-3.1-flash-lite" in current_model.lower() and fallback_model_name and model_role == "Primary":
+                            print(f"[KeyLoop] ⚠️ Gemini 3.1 Flash Lite failed on Key #{orig_idx} due to rate limit/error. 🚀 SWITCHING IMMEDIATELY to Gemma Fallback!")
+                            last_error = e
+                            break # Break the keys loop for Primary, moves to Fallback model in the models_to_try list!
+                            
                         # 503 High Demand requires longer wait
                         is_503 = "503" in err_str or "high demand" in err_str
                         current_delay = retry_delay * 2 if is_503 else retry_delay
@@ -147,6 +159,12 @@ def generate_with_rotation(
                         last_error = e
                         continue # Try next key
                     else:
+                        # 🎯 IMMEDIATE FALLBACK ON FATAL ERROR FOR GEMINI-3.1-FLASH-LITE
+                        if "gemini-3.1-flash-lite" in current_model.lower() and fallback_model_name and model_role == "Primary":
+                            print(f"[KeyLoop] ❌ Gemini 3.1 Flash Lite encountered fatal error. 🚀 SWITCHING IMMEDIATELY to Gemma Fallback!")
+                            last_error = e
+                            break
+                            
                         # Fatal error
                         print(f"[KeyLoop] ❌ Fatal Error with Key #{orig_idx} on {current_model}: {e}")
                         raise

@@ -78,6 +78,14 @@ def is_link_dead(url: str, title: str = "") -> bool:
                 
             final_url = resp.url.lower()
             
+            # 💡 CHIPPIN SPECIFIC CHECK: React/Next.js Client-Side Exception Detection
+            # When a Chippin campaign is deactivated, it triggers a client-side crash
+            if 'chippin.com.tr' in url:
+                resp_text = resp.text
+                if "client-side exception" in resp_text or "Application error" in resp_text:
+                    print(f"      🚨 [Chippin Kırık Link] Client-side exception detected on page! Marking as dead link.")
+                    return True
+            
             # Extract path without query parameters or trailing slash
             path = ""
             try:

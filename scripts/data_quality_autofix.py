@@ -755,8 +755,9 @@ def run_autofix(limit: int = 250, campaign_id: Optional[int] = None, force_all: 
                     
                     if html_text and len(html_text) >= 150:
                         fetched_cleaned = clean_campaign_text(html_text, og_title=og_title, title=c.title)
-                        # 🛡️ DB TEXT PROTECTION: Never overwrite longer DB text with shorter live content
-                        if db_text_len > 0 and len(fetched_cleaned) < db_text_len * 0.7:
+                        # 🛡️ DB TEXT PROTECTION: Never overwrite longer DB text with shorter live content UNLESS live content is already long enough and clean (350+ chars)
+                        is_live_trustworthy = len(fetched_cleaned) >= 350 or (campaign_id is not None)
+                        if db_text_len > 0 and len(fetched_cleaned) < db_text_len * 0.7 and not is_live_trustworthy:
                             print(f"   ⚠️ URL fetch returned significantly less/no data ({len(fetched_cleaned)} vs {db_text_len} DB chars). Falling back to DB content.")
                             text_to_parse = c.clean_text
                             repair_meta["source"] = "DB"
@@ -944,10 +945,13 @@ def run_autofix(limit: int = 250, campaign_id: Optional[int] = None, force_all: 
                     
                     # Fallback if AI didn't find it
                     if not new_end:
-                        # Baseline as end of the month of (start_date or created_at)
-                        reference = c.start_date or baseline_date
-                        new_end = get_last_day_of_month(reference)
-                        print(f"   🔄 Falling back End Date to End of Month: {new_end}")
+                        # For continuous campaigns, fallback to 3 months ahead of start_date/reference to keep it active
+                        reference = c.start_date or baseline_date.date()
+                        # Add approx 90 days to reference date
+                        import datetime
+                        future_date = reference + datetime.timedelta(days=90)
+                        new_end = get_last_day_of_month(future_date)
+                        print(f"   🔄 Falling back End Date to Continuous Mode (3 Months Ahead): {new_end}")
 
                     if new_end:
                         c.end_date = new_end
@@ -1099,16 +1103,17 @@ def run_autofix(limit: int = 250, campaign_id: Optional[int] = None, force_all: 
                     
                     # If we are in force/id-file mode OR brand consistency fix → PURGE all brands for a clean slate
                     # Otherwise, we only purge the ones identified as bank brands
-                    correct_brands_to_keep = []
+                    correct_brand_ids_to_keep = []
                     if is_brand_consistency_fix:
                         # Duplicate Pattern veya Over-Tagging durumunda tüm markalar temizlenir,
                         # sadece AI'ın yeniden ürettiği markalar yazılır.
                         print(f"   🧹 [Brand Consistency Fix] Purging ALL brands for clean re-tagging.")
                     elif not (campaign_id or ids_file):
-                        for b in c.brands:
-                            if b.brand.name not in wrong_bank_brands:
-                                correct_brands_to_keep.append(b)
-                    # is_brand_consistency_fix=True durumunda correct_brands_to_keep [] kalır (full purge)
+                        for cb in db.query(CampaignBrand).filter(CampaignBrand.campaign_id == c.id).all():
+                            b_obj = db.query(Brand).filter(Brand.id == cb.brand_id).first()
+                            if b_obj and b_obj.name not in wrong_bank_brands:
+                                correct_brand_ids_to_keep.append(cb.brand_id)
+                    # is_brand_consistency_fix=True durumunda correct_brand_ids_to_keep [] kalır (full purge)
                     
                     # Kampanya bağlarını sıfırla
                     db.query(CampaignBrand).filter(CampaignBrand.campaign_id == c.id).delete()
@@ -1116,11 +1121,16 @@ def run_autofix(limit: int = 250, campaign_id: Optional[int] = None, force_all: 
                     
                     added_brand_ids = set()
                     
-                    if correct_brands_to_keep:
-                        for b in correct_brands_to_keep:
-                            db.add(CampaignBrand(campaign_id=c.id, brand_id=b.brand_id))
-                            added_brand_ids.add(b.brand_id)
-                        print(f"   🛡️ Preserved Brands: {', '.join([b.brand.name for b in correct_brands_to_keep])}")
+                    if correct_brand_ids_to_keep:
+                        for bid in correct_brand_ids_to_keep:
+                            db.add(CampaignBrand(campaign_id=c.id, brand_id=bid))
+                            added_brand_ids.add(bid)
+                        
+                        preserved_names = []
+                        for bid in correct_brand_ids_to_keep:
+                            b_obj = db.query(Brand).filter(Brand.id == bid).first()
+                            if b_obj: preserved_names.append(b_obj.name)
+                        print(f"   🛡️ Preserved Brands: {', '.join(preserved_names)}")
                     else:
                         print(f"   🧹 Purged all existing brands for fresh repair.")
 
@@ -1192,7 +1202,7 @@ def run_autofix(limit: int = 250, campaign_id: Optional[int] = None, force_all: 
                 if score >= 70 and text_to_parse:
                     print("   🔬 [Fact-Checker] Initiating Peer-Review NLI Verification...")
                     try:
-                        checker = FactCheckerAgent()
+                        checker = FactCheckerAgent(model=model or "models/gemini-3.1-flash-lite")
                         candidate = {
                             "reward_text": c.reward_text,
                             "reward_value": float(c.reward_value) if c.reward_value is not None else None,
@@ -1200,7 +1210,7 @@ def run_autofix(limit: int = 250, campaign_id: Optional[int] = None, force_all: 
                             "cards": c.eligible_cards.split(", ") if c.eligible_cards else [],
                             "participation": c.participation,
                             "sector": c.sector.name if c.sector else "Diğer",
-                            "brands": [b.brand.name for b in c.brands]
+                            "brands": [db.query(Brand).filter(Brand.id == cb.brand_id).first().name for cb in db.query(CampaignBrand).filter(CampaignBrand.campaign_id == c.id).all() if db.query(Brand).filter(Brand.id == cb.brand_id).first()]
                         }
                         verification = checker.verify_campaign(text_to_parse, candidate)
                         
@@ -1233,9 +1243,10 @@ def run_autofix(limit: int = 250, campaign_id: Optional[int] = None, force_all: 
                                 if unsupported_brands:
                                     print(f"   🩹 [Fact-Checker] Self-Healing Triggered! Removing unsupported brands: {unsupported_brands}")
                                     # Purge from campaign brands join table
-                                    for b in list(c.brands):
-                                        if b.brand.name in unsupported_brands:
-                                            db.delete(b)
+                                    for cb in db.query(CampaignBrand).filter(CampaignBrand.campaign_id == c.id).all():
+                                        b_obj = db.query(Brand).filter(Brand.id == cb.brand_id).first()
+                                        if b_obj and b_obj.name in unsupported_brands:
+                                            db.delete(cb)
                                     db.flush()
                                     remaining_brands = [bname for bname in candidate["brands"] if bname not in unsupported_brands]
                                     updated = True

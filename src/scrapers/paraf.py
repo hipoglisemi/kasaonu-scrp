@@ -203,9 +203,29 @@ class ParafScraper:
             og_title_el = soup.find("meta", property="og:title")
             og_title = og_title_el.get("content") if og_title_el else None
             
-            # Extract FULL BODY for Autofix-standard global cleaning
-            body_el = soup.find("body")
-            raw_html = str(body_el) if body_el else response.text
+            # Extract ONLY the core campaign details, tabs and conditions to prevent truncation
+            content_divs = []
+            
+            # Halkbank uses these selectors for campaign detail content and conditions
+            selectors = [
+                "div.campaign-detail-tab-content",
+                "div.campaign-detail",
+                "div.detail-container",
+                "div.tabs-content",
+                "div.responsivegrid"
+            ]
+            
+            for selector in selectors:
+                el = soup.select_one(selector)
+                if el:
+                    content_divs.append(str(el))
+            
+            # Fallback to body or raw text if selectors are not found
+            if content_divs:
+                raw_html = "\n".join(content_divs)
+            else:
+                body_el = soup.find("body")
+                raw_html = str(body_el) if body_el else response.text
             
             # AI Parse (Autofix-standard)
             from src.services.ai_parser import parse_api_campaign
@@ -219,7 +239,7 @@ class ParafScraper:
                 og_title=og_title
             )
             
-            if not ai_data:
+            if not ai_data or ai_data.get("_ai_failed"):
                 print("      ❌ AI parsing failed")
                 return "error"  # type: ignore # pyre-ignore[7]
                 

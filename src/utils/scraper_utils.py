@@ -104,11 +104,9 @@ def upsert_campaign(db: Session, campaign: Campaign) -> Tuple[Campaign, str]:
             print(f"   🔄 Reviving passive campaign: {existing.title[:40]}...")
             existing.is_active = True
             
-            # User request: "yeniden canlananlar bir süre daha onaya düşsün"
-            # We always force resurrected campaigns to go to the approval queue (is_approved = False)
+            # Resurrected campaigns always go to approval queue
             existing.is_approved = False
             existing.cards_audited_at = None
-            
             status = "revived"
             
         # Check if only the date was extended (Fuzzy similarity of text >= 92%)
@@ -120,20 +118,26 @@ def upsert_campaign(db: Session, campaign: Campaign) -> Tuple[Campaign, str]:
                 return ""
             # Turkish lowercasing and normalising character differences
             t = text.replace("İ", "i").replace("I", "ı").lower()
-            # Remove all digits (dates/prices/numbers are ignored)
+            # Remove all digits
             t = _re.sub(r'\d+', '', t)
             # Remove Turkish month names
             months = ["ocak", "şubat", "subat", "mart", "nisan", "mayıs", "mayis", "haziran", 
                       "temmuz", "ağustos", "agustos", "eylül", "eylul", "ekim", "kasım", "kasim", "aralık", "aralik"]
             for m in months:
                 t = _re.sub(rf'\b{m}\b', '', t)
-            # Remove punctuation and spaces, keeping only alphabetic characters
+            # Remove punctuation and spaces
             t = _re.sub(r'[^a-zıişğüç]', '', t)
             return t
 
         old_text = existing.clean_text or existing.description
         new_text = campaign.clean_text or campaign.description
         
+        # 🛡️ AI FAILURE GUARD: If the scraper payload has zero content (AI failed due to 429),
+        # DO NOT update or overwrite the existing database record! Keep the healthy DB data.
+        if old_text and not new_text:
+            print(f"      🛡️ [AI Kalkanı] AI parsing failed for incoming payload (possibly 429). Shielding database record '{existing.title[:30]}' from being wiped!")
+            return existing, "skipped"
+            
         is_date_only_ext = False
         if old_text and new_text:
             t1_norm = normalize_text_for_comparison(new_text)
@@ -145,26 +149,26 @@ def upsert_campaign(db: Session, campaign: Campaign) -> Tuple[Campaign, str]:
             if similarity >= 0.92:
                 is_date_only_ext = True
                 print(f"      🎉 [Date-Only Extension] Similarity is {similarity:.1%}, marking date_extended=True")
-
+        
         existing.date_extended = is_date_only_ext
-        if is_date_only_ext and status == "revived":
-            print(f"      🎉 [Auto-Approve] Revived campaign is a Date-Only Extension. Auto-approving!")
-            existing.is_approved = True
-            
-        # Update fields
-        existing.tracking_url = campaign.tracking_url  # Update tracking_url to handle migrations
-        existing.slug = campaign.slug                  # Update slug just in case
-        existing.start_date = campaign.start_date
-        existing.end_date = campaign.end_date
+        
+        # 🛡️ STRICT APPROVAL LOCK: ALL campaign updates, including date extensions and revivals,
+        # must go to the approval queue for manual editor verification. NO auto-approvals!
+        existing.is_approved = False
+
         existing.updated_at = datetime.now(timezone.utc).replace(tzinfo=None)
 
         if is_date_only_ext:
-            # 🔒 MEASURE A (Tarih Kilidi): If only the date has changed, DO NOT overwrite existing high-quality fields!
-            print(f"      🔒 [Tarih Kilidi] Campaign '{existing.title[:30]}' is a date-only extension. Content fields locked!")
+            # 🔒 MEASURE A (Tarih Kilidi): If only the date has changed, STRICTLY update only date-related fields!
+            print(f"      🔒 [Tarih Kilidi] Campaign '{existing.title[:30]}' is a date-only extension. Content fields and URL are STRICTLY locked!")
+            existing.start_date = campaign.start_date
+            existing.end_date = campaign.end_date
         else:
-            # 🛡️ MEASURE B (Veri Kalitesi Kalkanı): If similarity is < 92% (rules changed), 
-            # only update fields if the new parsed fields are NOT empty/broken.
-            # This protects populated DB columns from being overwritten by empty/junk scraper data.
+            # Update URLs and Slug ONLY when it's a completely new/modified campaign
+            existing.tracking_url = campaign.tracking_url  
+            existing.slug = campaign.slug                  
+            existing.start_date = campaign.start_date
+            existing.end_date = campaign.end_date
             
             def _update_if_better(field_name: str, new_val: Any):
                 old_val = getattr(existing, field_name)
@@ -197,5 +201,7 @@ def upsert_campaign(db: Session, campaign: Campaign) -> Tuple[Campaign, str]:
         
         return existing, status
     else:
+        # New campaigns are strictly NOT approved by default
+        campaign.is_approved = False
         db.add(campaign)
         return campaign, "saved"
