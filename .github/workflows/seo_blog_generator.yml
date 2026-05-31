@@ -35,7 +35,7 @@ jobs:
           GEMINI_API_KEY_5: ${{ secrets.GEMINI_API_KEY_5 }}
           GEMINI_API_KEY_6: ${{ secrets.GEMINI_API_KEY_6 }}
           GEMINI_API_KEY_7: ${{ secrets.GEMINI_API_KEY_7 }}
-          BLOG_MODEL: ${{ vars.GEMINI_PRIMARY_MODEL }}
+          BLOG_MODEL: "gemini-3.5-flash"
         run: |
           python scripts/generate_seo_blog.py
 

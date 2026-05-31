@@ -14,7 +14,7 @@ from src.utils.gemini_client import generate_with_rotation
 
 load_dotenv()
 DB_URL = os.getenv("DATABASE_URL")
-MODEL_NAME = os.getenv("GEMINI_PRIMARY_MODEL", "gemini-3-flash-preview")
+MODEL_NAME = os.getenv("GEMINI_MODEL", "gemini-3.5-flash")
 
 def get_connection():
     return psycopg2.connect(DB_URL)

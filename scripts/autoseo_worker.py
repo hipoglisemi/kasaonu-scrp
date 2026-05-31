@@ -14,7 +14,7 @@ load_dotenv()
 
 DB_URL = os.getenv("DATABASE_URL")
 # Default olarak hızlı ve ucuz olan 2.5 Flash kullan
-MODEL = os.getenv("GEMINI_PRIMARY_MODEL", os.getenv("GEMINI_MODEL", "gemini-3.5-flash"))
+MODEL = os.getenv("GEMINI_MODEL", "gemini-3.5-flash")
 
 def get_connection():
     return psycopg2.connect(DB_URL)
