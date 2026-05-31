@@ -1,16 +1,21 @@
-name: Cleanup Expired Campaigns
+name: Proactive Expiry Audit (AI Campaign Extension)
 
 on:
   push:
     paths:
-      - '.github/workflows/cleanup-campaigns.yml'
+      - '.github/workflows/proactive-expiry-audit.yml'
   schedule:
-    # TSİ 04:15 (UTC 01:15) - Tüm Scraper taramalarından sonra çalışır
-    - cron: '15 1 * * *'
+    # TSİ 03:00 (UTC 00:00) - Cleanup'tan önce çalışır ve yaklaşanları uzatır
+    - cron: '0 0 * * *'
   workflow_dispatch: # Allow manual trigger
+    inputs:
+      max_audits:
+        description: 'Maksimum taranacak kampanya sayısı (Kota limitini korumak için)'
+        required: true
+        default: '150'
 
 jobs:
-  cleanup-campaigns:
+  proactive-expiry-audit:
     runs-on: ubuntu-22.04
     
     steps:
@@ -27,12 +32,23 @@ jobs:
         python -m pip install --upgrade pip
         pip install -r requirements.txt
         
-    - name: Run Cleanup Script
+    - name: Run Proactive Expiry Audit
       env:
         DATABASE_URL: ${{ secrets.DATABASE_URL }}
-        SEARCH_CONSOLE_KEY: ${{ secrets.SEARCH_CONSOLE_KEY }}
+        GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+        GEMINI_API_KEY_1: ${{ secrets.GEMINI_API_KEY_1 }}
+        GEMINI_API_KEY_2: ${{ secrets.GEMINI_API_KEY_2 }}
+        GEMINI_API_KEY_3: ${{ secrets.GEMINI_API_KEY_3 }}
+        GEMINI_API_KEY_4: ${{ secrets.GEMINI_API_KEY_4 }}
+        GEMINI_API_KEY_5: ${{ secrets.GEMINI_API_KEY_5 }}
+        GEMINI_API_KEY_6: ${{ secrets.GEMINI_API_KEY_6 }}
+        GEMINI_API_KEY_7: ${{ secrets.GEMINI_API_KEY_7 }}
+        REVERSE_KEYS: "False"
       run: |
-        python scripts/cleanup_expired.py
+        # Use dispatch input or default to 150
+        MAX_AUDITS="${{ github.event.inputs.max_audits || '150' }}"
+        echo "🚀 Running proactive expiry audit with max_audits=$MAX_AUDITS"
+        python scripts/proactive_expiry_audit.py $MAX_AUDITS
 
     - name: Bildirim Gönder
       if: always()
