@@ -5,8 +5,8 @@ on:
     paths:
       - '.github/workflows/proactive-expiry-audit.yml'
   schedule:
-    # TSİ 03:00 (UTC 00:00) - Cleanup'tan önce çalışır ve yaklaşanları uzatır
-    - cron: '0 0 * * *'
+    # TSİ 00:00 (UTC 21:00) - Her gece tam gece yarısı çalışarak yaklaşanları uzatır
+    - cron: '0 21 * * *'
   workflow_dispatch: # Allow manual trigger
     inputs:
       max_audits:
