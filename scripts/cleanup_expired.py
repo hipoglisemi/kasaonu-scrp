@@ -167,7 +167,7 @@ def clean_html_to_text(html: str) -> str:
     text = re.sub(r'\s+', ' ', text).strip()
     return text[:8000] # Limit to 8000 characters to keep prompt/tokens tiny
 
-def extract_end_date_via_ai(title: str, html: str, key_indices: list[int] = None) -> str | None:
+def extract_end_date_via_ai(title: str, html: str, key_indices: list[int] | None = None) -> str | None:
     """
     Extracts only the campaign end date from the campaign HTML text using Gemini.
     Returns date string in YYYY-MM-DD format, or None if not found/error.

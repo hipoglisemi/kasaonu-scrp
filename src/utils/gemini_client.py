@@ -87,6 +87,7 @@ def generate_with_rotation(
     # Pair keys with their original 1-based index
     indexed_keys = [{"value": val, "original_index": i + 1} for i, val in enumerate(keys)]
     
+    reverse_keys = False
     # Check if a custom subset of 1-based key indices is specified (e.g. key_indices=[8, 7])
     key_indices = kwargs.pop("key_indices", None)
     if key_indices:
