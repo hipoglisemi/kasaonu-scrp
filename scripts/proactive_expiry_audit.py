@@ -76,7 +76,7 @@ GÖREV: Sayfa metnini ve kampanya başlığını inceleyerek kampanyanın son ge
     try:
         result_str = generate_with_rotation(
             prompt=prompt,
-            model="models/gemini-3.1-flash-lite",
+            model="gemma-4-31b-it",
             config=config
         )
         
