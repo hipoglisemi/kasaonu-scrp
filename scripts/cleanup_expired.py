@@ -348,12 +348,13 @@ def proactive_expiry_audit():
             print(f"   ⚠️ Error auditing {c['title']} with AI: {e}")
         return False
         
-    # Parallel AI Parsing using ThreadPoolExecutor
-    # 12 workers is a great sweet spot to avoid getting aggressive 429s, but still extremely fast!
-    with ThreadPoolExecutor(max_workers=12) as executor:
-        ai_futures = [executor.submit(audit_single_campaign, c) for c in campaigns_with_html]
-        for future in as_completed(ai_futures):
-            pass
+    # Sequential AI Parsing with a safe 3-second sleep between requests.
+    # This guarantees we stay comfortably under the 15 Requests Per Minute (RPM) free tier rate limit
+    # and completely avoids key exhaustion due to 429 concurrency bursts.
+    import time
+    for c in campaigns_with_html:
+        audit_single_campaign(c)
+        time.sleep(3.0)
             
     print(f"✅ Proactive Expiry Audit complete. Extended {extended_count} campaigns.")
 
