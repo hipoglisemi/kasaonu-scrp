@@ -32,12 +32,11 @@ def clean_html_to_text(html: str) -> str:
     text = re.sub(r'\s+', ' ', text).strip()
     return text[:8000] # Limit to 8000 characters to keep tokens tiny
 
-def extract_end_date_via_ai(title: str, html: str):
+def extract_end_date_via_ai(title: str, clean_text: str):
     """
     Extracts only the campaign end date from the campaign HTML text using Gemini.
     Returns date string in YYYY-MM-DD format, or None if not found/error.
     """
-    clean_text = clean_html_to_text(html)
     if not clean_text:
         return None
         
@@ -60,9 +59,9 @@ KAMPANYA SAYFA METNİ:
 GÖREV: Sayfa metnini ve kampanya başlığını inceleyerek kampanyanın son geçerlilik tarihini tespit et. Çıktıyı kesinlikle aşağıdaki JSON şemasına göre üret:
 
 ```json
-{{
+{
   "end_date": "YYYY-MM-DD" // Tespit edilen tarih (örn. "2026-06-30"), eğer kesin olarak bulunamadıysa null.
-}}
+}
 ```
 """
     config = types.GenerateContentConfig(
@@ -184,7 +183,8 @@ def proactive_expiry_audit(max_audits=2000):
             if idx > 0:
                 time.sleep(5.0)
             
-            ai_end_date_str = extract_end_date_via_ai(c["title"], html)
+            clean_text = clean_html_to_text(html)
+            ai_end_date_str = extract_end_date_via_ai(c["title"], clean_text)
             if not ai_end_date_str:
                 continue
                 
@@ -203,6 +203,7 @@ def proactive_expiry_audit(max_audits=2000):
                     db_camp = db.query(Campaign).filter(Campaign.id == c["id"]).first()
                     if db_camp:
                         db_camp.end_date = latest_date
+                        db_camp.clean_text = clean_text  # Save the fresh clean text!
                         db_camp.updated_at = datetime.now()
                         db.commit()
                         extended_count += 1
