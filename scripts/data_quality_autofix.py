@@ -697,7 +697,13 @@ def run_autofix(limit: int = 250, campaign_id: Optional[int] = None, force_all: 
         def process_campaign(args):
                 item, worker_idx = args
                 c_id, tracking_url, reasons_list = item
-                thread_local.key_index = (worker_idx % 8) + 1
+                # Sadece paralel toplu çalışmada worker başına sabit key ata.
+                # Tekil kampanya tamirinde (campaign_id verilmiş) daima Key #1'e kilitlenmemek için
+                # key_index atamıyoruz — generate_with_rotation tam rotation yapacak.
+                if campaign_id is None:
+                    thread_local.key_index = (worker_idx % 8) + 1
+                else:
+                    thread_local.key_index = None
                 summary_reasons = ", ".join(reasons_list)
                 
                 # --- STEP 1: FAST DB READ & IMMEDIATE RELEASE ---
