@@ -662,7 +662,7 @@ def run_autofix(limit: int = 250, campaign_id: Optional[int] = None, force_all: 
                         has_bank_error = any("Invalid Bank Brand" in r for r in reasons)
                         has_metadata_error = any("Incomplete Cards" in r or "Incomplete Participation" in r for r in reasons)
                         
-                        if not (is_corrupted or has_mojibake or has_bank_error or has_metadata_error) and not force_campaign:
+                        if not (is_corrupted or has_mojibake or has_bank_error or has_metadata_error) and not force_campaign and not campaign_id:
                             stats["skipped_cooldown"] += 1
                             continue
                         stats["retry"] += 1
@@ -844,6 +844,17 @@ def run_autofix(limit: int = 250, campaign_id: Optional[int] = None, force_all: 
 
                     # Determine bank name for AI parser
                     bank_name = c.card.bank.name if c.card and c.card.bank else None
+                    
+                    # Nays Header Noise Cleaner
+                    if text_to_parse and ("nays" in (bank_name or "").lower() or "nays" in (c.eligible_cards or "").lower() or "naysapp.com.tr" in (c.tracking_url or "")):
+                        clean_markers = ["anasayfa kampanyalar", "anasayfa > kampanyalar", "anasayfa / kampanyalar"]
+                        for marker in clean_markers:
+                            match_idx = text_to_parse.lower().find(marker)
+                            if match_idx != -1:
+                                text_to_parse = text_to_parse[match_idx + len(marker):].strip()
+                                print(f"   🧹 [Nays Cleaner] Cleaned header navigation noise (marker: '{marker}')! New length: {len(text_to_parse)}")
+                                break
+
                     
                     # Title fix logic
                     ai_title_pass = c.title or ''
