@@ -134,151 +134,169 @@ SECTOR_MAP = {
     "diger": "diger",
 }
 
-def fetch_html(url: str) -> str:
-    """Attempts to fetch the HTML content of a URL."""
-    raw_html = ""
-    spa_domains = [
-        "dunyakatilim.com.tr", "paycell.com.tr", "opet.com.tr", "naysapp.com.tr",
-        "chippin.com", "axess.com.tr", "kartfree.com", "wingscard.com.tr",
-        "bonus.com.tr", "denizbonus.com",
-        "maximum.com.tr", "maximiles.com.tr",  # JavaScript SPA — Selenium ile çek
-    ]
-    is_spa = any(domain in url for domain in spa_domains)
+def _needs_selenium(raw_html: str, url: str) -> bool:
+    """Hızlı içerik kalite kontrolü — sayfanın JS render gerektirip gerektirmediğini tespit eder."""
+    if not raw_html or len(raw_html) < 1500:
+        return True  # Neredeyse hiç içerik yok
+    
+    soup = BeautifulSoup(raw_html, 'html.parser')
+    visible_text = soup.get_text(separator=' ', strip=True)
+    
+    # Kampanya anahtar kelimeleri bulunamıyorsa sayfa render olmamıştır
+    campaign_keywords = ["kampanya", "indirim", "kazan", "puan", "iade", "tl", "hediye", "fırsat"]
+    if len(visible_text) < 400 or not any(k in visible_text.lower() for k in campaign_keywords):
+        return True
+    
+    # React/Next.js SPA sinyalleri — içerik boş root div veya __NEXT_DATA__ ile yükleniyorsa
+    root_div = soup.find("div", id="root") or soup.find("div", id="__next")
+    if root_div and len(root_div.get_text(strip=True)) < 100:
+        return True
+    
+    # Noscript içinde anlamlı içerik varsa → JS olmadan sayfa çalışmıyor
+    noscript = soup.find("noscript")
+    if noscript and len(noscript.get_text(strip=True)) > 50:
+        return True
+    
+    return False
 
 
-    if is_spa:
-        chrome_semaphore.acquire()
-        print(f"   🚀 SPA/Tabbed Site Detected ({url}). Booting Headless Chrome...")
+def _run_selenium(url: str) -> str:
+    """Headless Chrome/Selenium ile sayfayı açar ve HTML döner."""
+    chrome_semaphore.acquire()
+    print(f"   🚀 Escalating to Headless Chrome for: {url}")
+    try:
+        from selenium import webdriver
+        from selenium.webdriver.common.by import By
+        from selenium.webdriver.chrome.service import Service
+
+        options = webdriver.ChromeOptions()
+        if os.getenv("CHROME_BIN"):
+            options.binary_location = os.getenv("CHROME_BIN")
+        options.add_argument('--disable-blink-features=AutomationControlled')
+        options.add_argument('--no-sandbox')
+        options.add_argument('--disable-dev-shm-usage')
+        options.add_argument('--disable-gpu')
+        options.add_argument('--headless=new')
+        options.add_argument('--ignore-certificate-errors')
+        options.add_argument('--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36')
+        options.add_experimental_option("excludeSwitches", ["enable-automation"])
+        options.add_experimental_option('useAutomationExtension', False)
+
         try:
-            from selenium import webdriver
-            from selenium.webdriver.common.by import By
-            
-            from selenium.webdriver.chrome.service import Service
-            
-            options = webdriver.ChromeOptions()
-            if os.getenv("CHROME_BIN"):
-                options.binary_location = os.getenv("CHROME_BIN")
-                
-            options.add_argument('--disable-blink-features=AutomationControlled')
-            options.add_argument('--no-sandbox')
-            options.add_argument('--disable-dev-shm-usage')
-            options.add_argument('--disable-gpu')
-            options.add_argument('--headless=new')
-            options.add_argument('--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36')
-            options.add_experimental_option("excludeSwitches", ["enable-automation"])
-            options.add_experimental_option('useAutomationExtension', False)
-            
+            service = Service(executable_path=os.getenv("CHROMEDRIVER_PATH", "chromedriver"))
+            driver = webdriver.Chrome(service=service, options=options)
+        except Exception:
+            driver = webdriver.Chrome(options=options)
+
+        driver.set_page_load_timeout(60)
+        driver.get(url)
+        time.sleep(4)
+        driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
+        time.sleep(2)
+        driver.execute_script("window.scrollTo(0, document.body.scrollHeight - 500);")
+        time.sleep(2)
+
+        # Site bazlı özel aksiyonlar
+        if "dunyakatilim.com.tr" in url:
             try:
-                service = Service(executable_path=os.getenv("CHROMEDRIVER_PATH", "chromedriver"))
-                driver = webdriver.Chrome(service=service, options=options)
-            except:
-                # Fallback to standard init if service/path fails (similar to scrapers)
-                driver = webdriver.Chrome(options=options)
+                cookie_btn = driver.find_element(By.ID, "cookie-all-apply")
+                driver.execute_script("arguments[0].click();", cookie_btn)
+                time.sleep(2)
+            except Exception:
+                pass
 
-            driver.set_page_load_timeout(60) # Increased timeout
-            driver.get(url)
-            time.sleep(4) # Initial wait
-            # Scroll to bottom to trigger lazy loading
-            driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
-            time.sleep(2)
-            # Scroll slightly up as some lazy loaders need movement
-            driver.execute_script("window.scrollTo(0, document.body.scrollHeight - 500);")
-            time.sleep(2)
-            raw_html = driver.page_source
-
-            # Dünya Katılım specific: Close cookie banner if present
-            if "dunyakatilim.com.tr" in url:
-                try:
-                    cookie_btn = driver.find_element(By.ID, "cookie-all-apply")
-                    if cookie_btn:
-                        driver.execute_script("arguments[0].click();", cookie_btn)
+        if "bonus.com.tr" in url:
+            try:
+                tabs = driver.find_elements(By.CSS_SELECTOR, ".tabs-list li, .how-to-win-tabs li, .tab-item, .nav-tabs li a")
+                for tab in tabs:
+                    if any(t in tab.text.lower() for t in ["diğer bilgiler", "diger bilgiler", "nasıl kazanırım", "dahil kartlar"]):
+                        driver.execute_script("arguments[0].scrollIntoView();", tab)
+                        driver.execute_script("arguments[0].click();", tab)
                         time.sleep(2)
-                except:
-                    pass
+            except Exception:
+                pass
 
-            # Bonus.com.tr specific: Click on "DİĞER BİLGİLER" or "Nasıl Kazanırım" tabs to reveal cards
-            if "bonus.com.tr" in url:
-                try:
-                    tabs = driver.find_elements(By.CSS_SELECTOR, ".tabs-list li, .how-to-win-tabs li, .tab-item, .nav-tabs li a")
-                    for tab in tabs:
-                        tab_text = tab.text.lower()
-                        if any(txt in tab_text for txt in ["diğer bilgiler", "diger bilgiler", "nasıl kazanırım", "dahil kartlar"]):
-                            driver.execute_script("arguments[0].scrollIntoView();", tab)
-                            driver.execute_script("arguments[0].click();", tab)
-                            time.sleep(2)
-                except:
-                    pass
+        html = driver.page_source
+        driver.quit()
+        return html
+    except Exception as e:
+        print(f"   ⚠️ Selenium failed: {e}")
+        return ""
+    finally:
+        chrome_semaphore.release()
 
-            time.sleep(2) 
-            raw_html = driver.page_source
-            driver.quit()
-        except Exception as e:
-            print(f"   ⚠️ SPA fetch failed: {e}. Falling back to standard methods.")
-            raw_html = ""
-        finally:
-            chrome_semaphore.release()
-            
+
+def fetch_html(url: str) -> str:
+    """
+    Adaptif HTML çekici — önce hızlı yöntemi dener, yetmezse otomatik yükseltir.
+    Sıralama: requests → (JS tespiti) → Selenium → Trafilatura → hata
+    """
+    raw_html = ""
     is_trafilatura_text = False
+
+    # ── ADIM 1: Hızlı requests ile dene ──────────────────────────────────────
+    try:
+        headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36'}
+        import urllib3  # type: ignore
+        urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+        response = requests.get(url, headers=headers, timeout=15, verify=False)
+        response.raise_for_status()
+        if response.encoding == 'ISO-8859-1':
+            response.encoding = response.apparent_encoding
+        raw_html = response.text
+        print(f"   ⚡ requests fetched {len(raw_html)} chars.")
+    except Exception as e:
+        print(f"   ⚠️ requests failed: {e}")
+        status = "BOT_BLOCKED" if any(x in str(e) for x in ["403", "429", "forbidden"]) else "LIVE_FETCH_ERROR"
+        raw_html = ""
+
+    # ── ADIM 2: JS render gerekiyor mu? Otomatik karar ver ──────────────────
+    if _needs_selenium(raw_html, url):
+        print(f"   🔍 JS render detected (thin content or SPA signals). Escalating to Selenium...")
+        selenium_html = _run_selenium(url)
+        if selenium_html and len(selenium_html) > len(raw_html):
+            raw_html = selenium_html
+            print(f"   ✅ Selenium fetched {len(raw_html)} chars.")
+
+    # ── ADIM 3: Hâlâ yetersizse Trafilatura ─────────────────────────────────
     if not raw_html or len(raw_html) < 2000:
-        # Final Fallback: Use Trafilatura (Our robust markdown engine)
         try:
-            if "vakif" in url:
-                raise Exception("Skip Trafilatura for Vakifbank due to noise issues")
-            import trafilatura
-            downloaded = trafilatura.fetch_url(url)
-            if downloaded:
-                # Extract with all options to get as much text as possible
-                extracted_text = trafilatura.extract(downloaded, include_tables=True, include_links=True, include_comments=True)
-                if extracted_text and len(extracted_text) > 500:
-                    print(f"   ✨ Trafilatura successfully extracted {len(extracted_text)} chars.")
-                    raw_html = extracted_text # Set as raw_html to be processed by clean_campaign_text below
-                    is_trafilatura_text = True
+            if "vakif" not in url:
+                import trafilatura
+                downloaded = trafilatura.fetch_url(url)
+                if downloaded:
+                    extracted = trafilatura.extract(downloaded, include_tables=True, include_links=True, include_comments=True)
+                    if extracted and len(extracted) > 500:
+                        print(f"   ✨ Trafilatura extracted {len(extracted)} chars.")
+                        raw_html = extracted
+                        is_trafilatura_text = True
         except Exception as te:
             print(f"   ⚠️ Trafilatura failed: {te}")
 
     if not raw_html:
-        try:
-            headers = {
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36'
-            }
-            import urllib3 # type: ignore
-            urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
-            response = requests.get(url, headers=headers, timeout=15, verify=False)
-            response.raise_for_status()
-            
-            if response.encoding == 'ISO-8859-1':
-                response.encoding = response.apparent_encoding
-            raw_html = response.text
-        except Exception as e:
-            print(f"   ⚠️ Request failed: {e}")
-            status = "LIVE_FETCH_ERROR"
-            if "403" in str(e) or "429" in str(e) or "forbidden" in str(e).lower():
-                status = "BOT_BLOCKED"
-            return "", status
+        return "", "LIVE_FETCH_ERROR"
 
+    # ── ADIM 4: HTML temizle ve metin çıkar ──────────────────────────────────
     if not is_trafilatura_text:
         soup = BeautifulSoup(raw_html, 'html.parser')
 
-        # 🛡️ NOISE REMOVAL (Global)
-        for script in soup(["script", "style", "nav", "footer", "header", "noscript"]):
-            script.extract()
-            
-        # 🛡️ NOISE REMOVAL (Specific)
+        for tag in soup(["script", "style", "nav", "footer", "header", "noscript"]):
+            tag.extract()
+
         noise_selectors = [
-            '.other-campaigns', '.featured-campaigns', '.similar-campaigns', 
-            '.campaign-recommendations', 'section.news-carousel', 
+            '.other-campaigns', '.featured-campaigns', '.similar-campaigns',
+            '.campaign-recommendations', 'section.news-carousel',
             '#related-campaigns', '.campaignDetail-others',
-            '.footer-cookie-policy', '.cookie-banner', '.cookie-modal', 
+            '.footer-cookie-policy', '.cookie-banner', '.cookie-modal',
             '#cookie-dialog-content', '.cookie-consent', '#cookie-all-apply'
         ]
         for selector in noise_selectors:
             for element in soup.select(selector):
                 element.extract()
-        
-        # 🎯 CONTENT TARGETING
+
         target_selectors = [
-            '.page-top-title', '.sub-header', '.campaign-terms', '.campaign-detail-content', '.campaign-detail', 
-            '.campaign-detail-tab-details', '.campaign-detail-box', 
+            '.page-top-title', '.sub-header', '.campaign-terms', '.campaign-detail-content', '.campaign-detail',
+            '.campaign-detail-tab-details', '.campaign-detail-box',
             'article.campaign-detail', '.cmsContent',
             '.campaingDetail', '.campaing', '.textArea', '.campaingDetail-content',
             '.how-to-win-content', '.tab-content', '.campaign-detail-content', '.campaign-detail-text',
@@ -286,44 +304,37 @@ def fetch_html(url: str) -> str:
             '.news-campaign-content', '.bt', '.richtext',
             '.offer-detail', '.terms-conditions'
         ]
-        
+
         content_found = []
         for selector in target_selectors:
-            elements = soup.select(selector)
-            for el in elements:
+            for el in soup.select(selector):
                 el_text_lower = el.get_text().lower()
                 if any(x in el_text_lower for x in ["öne çıkan kampanyalar", "benzer kampanyalar"]):
                     continue
                 content_found.append(el.get_text(separator=' ', strip=True))
-        
-        if content_found:
-            text = " ".join(content_found)
-        else:
-            text = soup.get_text(separator=' ', strip=True)
+
+        text = " ".join(content_found) if content_found else soup.get_text(separator=' ', strip=True)
     else:
-        # Trafilatura already gave us the text in raw_html
         text = raw_html
-        
+
     print(f"🔍 DEBUG RAW EXTRACTED TEXT: {text}")
-    
-    # 🛡️ Use Central Text Cleaner (Standard Scraper Logic)
+
     text = clean_campaign_text(text)
-    
-    # 🛡️ GENERIC CONTENT GUARD
+
+    # Jenerik içerik koruyucu
     generic_keywords = ["çerez", "kişisel veriler", "aydınlatma metni", "hakkımızda", "içeriğe git", "menüye git", "gizlilik politikası"]
     campaign_keywords = ["kampanya", "indirim", "fırsat", "çekiliş", "kazan", "hediye", "puan", "iade", "tl", "bonus"]
-    
     text_lower = text.lower()
     generic_count = sum(1 for k in generic_keywords if k in text_lower)
     campaign_count = sum(1 for k in campaign_keywords if k in text_lower)
-    
-    # If the text is overwhelmingly generic and missing campaign keywords, mark as empty
     if generic_count > 5 and campaign_count < 2 and len(text) < 3000:
-        print(f"   🛡️ Generic Content Guard Triggered! (Generic: {generic_count}, Campaign: {campaign_count}). Rejecting text.")
+        print(f"   🛡️ Generic Content Guard Triggered! (Generic: {generic_count}, Campaign: {campaign_count}). Rejecting.")
         return "", "GENERIC_CONTENT_REJECTED"
 
     status_code = "LIVE_SUCCESS" if len(text) > 200 else "LIVE_EMPTY"
     return text, status_code
+
+
 
 def run_autofix(limit: int = 250, campaign_id: Optional[int] = None, force_all: bool = False, ids_file: Optional[str] = None, ui_mode: bool = False, pending: bool = False, model: Optional[str] = None, fallback_model: Optional[str] = None, force_rescue: bool = False):
     print(f"🚀 Starting Data Quality Auto-Fixer (Limit: {limit})...")
