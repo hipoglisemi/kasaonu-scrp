@@ -1214,9 +1214,9 @@ def run_autofix(limit: int = 250, campaign_id: Optional[int] = None, force_all: 
                     c.quality_score = score
                     print(f"   📊 Computed Base Quality Score: {score}/100")
 
-                    # Run Peer-Review Fact-Checker if score is promising (>= 70)
+                    # Run Peer-Review Fact-Checker if score is promising (>= 70) and NOT in UI mode (manual repair)
                     fact_checker_passed = False
-                    if score >= 70 and text_to_parse:
+                    if score >= 70 and text_to_parse and not ui_mode:
                         print("   🔬 [Fact-Checker] Initiating Peer-Review NLI Verification...")
                         try:
                             checker = FactCheckerAgent(model=model or "models/gemini-3.1-flash-lite")
