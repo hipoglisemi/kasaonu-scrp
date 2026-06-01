@@ -48,9 +48,9 @@ from google.genai import types # type: ignore
 class _AutofixGeminiClient:
     """Wraps generate_with_rotation for AIParserGolden compatibility."""
     def __init__(self, model=None, fallback_model=None):
-        # Gece otomatik tamircisi (AutoFix) için yüksek limitli Gemma-31B'yi varsayılan yapıyoruz
-        self.model = model or os.getenv("FALLBACK_MODEL", "models/gemma-4-31b-it")
-        self.fallback_model = fallback_model or os.getenv("GEMINI_PRIMARY_MODEL", "gemini-3.1-flash-lite")
+        # Tekil UI tamiri için önce hızlı flash-lite dene, kota dolunca Gemma'ya geç
+        self.model = model or os.getenv("GEMINI_FAST_MODEL", "gemini-3.1-flash-lite")
+        self.fallback_model = fallback_model or os.getenv("FALLBACK_MODEL", "models/gemma-4-31b-it")
         
     def generate_content(self, prompt):
         config = types.GenerateContentConfig(
@@ -1432,8 +1432,10 @@ def run_autofix(limit: int = 250, campaign_id: Optional[int] = None, force_all: 
                     else:
                         print(f"   ⚠️ AI didn't find the missing data. Marked as auto_corrected to prevent loop. No new changes made.")
 
-                # Be gentle to the API limits
-                time.sleep(5.0) # Her isci kendine ayrilan 5 saniyeyi bekler
+                # Paralel toplu çalışmada API limitlerini korumak için bekle.
+                # Tekil UI tamirinde (campaign_id verilmiş) bu bekleme gereksiz, atla.
+                if campaign_id is None:
+                    time.sleep(5.0)  # Her işçi kendine ayrılan 5 saniyeyi bekler
                 
                 return True
 
