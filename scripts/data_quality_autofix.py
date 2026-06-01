@@ -132,55 +132,6 @@ SECTOR_MAP = {
     "diger": "diger",
 }
 
-def get_default_cards_for_bank(bank_name, card_name=None):
-    if not bank_name:
-        return ["Genel Kartlar"]
-    
-    bn = bank_name.lower()
-    cn = (card_name or "").lower()
-    
-    if "halkbank" in bn or "paraf" in cn or "parafly" in cn:
-        if "parafly" in cn:
-            return ["Parafly", "Paraf", "Sanal kartlar", "Ek kartlar"]
-        return ["Paraf", "Parafly", "Sanal kartlar", "Ek kartlar"]
-    elif "yapı kredi" in bn or "yapi kredi" in bn or "world" in cn:
-        if "crystal" in cn:
-            return ["Crystal", "Sanal kartlar", "Ek kartlar"]
-        if "play" in cn:
-            return ["Play", "Sanal kartlar", "Ek kartlar"]
-        if "adios" in cn:
-            return ["Adios", "Sanal kartlar", "Ek kartlar"]
-        return ["Worldcard", "Sanal kartlar", "Ek kartlar"]
-    elif "akbank" in bn or "axess" in cn or "wings" in cn:
-        if "wings" in cn:
-            return ["Wings", "Sanal kartlar", "Ek kartlar"]
-        return ["Axess", "Wings", "Sanal kartlar", "Ek kartlar"]
-    elif "garanti" in bn or "bonus" in cn or "miles&smiles" in cn or "shop&fly" in cn:
-        if "miles" in cn or "smiles" in cn:
-            return ["Miles&Smiles Garanti BBVA", "Sanal kartlar", "Ek kartlar"]
-        if "shop" in cn or "fly" in cn:
-            return ["Shop&Fly", "Sanal kartlar", "Ek kartlar"]
-        return ["Bonus", "Sanal kartlar", "Ek kartlar"]
-    elif "ziraat" in bn or "bankkart" in cn:
-        return ["Bankkart", "Sanal kartlar", "Ek kartlar"]
-    elif "teb" in bn:
-        return ["TEB Bonus", "Sanal kartlar", "Ek kartlar"]
-    elif "denizbank" in bn:
-        return ["Deniz Bonus", "Sanal kartlar", "Ek kartlar"]
-    elif "işbankası" in bn or "isbank" in bn or "maximum" in cn or "maximiles" in cn:
-        if "maximiles" in cn:
-            return ["Maximiles", "Maximum", "Sanal kartlar", "Ek kartlar"]
-        return ["Maximum", "Sanal kartlar", "Ek kartlar"]
-    elif "vakıfbank" in bn or "vakifbank" in bn:
-        return ["VakıfBank Worldcard", "Sanal kartlar", "Ek kartlar"]
-    elif "qnb" in bn or "finansbank" in bn or "cardfinans" in cn:
-        return ["CardFinans", "Sanal kartlar", "Ek kartlar"]
-    elif "enpara" in bn:
-        return ["Enpara.com Kredi Kartı", "Enpara.com Banka Kartı"]
-    elif "nays" in bn:
-        return ["Nays Kart"]
-    return []
-
 def fetch_html(url: str) -> str:
     """Attempts to fetch the HTML content of a URL."""
     raw_html = ""
@@ -1052,11 +1003,6 @@ def run_autofix(limit: int = 250, campaign_id: Optional[int] = None, force_all: 
                     if is_cards_empty or is_cards_corrupted or is_cards_incomplete or is_cards_wrong or force_campaign:
                         if ai_data.get("cards") is not None:
                             ai_cards = ai_data.get("cards") or []
-                            if len(ai_cards) == 0:
-                                fallback_cards = get_default_cards_for_bank(bank_name, c.card.name if c.card else None)
-                                if fallback_cards:
-                                    ai_cards = fallback_cards
-                                    print(f"   ⛽ Fallback to Bank Defaults: {ai_cards}")
                             cards_str = ", ".join(ai_cards) if len(ai_cards) > 0 else "-"
 
                             if is_cards_incomplete:
