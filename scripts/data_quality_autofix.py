@@ -979,7 +979,7 @@ def run_autofix(limit: int = 250, campaign_id: Optional[int] = None, force_all: 
                     baseline_date = c.created_at or datetime.now()
 
                     # Start Date Repair
-                    if not c.start_date or force_campaign:
+                    if not c.start_date or force_campaign or campaign_id:
                         new_start = None
                         if ai_data.get("start_date"):
                             try:
@@ -1001,7 +1001,7 @@ def run_autofix(limit: int = 250, campaign_id: Optional[int] = None, force_all: 
                             print(f"   ✨ Repaired Start Date: {c.start_date}")
 
                     # End Date Repair
-                    if not c.end_date or force_campaign:
+                    if not c.end_date or force_campaign or campaign_id:
                         new_end = None
                         if ai_data.get("end_date"):
                             try:
