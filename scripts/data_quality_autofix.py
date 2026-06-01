@@ -341,9 +341,13 @@ def run_autofix(limit: int = 250, campaign_id: Optional[int] = None, force_all: 
                 query = query.filter(Campaign.is_active == True)
             else:
                 # DEFAULT BEHAVIOR: Focus ONLY on PENDING (unapproved) campaigns
-                print("🔍 Focusing on ACTIVE & PENDING (unapproved) campaigns...")
+                # date_extended=True olanları atla — proactive tarafından tarihi uzatılmış,
+                # onay bekliyor. AI yeniden parse etmesine gerek yok.
+                print("🔍 Focusing on ACTIVE & PENDING (unapproved) campaigns (excluding date_extended)...")
                 query = query.filter(Campaign.is_approved == False)
                 query = query.filter(Campaign.is_active == True)
+                query = query.filter(Campaign.date_extended == False)
+
             
             defective_campaigns = query.all()
             print(f"   📊 Checking {len(defective_campaigns)} active campaigns for defects.")

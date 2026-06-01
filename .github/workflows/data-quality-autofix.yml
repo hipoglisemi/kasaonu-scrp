@@ -2,8 +2,8 @@ name: Data Quality Auto-Fixer
 
 on:
   schedule:
-    # TSİ 07:30 (UTC 04:30) - Cleanup'tan hemen sonra çalışır
-    - cron: '30 4 * * *'
+    # TSİ 04:30 (UTC 01:30) — Tüm scraper grupları (A-F) bittikten sonra çalışır
+    - cron: '30 1 * * *'
   workflow_dispatch:
     inputs:
       limit:
@@ -62,7 +62,7 @@ jobs:
         if [ "${{ github.event.inputs.force }}" == "true" ]; then
           FORCE_FLAG="--force"
         fi
-        xvfb-run --auto-servernum --server-args="-screen 0 1920x1080x24" python scripts/data_quality_autofix.py --limit "$LIMIT" $FORCE_FLAG
+        xvfb-run --auto-servernum --server-args="-screen 0 1920x1080x24" python scripts/data_quality_autofix.py --limit "$LIMIT" --pending $FORCE_FLAG
 
     - name: Bildirim Gönder
       if: always()
