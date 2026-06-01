@@ -24,6 +24,7 @@ def notify_google_deleted(slugs: list[str]):
         print("⚠️  SEARCH_CONSOLE_KEY bulunamadı, Google bildirimi atlandı.")
         return False
     try:
+        from google.oauth2 import service_account
         key_raw = key_raw.strip()
         if key_raw.startswith("'") and key_raw.endswith("'"):
             key_raw = key_raw[1:-1]

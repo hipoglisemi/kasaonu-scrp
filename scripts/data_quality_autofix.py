@@ -620,7 +620,11 @@ def run_autofix(limit: int = 250, campaign_id: Optional[int] = None, force_all: 
 
                 # Onay bekleyen (unapproved) kampanyalar için bekleme süresi ve deneme sınırlarını kaldırarak
                 # her zaman en taze ve en kaliteli AI onarımını (tıpkı paneldeki 'Tamir Et' gibi) zorla!
-                force_campaign = FORCE_ALL or (not c.is_approved)
+                # AMA tekil UI onarım taleplerinde (campaign_id) kullanıcının 'normal mod' (force olmayan) tercihine sadık kal!
+                if campaign_id:
+                    force_campaign = FORCE_ALL
+                else:
+                    force_campaign = FORCE_ALL or (not c.is_approved)
 
                 # FORCE REPAIR IF:
                 # 1. SPECIFIC ID IS PROVIDED
@@ -703,7 +707,11 @@ def run_autofix(limit: int = 250, campaign_id: Optional[int] = None, force_all: 
                         return False
                     
                     # Onay bekleyen kampanyalar için en yüksek kaliteyi sağlamak adına force modunu aç!
-                    force_campaign = FORCE_ALL or (not c.is_approved)
+                    # AMA tekil UI onarım taleplerinde (campaign_id) kullanıcının 'normal mod' (force olmayan) tercihine sadık kal!
+                    if campaign_id:
+                        force_campaign = FORCE_ALL
+                    else:
+                        force_campaign = FORCE_ALL or (not c.is_approved)
                         
                     print(f"\n🛠️ Fixing: [{c.id}] {c.title[:40]}... (Reasons: {summary_reasons})")
                     print(f"   🔗 URL: {c.tracking_url}")
@@ -771,6 +779,23 @@ def run_autofix(limit: int = 250, campaign_id: Optional[int] = None, force_all: 
                         # Step 2: Full HTML Fetch
                         html_text, live_status = fetch_html(c.tracking_url)
                         
+                        # 🛡️ FIREWALL / BLOCK / SSL ERROR DETECTION
+                        is_blocked = False
+                        if html_text:
+                            html_text_lower = html_text.lower()
+                            block_keywords = [
+                                "request rejected", "access denied", "güvenlik uyarısı", "security warning",
+                                "bot verification", "cloudflare", "sucuri", "firewall", "blocked",
+                                "connection timed out", "ssl handshake", "sertifika hatası", "geçersiz sertifika",
+                                "gizlilik hatası", "bağlantınız gizli değil", "saldırganlar", "pem encoded chain",
+                                "begin certificate", "end certificate", "err_cert_common_name_invalid", "net::err_cert"
+                            ]
+                            if any(kw in html_text_lower for kw in block_keywords) and len(html_text) < 20000:
+                                is_blocked = True
+                                print(f"   🛡️ Firewall/Block Page or SSL/Privacy Warning detected in fetched content. Rejecting fetched HTML.")
+                                live_status = "BOT_BLOCKED_FIREWALL"
+                                html_text = ""
+                        
                         if html_text and len(html_text) >= 150:
                             fetched_cleaned = clean_campaign_text(html_text, og_title=og_title, title=c.title)
                             # 🛡️ DB TEXT PROTECTION: Never overwrite longer DB text with shorter live content UNLESS live content is already long enough and clean (350+ chars)
@@ -786,19 +811,34 @@ def run_autofix(limit: int = 250, campaign_id: Optional[int] = None, force_all: 
                                 repair_meta["status"] = live_status
                                 print(f"   ✅ URL fetch successful ({len(text_to_parse)} chars)")
                         else:
-                            print(f"   ⚠️ [CODE: {live_status}] URL fetch failed. Falling back to DB content.")
-                            fallback_segments = []
-                            if c.description: fallback_segments.append(c.description)
-                            if c.conditions: fallback_segments.append(c.conditions)
-                            fallback_text = " ".join(fallback_segments)
+                            print(f"   ⚠️ [CODE: {live_status}] URL fetch failed or blocked. Falling back to DB content.")
                             
-                            if len(fallback_text) > 20:
-                                text_to_parse = fallback_text
-                                repair_meta["source"] = "DB_FALLBACK"
+                            # Fallback sequence:
+                            # 1. Try DB clean_text first (since it is the raw original source)
+                            # 2. Try DB description + conditions
+                            has_clean_db_text = c.clean_text and len(c.clean_text) > 100 and not any(kw in c.clean_text.lower() for kw in ["request rejected", "güvenlik uyarısı", "ssl sertifika"])
+                            
+                            if has_clean_db_text:
+                                text_to_parse = c.clean_text
+                                repair_meta["source"] = "DB_CLEAN_TEXT"
                                 repair_meta["status"] = live_status
+                                print(f"   ✨ Successfully fell back to clean DB text ({len(c.clean_text)} chars)")
                             else:
-                                print(f"   ❌ [ERR_CODE: CONTENT_NOT_FOUND] Could not extract meaningful text.")
-                                return False
+                                fallback_segments = []
+                                if c.description and not any(kw in c.description.lower() for kw in ["güvenlik uyarısı", "ssl", "sertifika", "request rejected"]):
+                                    fallback_segments.append(c.description)
+                                if c.conditions and not any(kw in c.conditions.lower() for kw in ["güvenlik uyarısı", "ssl", "sertifika", "request rejected"]):
+                                    fallback_segments.append(c.conditions)
+                                fallback_text = " ".join(fallback_segments)
+                                
+                                if len(fallback_text) > 20:
+                                    text_to_parse = fallback_text
+                                    repair_meta["source"] = "DB_FALLBACK"
+                                    repair_meta["status"] = live_status
+                                    print(f"   ✨ Fell back to clean DB desc/cond ({len(fallback_text)} chars)")
+                                else:
+                                    print(f"   ❌ [ERR_CODE: CONTENT_NOT_FOUND] Could not extract meaningful text.")
+                                    return False
 
                     # Determine bank name for AI parser
                     bank_name = c.card.bank.name if c.card and c.card.bank else None
@@ -861,9 +901,10 @@ def run_autofix(limit: int = 250, campaign_id: Optional[int] = None, force_all: 
                     
                     generic_titles = ["nays'ın kazandıran özellikleri", "opet kampanyası", "ayrıcalıklar", "kampanyalar", "fırsatlar", "akaryakıt standartları bilgilendirmesi"]
                     is_title_generic = c.title and c.title.lower().strip() in generic_titles
+                    is_title_corrupted = c.title and any(kw in c.title.lower() for kw in ["güvenlik uyarısı", "sertifika hatası", "request rejected", "access denied"])
                     
                     # Update Title
-                    if not c.title or is_title_generic or force_campaign:
+                    if not c.title or is_title_generic or is_title_corrupted or force_campaign:
                         if ai_data.get("title") and ai_data["title"] != c.title:
                             ai_title = ai_data["title"]
                             if any(kw in ai_title.lower() for kw in ["çerez", "cookie", "aydınlatma metni"]):
@@ -874,7 +915,8 @@ def run_autofix(limit: int = 250, campaign_id: Optional[int] = None, force_all: 
                                 updated = True
 
                     # Update Description
-                    if not c.description or len(c.description.strip()) < 15 or force_campaign:
+                    is_desc_corrupted = c.description and any(kw in c.description.lower() for kw in ["güvenlik uyarısı", "sertifika hatası", "request rejected", "access denied", "ssl"])
+                    if not c.description or len(c.description.strip()) < 15 or is_desc_corrupted or force_campaign:
                         if ai_data.get("description"):
                             print(f"   ✨ Repaired Description!")
                             c.description = ai_data["description"]
@@ -983,7 +1025,8 @@ def run_autofix(limit: int = 250, campaign_id: Optional[int] = None, force_all: 
                             print(f"   ✨ Repaired End Date: {c.end_date}")
                             
                     # Update Conditions if missing, corrupted or force_campaign
-                    if not c.conditions or c.conditions.strip() == "" or corrupted_regex.search(c.conditions) or force_campaign:
+                    is_cond_corrupted = c.conditions and any(kw in c.conditions.lower() for kw in ["güvenlik uyarısı", "sertifika hatası", "request rejected", "access denied", "ssl"])
+                    if not c.conditions or c.conditions.strip() == "" or corrupted_regex.search(c.conditions) or is_cond_corrupted or force_campaign:
                         if ai_data.get("conditions"):
                             print(f"   ✨ Repaired Conditions!")
                             c.conditions = "\n".join(cond for cond in ai_data.get("conditions", []))
@@ -991,7 +1034,8 @@ def run_autofix(limit: int = 250, campaign_id: Optional[int] = None, force_all: 
 
 
                     # Clean and update Participation
-                    is_curr_p_bad = not c.participation or c.participation.strip() == "" or any(p in (c.participation or "") for p in useless_participations) or corrupted_regex.search(c.participation) or "Otomatik Katılım" in (c.participation or "")
+                    is_curr_p_corrupted = c.participation and any(kw in c.participation.lower() for kw in ["güvenlik uyarısı", "sertifika hatası", "request rejected", "access denied", "ssl"])
+                    is_curr_p_bad = not c.participation or c.participation.strip() == "" or any(p in (c.participation or "") for p in useless_participations) or corrupted_regex.search(c.participation) or "Otomatik Katılım" in (c.participation or "") or is_curr_p_corrupted
                     if is_curr_p_bad or force_campaign:
                         if ai_data.get("participation"):
                             print(f"   ✨ Repaired Participation: {ai_data['participation'][:50]}...")
