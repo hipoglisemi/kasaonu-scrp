@@ -137,8 +137,14 @@ SECTOR_MAP = {
 def fetch_html(url: str) -> str:
     """Attempts to fetch the HTML content of a URL."""
     raw_html = ""
-    spa_domains = ["dunyakatilim.com.tr", "paycell.com.tr", "opet.com.tr", "naysapp.com.tr", "chippin.com", "axess.com.tr", "kartfree.com", "wingscard.com.tr", "bonus.com.tr", "denizbonus.com"]
+    spa_domains = [
+        "dunyakatilim.com.tr", "paycell.com.tr", "opet.com.tr", "naysapp.com.tr",
+        "chippin.com", "axess.com.tr", "kartfree.com", "wingscard.com.tr",
+        "bonus.com.tr", "denizbonus.com",
+        "maximum.com.tr", "maximiles.com.tr",  # JavaScript SPA — Selenium ile çek
+    ]
     is_spa = any(domain in url for domain in spa_domains)
+
 
     if is_spa:
         chrome_semaphore.acquire()
