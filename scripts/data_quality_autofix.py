@@ -450,7 +450,8 @@ def run_autofix(limit: int = 250, campaign_id: Optional[int] = None, force_all: 
                     reasons.append("Missing Marketing Summary")
                 
                 # Check for Truncated/Short Clean Text (New: Auto-Rescue Trigger)
-                if not c.clean_text or len(c.clean_text.strip()) < 600:
+                # Optimized: 250 characters is a highly realistic minimum length for shorter, valid campaigns.
+                if not c.clean_text or len(c.clean_text.strip()) < 250:
                     is_defective = True
                     if not c.clean_text:
                         reasons.append("Missing Clean Text")
@@ -743,7 +744,7 @@ def run_autofix(limit: int = 250, campaign_id: Optional[int] = None, force_all: 
                     repair_meta = {"source": "DB", "status": "CLEAN_TEXT_USED"}
                     og_title = None
                     
-                    if c.clean_text and len(c.clean_text) >= 600 and not is_truncated and not mojibake_pattern.search(c.clean_text) and not is_rescue_active and not force_campaign:
+                    if c.clean_text and len(c.clean_text) >= 250 and not is_truncated and not mojibake_pattern.search(c.clean_text) and not is_rescue_active and not force_campaign:
                         print(f"   ⚡ Using pre-cleaned text from DB ({len(c.clean_text)} chars)")
                         text_to_parse = c.clean_text
                     else:
