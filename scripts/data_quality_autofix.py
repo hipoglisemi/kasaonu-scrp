@@ -732,7 +732,8 @@ def run_autofix(limit: int = 250, campaign_id: Optional[int] = None, force_all: 
                     
                     # Eğer kampanya 3. denemeden sonra da düzeltilemediyse (yani repair_count >= 3 ise, 4. deneme ve sonrası),
                     # veritabanındaki yetersiz/eksik clean_text'i baypas edip siteden sıfırdan canlı HTML çekiyoruz (rescue).
-                    if (c.repair_count or 0) >= 3:
+                    # 🛑 EXCEPTION: Tekil UI onarım taleplerinde (campaign_id) kullanıcının 'normal mod' (hızlı) tercihine sadık kalıp bunu yapmıyoruz!
+                    if (c.repair_count or 0) >= 3 and not campaign_id:
                         is_rescue_active = True
                         print(f"   💡 Defective after {c.repair_count} attempts: Forcing live rescue fetch from scratch.")
 
