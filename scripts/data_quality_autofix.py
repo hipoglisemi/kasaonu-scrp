@@ -945,10 +945,14 @@ def run_autofix(limit: int = 250, campaign_id: Optional[int] = None, force_all: 
                         
                         # Fallback if AI didn't find it
                         if not new_start:
-                            print(f"   🔄 Falling back Start Date to Created At: {baseline_date.date()}")
-                            new_start = baseline_date.date()
+                            if c.start_date:
+                                new_start = c.start_date
+                                print(f"   🛡️ AI didn't find start_date, keeping existing: {new_start}")
+                            else:
+                                print(f"   🔄 Falling back Start Date to Created At: {baseline_date.date()}")
+                                new_start = baseline_date.date()
                         
-                        if new_start:
+                        if new_start and new_start != c.start_date:
                             c.start_date = new_start
                             updated = True
                             print(f"   ✨ Repaired Start Date: {c.start_date}")
@@ -963,15 +967,18 @@ def run_autofix(limit: int = 250, campaign_id: Optional[int] = None, force_all: 
                         
                         # Fallback if AI didn't find it
                         if not new_end:
-                            # For continuous campaigns, fallback to 3 months ahead of start_date/reference to keep it active
-                            reference = c.start_date or baseline_date.date()
-                            # Add approx 90 days to reference date
-                            import datetime
-                            future_date = reference + datetime.timedelta(days=90)
-                            new_end = get_last_day_of_month(future_date)
-                            print(f"   🔄 Falling back End Date to Continuous Mode (3 Months Ahead): {new_end}")
+                            if c.end_date:
+                                new_end = c.end_date
+                                print(f"   🛡️ AI didn't find end_date, keeping existing: {new_end}")
+                            else:
+                                # For continuous campaigns, fallback to 3 months ahead of start_date/reference to keep it active
+                                reference = c.start_date or baseline_date.date()
+                                import datetime
+                                future_date = reference + datetime.timedelta(days=90)
+                                new_end = get_last_day_of_month(future_date)
+                                print(f"   🔄 Falling back End Date to Continuous Mode (3 Months Ahead): {new_end}")
 
-                        if new_end:
+                        if new_end and new_end != c.end_date:
                             c.end_date = new_end
                             updated = True
                             print(f"   ✨ Repaired End Date: {c.end_date}")
