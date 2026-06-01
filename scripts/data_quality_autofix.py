@@ -18,6 +18,9 @@ from datetime import datetime, date, timedelta, timezone
 # Add the parent directory to Python path
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
+from dotenv import load_dotenv
+load_dotenv('.env')
+
 import re
 import uuid
 import logging
