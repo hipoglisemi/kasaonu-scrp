@@ -66,7 +66,7 @@ async def health():
     return {"status": "ok", "service": "repair-api", "version": "1.0.1"}
 
 @app.post("/repair/{campaign_id}")
-async def repair_campaign(campaign_id: int, force: bool = True, model: Optional[str] = None, authorization: Optional[str] = Header(None)):
+def repair_campaign(campaign_id: int, force: bool = True, model: Optional[str] = None, authorization: Optional[str] = Header(None)):
     """
     Repair a single campaign using data_quality_autofix.py
     """
