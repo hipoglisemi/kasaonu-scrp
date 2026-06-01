@@ -150,6 +150,9 @@ CONDITION_BOILERPLATE = [
     "kampanya koşullarına uygun olmayan", "harcama itirazı durumunda",
     "ödüller nakde çevrilemez", "zamanaşımına uğrayan",
     "kullanılmayan puanlar geri alınacaktır",
+    "tarihleri arasında geçerlidir", "tarihleri arasında geçerli",
+    "tarihleri arasında yapılacak", "döneminde geçerli",
+    "kampanya dönemi", "tarihine kadar geçerli"
 ]
 
 # Passthrough card terms (generic categories that are always valid)

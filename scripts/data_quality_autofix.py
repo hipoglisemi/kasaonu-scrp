@@ -697,6 +697,7 @@ def run_autofix(limit: int = 250, campaign_id: Optional[int] = None, force_all: 
                 thread_local.key_index = (worker_idx % 8) + 1
                 summary_reasons = ", ".join(reasons_list)
                 
+                # --- STEP 1: FAST DB READ & IMMEDIATE RELEASE ---
                 with get_db_session() as db:
                     c = db.query(Campaign).options(
                         joinedload(Campaign.card).joinedload(Card.bank),
@@ -707,47 +708,66 @@ def run_autofix(limit: int = 250, campaign_id: Optional[int] = None, force_all: 
                         print(f"\n🛠️ Skipping: [{c_id}] (Campaign no longer in DB)")
                         return False
                     
-                    # Onay bekleyen kampanyalar için en yüksek kaliteyi sağlamak adına force modunu aç!
-                    # AMA tekil UI onarım taleplerinde (campaign_id) kullanıcının 'normal mod' (force olmayan) tercihine sadık kal!
-                    if campaign_id:
-                        force_campaign = FORCE_ALL
-                    else:
-                        force_campaign = FORCE_ALL or (not c.is_approved)
-                        
-                    print(f"\n🛠️ Fixing: [{c.id}] {c.title[:40]}... (Reasons: {summary_reasons})")
-                    print(f"   🔗 URL: {c.tracking_url}")
+                    # Store everything we need in local memory
+                    c_id = c.id
+                    c_title = c.title or ""
+                    c_tracking_url = c.tracking_url or ""
+                    c_clean_text = c.clean_text or ""
+                    c_description = c.description or ""
+                    c_conditions = c.conditions or ""
+                    c_eligible_cards = c.eligible_cards or ""
+                    c_start_date = c.start_date
+                    c_end_date = c.end_date
+                    c_reward_text = c.reward_text or ""
+                    c_reward_value = c.reward_value
+                    c_reward_type = c.reward_type or ""
+                    c_participation = c.participation or ""
+                    c_ai_marketing_text = c.ai_marketing_text or ""
+                    c_repair_count = c.repair_count or 0
+                    c_is_approved = c.is_approved
+                    c_auto_corrected = c.auto_corrected
+                    c_created_at = c.created_at
                     
-                    # Determine if we need a fresh fetch (Rescue)
-                    is_truncated = any("Short/Truncated Source Text" in r for r in reasons_list)
-                    text_to_parse = ""
+                    bank_name = c.card.bank.name if c.card and c.card.bank else None
+                    current_sector_slug = c.sector.slug if c.sector else None
+                    current_sector_name = c.sector.name if c.sector else 'Yok'
+                    existing_brand_ids = {getattr(b, 'brand_id', None) for b in c.brands}
+                    existing_brand_ids = {bid for bid in existing_brand_ids if bid is not None}
+                
+                # --- STEP 2: NETWORK FETCH & SLOW AI PROCESS (NO DB ACTIVE SESSION!) ---
+                if campaign_id:
+                    force_campaign = FORCE_ALL
+                else:
+                    force_campaign = FORCE_ALL or (not c_is_approved)
                     
-                    # Force rescue if campaign_id is specifically requested (UI Repair Button)
-                    # 🛑 EXCEPTION: SPA domains (maximum.com.tr etc.) must NEVER force live fetch
-                    # because requests-based fetching returns broken/partial JS content.
-                    spa_domains_block = ["maximum.com.tr", "maximiles.com.tr", "privia.com.tr", "worldcard.com.tr"]
-                    is_spa_url = any(spa in (c.tracking_url or "") for spa in spa_domains_block)
-                    db_text_len = len(c.clean_text) if c.clean_text else 0
-                    
-                    is_rescue_active = force_rescue
-                    
-                    # Eğer kampanya 3. denemeden sonra da düzeltilemediyse (yani repair_count >= 3 ise, 4. deneme ve sonrası),
-                    # veritabanındaki yetersiz/eksik clean_text'i baypas edip siteden sıfırdan canlı HTML çekiyoruz (rescue).
-                    # 🛑 EXCEPTION: Tekil UI onarım taleplerinde (campaign_id) kullanıcının 'normal mod' (hızlı) tercihine sadık kalıp bunu yapmıyoruz!
-                    if (c.repair_count or 0) >= 3 and not campaign_id:
-                        is_rescue_active = True
-                        print(f"   💡 Defective after {c.repair_count} attempts: Forcing live rescue fetch from scratch.")
+                print(f"\n🛠️ Fixing: [{c_id}] {c_title[:40]}... (Reasons: {summary_reasons})")
+                print(f"   🔗 URL: {c_tracking_url}")
+                
+                # Determine if we need a fresh fetch (Rescue)
+                is_truncated = any("Short/Truncated Source Text" in r for r in reasons_list)
+                text_to_parse = ""
+                
+                spa_domains_block = ["maximum.com.tr", "maximiles.com.tr", "privia.com.tr", "worldcard.com.tr"]
+                is_spa_url = any(spa in (c_tracking_url or "") for spa in spa_domains_block)
+                db_text_len = len(c_clean_text)
+                
+                is_rescue_active = force_rescue
+                if c_repair_count >= 3 and not campaign_id:
+                    is_rescue_active = True
+                    print(f"   💡 Defective after {c_repair_count} attempts: Forcing live rescue fetch from scratch.")
 
-                    if is_spa_url and db_text_len > 600:
-                        is_rescue_active = False  # Never force-fetch SPAs with good DB data
-                        print(f"   🔒 SPA domain detected. Force-rescue disabled. Using DB text ({db_text_len} chars).")
-                    
-                    # Initialize repair metadata
-                    repair_meta = {"source": "DB", "status": "CLEAN_TEXT_USED"}
-                    og_title = None
-                    
-                    if c.clean_text and len(c.clean_text) >= 250 and not is_truncated and not mojibake_pattern.search(c.clean_text) and not is_rescue_active and not force_campaign:
-                        print(f"   ⚡ Using pre-cleaned text from DB ({len(c.clean_text)} chars)")
-                        text_to_parse = c.clean_text
+                if is_spa_url and db_text_len > 600:
+                    is_rescue_active = False  # Never force-fetch SPAs with good DB data
+                    print(f"   🔒 SPA domain detected. Force-rescue disabled. Using DB text ({db_text_len} chars).")
+                
+                # Initialize repair metadata
+                repair_meta = {"source": "DB", "status": "CLEAN_TEXT_USED"}
+                og_title = None
+                
+                if True: # Dummy context to preserve 20-space indentation downstream
+                    if c_clean_text and len(c_clean_text) >= 250 and not is_truncated and not mojibake_pattern.search(c_clean_text) and not is_rescue_active and not force_campaign:
+                        print(f"   ⚡ Using pre-cleaned text from DB ({len(c_clean_text)} chars)")
+                        text_to_parse = c_clean_text
                     else:
                         print(f"   🌐 Logic: RESCUE! (Force mode or text issue). Fetching fresh HTML...")
                         
@@ -758,12 +778,12 @@ def run_autofix(limit: int = 250, campaign_id: Optional[int] = None, force_all: 
                             headers = {
                                 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36',
                             }
-                            _raw_resp = requests.get(c.tracking_url, headers=headers, timeout=15, verify=False)
+                            _raw_resp = requests.get(c_tracking_url, headers=headers, timeout=15, verify=False)
                             _raw_resp.raise_for_status()
                             from bs4 import BeautifulSoup as _BS
                             _raw_soup = _BS(_raw_resp.text, "html.parser")
                             # 🛡️ Skip H1 title extraction for Opet as it's usually generic "Kampanyalar"
-                            if "opet" not in (c.tracking_url or "").lower():
+                            if "opet" not in c_tracking_url.lower():
                                 _h1s = _raw_soup.find_all('h1')
                                 _h1 = None
                                 for h in _h1s:
@@ -779,7 +799,7 @@ def run_autofix(limit: int = 250, campaign_id: Optional[int] = None, force_all: 
                             print(f"   ⚠️ Raw title fetch failed: {_e}")
                         
                         # Step 2: Full HTML Fetch
-                        html_text, live_status = fetch_html(c.tracking_url)
+                        html_text, live_status = fetch_html(c_tracking_url)
                         
                         # 🛡️ FIREWALL / BLOCK / SSL ERROR DETECTION
                         is_blocked = False
@@ -799,12 +819,12 @@ def run_autofix(limit: int = 250, campaign_id: Optional[int] = None, force_all: 
                                 html_text = ""
                         
                         if html_text and len(html_text) >= 150:
-                            fetched_cleaned = clean_campaign_text(html_text, og_title=og_title, title=c.title)
+                            fetched_cleaned = clean_campaign_text(html_text, og_title=og_title, title=c_title)
                             # 🛡️ DB TEXT PROTECTION: Never overwrite longer DB text with shorter live content UNLESS live content is already long enough and clean (350+ chars)
                             is_live_trustworthy = len(fetched_cleaned) >= 350 or (campaign_id is not None)
                             if db_text_len > 0 and len(fetched_cleaned) < db_text_len * 0.7 and not is_live_trustworthy:
                                 print(f"   ⚠️ URL fetch returned significantly less/no data ({len(fetched_cleaned)} vs {db_text_len} DB chars). Falling back to DB content.")
-                                text_to_parse = c.clean_text
+                                text_to_parse = c_clean_text
                                 repair_meta["source"] = "DB"
                                 repair_meta["status"] = "DB_FALLBACK_LIVE_TOO_SHORT"
                             else:
@@ -818,19 +838,19 @@ def run_autofix(limit: int = 250, campaign_id: Optional[int] = None, force_all: 
                             # Fallback sequence:
                             # 1. Try DB clean_text first (since it is the raw original source)
                             # 2. Try DB description + conditions
-                            has_clean_db_text = c.clean_text and len(c.clean_text) > 100 and not any(kw in c.clean_text.lower() for kw in ["request rejected", "güvenlik uyarısı", "ssl sertifika"])
+                            has_clean_db_text = c_clean_text and len(c_clean_text) > 100 and not any(kw in c_clean_text.lower() for kw in ["request rejected", "güvenlik uyarısı", "ssl sertifika"])
                             
                             if has_clean_db_text:
-                                text_to_parse = c.clean_text
+                                text_to_parse = c_clean_text
                                 repair_meta["source"] = "DB_CLEAN_TEXT"
                                 repair_meta["status"] = live_status
                                 print(f"   ✨ Successfully fell back to clean DB text ({len(c.clean_text)} chars)")
                             else:
                                 fallback_segments = []
-                                if c.description and not any(kw in c.description.lower() for kw in ["güvenlik uyarısı", "ssl", "sertifika", "request rejected"]):
-                                    fallback_segments.append(c.description)
-                                if c.conditions and not any(kw in c.conditions.lower() for kw in ["güvenlik uyarısı", "ssl", "sertifika", "request rejected"]):
-                                    fallback_segments.append(c.conditions)
+                                if c_description and not any(kw in c_description.lower() for kw in ["güvenlik uyarısı", "ssl", "sertifika", "request rejected"]):
+                                    fallback_segments.append(c_description)
+                                if c_conditions and not any(kw in c_conditions.lower() for kw in ["güvenlik uyarısı", "ssl", "sertifika", "request rejected"]):
+                                    fallback_segments.append(c_conditions)
                                 fallback_text = " ".join(fallback_segments)
                                 
                                 if len(fallback_text) > 20:
@@ -843,10 +863,10 @@ def run_autofix(limit: int = 250, campaign_id: Optional[int] = None, force_all: 
                                     return False
 
                     # Determine bank name for AI parser
-                    bank_name = c.card.bank.name if c.card and c.card.bank else None
+                    bank_name = bank_name
                     
                     # Nays Header Noise Cleaner
-                    if text_to_parse and ("nays" in (bank_name or "").lower() or "nays" in (c.eligible_cards or "").lower() or "naysapp.com.tr" in (c.tracking_url or "")):
+                    if text_to_parse and ("nays" in (bank_name or "").lower() or "nays" in (c_eligible_cards or "").lower() or "naysapp.com.tr" in (c_tracking_url or "")):
                         clean_markers = ["anasayfa kampanyalar", "anasayfa > kampanyalar", "anasayfa / kampanyalar"]
                         for marker in clean_markers:
                             match_idx = text_to_parse.lower().find(marker)
@@ -857,7 +877,7 @@ def run_autofix(limit: int = 250, campaign_id: Optional[int] = None, force_all: 
 
                     
                     # Title fix logic
-                    ai_title_pass = c.title or ''
+                    ai_title_pass = c_title or ''
                     if len(ai_title_pass.split()) > 15:
                         print(f"   🔓 DB Title is too long - Erasing lock for AI.")
                         ai_title_pass = ''
@@ -889,7 +909,7 @@ def run_autofix(limit: int = 250, campaign_id: Optional[int] = None, force_all: 
                             "source": repair_meta["source"],
                             "status": repair_meta["status"],
                             "reasons": reasons_list,
-                            "campaign_id": c.id
+                            "campaign_id": c_id
                         }
                     
                     if not ai_data:
@@ -910,7 +930,17 @@ def run_autofix(limit: int = 250, campaign_id: Optional[int] = None, force_all: 
                             print(f"   🛡️ Placeholder rejected for '{field}': '{val}'")
                         
                     # Update logic
-                    updated = False
+                # --- STEP 3: FAST DB WRITE & COMMIT ---
+                updated = False
+                with get_db_session() as db:
+                    c = db.query(Campaign).options(
+                        joinedload(Campaign.card).joinedload(Card.bank),
+                        joinedload(Campaign.sector),
+                        joinedload(Campaign.brands)
+                    ).filter(Campaign.id == c_id).first()
+                    if not c:
+                        print(f"   ⚠️ Campaign {c_id} no longer in DB, skipping save.")
+                        return False
                     
                     generic_titles = ["nays'ın kazandıran özellikleri", "opet kampanyası", "ayrıcalıklar", "kampanyalar", "fırsatlar", "akaryakıt standartları bilgilendirmesi"]
                     is_title_generic = c.title and c.title.lower().strip() in generic_titles

@@ -237,6 +237,30 @@ def clean_campaign_text(raw_text: str, og_title: Optional[str] = None, title: Op
         if match and 0 < match.start() < 2500:
             final_text = final_text[match.start():].strip()
             
+    # 🛡️ Nays Specific Noise Cleaner
+    # Naysapp has a list of links/noise in their pages (e.g. prev, next, paribu, istanbulkart, binbin, hop, martı, öde, para gönder, para iste, nays kart).
+    if "nays" in (og_title or "").lower() or "nays" in (title or "").lower() or "nays" in final_text.lower():
+        nays_markers = [
+            "prev",
+            "next",
+            "paribu",
+            "istanbulkart",
+            "istanbul kart",
+            "binbin",
+            "hop",
+            "martı",
+            "para gönder",
+            "para iste",
+        ]
+        nays_lines = final_text.split('\n')
+        nays_cleaned_lines = []
+        for line in nays_lines:
+            line_lower = line.lower()
+            if any(marker in line_lower for marker in nays_markers) and len(line.strip()) < 100:
+                continue
+            nays_cleaned_lines.append(line)
+        final_text = '\n'.join(nays_cleaned_lines)
+
     # 🛡️ Yapı Kredi Specific Markers (Fallback/Legacy Safety)
     yapi_header_markers = ["world nedir?", "worldcard kredi kartı başvurusu", "world'e özel hizmetler"]
     final_lower = final_text.lower()
