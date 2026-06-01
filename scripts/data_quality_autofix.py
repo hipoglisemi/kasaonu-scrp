@@ -48,9 +48,11 @@ from google.genai import types # type: ignore
 class _AutofixGeminiClient:
     """Wraps generate_with_rotation for AIParserGolden compatibility."""
     def __init__(self, model=None, fallback_model=None):
-        # Tekil UI tamiri için önce hızlı flash-lite dene, kota dolunca Gemma'ya geç
-        self.model = model or os.getenv("GEMINI_FAST_MODEL", "gemini-3.1-flash-lite")
-        self.fallback_model = fallback_model or os.getenv("FALLBACK_MODEL", "models/gemma-4-31b-it")
+        # Arka plan cron için: Gemma-31B primer (1500 RPD), flash-lite yedek.
+        # UI butonları her zaman model=... explicit geçer, bu default sadece cron için geçerli.
+        self.model = model or os.getenv("FALLBACK_MODEL", "models/gemma-4-31b-it")
+        self.fallback_model = fallback_model or os.getenv("GEMINI_FAST_MODEL", "gemini-3.1-flash-lite")
+
         
     def generate_content(self, prompt):
         config = types.GenerateContentConfig(
