@@ -125,7 +125,7 @@ async def repair_campaign(campaign_id: int, force: bool = True, model: Optional[
         else:
             logger.warning(f"No JSON sentinel found for campaign {campaign_id}")
             # Check if it was skipped by data_quality_autofix due to cooldown/filters
-            if "Skipped" in output or "All active campaigns look healthy" in output:
+            if "Total campaigns to process in this run: 0" in output or "All active campaigns look healthy" in output:
                 return JSONResponse(status_code=422, content={
                     "success": False,
                     "message": "Bu kampanya kalite kontrol filtreleri veya cooldown süresi nedeniyle atlandı. Lütfen en son yaptığımız hızlandırma/atlama düzeltmelerinin canlıya geçmesi için Coolify üzerinden redeploy işlemi yapın veya Zorla (Force) butonlarını kullanın.",
