@@ -13,6 +13,7 @@ import time
 from typing import Optional
 import requests # type: ignore
 from bs4 import BeautifulSoup # type: ignore
+from datetime import datetime, date, timedelta, timezone
 
 # Add the parent directory to Python path
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -317,7 +318,6 @@ def run_autofix(limit: int = 250, campaign_id: Optional[int] = None, force_all: 
     print(f"🚀 Starting Data Quality Auto-Fixer (Limit: {limit})...")
     
     try:
-        from datetime import datetime, timedelta
         now = datetime.now()
         cooldown_period = timedelta(hours=48)
         
@@ -973,8 +973,7 @@ def run_autofix(limit: int = 250, campaign_id: Optional[int] = None, force_all: 
                             else:
                                 # For continuous campaigns, fallback to 3 months ahead of start_date/reference to keep it active
                                 reference = c.start_date or baseline_date.date()
-                                import datetime
-                                future_date = reference + datetime.timedelta(days=90)
+                                future_date = reference + timedelta(days=90)
                                 new_end = get_last_day_of_month(future_date)
                                 print(f"   🔄 Falling back End Date to Continuous Mode (3 Months Ahead): {new_end}")
 
@@ -1376,7 +1375,6 @@ def audit_approved_campaign_cards():
     from src.models import Campaign, Card
     from audit_eligible_cards import extract_cards_via_ai, normalize_card_name
     from sqlalchemy.orm import joinedload
-    from datetime import datetime, timezone
     import trafilatura
     import time
     

@@ -95,7 +95,8 @@ async def repair_campaign(campaign_id: int, force: bool = True, model: Optional[
                     campaign_id=campaign_id,
                     force_all=force,
                     ui_mode=True,
-                    model=model
+                    model=model,
+                    force_rescue=force
                 )
             except Exception as run_err:
                 logger.error(f"run_autofix crashed: {run_err}")

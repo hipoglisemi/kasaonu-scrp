@@ -86,6 +86,32 @@ def is_link_dead(url: str, title: str = "") -> bool:
                     print(f"      🚨 [Chippin Kırık Link] Client-side exception detected on page! Marking as dead link.")
                     return True
             
+            # 💡 ALBARAKA SPECIFIC CHECK: Expired Opaque Images / Status Check
+            if 'albaraka.com.tr' in url:
+                resp_text = resp.text.lower()
+                # 1. Text indicators
+                if "sona ermiştir" in resp_text or "sona eren" in resp_text or "süresi dolmuştur" in resp_text or "kampanya-pasif" in resp_text:
+                    print(f"      🚨 [Albaraka Pasif] Expired text indicator found on page! Marking as dead link.")
+                    return True
+                # 2. Image Opacity / Expired class indicator
+                try:
+                    from bs4 import BeautifulSoup
+                    soup = BeautifulSoup(resp.text, 'html.parser')
+                    for img in soup.find_all('img'):
+                        img_classes = " ".join(img.get('class', [])).lower()
+                        img_style = (img.get('style') or "").lower()
+                        if 'opacity' in img_classes or 'opacity' in img_style or 'pasif' in img_classes or 'passive' in img_classes or 'sona-eren' in img_classes:
+                            print(f"      🚨 [Albaraka Opak Görsel] Expired visual style detected! Marking as dead link.")
+                            return True
+                    # Check main campaign wrapper classes
+                    for wrap in soup.select('.campaign-detail, .campaign-image, .detail-image, .campaign-detail-img'):
+                        wrap_classes = " ".join(wrap.get('class', [])).lower()
+                        if 'pasif' in wrap_classes or 'passive' in wrap_classes or 'opaque' in wrap_classes:
+                            print(f"      🚨 [Albaraka Pasif Sınıfı] Expired wrapper class detected! Marking as dead link.")
+                            return True
+                except Exception:
+                    pass
+            
             # Extract path without query parameters or trailing slash
             path = ""
             try:
