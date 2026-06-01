@@ -136,13 +136,9 @@ def generate_with_rotation(
                     )
                     
                     if is_retriable:
-                        # 🎯 IMMEDIATE FALLBACK RULE: If the failing model is gemini-3.1-flash-lite, 
-                        # and we have a fallback model available, IMMEDIATELY switch to fallback without wasting time on next keys.
-                        if "gemini-3.1-flash-lite" in current_model.lower() and fallback_model_name and model_role == "Primary":
-                            print(f"[KeyLoop] ⚠️ Gemini 3.1 Flash Lite failed on Key #{orig_idx} due to rate limit/error. 🚀 SWITCHING IMMEDIATELY to Gemma Fallback!")
-                            last_error = e
-                            break # Break the keys loop for Primary, moves to Fallback model in the models_to_try list!
-                            
+                        # Tüm anahtarlar sırayla denensin, sadece hepsi tükenince fallback'e geç.
+                        # (Önceki "anında atla" kuralı kaldırıldı — 3 key varsa hepsini dene!)
+                        
                         # 503 High Demand requires longer wait
                         is_503 = "503" in err_str or "high demand" in err_str
                         current_delay = retry_delay * 2 if is_503 else retry_delay
@@ -159,15 +155,10 @@ def generate_with_rotation(
                         last_error = e
                         continue # Try next key
                     else:
-                        # 🎯 IMMEDIATE FALLBACK ON FATAL ERROR FOR GEMINI-3.1-FLASH-LITE
-                        if "gemini-3.1-flash-lite" in current_model.lower() and fallback_model_name and model_role == "Primary":
-                            print(f"[KeyLoop] ❌ Gemini 3.1 Flash Lite encountered fatal error. 🚀 SWITCHING IMMEDIATELY to Gemma Fallback!")
-                            last_error = e
-                            break
-                            
-                        # Fatal error
+                        # Fatal error — hemen fırlat
                         print(f"[KeyLoop] ❌ Fatal Error with Key #{orig_idx} on {current_model}: {e}")
                         raise
+
         
         # Eğer tüm keyler tükendiyse ve hala deneme hakkımız varsa, pes etme! Uyu ve başa dön.
         if attempt < max_global_attempts:
