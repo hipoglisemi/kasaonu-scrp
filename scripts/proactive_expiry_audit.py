@@ -33,22 +33,22 @@ def clean_html_to_text(html: str) -> str:
     text = re.sub(r'\s+', ' ', text).strip()
     return text[:8000] # Limit to 8000 characters to keep tokens tiny
 
-def extract_end_date_via_ai(title: str, clean_text: str, key_index: int = 1):
+def extract_dates_via_ai(title: str, clean_text: str, key_index: int = 1):
     """
-    Extracts only the campaign end date from the campaign HTML text using Gemini.
-    Returns date string in YYYY-MM-DD format, or None if not found/error.
+    Extracts campaign start and end dates from the campaign HTML text using Gemini.
+    Returns a dict with 'start_date' and 'end_date' keys, values are date strings in YYYY-MM-DD or None.
     key_index: 1-based API key index this worker should start from.
     """
     if not clean_text:
-        return None
+        return {"start_date": None, "end_date": None}
         
     system_instruction = (
-        "Sen KartAvantaj projesinde sadece kampanya bitiş tarihlerini tespit eden uzman bir veri analistisin.\n"
-        "Gönderilen metni analiz ederek kampanyanın son geçerlilik tarihini (bitiş tarihini) bulmalısın.\n\n"
+        "Sen KartAvantaj projesinde kampanya başlangıç ve bitiş tarihlerini tespit eden uzman bir veri analistisin.\n"
+        "Gönderilen metni analiz ederek kampanyanın başlangıç ve son geçerlilik (bitiş) tarihlerini bulmalısın.\n\n"
         "ÇOK ÖNEMLİ GÜVENLİK KURALLARI:\n"
-        "1. Eğer metinde kampanyanın bittiğine, yayından kaldırıldığına dair bir ibare varsa ('Kampanya sona ermiştir', 'Süresi doldu', 'Sayfa bulunamadı', '404' vb.) KESİNLİKLE null döndür.\n"
+        "1. Eğer metinde kampanyanın bittiğine, yayından kaldırıldığına dair bir ibare varsa ('Kampanya sona ermiştir', 'Süresi doldu', 'Sayfa bulunamadı', '404' vb.) KESİNLİKLE her iki tarihi de null döndür.\n"
         "2. Eğer metin tek bir kampanyayı değil, birçok farklı kampanyayı listeliyorsa (genel banka anasayfasına yönlendirilmişse) null döndür.\n"
-        "3. Sadece ve sadece metin aktif bir kampanyadan bahsediyorsa tarihi YYYY-MM-DD formatında döndür.\n"
+        "3. Sadece ve sadece metin aktif bir kampanyadan bahsediyorsa tarihleri YYYY-MM-DD formatında döndür.\n"
         "4. Çıktıyı her zaman belirtilen JSON formatında ver.\n"
     )
     
@@ -59,11 +59,12 @@ KAMPANYA SAYFA METNİ:
 {clean_text}
 ---
 
-GÖREV: Sayfa metnini ve kampanya başlığını inceleyerek kampanyanın son geçerlilik tarihini tespit et. Çıktıyı kesinlikle aşağıdaki JSON şemasına göre üret:
+GÖREV: Sayfa metnini ve kampanya başlığını inceleyerek kampanyanın başlangıç ve bitiş tarihlerini tespit et. Çıktıyı kesinlikle aşağıdaki JSON şemasına göre üret:
 
 ```json
 {{
-  "end_date": "YYYY-MM-DD" // Tespit edilen tarih (örn. "2026-06-30"), eğer kesin olarak bulunamadıysa null.
+  "start_date": "YYYY-MM-DD", // Tespit edilen başlangıç tarihi (örn. "2026-06-01"), eğer kesin olarak bulunamadıysa null.
+  "end_date": "YYYY-MM-DD" // Tespit edilen bitiş tarihi (örn. "2026-06-30"), eğer kesin olarak bulunamadıysa null.
 }}
 ```
 """
@@ -84,7 +85,7 @@ GÖREV: Sayfa metnini ve kampanya başlığını inceleyerek kampanyanın son ge
         )
         
         if not result_str:
-            return None
+            return {"start_date": None, "end_date": None}
             
         cleaned_result = result_str.strip()
         if cleaned_result.startswith("```"):
@@ -100,10 +101,14 @@ GÖREV: Sayfa metnini ve kampanya başlığını inceleyerek kampanyanın son ge
             cleaned_result = cleaned_result.replace("'", '"')
             
         data = json.loads(cleaned_result)
-        return data.get("end_date")
+        return {
+            "start_date": data.get("start_date"),
+            "end_date": data.get("end_date")
+        }
     except Exception as e:
         print(f"      ⚠️  Tarih çıkartma hatası: {e}")
-        return None
+        return {"start_date": None, "end_date": None}
+
 
 def proactive_expiry_audit(max_audits=2000):
     """
@@ -196,7 +201,10 @@ def proactive_expiry_audit(max_audits=2000):
             time.sleep(5.0)
 
             clean_text = clean_html_to_text(c["html"])
-            ai_end_date_str = extract_end_date_via_ai(c["title"], clean_text, key_index=key_index)
+            ai_dates = extract_dates_via_ai(c["title"], clean_text, key_index=key_index)
+
+            ai_start_date_str = ai_dates.get("start_date")
+            ai_end_date_str = ai_dates.get("end_date")
 
             if not ai_end_date_str:
                 print(f"   ❌ No end date found | ID: #{c['id']} | {c['title'][:50]}")
@@ -205,15 +213,28 @@ def proactive_expiry_audit(max_audits=2000):
             try:
                 latest_date = datetime.strptime(ai_end_date_str, "%Y-%m-%d").date()
             except ValueError:
-                print(f"   ❌ Malformed date from AI: {ai_end_date_str} | ID: #{c['id']}")
+                print(f"   ❌ Malformed end date from AI: {ai_end_date_str} | ID: #{c['id']}")
                 return False
+
+            # Inferred start date fallback if none is provided
+            latest_start_date = None
+            if ai_start_date_str:
+                try:
+                    latest_start_date = datetime.strptime(ai_start_date_str, "%Y-%m-%d").date()
+                except ValueError:
+                    pass
+            
+            if not latest_start_date:
+                # Fallback: start date becomes today (similar to AI parser logic)
+                latest_start_date = today
 
             # Safety: must be strictly later than current end, max 1 year ahead
             if latest_date > current_end and latest_date <= today + timedelta(days=365):
-                print(f"   🎉 Extended! #{c['id']} | {current_end} ➔ {latest_date} | {c['title'][:50]}")
+                print(f"   🎉 Extended! #{c['id']} | {current_end} ➔ {latest_date} (Start: {latest_start_date}) | {c['title'][:50]}")
                 with get_db_session() as db:
                     db_camp = db.query(Campaign).filter(Campaign.id == c["id"]).first()
                     if db_camp:
+                        db_camp.start_date = latest_start_date
                         db_camp.end_date = latest_date
                         db_camp.clean_text = clean_text
                         db_camp.date_extended = True
