@@ -336,8 +336,9 @@ def run_autofix(limit: int = 250, campaign_id: Optional[int] = None, force_all: 
                 query = query.filter(Campaign.is_active == True)
             else:
                 # DEFAULT BEHAVIOR: Focus ONLY on PENDING (unapproved) campaigns
-                print("🔍 Focusing on PENDING (unapproved) campaigns...")
+                print("🔍 Focusing on ACTIVE & PENDING (unapproved) campaigns...")
                 query = query.filter(Campaign.is_approved == False)
+                query = query.filter(Campaign.is_active == True)
             
             defective_campaigns = query.all()
             print(f"   📊 Checking {len(defective_campaigns)} active campaigns for defects.")
