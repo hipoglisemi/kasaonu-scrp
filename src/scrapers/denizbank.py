@@ -199,7 +199,9 @@ class DenizbankScraper:
                 }
                 response = requests.get(proxy_url, params=params, timeout=60)
                 if response.status_code == 200:
-                    return response.text  # type: ignore # pyre-ignore[7]
+                    # Force UTF-8 decode — ZenRows may return ISO-8859-1 Content-Type header
+                    # even though the actual content is UTF-8 (denizbonus.com quirk)
+                    return response.content.decode('utf-8', errors='replace')  # type: ignore # pyre-ignore[7]
                 else:
                     print(f"   ❌ ZenRows Error: {response.status_code} - {response.text}")
                     return None  # type: ignore # pyre-ignore[7]
@@ -367,7 +369,10 @@ class DenizbankScraper:
         if not html:
             return "skipped"  # type: ignore # pyre-ignore[7]
 
-        soup = BeautifulSoup(html, 'html.parser')
+        # Always parse from bytes if possible to let BS4 auto-detect encoding.
+        # _fetch_html returns a str (ZenRows UTF-8 decoded, Selenium page_source unicode).
+        # Encode back to bytes so BS4 can use the <meta charset> to detect encoding correctly.
+        soup = BeautifulSoup(html.encode('utf-8', errors='replace'), 'html.parser')
 
         # Context Extraction (Title & Image)
         title = "Kampanya Detayı"
