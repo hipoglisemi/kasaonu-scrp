@@ -314,6 +314,28 @@ def fetch_html(url: str) -> str:
                 content_found.append(el.get_text(separator=' ', strip=True))
 
         text = " ".join(content_found) if content_found else soup.get_text(separator=' ', strip=True)
+
+        # 🏦 DENIZBANK SPECIAL: Explicitly prepend the right sidebar (KATILMAK İÇİN + dates)
+        # so the AI always sees it regardless of generic selector ordering.
+        if "denizbonus.com" in url:
+            right_el = (
+                soup.select_one('.container-right') or
+                soup.select_one('.campaign-startend-date') or
+                soup.select_one('.campaign-dates') or
+                soup.select_one('.campaign-detail-capsule')
+            )
+            left_el = soup.select_one('.campaign-detail-text') or soup.select_one('.campaign-detail-info')
+            if right_el:
+                right_text = right_el.get_text(separator='\n', strip=True)
+                left_text = left_el.get_text(separator='\n', strip=True) if left_el else ""
+                # Reconstruct with sidebar FIRST (mirrors what denizbank.py scraper does)
+                text = (
+                    "--- ÖNEMLİ BİLGİLER (KATILIM VE TARİHLER) ---\n\n" +
+                    right_text +
+                    "\n\n--------------------------------------\n\n" +
+                    left_text
+                )
+                print(f"   🏦 Denizbank: Extracted sidebar ({len(right_text)} chars) + left ({len(left_text)} chars)")
     else:
         text = raw_html
 
