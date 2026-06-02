@@ -163,6 +163,11 @@ def upsert_campaign(db: Session, campaign: Campaign) -> Tuple[Campaign, str]:
             print(f"      🔒 [Tarih Kilidi] Campaign '{existing.title[:30]}' is a date-only extension. Content fields and URL are STRICTLY locked!")
             existing.start_date = campaign.start_date
             existing.end_date = campaign.end_date
+            # 🔗 URL Slug Fix: If the bank changed the URL slug (e.g. TEB /akaryakit-iade/ → /akaryakit-kampanyasi/),
+            # update tracking_url even in date-lock mode — otherwise the "Katıl" button breaks.
+            if campaign.tracking_url and existing.tracking_url != campaign.tracking_url:
+                print(f"      🔗 [URL Güncelleme] tracking_url changed even in date-lock: {existing.tracking_url} → {campaign.tracking_url}")
+                existing.tracking_url = campaign.tracking_url
         else:
             # Update URLs and Slug ONLY when it's a completely new/modified campaign
             existing.tracking_url = campaign.tracking_url  
