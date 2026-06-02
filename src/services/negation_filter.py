@@ -52,6 +52,8 @@ NEGATIVE_HEADERS = [
     'yararlanamayacak', 'kapsam disi', 'kapsam dışı'
 ]
 
+MODIFIER_LIST = ["debit", "business", "esnaf", "kobi", "genc", "genç", "free", "flexi", "eko", "eco", "platinum", "crystal", "adios", "play", "altin", "altın", "gold", "premium", "money", "gift", "paracard", "garantione", "amex", "american express", "troy", "basak", "başak", "prestij", "aidatsiz", "aidatsız", "firsat", "fırsat", "nays", "maxipara", "bankamatik", "pos"]
+
 def check_string_negation(target_str, full_text, bank_key=None, is_generic_brand=False):
     """
     Helper to check negation for a specific string (can be a card name or brand)
@@ -77,12 +79,11 @@ def check_string_negation(target_str, full_text, bank_key=None, is_generic_brand
     # Use regex for whole word match, but allow common Turkish suffixes
     # We allow: lar, ler, li, lu, lü, lı, nin, nın, in, un, ün, a, e, yla, yle etc.
     turkish_suffixes = r"(?:lar|ler|lı|li|lu|lü|lar|ler|n|ın|in|un|ün|a|e|ya|ye|yı|yi|yu|yü|da|de|dan|den|yla|yle)?"
-    modifier_list = ["debit", "business", "esnaf", "kobi", "genc", "genç", "free", "flexi", "eko", "eco", "platinum", "crystal", "adios", "play", "altin", "altın", "gold", "premium", "money", "gift", "paracard", "garantione", "amex", "american express", "troy", "basak", "başak", "prestij", "aidatsiz", "aidatsız", "firsat", "fırsat", "nays", "maxipara", "bankamatik", "pos"]
     modifier_lookahead = ""
     # 🎯 FIX: Avoid matching a generic brand if it's followed by a specific modifier
-    target_has_modifier = any(re.search(rf"\b{m}\b", target_norm) for m in modifier_list)
+    target_has_modifier = any(re.search(rf"\b{m}\b", target_norm) for m in MODIFIER_LIST)
     if not target_has_modifier:
-        modifier_lookahead = rf"(?!\s*(?:{'|'.join(modifier_list)}))"
+        modifier_lookahead = rf"(?!\s*(?:{'|'.join(MODIFIER_LIST)}))"
 
     # Use strict word boundaries
     pattern = rf"(?<![a-z0-9]){re.escape(target_norm)}{modifier_lookahead}{composite_suffixes}{turkish_suffixes}(?![a-z0-9])"
@@ -96,7 +97,7 @@ def check_string_negation(target_str, full_text, bank_key=None, is_generic_brand
             # Check up to 25 chars before the match
             prefix_window = full_text[max(0, match.start()-25):match.start()].strip()
             is_modified_prefix = False
-            for m in modifier_list:
+            for m in MODIFIER_LIST:
                 # If the word before our match is a modifier, skip this match
                 if prefix_window.endswith(m):
                     is_modified_prefix = True
@@ -200,7 +201,7 @@ def check_string_negation(target_str, full_text, bank_key=None, is_generic_brand
                 break
         
         # 🛡️ POSITIVE CHECK (Ensuring it's not a negated positive like 'dahil değildir')
-        positive_stoppers = r"(?i)(?:^|\s|,)(?:gecerli|faydalanabilir|faydalanabilecektir|yararlanabilir|dahildir|gecerlidir|dahil olup|dahil olan|dâhil olup|dâhil olan)(?![ \s]*(?:degil|olmadigini|olmadigi))(?:$|\s|,|;|:|\.)"
+        positive_stoppers = r"(?i)(?:^|\s|,)(?:gecerli|faydalanabilir|faydalanabilecektir|yararlanabilir|dahil|dâhil|dahildir|gecerlidir|dahil olup|dahil olan|dâhil olup|dâhil olan)(?![ \s]*(?:degil|olmadigini|olmadigi))(?:$|\s|,|;|:|\.)"
         # Special check for 'dahil' to ensure it's not followed by 'değil/değildir/olmadığını'
         # normalized sentence will have 'dahil' and 'olmadigini'
         if re.search(r"(?i)(?:^|\s|,)dahil(?![\s]*(?:degil|olmadigini|olmadigi))", sentence):
@@ -379,8 +380,15 @@ def filter_excluded_cards(cards, text, bank_name=None):
         for brand_key, keywords in brand_power_keywords.items():
             if brand_key in card_clean:
                 if any(kw in text_normalized for kw in keywords):
-                    is_power_safe = True
-                    break
+                    # Check if there is any modifier in card_clean that is not in the text
+                    card_modifiers = [m for m in MODIFIER_LIST if re.search(rf"\b{m}\b", card_clean)]
+                    if card_modifiers:
+                        if all(m in text_normalized for m in card_modifiers):
+                            is_power_safe = True
+                            break
+                    else:
+                        is_power_safe = True
+                        break
                     
         # Robust core card words check to bypass Hallucination Guard
         card_words = set(card_clean.split())

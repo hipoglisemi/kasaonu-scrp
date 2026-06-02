@@ -557,6 +557,63 @@ ANALİZ EDİLECEK METİN:
             logger.error(f"Failed string was: {snippet}")
             return {}
 
+    def _determine_sector(self, sector: str, title: str, raw_text: str) -> str:
+        """
+        Fallback method to normalize invalid sector slugs by checking:
+        1. Substring matches with VALID_SECTOR_SLUGS
+        2. Keyword match in the invalid sector string
+        3. Keyword match in the title (if sector is diger/invalid)
+        4. Fallback to "diger"
+        """
+        if not sector:
+            sector = "diger"
+            
+        sector_clean = self._tr_lower(sector).strip()
+        
+        # 1. Direct substring matching
+        for valid in self.valid_sectors:
+            if valid in sector_clean or sector_clean in valid:
+                return valid
+                
+        # 2. Key word maps for common variations
+        sector_keywords = {
+            "giyim-aksesuar": ["giyim", "aksesuar", "ayakkabı", "canta", "çanta", "tekstil", "moda"],
+            "restoran-kafe": ["restoran", "kafe", "yeme", "içme", "yemek", "gida-disi", "gıda", "lokanta"],
+            "e-ticaret": ["eticaret", "e-ticaret", "internet", "online", "alışveriş", "alisveris", "pazarama", "hepsiburada", "trendyol"],
+            "ulasim": ["ulaşım", "ulasim", "seyahat", "bilet", "otobüs", "metro", "taksi", "ucak", "uçak"],
+            "egitim": ["eğitim", "egitim", "okul", "kurs", "kolej", "üniversite", "uni"],
+            "sigorta": ["sigorta", "kasko", "police", "poliçe"],
+            "turizm-konaklama": ["turizm", "konaklama", "otel", "tatil", "rezervasyon", "ets", "jolly"],
+            "finans-yatirim": ["finans", "yatırım", "hisse", "forex", "kredi", "borc"],
+            "market-gida": ["market", "gıda", "gida", "süpermarket", "sarkuteri", "şarküteri", "manav", "kasap"],
+            "elektronik": ["elektronik", "teknoloji", "beyaz eşya", "telefon", "bilgisayar", "tv"],
+            "akaryakit": ["akaryakıt", "akaryakit", "benzin", "otogaz", "dizel", "istasyon", "opet", "shell", "po"],
+            "mobilya-dekorasyon": ["mobilya", "dekorasyon", "ev", "yapı market", "koçtaş", "ikea"],
+            "kozmetik-saglik": ["kozmetik", "sağlık", "saglik", "eczane", "kisisel bakim", "kişisel bakım", "optik", "hastane", "ilaç"],
+            "dijital-platform": ["dijital", "platform", "netflix", "spotify", "youtube", "premium", "dizi", "film"],
+            "otomotiv": ["otomotiv", "oto", "araç", "servis", "bakım", "lastik"],
+            "vergi-kamu": ["vergi", "kamu", "belediye", "hgs", "mtv"],
+            "mucevherat-optik-saat": ["mücevher", "kuyum", "altın", "saat", "optik", "gümüş", "takı"],
+            "kultur-sanat-spor": ["kültür", "sanat", "spor", "sinema", "tiyatro", "konser", "etkinlik", "kitap", "kirtasiye"],
+            "kitap-kirtasiye-ofis": ["kitap", "kırtasiye", "ofis", "kirtasiye", "buro", "büro"],
+            "anne-bebek-oyuncak": ["anne", "bebek", "oyuncak", "mama", "bez", "ebebek", "joker"],
+            "evcil-hayvan-petshop": ["pet", "petshop", "hayvan", "mama", "veteriner"],
+            "fatura-telekomunikasyon": ["fatura", "telekom", "internet", "gsm", "turkcell", "vodafone", "telekomunikasyon"]
+        }
+        
+        for valid_slug, keywords in sector_keywords.items():
+            if any(kw in sector_clean for kw in keywords):
+                return valid_slug
+                
+        # 3. Check title if sector mapping failed
+        if title:
+            title_clean = self._tr_lower(title)
+            for valid_slug, keywords in sector_keywords.items():
+                if any(kw in title_clean for kw in keywords):
+                    return valid_slug
+                    
+        return "diger"
+
     # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     #  THE HARD GUARD: All Python-enforced business logic
     # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━

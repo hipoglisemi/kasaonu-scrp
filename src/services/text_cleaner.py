@@ -233,9 +233,14 @@ def clean_campaign_text(raw_text: str, og_title: Optional[str] = None, title: Op
     if title_to_find and len(title_to_find) > 5:
         words = title_to_find.split()
         first_few_words = " ".join(words[:3]) if len(words) >= 3 else title_to_find
-        match = re.search(re.escape(first_few_words), final_text, re.IGNORECASE)
-        if match and 0 < match.start() < 2500:
-            final_text = final_text[match.start():].strip()
+        matches = list(re.finditer(re.escape(first_few_words), final_text, re.IGNORECASE))
+        if matches:
+            target_match = matches[0]
+            if len(matches) > 1 and matches[0].start() < 300:
+                if matches[1].start() < 4000:
+                    target_match = matches[1]
+            if 0 < target_match.start() < 4000:
+                final_text = final_text[target_match.start():].strip()
             
     # 🛡️ Nays Specific Noise Cleaner
     # Naysapp has a list of links/noise in their pages (e.g. prev, next, paribu, istanbulkart, binbin, hop, martı, öde, para gönder, para iste, nays kart).

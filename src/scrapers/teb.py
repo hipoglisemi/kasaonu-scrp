@@ -362,7 +362,7 @@ class TEBScraper:
                 db_session=temp_db,
                 campaign_model=Campaign,
                 tracking_url=tracking_url,
-                card_name=card_def["name"],
+                card_name=card_name,
                 bank_name="TEB"
             )
 

@@ -1,7 +1,7 @@
 import re
 import logging
 from typing import List, Set, Dict, Any, Optional
-from src.services.negation_filter import check_string_negation
+from src.services.negation_filter import check_string_negation, MODIFIER_LIST
 
 logger = logging.getLogger(__name__)
 
@@ -290,7 +290,7 @@ class CardValidator:
             matched_word = next((w for w in core_words if re.search(rf"(?<![a-z0-9])(?<![a-z]\.){re.escape(w)}(?![a-z0-9]|\.[a-z])", text_normalized)), "")
             if matched_word in power_words:
                 missing_word = next((w for w in core_words if w != matched_word), "")
-                specific_modifiers = {"platinum", "gold", "eko", "eco", "crystal", "adios", "play", "genc", "genç", "free", "flexi", "business", "debit", "fly", "milplus", "prime"}
+                specific_modifiers = set(MODIFIER_LIST).union({"milplus", "prime"})
                 if missing_word not in specific_modifiers:
                     matched = threshold # Force pass
         
