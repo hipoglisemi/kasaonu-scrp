@@ -422,71 +422,110 @@ class DenizbankScraper:
                     break
 
         # Raw Text for AI - Target the specific conditions container
-        # Since it uses a custom scrollbar (Perfect Scrollbar), 
-        # we use JS to get innerText to ensure we get everything inside.
+        # Since the page is rendered (either by ZenRows or Selenium), we extract the left and right containers
+        # using BeautifulSoup to support both Selenium and ZenRows modes natively without throwing NameErrors/AttributeErrors.
         raw_text = ""
         try:
-            raw_text_js = self.driver.execute_script("""
-                let text = "";
-                let extra = "";
+            # Content areas
+            left_el = (
+                soup.select_one('.campaign-detail-text') or 
+                soup.select_one('.campaign-detail') or 
+                soup.select_one('.col-md-8') or 
+                soup.select_one('.col-lg-8')
+            )
+            right_el = (
+                soup.select_one('.container-right') or 
+                soup.select_one('.campaign-startend-date') or 
+                soup.select_one('.col-md-4') or 
+                soup.select_one('.col-lg-4') or 
+                soup.select_one('.campaign-sidebar')
+            )
+
+            # Heuristic for missing info (Participation, Dates)
+            extra_parts = []
+            targets = []
+            for tag_name in ['h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'strong', 'b', 'div', 'p', 'span']:
+                for el in soup.find_all(tag_name):
+                    t = el.get_text(strip=True)
+                    if 0 < len(t) < 150 and any(kw in t for kw in ['KATILMAK İÇİN', 'KAMPANYA BAŞLANGIÇ', 'ÖDÜL GEÇERLİLİK']):
+                        targets.append(el)
+
+            added_parents = set()
+            for el in targets:
+                parent = el.parent
+                if parent and parent.name in ['strong', 'b', 'span', 'p']:
+                    if parent.parent:
+                        parent = parent.parent
                 
-                // Content areas
-                const left = document.querySelector('.campaign-detail-text') || document.querySelector('.campaign-detail') || document.querySelector('.col-md-8') || document.querySelector('.col-lg-8');
-                const right = document.querySelector('.container-right') || document.querySelector('.campaign-startend-date') || document.querySelector('.col-md-4') || document.querySelector('.col-lg-4') || document.querySelector('.campaign-sidebar');
+                if parent and parent not in added_parents:
+                    parent_text = parent.get_text(separator="\n", strip=True)
+                    if parent_text and not any(parent_text[:30] in x for x in extra_parts):
+                        extra_parts.append(parent_text)
+                        added_parents.add(parent)
+
+            # Combine elements
+            text_parts = []
+            if extra_parts:
+                text_parts.append("--- ÖNEMLİ BİLGİLER (KATILIM VE TARİHLER) ---\n\n" + "\n\n".join(extra_parts) + "\n\n--------------------------------------\n")
+            
+            left_text = left_el.get_text(separator="\n", strip=True) if left_el else ""
+            right_text = right_el.get_text(separator="\n", strip=True) if right_el else ""
+            
+            if left_text:
+                text_parts.append(left_text)
+            if right_text and not any(right_text[:50] in x for x in text_parts):
+                text_parts.append(right_text)
                 
-                // Heuristic for missing info (Participation, Dates)
-                // Search all common tags, not just headers
-                const elements = Array.from(document.querySelectorAll('h1, h2, h3, h4, h5, h6, strong, b, div, p, span'));
-                const targets = elements.filter(el => {
-                    const t = el.innerText || "";
-                    // Make sure it's a relatively short node containing the keywords, not the entire body
-                    return t.length > 0 && t.length < 150 && (
-                        t.includes('KATILMAK İÇİN') || 
-                        t.includes('KAMPANYA BAŞLANGIÇ') || 
-                        t.includes('ÖDÜL GEÇERLİLİK')
-                    );
-                });
-                
-                const addedParents = new Set();
-                
-                targets.forEach(el => {
-                    // Usually the text is in the parent element
-                    let parent = el.parentElement;
-                    // Go up one more level if parent is just a formatting tag
-                    if (parent && (parent.tagName === 'STRONG' || parent.tagName === 'B' || parent.tagName === 'SPAN' || parent.tagName === 'P')) {
-                        if (parent.parentElement) parent = parent.parentElement;
-                    }
-                    
-                    if (parent && !addedParents.has(parent)) {
-                        const parentText = parent.innerText;
-                        if (parentText && !extra.includes(parentText.substring(0, 30))) {
-                            extra += "\\n\\n" + parentText;
-                            addedParents.add(parent);
+            raw_text = "\n\n".join(text_parts)
+            
+            # If BeautifulSoup didn't find enough and self.driver is active, use JS fallback
+            if len(raw_text.strip()) < 100 and self.driver:
+                print("   ⚠️ BS4 extracted too little, attempting JS fallback since browser driver is active...")
+                raw_text_js = self.driver.execute_script("""
+                    let text = "";
+                    let extra = "";
+                    const left = document.querySelector('.campaign-detail-text') || document.querySelector('.campaign-detail') || document.querySelector('.col-md-8') || document.querySelector('.col-lg-8');
+                    const right = document.querySelector('.container-right') || document.querySelector('.campaign-startend-date') || document.querySelector('.col-md-4') || document.querySelector('.col-lg-4') || document.querySelector('.campaign-sidebar');
+                    const elements = Array.from(document.querySelectorAll('h1, h2, h3, h4, h5, h6, strong, b, div, p, span'));
+                    const targets = elements.filter(el => {
+                        const t = el.innerText || "";
+                        return t.length > 0 && t.length < 150 && (
+                            t.includes('KATILMAK İÇİN') || 
+                            t.includes('KAMPANYA BAŞLANGIÇ') || 
+                            t.includes('ÖDÜL GEÇERLİLİK')
+                        );
+                    });
+                    const addedParents = new Set();
+                    targets.forEach(el => {
+                        let parent = el.parentElement;
+                        if (parent && (parent.tagName === 'STRONG' || parent.tagName === 'B' || parent.tagName === 'SPAN' || parent.tagName === 'P')) {
+                            if (parent.parentElement) parent = parent.parentElement;
                         }
-                    }
-                });
-                
-                // Put extra info (Participation, Dates) at the TOP!
-                if (extra) text += "--- ÖNEMLİ BİLGİLER (KATILIM VE TARİHLER) ---\\n\\n" + extra + "\\n\\n--------------------------------------\\n\\n";
-                
-                if (left && !text.includes(left.innerText.substring(0, 50))) text += left.innerText + "\\n\\n";
-                if (right && !text.includes(right.innerText.substring(0, 50))) text += right.innerText + "\\n\\n";
-                
-                return text;
-            """)
-            if raw_text_js and len(raw_text_js.strip()) > 100:
-                print(f"   ✨ Extracted {len(raw_text_js)} chars via JS from content areas.")
-                raw_text = raw_text_js
+                        if (parent && !addedParents.has(parent)) {
+                            const parentText = parent.innerText;
+                            if (parentText && !extra.includes(parentText.substring(0, 30))) {
+                                extra += "\\n\\n" + parentText;
+                                addedParents.add(parent);
+                            }
+                        }
+                    });
+                    if (extra) text += "--- ÖNEMLİ BİLGİLER (KATILIM VE TARİHLER) ---\\n\\n" + extra + "\\n\\n--------------------------------------\\n\\n";
+                    if (left && !text.includes(left.innerText.substring(0, 50))) text += left.innerText + "\\n\\n";
+                    if (right && !text.includes(right.innerText.substring(0, 50))) text += right.innerText + "\\n\\n";
+                    return text;
+                """)
+                if raw_text_js and len(raw_text_js.strip()) > 100:
+                    raw_text = raw_text_js
+
+            if raw_text:
+                print(f"   ✨ Extracted {len(raw_text)} chars from content areas.")
             else:
-                # Fallback to BeautifulSoup if JS fails or returns too little
-                main_content = soup.select_one('.campaign-detail-text') or soup.select_one('.campaign-detail')
-                if not main_content:
-                    # Fallback to generic content extraction
-                    main_content = soup.find('div', class_=re.compile(r'detail|content|campaign'))
-                
+                # Fallback to BeautifulSoup generic if both failed
+                main_content = soup.select_one('.campaign-detail-text') or soup.select_one('.campaign-detail') or soup.find('div', class_=re.compile(r'detail|content|campaign'))
                 raw_text = main_content.get_text(separator="\n", strip=True) if main_content else ""
+                
         except Exception as e:
-            print(f"   ⚠️ JS text extraction failed: {e}")
+            print(f"   ⚠️ Text extraction failed: {e}")
             main_content = soup.select_one('.campaign-detail-text') or soup.select_one('.campaign-detail')
             raw_text = main_content.get_text(separator="\n", strip=True) if main_content else ""
 
