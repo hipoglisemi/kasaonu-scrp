@@ -71,10 +71,7 @@ class DenizbankScraper:
 
     def __init__(self):
         self.engine = create_engine(DATABASE_URL)
-        if GEMINI_API_KEY:
-            self.ai_parser = AIParser()
-        else:
-            self.ai_parser = None
+        self.ai_parser: Optional[AIParser] = AIParser() if GEMINI_API_KEY else None
             
         self.driver = None
         self.display = None
@@ -664,7 +661,7 @@ class DenizbankScraper:
             print(f"   ❌ Failed to get/create card: {e}")
             raise e
 
-    def _save_to_db(self, data: Dict[str, Any], brand_names: List[str] = None):
+    def _save_to_db(self, data: Dict[str, Any], brand_names: Optional[List[str]] = None):
         if not hasattr(self, 'card_id') or not self.card_id:
             self._get_or_create_card()
 
