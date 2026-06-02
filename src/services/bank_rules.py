@@ -224,11 +224,16 @@ DENIZBANK (DENIZBONUS) SPECIFIC RULES:
         * YANLIŞ (DEVRİK): ["Kredi kartı", "Ön ödemeli kartlar", "DenizBank Mastercard logolu banka kartı"]
     - 🚨 **EXACT EXTRACTION**: Metindeki tanımlayıcı ifadeleri (örn: "Tüm bonus özellikli Bireysel Kredi Kartları") olduğu gibi koru ama yukarıdaki dağıtma kuralını uygula.
     - KESIN YASAK: Metinde geçmeyen kart isimlerini uydurma.
-- PARTICIPATION:
-    - PRIORITY:
-      1. App: "MobilDeniz" or "DenizKartım". Look for "Hemen Katıl" button.
-      2. SMS: Look for keywords sent to **3280**. (e.g. "KATIL yazıp 3280'e gönder").
-      3. Automatic: If "katılım gerekmemektedir" or "otomatik", use "Otomatik Katılım".
+- PARTICIPATION (🚨 KRİTİK — EN ÖNEMLİ ALAN):
+    - Denizbank kampanya sayfalarında katılım bilgisi MUTLAKA "KATILMAK İÇİN" başlıklı bir blokta yer alır.
+    - Bu blok genellikle --- ÖNEMLİ BİLGİLER (KATILIM VE TARİHLER) --- veya sayfa sağ sütununda bulunur.
+    - ✅ DOĞRU KAYNAK: "KATILMAK İÇİN" başlığının hemen altındaki talimat cümlesi(leri).
+    - ✅ SMS VAR: "X yazıp 3280'e SMS gönderin" formatında SMS talimatı varsa TÜM CÜMLEYİ aynen yaz. Örn: '"RESTORAN" yazıp 3280'e SMS gönderin.'
+    - ✅ UYGULAMA VAR: "DenizKartım" veya "MobilDeniz uygulamasından Hemen Katıl butonuna tıklayın" ifadesi varsa TÜM CÜMLEYİ aynen yaz.
+    - ✅ HEM SMS HEM UYGULAMA: Her ikisi de belirtilmişse ikisini de yaz — örn: 'Harcamadan önce DenizKartım, MobilDeniz uygulamasından "Hemen Katıl" butonunu tıklayın veya "RESTORAN" yazıp 3280'e SMS gönderin.'
+    - ✅ OTOMATİK: Sadece "katılım gerekmemektedir", "otomatik katılım", "kendiliğinden" gibi ifadeler varsa "Otomatik Katılım" yaz.
+    - 🚫 KESİN YASAK: "Kampanyaya katılım sonrasında gerçekleştirilen işlemler kampanya kapsamında değerlendirilir." GİBİ KOŞUL CÜMLELERİNİ 'participation' ALANINA YAZMA. Bu bir katılım talimatı değil, bir kural/koşuldur — bunu 'conditions' listesine yaz.
+    - 🚫 KESİN YASAK: Veri yoksa "Detayları İnceleyin" veya "Hemen Faydalanın" YAZMA.
 - CONDITIONS:
     - FORMAT: Summarize into 3-5 bullets.
     - Include: Max earning limit, start/end dates, valid sectors.
