@@ -358,7 +358,7 @@ def fetch_html(url: str) -> str:
 
 
 
-def run_autofix(limit: int = 250, campaign_id: Optional[int] = None, force_all: bool = False, ids_file: Optional[str] = None, ui_mode: bool = False, pending: bool = False, model: Optional[str] = None, fallback_model: Optional[str] = None, force_rescue: bool = False):
+def run_autofix(limit: int = 250, campaign_id: Optional[int] = None, force_all: bool = False, ids_file: Optional[str] = None, ui_mode: bool = False, pending: bool = False, model: Optional[str] = None, fallback_model: Optional[str] = None, force_rescue: bool = False, audit_approved: bool = False):
     print(f"🚀 Starting Data Quality Auto-Fixer (Limit: {limit})...")
     
     try:
@@ -728,7 +728,7 @@ def run_autofix(limit: int = 250, campaign_id: Optional[int] = None, force_all: 
             
             if not to_fix_ids:
                 print("✅ All active campaigns look healthy!")
-                if not ui_mode:
+                if not ui_mode and audit_approved:
                     audit_approved_campaign_cards()
                 return
                 
@@ -1497,7 +1497,7 @@ def run_autofix(limit: int = 250, campaign_id: Optional[int] = None, force_all: 
         fixed_count = fixed_count_arr[0]
         print(f"\n🏁 Auto-fixer complete. Successfully repaired {fixed_count}/{len(to_fix_ids)} campaigns.")
         
-        if not ui_mode:
+        if not ui_mode and audit_approved:
             audit_approved_campaign_cards()
     except Exception as e:
         print(f"\n📛 CRITICAL ERROR during auto-fix: {e}")
@@ -1627,6 +1627,7 @@ if __name__ == "__main__":
     parser.add_argument("--pending", action="store_true", help="Process only unapproved (pending) campaigns")
     parser.add_argument("--model", type=str, help="Primary AI model to use")
     parser.add_argument("--fallback-model", type=str, help="Fallback AI model to use on failure")
+    parser.add_argument("--audit-approved", action="store_true", help="Also audit approved campaigns for missing cards")
     args = parser.parse_args()
     
     # In UI mode, we don't want sleep and we want a limit of 1
@@ -1642,5 +1643,6 @@ if __name__ == "__main__":
         pending=args.pending,
         model=args.model,
         fallback_model=args.fallback_model,
-        force_rescue=args.force_rescue
+        force_rescue=args.force_rescue,
+        audit_approved=args.audit_approved
     )

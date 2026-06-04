@@ -6,7 +6,7 @@ on:
       - '.github/workflows/cleanup-campaigns.yml'
   schedule:
     # TSİ 01:00 (UTC 22:00) — Proactive'den 30 dk sonra
-    - cron: '0 22 * * *'
+    - cron: '51 21 * * *'
   workflow_dispatch: # Allow manual trigger
 
 jobs:

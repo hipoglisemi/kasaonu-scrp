@@ -3,7 +3,7 @@ name: SEO Content Refresher (Weekly)
 on:
   schedule:
     # Cuma gününü Cumartesiye bağlayan gece saat 03:00'te çalışır (UTC'ye göre 00:00)
-    - cron: '0 0 * * 6'
+    - cron: '27 0 * * 6'
   workflow_dispatch: # Manuel tetikleme (Admin paneli / GitHub üzerinden)
 
 jobs:

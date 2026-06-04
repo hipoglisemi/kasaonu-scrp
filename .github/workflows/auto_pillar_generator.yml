@@ -4,7 +4,7 @@ name: SEO Pillar Page Auto-Generator
 on:
   schedule:
     # Her Salı ve Perşembe Türkiye saati 10:00 (UTC 07:00)
-    - cron: "0 7 * * 2,4"
+    - cron: '11 7 * * 2,4'
   workflow_dispatch: # Manuel tetikleme (test için)
 
 jobs:

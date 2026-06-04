@@ -3,7 +3,7 @@ name: Weekly Auto-SEO Worker
 on:
   schedule:
     # Every Wednesday at 10:00 UTC
-    - cron: '0 10 * * 3'
+    - cron: '18 10 * * 3'
   workflow_dispatch:
     # Allow manual trigger
 

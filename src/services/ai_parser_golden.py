@@ -383,7 +383,7 @@ JSON FORMATI:
   "description": "Kampanyanın ne olduğunu anlatan 2-3 cümlelik net ve bilgilendirici özet. (Örn: 'X mağazasında Y kartı ile Z TL indirim fırsatı sizi bekliyor.')",
   "ai_marketing_text": "Kullanıcıyı heyecanlandıracak, SEO odaklı pazarlama metni. 🚨 ASLA description ile aynı olmamalıdır. Kampanya içeriğiyle (Sektör ve Marka) doğrudan ilgili, çeşitli ve yaratıcı emojiler kullanarak enerjik bir dil kur. 'Hadi hemen katıl!', 'Fırsatı kaçırma!' gibi eylem çağrıları içermelidir.",
   "reward_value": 0.0,
-  "reward_type": "puan/indirim/taksit/mil",
+  "reward_type": "puan/indirim/taksit/mil/cashback",
   "reward_text": "Kısa ve Çarpıcı. Peşin fiyatına gibi detayları yazma. Örn: '150 TL Yakıt Puan' veya '%20 İndirim'",
   "min_spend": 0.0,
   "start_date": "YYYY-MM-DD",

@@ -3,8 +3,8 @@ name: SEO Blog Auto-Generator
 
 on:
   schedule:
-    - cron: '0 6 * * *'   # Her gün Türkiye 09:00
-    - cron: '0 12 * * *'  # Her gün Türkiye 15:00
+    - cron: '13 6 * * *'   # Her gün Türkiye 09:00
+    - cron: '17 12 * * *'  # Her gün Türkiye 15:00
   workflow_dispatch:
 
 jobs:
