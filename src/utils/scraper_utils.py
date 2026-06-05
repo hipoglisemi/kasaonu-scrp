@@ -37,6 +37,28 @@ def clean_title_for_matching(title: str) -> str:
         return ""
     return "".join(c for c in title.lower() if c.isalnum())
 
+def normalize_text_for_comparison(text: str) -> str:
+    """
+    Normalizes HTML content or description text by aggressively removing
+    punctuation, numbers, months, and making it lowercase to allow
+    for highly accurate fuzzy matching.
+    """
+    if not text:
+        return ""
+    import re as _re
+    # Turkish lowercasing and normalising character differences
+    t = text.replace("İ", "i").replace("I", "ı").lower()
+    # Remove all digits
+    t = _re.sub(r'\d+', '', t)
+    # Remove Turkish month names
+    months = ["ocak", "şubat", "subat", "mart", "nisan", "mayıs", "mayis", "haziran", 
+              "temmuz", "ağustos", "agustos", "eylül", "eylul", "ekim", "kasım", "kasim", "aralık", "aralik"]
+    for m in months:
+        t = _re.sub(rf'\b{m}\b', '', t)
+    # Remove punctuation and spaces
+    t = _re.sub(r'[^a-zıişğüç]', '', t)
+    return t
+
 def should_skip_campaign(db: Session, url: str, card_id: Any = None) -> bool:
     """
     Check if a campaign should be skipped because:
@@ -97,6 +119,40 @@ def upsert_campaign(db: Session, campaign: Campaign) -> Tuple[Campaign, str]:
             if clean_title_for_matching(camp.title) == clean_target_title:
                 existing = camp
                 break
+                
+    # 2c. Ultimate Fallback: Match by URL Substring + High Content Similarity
+    # This prevents duplicates when the bank completely changes the URL slug (e.g. from -nisan to -mayis)
+    # but the campaign title in the DB was manually changed by the user so title checks fail.
+    if not existing and campaign.tracking_url and campaign.card_id:
+        clean_target_url = clean_url_for_matching(campaign.tracking_url)
+        # Avoid running expensive diffs on very short, generic URLs like "kampanyalar"
+        if len(clean_target_url) > 20:
+            import difflib
+            new_text = normalize_text_for_comparison(campaign.clean_text or campaign.description)
+            
+            # Only proceed if we have enough content to confidently fuzzy match
+            if new_text and len(new_text) > 50:
+                all_card_camps = db.query(Campaign).filter(
+                    Campaign.card_id == campaign.card_id,
+                    Campaign.tracking_url.isnot(None)
+                ).all()
+                
+                for camp in all_card_camps:
+                    clean_camp_url = clean_url_for_matching(camp.tracking_url)
+                    if not clean_camp_url or len(clean_camp_url) <= 20: 
+                        continue
+                        
+                    # If URLs share a significant common prefix or suffix
+                    if clean_target_url.startswith(clean_camp_url) or clean_camp_url.startswith(clean_target_url) or \
+                       (len(clean_target_url) > 30 and len(clean_camp_url) > 30 and difflib.SequenceMatcher(None, clean_target_url, clean_camp_url).ratio() > 0.85):
+                        
+                        old_text = normalize_text_for_comparison(camp.clean_text or camp.description)
+                        if old_text and len(old_text) > 50:
+                            sim = difflib.SequenceMatcher(None, new_text, old_text).ratio()
+                            if sim >= 0.90:
+                                existing = camp
+                                print(f"      🎯 [Fuzzy URL+Content Match] Found duplicate via similarity ({sim:.1%}): ID {existing.id} - URL changed to {campaign.tracking_url}")
+                                break
     
     if existing:
         status = "saved"
@@ -110,24 +166,7 @@ def upsert_campaign(db: Session, campaign: Campaign) -> Tuple[Campaign, str]:
             status = "revived"
             
         # Check if only the date was extended (Fuzzy similarity of text >= 92%)
-        import re as _re
         import difflib
-        
-        def normalize_text_for_comparison(text: str) -> str:
-            if not text:
-                return ""
-            # Turkish lowercasing and normalising character differences
-            t = text.replace("İ", "i").replace("I", "ı").lower()
-            # Remove all digits
-            t = _re.sub(r'\d+', '', t)
-            # Remove Turkish month names
-            months = ["ocak", "şubat", "subat", "mart", "nisan", "mayıs", "mayis", "haziran", 
-                      "temmuz", "ağustos", "agustos", "eylül", "eylul", "ekim", "kasım", "kasim", "aralık", "aralik"]
-            for m in months:
-                t = _re.sub(rf'\b{m}\b', '', t)
-            # Remove punctuation and spaces
-            t = _re.sub(r'[^a-zıişğüç]', '', t)
-            return t
 
         old_text = existing.clean_text or existing.description
         new_text = campaign.clean_text or campaign.description
