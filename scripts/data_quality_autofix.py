@@ -510,7 +510,7 @@ def run_autofix(limit: int = 250, campaign_id: Optional[int] = None, force_all: 
                     clean_lower = (c.clean_text or "").lower()
                     
                     # 1. Cards Smart Check
-                    card_keywords = ["platinum", "gold", "business", "ticari", "troy", "amex", "kurumsal", "miles", "wings", "chip-para"]
+                    card_keywords = ["platinum", "gold", "business", "ticari", "troy", "amex", "miles", "wings"]
                     found_cards = [k for k in card_keywords if k in clean_lower]
                     current_cards_lower = (c.eligible_cards or "").lower()
                     

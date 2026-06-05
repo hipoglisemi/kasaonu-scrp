@@ -142,9 +142,8 @@ def upsert_campaign(db: Session, campaign: Campaign) -> Tuple[Campaign, str]:
                     if not clean_camp_url or len(clean_camp_url) <= 20: 
                         continue
                         
-                    # If URLs share a significant common prefix or suffix
-                    if clean_target_url.startswith(clean_camp_url) or clean_camp_url.startswith(clean_target_url) or \
-                       (len(clean_target_url) > 30 and len(clean_camp_url) > 30 and difflib.SequenceMatcher(None, clean_target_url, clean_camp_url).ratio() > 0.85):
+                    # If URLs share a significant common prefix or suffix (e.g. -nisan added/removed)
+                    if clean_target_url.startswith(clean_camp_url) or clean_camp_url.startswith(clean_target_url):
                         
                         old_text = normalize_text_for_comparison(camp.clean_text or camp.description)
                         if old_text and len(old_text) > 50:
