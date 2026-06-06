@@ -190,9 +190,16 @@ def upsert_campaign(db: Session, campaign: Campaign) -> Tuple[Campaign, str]:
         
         existing.date_extended = is_date_only_ext
         
-        # 🛡️ STRICT APPROVAL LOCK: ALL campaign updates, including date extensions and revivals,
-        # must go to the approval queue for manual editor verification. NO auto-approvals!
-        existing.is_approved = False
+        # 🔒 APPROVAL LOGIC:
+        # - Tarih uzaması (date_extended=True, similarity ≥%92) → is_approved'u KORU.
+        #   Yalnızca tarih değişti, editörün zaten onayladığı içerik hâlâ geçerli.
+        # - İçerik gerçekten değiştiyse (date_extended=False) → onaya düşür.
+        # - Revived kampanyalar (is_active=False iken yakalandı) → yukarıda 163. satırda False yapıldı.
+        if not is_date_only_ext:
+            existing.is_approved = False
+            print(f"      🔒 [Onay Kilidi] İçerik değişti → onaya düşürüldü.")
+        else:
+            print(f"      ✅ [Onay Korundu] Sadece tarih uzaması → is_approved={existing.is_approved} korundu.")
 
         existing.updated_at = datetime.now(timezone.utc).replace(tzinfo=None)
 
