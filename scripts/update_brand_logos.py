@@ -133,7 +133,7 @@ def main():
                 if image_url:
                     success = download_image_and_save(image_url, brand.slug)
                     if success:
-                        brand.logo_url = f"/logos/brands/{brand.slug}.webp"
+                        brand.logo_url = f"/logos/brands/{brand.slug}.webp"  # type: ignore
                         db.commit()
                         updated_count += 1
                 else:
