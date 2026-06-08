@@ -1,5 +1,5 @@
 name: "🍬 Scrapers – Grup E"
-# Şekerbank, Tami, Uption, Nays, Paycell, HSBC
+# Şekerbank, Tami, Uption, Nays, Paycell, HSBC, Vakıf Katılım
 # TSİ 05:00 → UTC 02:00
 on:
   schedule:
@@ -21,6 +21,7 @@ jobs:
           - paycell
           - hsbc
           - on_digital
+          - vakif_katilim
 
     name: "🤖 ${{ matrix.scraper }}"
 

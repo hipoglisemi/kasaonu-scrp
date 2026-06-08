@@ -1,5 +1,5 @@
 name: "🆑 Scrapers – Grup C"
-# İşbankası (Genç + Maximiles + Maximum), Masterpass, Paraf (x2), Param, QNB
+# İşbankası (Genç + Maximiles + Maximum), Masterpass, Paraf (x2), Param, QNB, Ziraat Katılım
 # TSİ 04:00 → UTC 01:00
 on:
   schedule:
@@ -22,6 +22,7 @@ jobs:
           - paraf_genc
           - param
           - qnb
+          - ziraat_katilim
 
     name: "🤖 ${{ matrix.scraper }}"
 

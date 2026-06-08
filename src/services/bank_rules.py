@@ -405,5 +405,49 @@ TÜRK TELEKOM SPECIFIC RULES:
 - PARTICIPATION (participation):
     - SMS: Look for keyword + short number "6262". Format: "[KEYWORD] yazıp 6262'ye SMS gönderin."
     - App: "Türk Telekom Online İşlemler" or "Türk Telekom Mobil".
+""",
+    'ziraat-katilim': """
+ZİRAAT KATILIM SPECIFIC RULES:
+- TERMINOLOGY: The currency used is generally "Katılım Bankkart Lira" or direct TL discounts.
+- ELIGIBLE CARDS (CRITICAL):
+    - 🚨 **TEMİZLEME KURALLARI**: 
+        - "Ziraat Katılım Bankkart" ifadelerini sadece "Katılım Bankkart" olarak yaz.
+        - Özel segmentleri KORU ve TEMİZLE: "Ziraat Katılım Bankkart (Gold)" -> **Katılım Bankkart Gold**, "Ziraat Katılım Bankkart (Platinum)" -> **Katılım Bankkart Platinum**, "Ziraat Katılım Bankkart (Klasik)" -> **Katılım Bankkart Klasik**, "Ziraat Katılım Bankkart (Ücretsiz)" -> **Katılım Bankkart Ücretsiz**.
+        - Ticari kartlar için: "Ziraat Katılım Bankkart Ticari" -> **Katılım Bankkart Ticari**.
+        - Jenerik ifadeler: "Ziraat Katılım Bireysel Bankkart kredi kartı" -> **Katılım Bankkart**.
+        - "Ek kartlar" ibaresini aynen koru.
+- 🚨 **FOOTER GÜRÜLTÜSÜ YASAĞI (ULTRA CRITICAL)**:
+    - Metnin sonunda yer alan "Kıymetli Madenler Sorumlu Tedarik Zinciri", "Sürdürülebilir Finans Çerçevemiz", "Zamanaşımına Uğrayacak Olan Hesaplar", "SPK Duyuruları", "CİMERe Başvuru", "Satılık Menkuller" gibi banka kurumsal footer linklerine ait metinleri ASLA dikkate alma. Kampanya koşulları bu metinlerden önce biter.
+- PARTICIPATION (katilim_sekli):
+    - Genellikle "Katılım Mobil" uygulaması veya "SMS" üzerinden katılım sağlanır. "Katılım Mobil" uygulamasındaki "Kampanyalar" menüsünü belirt.
+""",
+    'ziraat-dinamik': """
+ZİRAAT DİNAMİK SPECIFIC RULES:
+- TERMINOLOGY: The currency used is "Bankkart Lira" or direct TL discounts.
+- ELIGIBLE CARDS (CRITICAL):
+    - 🚨 **TEMİZLEME KURALLARI**: 
+        - "Dinamik Kredi Kartı", "Ziraat Dinamik Kart" -> **Dinamik Kart** olarak standartlaştır.
+        - "Dijital Kredi Kartı" -> **Dijital Kredi Kartı** olarak koru.
+        - "Bireysel kredi kartları" -> **Dinamik Kart** olarak çevir.
+        - "Ek kartlar", "Sanal kartlar", "Bankkart" ibarelerini aynen koru.
+- 🚨 **FOOTER GÜRÜLTÜSÜ YASAĞI (ULTRA CRITICAL)**:
+    - Ziraat Katılım ile aynı altyapıyı kullandığı için metnin sonundaki "Kıymetli Madenler Sorumlu Tedarik Zinciri", "SPK Duyuruları", "CİMERe Başvuru", "Satılık Menkuller" gibi gürültüleri tamamen yok say ve ASLA kampanya koşullarına ekleme.
+- PARTICIPATION (katilim_sekli):
+    - Genellikle "Ziraat Dinamik Mobil" veya "Ziraat Mobil" üzerinden katılım sağlanır.
+""",
+    'vakif-katilim': """
+VAKIF KATILIM (VKART) SPECIFIC RULES:
+- TERMINOLOGY: Direct TL discounts or percentage discounts.
+- ELIGIBLE CARDS (CRITICAL):
+    - 🚨 **TEMİZLEME KURALLARI**: 
+        - "Vakıf Katılım Bireysel Kredi Kartı", "Bireysel Vakıf Katılım Kredi Kartı", "Vakıf Katılım Kredi Kartı" -> **VKart Bireysel** olarak standartlaştır.
+        - "Vakıf Katılım Banka Kartı" -> **VKart Banka Kartı** olarak al.
+        - "TROY logolu kredi kartı", "VKart TROY" -> **VKart TROY** olarak al.
+        - "Mastercard logolu Vakıf Katılım Kredi Kartı", "Bireysel Mastercard logolu kredi kartları", "VKart Mastercard" -> **VKart Mastercard** olarak al.
+        - "Ek kartlar", "Sanal kartlar" ibarelerini aynen koru.
+- 🚨 **FOOTER GÜRÜLTÜSÜ YASAĞI (ULTRA CRITICAL)**:
+    - Vakıf Katılım kampanya metinlerinin sonunda her zaman "Tümünü Göster", "İlginizi Çekebilecek Kampanyalar", "Çerezleri Özelleştirin", "Reddet", "Kabul Ediyorum", "Tüm Kampanyalar" gibi web sitesi bileşenleri yer alır. Bu metinler kampanya detaylarına AİT DEĞİLDİR ve koşullara (conditions) veya açıklamaya (description) ASLA dahil edilmemelidir.
+- PARTICIPATION (katilim_sekli):
+    - Genellikle "Vakıf Katılım Mobil Şube" veya internet şubesi kullanılır.
 """
 }

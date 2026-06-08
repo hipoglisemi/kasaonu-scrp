@@ -1,5 +1,5 @@
 name: "🆗 Scrapers – Grup D"
-# Kuveytürk, TEB, TürkiyeFinans, Vakıfbank, YapıKredi (Adios + Crystal + Play + World), Ziraat, Türktelekom, Vodafone
+# Kuveytürk, TEB, TürkiyeFinans, Vakıfbank, YapıKredi (Adios + Crystal + Play + World), Ziraat, Ziraat Dinamik, Türktelekom, Vodafone
 # TSİ 04:30 → UTC 01:30
 on:
   schedule:
@@ -23,6 +23,7 @@ jobs:
           - yapikredi_play
           - yapikredi_world
           - ziraat
+          - ziraat_dinamik
           - turktelekom
           - vodafone
 
