@@ -426,7 +426,7 @@ ZİRAAT DİNAMİK SPECIFIC RULES:
 - TERMINOLOGY: The currency used is "Bankkart Lira" or direct TL discounts.
 - ELIGIBLE CARDS (CRITICAL):
     - 🚨 **TEMİZLEME KURALLARI**: 
-        - 🚨 **MÜŞTERİ GRUBU KURALI**: Eğer kampanya koşullarında "kampanyadan yalnızca Ziraat Dinamik Mobil üzerinden..." gibi bir uygulama şartı geçiyorsa ve spesifik, net bir kart marka adı listelenmiyorsa (Örn: sadece "bireysel kartlar", "ticari kartlar", "dinamik kart" vb. jenerik ifadeler geçiyorsa), \`cards\` listesine kart ismi uydurmak yerine sadece **Ziraat Dinamik Müşterileri** yaz.
+        - 🚨 **MÜŞTERİ GRUBU KURALI**: Eğer kampanya koşullarında "kampanyadan yalnızca Ziraat Dinamik Mobil üzerinden..." gibi bir uygulama şartı geçiyorsa ve geçerli kartlar olarak metinde hiçbir kart grubu veya segment belirtilmemişse, `cards` listesine sadece **Ziraat Dinamik Müşterileri** yaz. ANCAK metinde açıkça "bireysel kartlar", "ticari kartlar", "dinamik kart" vb. ifadeler GEÇİYORSA, bunları ASLA "Ziraat Dinamik Müşterileri" olarak gruplama; metinde yazdığı gibi aynen al.
         - 🚨 **BANKKART KURALI**: Eğer geçerli kartlar arasında "Bankkart" ibaresi geçiyorsa, bunu kesinlikle düz "Bankkart" olarak DEĞİL, **Dinamik Bankkart** olarak yaz.
         - "Dijital Kredi Kartı" -> **Dijital Kredi Kartı** olarak koru.
         - "Ek kartlar", "Sanal kartlar" ibarelerini aynen koru.
