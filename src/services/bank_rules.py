@@ -414,7 +414,7 @@ ZİRAAT KATILIM SPECIFIC RULES:
         - "Ziraat Katılım Bankkart" ifadelerini veya metinde tek başına geçen "Bankkart" kelimesini düz "Bankkart" olarak DEĞİL, **Ziraat Katılım Bankkart** olarak yaz.
         - Özel segmentleri KORU ve TEMİZLE: "Ziraat Katılım Bankkart (Gold)" -> **Ziraat Katılım Bankkart Gold**, "Ziraat Katılım Bankkart (Platinum)" -> **Ziraat Katılım Bankkart Platinum**, "Ziraat Katılım Bankkart (Klasik)" -> **Ziraat Katılım Bankkart Klasik**, "Ziraat Katılım Bankkart (Ücretsiz)" -> **Ziraat Katılım Bankkart Ücretsiz**.
         - Ticari kartlar için: "Ziraat Katılım Bankkart Ticari" -> **Ziraat Katılım Bankkart Ticari**.
-        - Jenerik ifadeler: "Ziraat Katılım Bireysel Bankkart kredi kartı" -> **Ziraat Katılım Bankkart**.
+        - Jenerik ifadeler: "Ziraat Katılım Bireysel Bankkart kredi kartı" -> **Ziraat Katılım Bireysel Bankkart**.
         - "Ek kartlar" ibaresini aynen koru.
 - 🚨 **FOOTER GÜRÜLTÜSÜ YASAĞI (ULTRA CRITICAL)**:
     - Metnin sonunda yer alan "Kıymetli Madenler Sorumlu Tedarik Zinciri", "Sürdürülebilir Finans Çerçevemiz", "Zamanaşımına Uğrayacak Olan Hesaplar", "SPK Duyuruları", "CİMERe Başvuru", "Satılık Menkuller" gibi banka kurumsal footer linklerine ait metinleri ASLA dikkate alma. Kampanya koşulları bu metinlerden önce biter.
