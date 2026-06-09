@@ -411,7 +411,7 @@ ZİRAAT KATILIM SPECIFIC RULES:
 - TERMINOLOGY: The currency used is generally "Katılım Bankkart Lira" or direct TL discounts.
 - ELIGIBLE CARDS (CRITICAL):
     - 🚨 **TEMİZLEME KURALLARI**: 
-        - "Ziraat Katılım Bankkart" ifadelerini sadece "Katılım Bankkart" olarak yaz.
+        - "Ziraat Katılım Bankkart" ifadelerini veya metinde tek başına geçen "Bankkart" kelimesini düz "Bankkart" olarak DEĞİL, **Katılım Bankkart** olarak yaz.
         - Özel segmentleri KORU ve TEMİZLE: "Ziraat Katılım Bankkart (Gold)" -> **Katılım Bankkart Gold**, "Ziraat Katılım Bankkart (Platinum)" -> **Katılım Bankkart Platinum**, "Ziraat Katılım Bankkart (Klasik)" -> **Katılım Bankkart Klasik**, "Ziraat Katılım Bankkart (Ücretsiz)" -> **Katılım Bankkart Ücretsiz**.
         - Ticari kartlar için: "Ziraat Katılım Bankkart Ticari" -> **Katılım Bankkart Ticari**.
         - Jenerik ifadeler: "Ziraat Katılım Bireysel Bankkart kredi kartı" -> **Katılım Bankkart**.
@@ -426,10 +426,10 @@ ZİRAAT DİNAMİK SPECIFIC RULES:
 - TERMINOLOGY: The currency used is "Bankkart Lira" or direct TL discounts.
 - ELIGIBLE CARDS (CRITICAL):
     - 🚨 **TEMİZLEME KURALLARI**: 
-        - "Dinamik Kredi Kartı", "Ziraat Dinamik Kart" -> **Dinamik Kart** olarak standartlaştır.
+        - 🚨 **MÜŞTERİ GRUBU KURALI**: Eğer kampanya koşullarında "kampanyadan yalnızca Ziraat Dinamik Mobil üzerinden..." gibi bir uygulama şartı geçiyorsa ve spesifik, net bir kart marka adı listelenmiyorsa (Örn: sadece "bireysel kartlar", "ticari kartlar", "dinamik kart" vb. jenerik ifadeler geçiyorsa), \`cards\` listesine kart ismi uydurmak yerine sadece **Ziraat Dinamik Müşterileri** yaz.
+        - 🚨 **BANKKART KURALI**: Eğer geçerli kartlar arasında "Bankkart" ibaresi geçiyorsa, bunu kesinlikle düz "Bankkart" olarak DEĞİL, **Dinamik Bankkart** olarak yaz.
         - "Dijital Kredi Kartı" -> **Dijital Kredi Kartı** olarak koru.
-        - "Bireysel kredi kartları" -> **Dinamik Kart** olarak çevir.
-        - "Ek kartlar", "Sanal kartlar", "Bankkart" ibarelerini aynen koru.
+        - "Ek kartlar", "Sanal kartlar" ibarelerini aynen koru.
 - 🚨 **FOOTER GÜRÜLTÜSÜ YASAĞI (ULTRA CRITICAL)**:
     - Ziraat Katılım ile aynı altyapıyı kullandığı için metnin sonundaki "Kıymetli Madenler Sorumlu Tedarik Zinciri", "SPK Duyuruları", "CİMERe Başvuru", "Satılık Menkuller" gibi gürültüleri tamamen yok say ve ASLA kampanya koşullarına ekleme.
 - PARTICIPATION (katilim_sekli):
