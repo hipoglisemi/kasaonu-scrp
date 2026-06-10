@@ -478,8 +478,9 @@ AHL PAY SPECIFIC RULES:
 - TERMINOLOGY: "Nakit İade" or "İndirim" or "Hediye".
 - ELIGIBLE CARDS (CRITICAL):
     - 🚨 **TEMİZLEME KURALLARI**:
-        - Kampanyaya dahil olan kartları sadece "AHL Card" olarak standartlaştır. "AHL Pay AHL Card" gibi tekrarlardan KESİNLİKLE kaçın.
-        - Yanlış veya uzun: "AHL Pay Elektronik Para A.Ş. AHL Card" -> **AHL Card**
+        - "AHL Card", "AHL TROY", "AHL Visa", "AHL Mastercard" gibi spesifik kart adları geçiyorsa onları çıkar.
+        - Kart adının önüne tekrar "AHL Pay" ekleyip "AHL Pay AHL Card" veya "AHL Pay AHL TROY" gibi KESİNLİKLE uzatma.
+        - Sadece AHL logolu kart diyorsa "AHL Card" olarak standartlaştır.
         - Boş bırakma durumunda kampanya herkes için geçerliyse "AHL Card" yaz.
 - CUSTOMER TARGET (MÜŞTERİ KİTLESİ): 
     - İhtiyaç Finansmanı, Araç Finansmanı, Konut Finansmanı gibi kampanyalarda veya "İlk defa yatırım yapanlar" gibi özel bir müşteri kitlesi belirtilmişse, bunu kampanya koşullarında ve açıklamalarında mutlaka vurgula.
