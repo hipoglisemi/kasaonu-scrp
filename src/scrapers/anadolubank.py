@@ -34,7 +34,7 @@ class AnadolubankScraper:
         
         self.bank = self.db.query(Bank).filter(Bank.slug == 'anadolubank').first()
         if not self.bank:
-            self.bank = Bank(name='Anadolubank', slug='anadolubank', logo_url='/logos/banks/anadolubank.png', is_active=True)
+            self.bank = Bank(name='Anadolubank', slug='anadolubank', logo_url='/logos/banks/anadolubank1.png', is_active=True)
             self.db.add(self.bank)
             self.db.commit()
             
@@ -44,7 +44,7 @@ class AnadolubankScraper:
                  bank_id=self.bank.id, 
                  name='Kredi Kartı', 
                  slug='anadolubank-kredi-karti', 
-                 logo_url='/logos/cards/anadolubank.png',
+                 logo_url='/logos/cards/anadolubank1.png',
                  is_active=True
              )
              self.db.add(self.card)
