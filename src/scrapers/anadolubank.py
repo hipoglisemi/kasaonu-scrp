@@ -42,7 +42,7 @@ class AnadolubankScraper:
         if not self.card:
              self.card = Card(
                  bank_id=self.bank.id, 
-                 name='Kredi Kartı', 
+                 name='Anadolubank Kart', 
                  slug='anadolubank-kredi-karti', 
                  logo_url='/logos/cards/anadolubank1.png',
                  is_active=True
@@ -150,7 +150,7 @@ class AnadolubankScraper:
                 db_session=self.db,
                 campaign_model=Campaign,
                 tracking_url=url,
-                card_name="Kredi Kartı",
+                card_name="Anadolubank Kart",
                 bank_name="Anadolubank"
             )
 
