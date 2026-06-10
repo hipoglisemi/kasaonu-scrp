@@ -82,6 +82,9 @@ class TombankScraper:
                 for link in links:
                     href = link.get_attribute("href")
                     if href and href != "/hadi-kazan/kampanyalar":
+                        text = link.inner_text() or ""
+                        if "GEÇMİŞ" in text.upper() or "GECMIS" in text.upper():
+                            continue
                         full_url = urljoin(self.BASE_URL, href)
                         if full_url not in seen:
                             seen.add(full_url)
@@ -100,6 +103,9 @@ class TombankScraper:
                 for a in links:
                     href = a["href"]
                     if "/kampanyalar/" in href and href != "/hadi-kazan/kampanyalar":
+                        text = a.get_text() or ""
+                        if "GEÇMİŞ" in text.upper() or "GECMIS" in text.upper():
+                            continue
                         full_url = urljoin(self.BASE_URL, href)
                         if full_url not in seen:
                             seen.add(full_url)
@@ -130,6 +136,10 @@ class TombankScraper:
 
             title_el = soup.select_one('h1')
             title = title_el.get_text(strip=True) if title_el else "Kampanya"
+
+            if "(GEÇMİŞ" in title.upper() or "GECMIS" in title.upper():
+                print(f"   🚫 Skipped (Geçmiş Kampanya): {title}")
+                return "skipped"
 
             if is_url_blocked(self.db, url):
                 print(f"   🚫 Skipped (Blocklisted): {title}")
