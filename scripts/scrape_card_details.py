@@ -240,15 +240,35 @@ METİN:
 {content}
 """
     
-    response = client.models.generate_content(
-        model="gemini-3-flash-preview",
-        contents=prompt,
-        config=types.GenerateContentConfig(
-            temperature=0.1,
-            max_output_tokens=1000
-        )
-    )
+    import time
     
+    max_retries = 3
+    response = None
+    for attempt in range(max_retries):
+        try:
+            response = client.models.generate_content(
+                model="gemini-3-flash-preview",
+                contents=prompt,
+                config=types.GenerateContentConfig(
+                    temperature=0.1,
+                    max_output_tokens=1000
+                )
+            )
+            break
+        except Exception as e:
+            error_str = str(e)
+            if "503" in error_str or "429" in error_str:
+                wait_time = (attempt + 1) * 5
+                print(f"    ⏳  Gemini meşgul (503/429), {wait_time}s bekleniyor... (Deneme {attempt+1}/{max_retries})")
+                time.sleep(wait_time)
+            else:
+                print(f"    ⚠️  Gemini API hatası: {e}")
+                return None
+                
+    if not response:
+        print("    ⚠️  Gemini API yanıt vermedi, atlanıyor.")
+        return None
+        
     text = response.text.strip()
     
     # Markdown temizle
