@@ -462,10 +462,12 @@ TOM BANK SPECIFIC RULES:
 - TERMINOLOGY: "Hadi Puan" or "Nakit İade". TOM Bank is a digital wallet/bank application.
 - ELIGIBLE CARDS (CRITICAL):
     - 🚨 **TEMİZLEME KURALLARI**: 
-        - "Hadi Gold", "Hadi Kredi Kartı", "Hadi Banka Kartı", "Hadi Sanal Kart", "Hadi Black Kredi Kartı" gibi isimleri standartlaştır.
+        - Kampanyaya dahil olan kartları şu standart tiplerle belirle: "Hadi Kredi Kartı", "Hadi Black Kredi Kartı", "Hadi Hesap Kartı", "Hadi Veresiye".
         - "Hadi Black", "Hadi Gold" segmentleri veya "Hadi Kart" ifadelerini olduğu gibi koru.
-        - Yanlış veya uzun: "TOM Bank A.Ş. Hadi Kredi Kartı" -> **Hadi Kredi Kartı**
+        - Gereksiz uzun "TOM Bank A.Ş. Hadi Kredi Kartı" gibi metinleri -> **Hadi Kredi Kartı** olarak kısalt.
         - Boş bırakma durumunda kampanya herkes için geçerliyse "Hadi Kart" yaz.
+- CUSTOMER TARGET (MÜŞTERİ KİTLESİ): 
+    - "Hadi Plus" üyelerine veya "A101 Plus" üyelerine özel bir kampanya ise (örn: A101 indirimleri), bunu 'description' veya 'conditions' içerisinde KESİNLİKLE vurgula.
 - 🚨 **FOOTER GÜRÜLTÜSÜ YASAĞI (ULTRA CRITICAL)**:
     - Sayfa altındaki "Hadi Keşfet", "Biz Kimiz", "Hadi Kariyer", "Ortaklık Yapısı", "Hadi Kazan", "Hadi Hesap", "Hadi Yatırım İşlemleri", "Hisse Senedi ve Halka Arz", "Yatırım Fonu", "Hadi Kartlarım", "Hadi Krediler", "Veresiye Kredi" gibi genel menü başlıklarını ve açıklamalarını ASLA kampanyaya dahil etme.
 - PARTICIPATION (katilim_sekli):
@@ -480,14 +482,28 @@ AHL PAY SPECIFIC RULES:
         - "AHL Card" veya "AHL Pay Kart" ifadelerini olduğu gibi koru.
         - Yanlış veya uzun: "AHL Pay Elektronik Para A.Ş. AHL Card" -> **AHL Card**
         - Boş bırakma durumunda kampanya herkes için geçerliyse "AHL Card" yaz.
+- CUSTOMER TARGET (MÜŞTERİ KİTLESİ): 
+    - İhtiyaç Finansmanı, Araç Finansmanı, Konut Finansmanı gibi kampanyalarda veya "İlk defa yatırım yapanlar" gibi özel bir müşteri kitlesi belirtilmişse, bunu kampanya koşullarında ve açıklamalarında mutlaka vurgula.
 - 🚨 **FOOTER GÜRÜLTÜSÜ YASAĞI (ULTRA CRITICAL)**:
-    - Sayfa altındaki "AHL Pay Başvuru", "Hakkımızda", "Kurumsal Yönetim", "Temsilciliklerimiz", "Logolarımız", "Ücretler ve Limitler", "Kariyer", "Yasal Bilgiler", "Sözleşmeler", "Formlar", "Sertifikalar", "Sıkça Sorulan Sorular", "İletişim" gibi genel menü başlıklarını ve açıklamalarını ASLA kampanyaya dahil etme.
+    - Sayfa altındaki "AHL Pay Başvuru", "Hakkımızda", "Kurumsal Yönetim" gibi genel menü başlıklarını ASLA kampanyaya dahil etme.
 - PARTICIPATION (katilim_sekli):
     - Genellikle "AHL Pay Mobil Uygulaması" üzerinden işlem yapılır.
-"""
+""",
     'anadolubank': """
 ANADOLUBANK SPECIFIC RULES:
 - ELIGIBLE CARDS: 
-    - 🚨 **TEMİZLEME KURALLARI (CRITICAL)**: Kart isimlerini çıkarırken, başına fazladan banka adını ekleme. Sadece "Anadolubank Kart" veya "Anadolubank Troy Kart" gibi çıkar. "Anadolubank Anadolubank Kart" gibi tekrarlardan KESİNLİKLE kaçın.
+    - 🚨 **TEMİZLEME KURALLARI (CRITICAL)**: Kart isimlerini çıkarırken, başına fazladan banka adını ekleme.
+    - Anadolubank metinlerinde sıklıkla belirli bir kart adı değil "Anadolubank müşterileri" ibaresi geçer. Eğer kampanya metninde sadece "Anadolubank müşterileri" diyorsa, eligible_cards alanına doğrudan **"Anadolubank Müşterileri"** yaz.
+    - Eğer spesifik olarak uzun karmaşık kart isimleri (örn: "Silver logolu Anadolubank Mastercard kredi kartı", "Anadolubank Mastercard logolu ön ödemeli kartlar") varsa, bunları ŞU 5 STANDART GRUBA İNDİRGE:
+        1. "Anadolubank Kart"
+        2. "Anadolubank Banka Kartı"
+        3. "Anadolubank Troy Kart"
+        4. "Anadolubank Ticari Kart"
+        5. "Anadolubank Silver Mastercard"
+    - TROY logolu kartları kesinlikle ayrı bir madde olarak "Anadolubank Troy Kart" şeklinde yaz.
+    - "Positive Card" gibi dış marka kartları varsa aynen bırak.
+- CUSTOMER TARGET (MÜŞTERİ KİTLESİ): 
+    - Metinde geçen "Anadolubank müşterileri" ifadesi aslında hedef kitleyi belirler, bunu hem eligible_cards hem de açıklama içerisinde kullanabilirsin.
+    - "Özel Bankacılık Müşterileri", "Perakende Müşteriler" veya "KOBİ" gibi daha dar bir kitleye hitap eden kampanyalarda bu segmentleri açıklamalarda ve koşullarda kesinlikle vurgula.
 """
 }
