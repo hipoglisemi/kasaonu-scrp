@@ -485,4 +485,9 @@ AHL PAY SPECIFIC RULES:
 - PARTICIPATION (katilim_sekli):
     - Genellikle "AHL Pay Mobil Uygulaması" üzerinden işlem yapılır.
 """
+    'anadolubank': """
+ANADOLUBANK SPECIFIC RULES:
+- ELIGIBLE CARDS: 
+    - 🚨 **TEMİZLEME KURALLARI (CRITICAL)**: Kart isimlerini çıkarırken, başına banka adını ekleme. Sadece "Anadolubank Kredi Kartı" veya "Anadolubank Troy Kart" gibi çıkar. "Anadolubank Anadolubank Kredi Kartı" gibi tekrarlardan KESİNLİKLE kaçın.
+"""
 }
