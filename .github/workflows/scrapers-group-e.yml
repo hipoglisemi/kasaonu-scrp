@@ -22,6 +22,7 @@ jobs:
           - hsbc
           - on_digital
           - vakif_katilim
+          - anadolubank
 
     name: "🤖 ${{ matrix.scraper }}"
 
