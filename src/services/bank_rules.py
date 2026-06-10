@@ -488,6 +488,6 @@ AHL PAY SPECIFIC RULES:
     'anadolubank': """
 ANADOLUBANK SPECIFIC RULES:
 - ELIGIBLE CARDS: 
-    - 🚨 **TEMİZLEME KURALLARI (CRITICAL)**: Kart isimlerini çıkarırken, başına banka adını ekleme. Sadece "Anadolubank Kredi Kartı" veya "Anadolubank Troy Kart" gibi çıkar. "Anadolubank Anadolubank Kredi Kartı" gibi tekrarlardan KESİNLİKLE kaçın.
+    - 🚨 **TEMİZLEME KURALLARI (CRITICAL)**: Kart isimlerini çıkarırken, başına fazladan banka adını ekleme. Sadece "Anadolubank Kart" veya "Anadolubank Troy Kart" gibi çıkar. "Anadolubank Anadolubank Kart" gibi tekrarlardan KESİNLİKLE kaçın.
 """
 }
