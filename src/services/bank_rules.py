@@ -478,8 +478,7 @@ AHL PAY SPECIFIC RULES:
 - TERMINOLOGY: "Nakit İade" or "İndirim" or "Hediye".
 - ELIGIBLE CARDS (CRITICAL):
     - 🚨 **TEMİZLEME KURALLARI**:
-        - "AHL Card", "AHL Pay Card", "AHL Pay TROY", "AHL Pay Visa" gibi isimleri standartlaştır.
-        - "AHL Card" veya "AHL Pay Kart" ifadelerini olduğu gibi koru.
+        - Kampanyaya dahil olan kartları sadece "AHL Card" olarak standartlaştır. "AHL Pay AHL Card" gibi tekrarlardan KESİNLİKLE kaçın.
         - Yanlış veya uzun: "AHL Pay Elektronik Para A.Ş. AHL Card" -> **AHL Card**
         - Boş bırakma durumunda kampanya herkes için geçerliyse "AHL Card" yaz.
 - CUSTOMER TARGET (MÜŞTERİ KİTLESİ): 
@@ -488,6 +487,16 @@ AHL PAY SPECIFIC RULES:
     - Sayfa altındaki "AHL Pay Başvuru", "Hakkımızda", "Kurumsal Yönetim" gibi genel menü başlıklarını ASLA kampanyaya dahil etme.
 - PARTICIPATION (katilim_sekli):
     - Genellikle "AHL Pay Mobil Uygulaması" üzerinden işlem yapılır.
+""",
+    'emlak-katilim': """
+EMLAK KATILIM SPECIFIC RULES:
+- ELIGIBLE CARDS (CRITICAL):
+    - 🚨 **TEMİZLEME KURALLARI**:
+        - Sadece "Emlak Katılım Paraf" ve "Emlak Katılım Paraf Premium" olarak standartlaştır.
+        - "Emlak Katılım Emlak Katılım Paraf" gibi banka adını kart adının önüne ikinci kez KESİNLİKLE EKLEME!
+        - "Paraf" kelimesi Emlak Katılım kampanyalarında geçiyorsa, listeye mutlaka ekle.
+- 🚨 **FOOTER GÜRÜLTÜSÜ YASAĞI**:
+    - "Bize Ulaşın", "Hakkımızda", "Şubelerimiz" gibi sayfa altı linklerini kampanyaya dahil etme.
 """,
     'anadolubank': """
 ANADOLUBANK SPECIFIC RULES:
