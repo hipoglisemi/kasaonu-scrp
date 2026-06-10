@@ -69,6 +69,14 @@ def clean_campaign_text(raw_text: str, og_title: Optional[str] = None, title: Op
                 '.top-nav', '.left-menu', '.breadcrumb',
                 '.modal-default', '.icon-close',
                 '#documentBody > header', '#documentBody > footer',
+                # TOM Bank Hadi
+                '.hadi-footer', '[class*="Footer"]', '[class*="Header"]', '.links-container', '.navigation',
+                # AHL Pay (Bootstrap-based navbar + footer)
+                'header.navbar', 'header.navbar-expand-lg', '.navbar.fixed-top',
+                'footer.footer', 'footer.bg-secondary', '#navbarNav',
+                '.footer.bg-secondary', '.footer.py-5',
+                # Emlak Katılım
+                '.o-header', '.o-footer', '.c-breadcrumb', '.o-page__sidebar'
             ]
             for selector in bank_noise_selectors:
                 for element in soup.select(selector):
@@ -176,6 +184,28 @@ def clean_campaign_text(raw_text: str, og_title: Optional[str] = None, title: Op
         r"Vade Faiz Oranı Aylık Ödeme Toplam Geri Ödeme",
         r"Vadeli Hesap Hesaplama Aracı",
         r"İnternet Bankacılığı Ara",
+        # TOM Bank Hadi Boilerplate Footer
+        r"hadi keşfet", r"biz kimiz\?", r"hadi nedir\?", r"hadi kariyer",
+        r"ortaklık yapısı", r"kurumsal yönetim", r"hadi kazan", r"hadi gold",
+        r"hadi hesap", r"hadi vadeli \(katılma\) hesabı", r"mega günlük hesap",
+        r"altın biriktiren hesap", r"gümüş hesabı", r"hadi yatırım işlemleri",
+        r"yatırım hesap açılışı", r"hisse senedi ve halka arz işlemleri",
+        r"yatırım fonu işlemleri", r"hadi yatırım sözleşme ve fomları",
+        r"hadi kartlarım", r"hadi kredi kartı", r"hadi banka kartı",
+        r"hadi sanal kart", r"hadi black kredi kartı", r"hadi krediler",
+        r"veresiye kredi", r"taksitli kredi", r"mağazadan alışveriş kredisi",
+        r"tom bank black", r"hizmetlerimiz", r"hadi kredi kartı ayrıcalıkları",
+        r"tom bank özel bankacılık", r"özel bankacılık hizmetlerimiz",
+        r"özel bankacılık segmentlerimiz", r"özel bankacılık iletişim",
+        r"önerilen aramalar", r"hadi fırsatları nelerdir\?",
+        r"hadi’de nasıl hesap oluşturulur\?", r"ücretler ve limitler için tıklayınız\.",
+        # AHL Pay Boilerplate Footer
+        r"ahl pay başvuru", r"temsilciliklerimiz", r"logolarımız", r"ücretler ve limitler - bireysel",
+        r"ücretler - kurumsal", r"yasal bilgiler", r"sözleşmeler", r"formlar", r"sertifikalar",
+        r"sıkça sorulan sorular", r"benimfaturam", r"fiziki altın & gümüş", r"kıymetli maden",
+        r"para gönder", r"para yatır", r"para iste", r"fatura öde", r"oyun & dijital kod",
+        r"bağış", r"kurumsal kart & hesap", r"foody card", r"androidpos", r"altınpos",
+        r"ceppos", r"sanal pos", r"yazar kasa pos", r"finansal özgürlüğünü şimdi keşfet\!",
         r"Bizi Takip Edin Sosyal Medya",
         r"Tüm Hakları Saklıdır",
         r"Hepsiburada Alışveriş Kredisi",

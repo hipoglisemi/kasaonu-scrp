@@ -59,6 +59,15 @@ try:
     from .on_digital import ONDigitalScraper # type: ignore # pyre-ignore[21]
 except ImportError: ONDigitalScraper = None
 
+try:
+    from .ahlpay import AhlpayScraper # type: ignore # pyre-ignore[21]
+except ImportError: AhlpayScraper = None
+
+
+try:
+    from .emlakkatilim import EmlakKatilimScraper # type: ignore # pyre-ignore[21]
+except ImportError: EmlakKatilimScraper = None
+
 
 __all__ = [
     'GarantiBonusScraper',
@@ -71,9 +80,11 @@ __all__ = [
     'EnparaScraper',
     'TurkTelekomScraper',
     'OpetScraper',
-    "ZiraatScraper",
-    "PetrolOfisiScraper",
-    "ShellScraper",
-    "TotalEnergiesScraper",
-    "ONDigitalScraper"
+    'ZiraatScraper',
+    'PetrolOfisiScraper',
+    'ShellScraper',
+    'TotalEnergiesScraper',
+    'ONDigitalScraper',
+    'AhlpayScraper',
+    'EmlakKatilimScraper'
 ]

@@ -410,12 +410,16 @@ TÜRK TELEKOM SPECIFIC RULES:
 ZİRAAT KATILIM SPECIFIC RULES:
 - TERMINOLOGY: The currency used is generally "Katılım Bankkart Lira" or direct TL discounts.
 - ELIGIBLE CARDS (CRITICAL):
-    - 🚨 **TEMİZLEME KURALLARI**: 
-        - "Ziraat Katılım Bankkart" ifadelerini veya metinde tek başına geçen "Bankkart" kelimesini düz "Bankkart" olarak DEĞİL, **Ziraat Katılım Bankkart** olarak yaz.
-        - Özel segmentleri KORU ve TEMİZLE: "Ziraat Katılım Bankkart (Gold)" -> **Ziraat Katılım Bankkart Gold**, "Ziraat Katılım Bankkart (Platinum)" -> **Ziraat Katılım Bankkart Platinum**, "Ziraat Katılım Bankkart (Klasik)" -> **Ziraat Katılım Bankkart Klasik**, "Ziraat Katılım Bankkart (Ücretsiz)" -> **Ziraat Katılım Bankkart Ücretsiz**.
-        - Ticari kartlar için: "Ziraat Katılım Bankkart Ticari" -> **Ziraat Katılım Bankkart Ticari**.
-        - Jenerik ifadeler: "Ziraat Katılım Bireysel Bankkart kredi kartı" -> **Ziraat Katılım Bireysel Bankkart**.
+    - 🚨 **TEMİZLEME KURALLARI (BANKA İSMİ TEKRARI YASAĞI - ÇOK ÖNEMLİ)**: 
+        - Ziraat Katılım metinlerinde geçen uzun kart isimlerini **BİREBİR KOPYALAMA**. Kesinlikle temizleyerek yaz.
+        - Kart isimlerinin başında yer alan "Ziraat Katılım" ifadesini SİL.
+        - "Ziraat Katılım Bireysel Bankkart kredi kartı" yazıyorsa -> **Bireysel Katılım Bankkart** yaz.
+        - "Ziraat Katılım Bankkart (Gold)" -> **Katılım Bankkart Gold** yaz.
+        - "Ziraat Katılım Bankkart (Platinum)" -> **Katılım Bankkart Platinum** yaz.
+        - "Ziraat Katılım Bankkart Ticari" -> **Katılım Bankkart Ticari** yaz.
+        - Metinde sadece "Bankkart" geçiyorsa -> **Katılım Bankkart** yaz.
         - "Ek kartlar" ibaresini aynen koru.
+    - 🚨 **BOŞ BIRAKMA YASAĞI**: Gece taramalarında bazen geçerli kart kısmı eksik kalıyor. Eğer metinde doğrudan bir kart adı geçmiyorsa veya emin olamadıysan, `cards` listesini ASLA BOŞ BIRAKMA. Kampanya genel ise varsayılan olarak en azından "Katılım Bankkart" yaz.
 - 🚨 **FOOTER GÜRÜLTÜSÜ YASAĞI (ULTRA CRITICAL)**:
     - Metnin sonunda yer alan "Kıymetli Madenler Sorumlu Tedarik Zinciri", "Sürdürülebilir Finans Çerçevemiz", "Zamanaşımına Uğrayacak Olan Hesaplar", "SPK Duyuruları", "CİMERe Başvuru", "Satılık Menkuller" gibi banka kurumsal footer linklerine ait metinleri ASLA dikkate alma. Kampanya koşulları bu metinlerden önce biter.
 - PARTICIPATION (katilim_sekli):
@@ -425,11 +429,14 @@ ZİRAAT KATILIM SPECIFIC RULES:
 ZİRAAT DİNAMİK SPECIFIC RULES:
 - TERMINOLOGY: The currency used is "Bankkart Lira" or direct TL discounts.
 - ELIGIBLE CARDS (CRITICAL):
-    - 🚨 **TEMİZLEME KURALLARI**: 
-        - 🚨 **MÜŞTERİ GRUBU KURALI**: Eğer kampanya koşullarında "kampanyadan yalnızca Ziraat Dinamik Mobil üzerinden..." gibi bir uygulama şartı geçiyorsa ve geçerli kartlar olarak metinde hiçbir kart grubu veya segment belirtilmemişse, `cards` listesine sadece **Ziraat Dinamik Müşterileri** yaz. ANCAK metinde açıkça "bireysel kartlar", "ticari kartlar", "dinamik kart" vb. ifadeler GEÇİYORSA, bunları ASLA "Ziraat Dinamik Müşterileri" olarak gruplama; metinde yazdığı gibi aynen al.
+    - 🚨 **TEMİZLEME KURALLARI (BANKA İSMİ TEKRARI YASAĞI - ÇOK ÖNEMLİ)**: 
+        - Ziraat Dinamik metinlerinde geçen uzun kart isimlerini **BİREBİR KOPYALAMA**. Kesinlikle temizleyerek yaz.
+        - Kart isimlerinin başında yer alan "Ziraat Dinamik" veya "Ziraat" ifadesini SİL.
+        - 🚨 **MÜŞTERİ GRUBU KURALI**: Eğer kampanya koşullarında "kampanyadan yalnızca Ziraat Dinamik Mobil üzerinden..." gibi bir uygulama şartı geçiyorsa ve geçerli kartlar olarak metinde hiçbir kart grubu veya segment belirtilmemişse, `cards` listesine sadece **Ziraat Dinamik Müşterileri** yaz. ANCAK metinde açıkça "bireysel kartlar", "ticari kartlar", "dinamik kart" vb. ifadeler GEÇİYORSA, bunları ASLA "Ziraat Dinamik Müşterileri" olarak gruplama; "Bireysel Dinamik Bankkart", "Ticari Dinamik Bankkart" gibi sadeleştir.
         - 🚨 **BANKKART KURALI**: Eğer geçerli kartlar arasında "Bankkart" ibaresi geçiyorsa, bunu kesinlikle düz "Bankkart" olarak DEĞİL, **Dinamik Bankkart** olarak yaz.
         - "Dijital Kredi Kartı" -> **Dijital Kredi Kartı** olarak koru.
         - "Ek kartlar", "Sanal kartlar" ibarelerini aynen koru.
+    - 🚨 **BOŞ BIRAKMA YASAĞI**: Eğer metinde doğrudan bir kart adı geçmiyorsa veya emin olamadıysan, `cards` listesini ASLA BOŞ BIRAKMA. Varsayılan olarak en azından "Dinamik Bankkart" veya "Ziraat Dinamik Müşterileri" yaz.
 - 🚨 **FOOTER GÜRÜLTÜSÜ YASAĞI (ULTRA CRITICAL)**:
     - Ziraat Katılım ile aynı altyapıyı kullandığı için metnin sonundaki "Kıymetli Madenler Sorumlu Tedarik Zinciri", "SPK Duyuruları", "CİMERe Başvuru", "Satılık Menkuller" gibi gürültüleri tamamen yok say ve ASLA kampanya koşullarına ekleme.
 - PARTICIPATION (katilim_sekli):
@@ -449,5 +456,33 @@ VAKIF KATILIM (VKART) SPECIFIC RULES:
     - Vakıf Katılım kampanya metinlerinin sonunda her zaman "Tümünü Göster", "İlginizi Çekebilecek Kampanyalar", "Çerezleri Özelleştirin", "Reddet", "Kabul Ediyorum", "Tüm Kampanyalar" gibi web sitesi bileşenleri yer alır. Bu metinler kampanya detaylarına AİT DEĞİLDİR ve koşullara (conditions) veya açıklamaya (description) ASLA dahil edilmemelidir.
 - PARTICIPATION (katilim_sekli):
     - Genellikle "Vakıf Katılım Mobil Şube" veya internet şubesi kullanılır.
+""",
+    'tom bank': """
+TOM BANK SPECIFIC RULES:
+- TERMINOLOGY: "Hadi Puan" or "Nakit İade". TOM Bank is a digital wallet/bank application.
+- ELIGIBLE CARDS (CRITICAL):
+    - 🚨 **TEMİZLEME KURALLARI**: 
+        - "Hadi Gold", "Hadi Kredi Kartı", "Hadi Banka Kartı", "Hadi Sanal Kart", "Hadi Black Kredi Kartı" gibi isimleri standartlaştır.
+        - "Hadi Black", "Hadi Gold" segmentleri veya "Hadi Kart" ifadelerini olduğu gibi koru.
+        - Yanlış veya uzun: "TOM Bank A.Ş. Hadi Kredi Kartı" -> **Hadi Kredi Kartı**
+        - Boş bırakma durumunda kampanya herkes için geçerliyse "Hadi Kart" yaz.
+- 🚨 **FOOTER GÜRÜLTÜSÜ YASAĞI (ULTRA CRITICAL)**:
+    - Sayfa altındaki "Hadi Keşfet", "Biz Kimiz", "Hadi Kariyer", "Ortaklık Yapısı", "Hadi Kazan", "Hadi Hesap", "Hadi Yatırım İşlemleri", "Hisse Senedi ve Halka Arz", "Yatırım Fonu", "Hadi Kartlarım", "Hadi Krediler", "Veresiye Kredi" gibi genel menü başlıklarını ve açıklamalarını ASLA kampanyaya dahil etme.
+- PARTICIPATION (katilim_sekli):
+    - Genellikle "Hadi Uygulaması" üzerinden işlem yapılır.
+""",
+    'ahl pay': """
+AHL PAY SPECIFIC RULES:
+- TERMINOLOGY: "Nakit İade" or "İndirim" or "Hediye".
+- ELIGIBLE CARDS (CRITICAL):
+    - 🚨 **TEMİZLEME KURALLARI**:
+        - "AHL Card", "AHL Pay Card", "AHL Pay TROY", "AHL Pay Visa" gibi isimleri standartlaştır.
+        - "AHL Card" veya "AHL Pay Kart" ifadelerini olduğu gibi koru.
+        - Yanlış veya uzun: "AHL Pay Elektronik Para A.Ş. AHL Card" -> **AHL Card**
+        - Boş bırakma durumunda kampanya herkes için geçerliyse "AHL Card" yaz.
+- 🚨 **FOOTER GÜRÜLTÜSÜ YASAĞI (ULTRA CRITICAL)**:
+    - Sayfa altındaki "AHL Pay Başvuru", "Hakkımızda", "Kurumsal Yönetim", "Temsilciliklerimiz", "Logolarımız", "Ücretler ve Limitler", "Kariyer", "Yasal Bilgiler", "Sözleşmeler", "Formlar", "Sertifikalar", "Sıkça Sorulan Sorular", "İletişim" gibi genel menü başlıklarını ve açıklamalarını ASLA kampanyaya dahil etme.
+- PARTICIPATION (katilim_sekli):
+    - Genellikle "AHL Pay Mobil Uygulaması" üzerinden işlem yapılır.
 """
 }

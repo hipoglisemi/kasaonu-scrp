@@ -15,6 +15,7 @@ if project_root not in sys.path:
 
 from src.database import get_db_session
 from src.models import Campaign
+from src.services.text_cleaner import clean_campaign_text
 from dotenv import load_dotenv
 load_dotenv('.env')
 
@@ -24,14 +25,102 @@ import re
 from google.genai import types # type: ignore
 from src.utils.gemini_client import generate_with_rotation
 
-def clean_html_to_text(html: str) -> str:
-    """Removes script, style, nav, and other HTML tags to produce clean text."""
+def clean_html_to_text(html: str, title: str = "") -> str:
+    """
+    Properly cleans HTML using the centralized text_cleaner pipeline.
+    Includes bank-specific noise removal, footer/nav stripping, boilerplate chopping.
+    This replaces the old naive regex-based stripper.
+    """
     if not html:
         return ""
-    text = re.sub(r'<(script|style|head|nav|footer)[^>]*>([\s\S]*?)<\/\1>', ' ', html)
-    text = re.sub(r'<[^>]+>', ' ', text)
-    text = re.sub(r'\s+', ' ', text).strip()
-    return text[:8000] # Limit to 8000 characters to keep tokens tiny
+    return clean_campaign_text(html, title=title or None)
+
+# Türkçe ay isimleri (büyük harf başlangıç)
+_TR_MONTHS = {
+    1: "Ocak", 2: "Şubat", 3: "Mart", 4: "Nisan",
+    5: "Mayıs", 6: "Haziran", 7: "Temmuz", 8: "Ağustos",
+    9: "Eylül", 10: "Ekim", 11: "Kasım", 12: "Aralık"
+}
+_TR_MONTHS_LOWER = {v.lower(): k for k, v in _TR_MONTHS.items()}
+# Türkçe ay + iyelik ekleri (Mayıs'a, Haziran'a, Temmuz'a vb.)
+_TR_MONTH_VARIANTS = {
+    "ocak": ["ocak", "ocakta", "ocağa", "ocağın"],
+    "şubat": ["şubat", "şubatta", "şubata", "şubatın"],
+    "mart": ["mart", "martta", "marta", "martın"],
+    "nisan": ["nisan", "nisanda", "nisana", "nisanın", "nisanın"],
+    "mayıs": ["mayıs", "mayısın", "mayısa", "mayıs'a", "mayıs'ın"],
+    "haziran": ["haziran", "haziranın", "hazirana", "haziran'a", "haziran'ın"],
+    "temmuz": ["temmuz", "temmuzun", "temmuza", "temmuz'a", "temmuz'un"],
+    "ağustos": ["ağustos", "ağustosun", "ağustosa", "ağustos'a"],
+    "eylül": ["eylül", "eylülün", "eylüle", "eylül'e", "eylül'ün"],
+    "ekim": ["ekim", "ekimin", "ekime", "ekim'e"],
+    "kasım": ["kasım", "kasımın", "kasıma", "kasım'a"],
+    "aralık": ["aralık", "aralığın", "aralığa", "aralık'a"],
+}
+
+def update_dates_in_text(text: str, old_end_date, new_end_date) -> str:
+    """
+    Conditions gibi metinlerdeki eski bitiş tarihini yeni tarihle değiştirir.
+    Desteklenen formatlar:
+      - "8 Haziran 2026"  → "9 Temmuz 2026"
+      - "08.06.2026"      → "09.07.2026"
+      - "2026-06-08"      → "2026-07-09"
+      - "Haziran 2026'ya kadar" → "Temmuz 2026'ya kadar"
+    """
+    if not text or not old_end_date or not new_end_date:
+        return text
+
+    old_day   = old_end_date.day
+    old_month = old_end_date.month
+    old_year  = old_end_date.year
+    new_day   = new_end_date.day
+    new_month = new_end_date.month
+    new_year  = new_end_date.year
+
+    old_month_tr = _TR_MONTHS[old_month]
+    new_month_tr = _TR_MONTHS[new_month]
+
+    result = text
+
+    # 1. ISO format: 2026-06-08 → 2026-07-09
+    result = result.replace(
+        f"{old_year}-{old_month:02d}-{old_day:02d}",
+        f"{new_year}-{new_month:02d}-{new_day:02d}"
+    )
+
+    # 2. Noktalı format: 08.06.2026 → 09.07.2026
+    result = result.replace(
+        f"{old_day:02d}.{old_month:02d}.{old_year}",
+        f"{new_day:02d}.{new_month:02d}.{new_year}"
+    )
+    result = result.replace(
+        f"{old_day}.{old_month}.{old_year}",
+        f"{new_day}.{new_month}.{new_year}"
+    )
+
+    # 3. Türkçe format: "8 Haziran 2026" veya "8 Haziran" → "9 Temmuz 2026" / "9 Temmuz"
+    if old_month_tr != new_month_tr or old_day != new_day or old_year != new_year:
+        # Tam tarih: gün + ay + yıl
+        result = re.sub(
+            rf'\b{old_day}\s+{old_month_tr}\s+{old_year}\b',
+            f"{new_day} {new_month_tr} {new_year}",
+            result, flags=re.IGNORECASE
+        )
+        # Sadece gün + ay (yılsız)
+        result = re.sub(
+            rf'\b{old_day}\s+{old_month_tr}\b(?!\s+\d{{4}})',
+            f"{new_day} {new_month_tr}",
+            result, flags=re.IGNORECASE
+        )
+        # Sadece ay + yıl (günsüz, ör: "Haziran 2026'ya kadar")
+        if old_month != new_month:
+            result = re.sub(
+                rf'\b{old_month_tr}\b',
+                new_month_tr,
+                result, flags=re.IGNORECASE
+            )
+
+    return result
 
 def extract_dates_via_ai(title: str, clean_text: str, key_index: int = 1):
     """
@@ -170,7 +259,11 @@ def proactive_expiry_audit(max_audits=2000):
         try:
             resp = session.get(c["url"], allow_redirects=True, timeout=15, verify=False)
             if resp.status_code == 200:
-                return {**c, "html": resp.text}
+                final_url = resp.url  # Redirect sonrası gerçek URL
+                url_changed = final_url.rstrip("/") != c["url"].rstrip("/")
+                if url_changed:
+                    print(f"   🔗 [URL Redirect] #{c['id']} | {c['url']} → {final_url}")
+                return {**c, "html": resp.text, "final_url": final_url, "url_changed": url_changed}
         except Exception:
             pass
         return None
@@ -200,7 +293,8 @@ def proactive_expiry_audit(max_audits=2000):
         try:
             time.sleep(5.0)
 
-            clean_text = clean_html_to_text(c["html"])
+            # ✅ Düzgün temizlenmiş metin: text_cleaner pipeline'ından geçir
+            clean_text = clean_html_to_text(c["html"], title=c.get("title", ""))
             ai_dates = extract_dates_via_ai(c["title"], clean_text, key_index=key_index)
 
             ai_start_date_str = ai_dates.get("start_date")
@@ -236,13 +330,74 @@ def proactive_expiry_audit(max_audits=2000):
                     if db_camp:
                         db_camp.start_date = latest_start_date
                         db_camp.end_date = latest_date
-                        db_camp.clean_text = clean_text
+                        # ✅ Düzgün temizlenmiş metni kaydet (eski ham metin yerine)
+                        if clean_text and len(clean_text) > 100:
+                            db_camp.clean_text = clean_text
                         db_camp.date_extended = True
                         db_camp.is_approved = False
                         db_camp.updated_at = datetime.now()
+
+                        # 📅 Conditions ve description metnindeki eski tarihleri güncelle
+                        if db_camp.conditions:
+                            updated_conditions = update_dates_in_text(
+                                db_camp.conditions, current_end, latest_date
+                            )
+                            if updated_conditions != db_camp.conditions:
+                                print(f"   📅 [Conditions Tarihi Güncellendi] #{c['id']}")
+                                db_camp.conditions = updated_conditions
+                        if db_camp.description:
+                            updated_description = update_dates_in_text(
+                                db_camp.description, current_end, latest_date
+                            )
+                            if updated_description != db_camp.description:
+                                print(f"   📅 [Description Tarihi Güncellendi] #{c['id']}")
+                                db_camp.description = updated_description
+
+                        # 🔗 URL Redirect tespiti: tracking_url ve slug güncelle
+                        final_url = c.get("final_url")
+                        if final_url and c.get("url_changed"):
+                            print(f"   🔗 [URL Güncelleme] #{c['id']} | tracking_url → {final_url}")
+                            db_camp.tracking_url = final_url
+                            # Slug'ı yeni URL'den üret
+                            try:
+                                new_slug_part = final_url.rstrip("/").split("/")[-1]
+                                if new_slug_part and len(new_slug_part) > 3:
+                                    # Mevcut slug'ın sadece son segmentini güncelle
+                                    old_slug = db_camp.slug or ""
+                                    slug_parts = old_slug.rsplit("/", 1)
+                                    if len(slug_parts) == 2:
+                                        db_camp.slug = slug_parts[0] + "/" + new_slug_part
+                                    else:
+                                        db_camp.slug = new_slug_part
+                                    print(f"   🔗 [Slug Güncelleme] #{c['id']} | slug → {db_camp.slug}")
+                            except Exception as slug_err:
+                                print(f"   ⚠️ Slug güncelleme hatası: {slug_err}")
+
                         db.commit()
                 return True
             else:
+                # Tarih uzamadı ama URL değiştiyse yine de güncelle
+                final_url = c.get("final_url")
+                if final_url and c.get("url_changed"):
+                    print(f"   🔗 [URL Redirect - Tarihsiz] #{c['id']} | tracking_url → {final_url}")
+                    with get_db_session() as db:
+                        db_camp = db.query(Campaign).filter(Campaign.id == c["id"]).first()
+                        if db_camp:
+                            db_camp.tracking_url = final_url
+                            try:
+                                new_slug_part = final_url.rstrip("/").split("/")[-1]
+                                if new_slug_part and len(new_slug_part) > 3:
+                                    old_slug = db_camp.slug or ""
+                                    slug_parts = old_slug.rsplit("/", 1)
+                                    if len(slug_parts) == 2:
+                                        db_camp.slug = slug_parts[0] + "/" + new_slug_part
+                                    else:
+                                        db_camp.slug = new_slug_part
+                            except Exception:
+                                pass
+                            db_camp.updated_at = datetime.now()
+                            db.commit()
+
                 print(f"   ℹ️ Not extended | #{c['id']} | AI date: {latest_date} (current: {current_end})")
                 return False
 

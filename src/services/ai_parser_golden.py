@@ -1153,6 +1153,44 @@ ANALİZ EDİLECEK METİN:
             "tlcard": "TLcard", "tl card": "TLcard"
         }
         card_clean = card.strip()
+        
+        # 🏦 ZİRAAT KATILIM ÖZEL TEMİZLİK (AI'ın gereksiz tekrarını engellemek için)
+        card_lower = card_clean.lower()
+        if "katılım" in card_lower and "bankkart" in card_lower:
+            # Baştaki veya aradaki tüm "Ziraat Katılım"ları sil
+            card_clean = re.sub(r"(?i)\bziraat\s+kat[ıi]l[ıi]m\b", "", card_clean).strip()
+            # Kredi kartı gibi gereksiz uzatmaları sil
+            card_clean = re.sub(r"(?i)\bkredi kart[ıi]\b", "", card_clean).strip()
+            
+            # Yeniden oluştur
+            if "bireysel" in card_lower:
+                card_clean = "Bireysel Katılım Bankkart"
+            elif "ticari" in card_lower:
+                card_clean = "Katılım Bankkart Ticari"
+            elif "gold" in card_lower:
+                card_clean = "Katılım Bankkart Gold"
+            elif "platinum" in card_lower:
+                card_clean = "Katılım Bankkart Platinum"
+            elif "genç" in card_lower or "genc" in card_lower:
+                card_clean = "Katılım Bankkart Genç"
+            elif "ücretsiz" in card_lower or "ucretsiz" in card_lower:
+                card_clean = "Katılım Bankkart Ücretsiz"
+            elif card_clean.lower() == "bankkart":
+                card_clean = "Katılım Bankkart"
+        
+        # 🏦 ZİRAAT DİNAMİK ÖZEL TEMİZLİK
+        elif "dinamik" in card_lower and "bankkart" in card_lower:
+            card_clean = re.sub(r"(?i)\bziraat\s+dinamik\b", "", card_clean).strip()
+            card_clean = re.sub(r"(?i)\bziraat\b", "", card_clean).strip()
+            card_clean = re.sub(r"(?i)\bkredi kart[ıi]\b", "", card_clean).strip()
+            
+            if "bireysel" in card_lower:
+                card_clean = "Bireysel Dinamik Bankkart"
+            elif "ticari" in card_lower:
+                card_clean = "Ticari Dinamik Bankkart"
+            else:
+                card_clean = "Dinamik Bankkart"
+        
         for lower_brand, proper_brand in brands_to_title.items():
             card_clean = re.sub(rf"(?i)\b{re.escape(lower_brand)}\b", proper_brand, card_clean)
         return card_clean[0].upper() + card_clean[1:] if card_clean else ""
@@ -1293,6 +1331,7 @@ def parse_api_campaign(
         "dunyakatilim":  ['.header', '.footer', '.similar-campaigns', '.related-posts'],
         "vodafone":      ['.header', '.footer', '.sidebar', '.related-campaigns', '.bottom-bar'],
         "şekerbank":     ['#breadcrumb', '.footer', '.header', '.campaign-list'],
+        "tom bank":      ['.header', '.footer', '.navigation', '.links-container', '[class*="Header"]', '[class*="Footer"]'],
     }
     _bank_key = (bank_name or "").lower()
     for _key, _selectors in _bank_noise_map.items():
@@ -1339,6 +1378,7 @@ def parse_api_campaign(
         "dunyakatilim":  ['.news-campaign-content', '.bt', '.richtext'],
         "vodafone":      ['.campaign-detail', '.offer-detail', '.terms-conditions'],
         "şekerbank":     ['#icerik-kutusu', '.aboutbox_about_box_container__AIbwl', '.campaign-detail'],
+        "tom bank":      ['.campaign-detail', '.content', 'article'],
     }
 
     # Genel fallback selector listesi (banka eşleşmezse veya boş çıkarsa)

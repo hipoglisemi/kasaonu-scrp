@@ -138,25 +138,46 @@ def _needs_selenium(raw_html: str, url: str) -> bool:
     """Hızlı içerik kalite kontrolü — sayfanın JS render gerektirip gerektirmediğini tespit eder."""
     if not raw_html or len(raw_html) < 1500:
         return True  # Neredeyse hiç içerik yok
-    
+
+    # 🔒 Bilinen captcha/oturum formu döndüren siteler — her zaman Selenium
+    force_selenium_domains = [
+        "ziraatkatilim.com.tr",
+        "bankkart.com.tr",
+        "ziraatbank.com.tr",
+        "dunyakatilim.com.tr",
+        "turkiyefinans.com.tr",
+    ]
+    if any(d in url for d in force_selenium_domains):
+        return True
+
     soup = BeautifulSoup(raw_html, 'html.parser')
     visible_text = soup.get_text(separator=' ', strip=True)
-    
+    visible_lower = visible_text.lower()
+
+    # 🚨 Captcha / güvenlik kodu formu tespiti
+    captcha_signals = [
+        "güvenlik kodu", "security code", "enter the characters",
+        "yenile güvenlik", "kvkk ve kampanya koşullarını okudum",
+        "cep telefon numaranız", "kartınızın son 6 hanesi",
+    ]
+    if sum(1 for s in captcha_signals if s in visible_lower) >= 2:
+        return True  # Captcha/form sayfası — Selenium ile gerçek içeriği al
+
     # Kampanya anahtar kelimeleri bulunamıyorsa sayfa render olmamıştır
     campaign_keywords = ["kampanya", "indirim", "kazan", "puan", "iade", "tl", "hediye", "fırsat"]
-    if len(visible_text) < 400 or not any(k in visible_text.lower() for k in campaign_keywords):
+    if len(visible_text) < 400 or not any(k in visible_lower for k in campaign_keywords):
         return True
-    
+
     # React/Next.js SPA sinyalleri — içerik boş root div veya __NEXT_DATA__ ile yükleniyorsa
     root_div = soup.find("div", id="root") or soup.find("div", id="__next")
     if root_div and len(root_div.get_text(strip=True)) < 100:
         return True
-    
+
     # Noscript içinde anlamlı içerik varsa → JS olmadan sayfa çalışmıyor
     noscript = soup.find("noscript")
     if noscript and len(noscript.get_text(strip=True)) > 50:
         return True
-    
+
     return False
 
 
@@ -226,10 +247,11 @@ def _run_selenium(url: str) -> str:
         chrome_semaphore.release()
 
 
-def fetch_html(url: str) -> str:
+def fetch_html(url: str, title: str = "") -> str:
     """
     Adaptif HTML çekici — önce hızlı yöntemi dener, yetmezse otomatik yükseltir.
     Sıralama: requests → (JS tespiti) → Selenium → Trafilatura → hata
+    title: Kampanya başlığı — Header Sniper için clean_campaign_text'e geçirilir.
     """
     raw_html = ""
     is_trafilatura_text = False
@@ -336,20 +358,58 @@ def fetch_html(url: str) -> str:
                     left_text
                 )
                 print(f"   🏦 Denizbank: Extracted sidebar ({len(right_text)} chars) + left ({len(left_text)} chars)")
+
+        # 🏦 ZİRAAT & ZİRAAT KATILIM SPECIAL: Form/modal gürültüsünü atla, doğrudan kampanya içerik alanını çek
+        if any(domain in url for domain in ["ziraatkatilim.com.tr", "bankkart.com.tr", "ziraatbank.com.tr"]):
+            # Form ve webform elementlerini sil
+            for form_el in soup.select("form, .webform-submission-kart-kampanyalari-kart-no-add-form, .webform-submission-kart-kampanyalari-kart-no-form, .body-content-form, .eu-cookie-compliance-content"):
+                try: form_el.decompose()
+                except: pass
+            # Kampanya içerik alanını bul — gerçek Ziraat CSS class'ları
+            ziraat_selectors = [
+                ".node-bankkart-kampanyalar",  # En spesifik — Ziraat kampanya node'u
+                ".main-content",
+                ".layout-content",
+                ".bankkart-kampanyalar-wrapper",
+                ".item-content",
+                ".text-main",
+            ]
+            ziraat_content = []
+            for sel in ziraat_selectors:
+                for el in soup.select(sel):
+                    t = el.get_text(separator='\n', strip=True)
+                    if len(t) > 200 and any(k in t.lower() for k in ["kampanya", "bankkart", "lira", "tl", "haziran", "temmuz", "tarih", "alışveriş"]):
+                        ziraat_content.append(t)
+                        break
+                if ziraat_content:
+                    break
+            if ziraat_content:
+                text = "\n\n".join(ziraat_content)
+                print(f"   🏦 Ziraat Katılım: Extracted campaign content ({len(text)} chars)")
+            else:
+                # Fallback: sayfanın tüm metnini al ama formu temizledikten sonra
+                text = soup.get_text(separator='\n', strip=True)
+                print(f"   🏦 Ziraat: Using full page text after form removal ({len(text)} chars)")
     else:
         text = raw_html
 
-    print(f"🔍 DEBUG RAW EXTRACTED TEXT: {text}")
+    print(f"🔍 DEBUG RAW EXTRACTED TEXT (first 500): {text[:500]}")
 
-    text = clean_campaign_text(text)
+    # 🔒 Captcha/form siteleri için Header Sniper'ı devre dışı bırak.
+    # Bu siteler form metnini başa yerleştirdiği için başlık erken bulunuyor
+    # ve gerçek kampanya içeriği yanlışlıkla kesiliyor.
+    _sniper_domains = ["ziraatkatilim.com.tr", "bankkart.com.tr", "ziraatbank.com.tr", "dunyakatilim.com.tr", "turkiyefinans.com.tr"]
+    _skip_title_sniper = any(d in url for d in _sniper_domains)
+    text = clean_campaign_text(text, title=None if _skip_title_sniper else (title or None))
 
-    # Jenerik içerik koruyucu
+    # Jenerik içerik koruyucu — sadece toplu cron modunda aktif (campaign_id modunda çalıştırma, kullanıcı Force bastı)
+    _is_single_campaign = bool(title)  # title sadece campaign_id modunda geçirilir
     generic_keywords = ["çerez", "kişisel veriler", "aydınlatma metni", "hakkımızda", "içeriğe git", "menüye git", "gizlilik politikası"]
     campaign_keywords = ["kampanya", "indirim", "fırsat", "çekiliş", "kazan", "hediye", "puan", "iade", "tl", "bonus"]
     text_lower = text.lower()
     generic_count = sum(1 for k in generic_keywords if k in text_lower)
     campaign_count = sum(1 for k in campaign_keywords if k in text_lower)
-    if generic_count > 5 and campaign_count < 2 and len(text) < 3000:
+    if not _is_single_campaign and generic_count > 5 and campaign_count < 2 and len(text) < 3000:
         print(f"   🛡️ Generic Content Guard Triggered! (Generic: {generic_count}, Campaign: {campaign_count}). Rejecting.")
         return "", "GENERIC_CONTENT_REJECTED"
 
@@ -852,8 +912,8 @@ def run_autofix(limit: int = 250, campaign_id: Optional[int] = None, force_all: 
                         except Exception as _e:
                             print(f"   ⚠️ Raw title fetch failed: {_e}")
                         
-                        # Step 2: Full HTML Fetch
-                        html_text, live_status = fetch_html(c_tracking_url)
+                        # Step 2: Full HTML Fetch — başlığı da geç (Header Sniper için)
+                        html_text, live_status = fetch_html(c_tracking_url, title=c_title)
                         
                         # 🛡️ FIREWALL / BLOCK / SSL ERROR DETECTION
                         is_blocked = False
@@ -1147,11 +1207,13 @@ def run_autofix(limit: int = 250, campaign_id: Optional[int] = None, force_all: 
                         updated = True
 
                     # --- Clean Text Update ---
-                    # Update if missing, too short, or has mojibake
-                    if not c.clean_text or len(c.clean_text.strip()) < 50 or mojibake_pattern.search(c.clean_text or ""):
-                        if text_to_parse:
-                            c.clean_text = text_to_parse
-                            updated = True
+                    # Force modunda veya metin kötüyse her zaman güncelle
+                    _clean_text_bad = not c.clean_text or len(c.clean_text.strip()) < 50 or mojibake_pattern.search(c.clean_text or "")
+                    _force_clean_update = campaign_id or force_campaign  # Force tamir = metni de yenile
+                    if (_clean_text_bad or _force_clean_update) and text_to_parse and len(text_to_parse) > 100:
+                        c.clean_text = text_to_parse
+                        updated = True
+                        print(f"   ✨ Clean Text güncellendi ({len(text_to_parse)} chars)")
 
                     # --- Sektör tamiri ---
                     ai_sector_raw = ai_data.get("sector", "diger")
@@ -1449,6 +1511,14 @@ def run_autofix(limit: int = 250, campaign_id: Optional[int] = None, force_all: 
                     # ALWAYS mark as auto_corrected so we don't try again forever (even if Gemini failed to find missing data)
                     c.auto_corrected = True
                     c.repair_count = (c.repair_count or 0) + 1
+
+                    # 🔓 Force tamir edildiğinde date_extended bayrağını sıfırla.
+                    # ProActive bu bayrağı set etmişti ama kullanıcı Force bastıysa tam parse yapıldı.
+                    # Bayrağı kaldırmazsak bir sonraki cron bu kampanyayı yine atlayacak.
+                    if campaign_id or force_campaign:
+                        if c.date_extended:
+                            c.date_extended = False
+                            print(f"   🔓 [date_extended sıfırlandı] Force tamir tamamlandı, bayrak kaldırıldı.")
                     
                     # --- UI MODE JSON OUTPUT (FINAL STATE) ---
                     if ui_mode:
