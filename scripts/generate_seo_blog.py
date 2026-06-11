@@ -22,30 +22,61 @@ if not DB_URL:
 # ── Gemini modeli (3'lü key rotation kullanılır) ─────────────────────────────
 BLOG_MODEL = os.getenv("BLOG_MODEL", "gemini-3.5-flash")
 
-# ── Ücretsiz AI Görselleri (Pollinations AI) ──────────────────────────────
+# ── Unsplash Görselleri ──────────────────────────────────────────────────────
+import random
 import time
-import urllib.parse
+import requests
+
+UNSPLASH_ACCESS_KEY = os.getenv("UNSPLASH_ACCESS_KEY")
 
 def get_ai_image_url(title: str, bank: Optional[Any], sector: Optional[Any]) -> str:
     """
-    Pollinations.ai kullanarak %100 ücretsiz, blog başlığına uygun 
-    özel flat vector illüstrasyon üretir.
+    Unsplash API kullanarak blog başlığına ve sektörüne uygun görsel üretir.
+    Pollinations AI ücretli olduğu için Unsplash'e akıllı kelimelerle dönüldü.
     """
-    # Create an English prompt base from the title for better AI results
+    # Akıllı kelime seçimi
     clean_title = slugify(title).replace("-", " ")
+    keywords = "finance, credit card"
     
-    # Construct a strong English prompt for high quality illustrations
-    prompt = f"Modern flat vector illustration about {clean_title}, finance concept, credit card, banking, vibrant colors, dribbble style, corporate, minimalist, high quality, colorful"
-    
-    # URL encode the prompt
-    encoded_prompt = urllib.parse.quote(prompt)
-    
-    # Add a unique seed so we don't get cached duplicate images
-    seed = int(time.time() * 1000) % 100000
-    
-    # Pollinations AI URL (nologo=true removes watermarks)
-    url = f"https://image.pollinations.ai/prompt/{encoded_prompt}?width=1200&height=800&nologo=true&seed={seed}"
-    return url
+    if sector:
+        sector_name = sector[1].lower()
+        if "seyahat" in sector_name or "turizm" in sector_name:
+            keywords = "travel, holiday, flight"
+        elif "market" in sector_name or "gıda" in sector_name:
+            keywords = "supermarket, grocery, shopping"
+        elif "giyim" in sector_name or "kozmetik" in sector_name:
+            keywords = "fashion, shopping, boutique"
+        elif "akaryakıt" in sector_name or "otomotiv" in sector_name:
+            keywords = "car, driving, gas station"
+        elif "elektronik" in sector_name:
+            keywords = "technology, electronics, laptop"
+        else:
+            keywords = "shopping, lifestyle"
+    elif bank:
+        keywords = "corporate, banking, business, laptop"
+
+    if UNSPLASH_ACCESS_KEY:
+        for _ in range(3): # Maks 3 deneme
+            try:
+                res = requests.get(
+                    "https://api.unsplash.com/photos/random",
+                    params={
+                        "query": keywords,
+                        "orientation": "landscape",
+                        "client_id": UNSPLASH_ACCESS_KEY
+                    },
+                    timeout=5
+                )
+                if res.status_code == 200:
+                    return res.json()["urls"]["regular"]
+                elif res.status_code == 403:
+                    break
+            except Exception as e:
+                break
+            
+    # Fallback
+    sig = int(time.time() * 1000) + random.randint(1, 100000)
+    return f"https://loremflickr.com/1200/800/{keywords.split(',')[0].strip()}?lock={sig}"
 
 # ── Veritabanı yardımcıları ──────────────────────────────────────────────────
 
