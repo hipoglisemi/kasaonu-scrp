@@ -54,7 +54,7 @@ class TombankScraper:
             from playwright.sync_api import sync_playwright
             with sync_playwright() as p:
                 browser = p.chromium.launch(headless=True, args=["--no-sandbox", "--disable-setuid-sandbox"])
-                page = browser.new_page(user_agent="Mozilla/5.0")
+                page = browser.new_page(user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
                 page.goto(self.LIST_URL, timeout=45000, wait_until="domcontentloaded")
                 
                 # Click 'Daha fazla göster' to load all campaigns
