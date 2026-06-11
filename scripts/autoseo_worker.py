@@ -36,11 +36,11 @@ def generate_seo_content(name, type="bank"):
        - En güncel kampanyaları göstermek istediğin yere mutlaka [[GUNCEL_KAMPANYALAR]] etiketini koy.
        - Sabit sayfalara (Örn: /banka/axess veya /kategori/market) link verebilirsin.
     4. Bölümler: 
-       - **Hakkında**: {name} dünyasına giriş ve temel mantık.
-       - **Popüler Uygulamalar/Ürünler**: Öne çıkan özellikler.
-       - **Kampanya Türleri**: Genellikle hangi alanlarda indirim/puan verilir?
-       - **Kullanıcı İpuçları**: Tasarrufu maksimize etmek için öneriler.
-    5. Uzunluk: Her bölüm en az 75-100 kelime olmalı (Toplam 400+ kelime).
+       - **Hakkında**: {name} dünyasına çok kapsamlı bir giriş, tarihçe ve temel mantık.
+       - **Popüler Uygulamalar/Ürünler**: Öne çıkan özellikler, yenilikler ve teknolojik detaylar.
+       - **Kampanya Türleri**: Genellikle hangi alanlarda indirim/puan verilir, müşteriye nasıl avantaj sağlar?
+       - **Kullanıcı İpuçları**: Tasarrufu maksimize etmek için uzman önerileri ve stratejiler.
+    5. Uzunluk: ÇOK ÖNEMLİ! Her bölüm en az 150-200 kelime uzunluğunda, son derece detaylı, ansiklopedik ve bilgi açısından çok doyurucu olmalıdır. Kısa ve yüzeysel geçiştirmeler yapma. (Toplam en az 800+ kelime olmalı).
     6. Format: Paragraflar arasında çift satır boşluk bırak. Başlıkları kalın yap.
     
     SADECE metni döndür. Başka hiçbir şey yazma.
@@ -51,7 +51,7 @@ def generate_seo_content(name, type="bank"):
             prompt=prompt,
             model=MODEL,
             temperature=0.7,
-            max_output_tokens=2000
+            max_output_tokens=4000
         )
         return content.strip()
     except Exception as e:
