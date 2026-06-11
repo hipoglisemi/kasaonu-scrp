@@ -247,7 +247,7 @@ METİN:
     for attempt in range(max_retries):
         try:
             response = client.models.generate_content(
-                model="gemini-3-flash-preview",
+                model="gemma-4-31b-it",
                 contents=prompt,
                 config=types.GenerateContentConfig(
                     temperature=0.1,
