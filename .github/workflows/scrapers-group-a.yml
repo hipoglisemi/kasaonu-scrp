@@ -3,7 +3,8 @@ name: "🅰️ Scrapers – Grup A"
 # TSİ 03:00 → UTC 00:00
 on:
   schedule:
-    - cron: '17 22 * * *'   # TSİ 01:30 (UTC 22:30)
+    - cron: '17 22 2-31 * *'
+    - cron: '0 8 1 * *'   # TSİ 01:30 (UTC 22:30)
   workflow_dispatch: {}
 
 jobs:

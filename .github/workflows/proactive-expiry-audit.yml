@@ -7,6 +7,8 @@ on:
   schedule:
     # TSİ 00:30 (UTC 21:30) — Günün ilk işi
     - cron: '23 21 * * *'
+    # TSİ 09:00 (UTC 06:00) — Her ayın 1'i
+    - cron: '0 6 1 * *'
   workflow_dispatch: # Allow manual trigger
     inputs:
       max_audits:

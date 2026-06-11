@@ -3,7 +3,8 @@ name: "🅱️ Scrapers – Grup B"
 # TSİ 03:30 → UTC 00:30
 on:
   schedule:
-    - cron: '43 22 * * *'   # TSİ 02:00 (UTC 23:00)
+    - cron: '43 22 2-31 * *'
+    - cron: '30 8 1 * *'   # TSİ 02:00 (UTC 23:00)
   workflow_dispatch: {}
 
 jobs:
