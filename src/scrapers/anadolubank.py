@@ -38,12 +38,12 @@ class AnadolubankScraper:
             self.db.add(self.bank)
             self.db.commit()
             
-        self.card = self.db.query(Card).filter(Card.slug == 'anadolubank-kredi-karti').first()
+        self.card = self.db.query(Card).filter(Card.slug == 'anadolubank-kart').first()
         if not self.card:
              self.card = Card(
                  bank_id=self.bank.id, 
                  name='Anadolubank Kart', 
-                 slug='anadolubank-kredi-karti', 
+                 slug='anadolubank-kart', 
                  logo_url='/logos/cards/anadolubank1.png',
                  is_active=True
              )
