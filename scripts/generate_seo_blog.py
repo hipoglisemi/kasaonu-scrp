@@ -39,34 +39,55 @@ def get_ai_image_url(title: str, bank: Optional[Any], sector: Optional[Any]) -> 
     if sector:
         sector_name = sector[1].lower()
         if "seyahat" in sector_name or "turizm" in sector_name:
-            keywords = "travel holiday flight"
-        elif "market" in sector_name or "gıda" in sector_name:
-            keywords = "supermarket grocery shopping"
+            keywords = "travel holiday flight hotel"
+        elif "market" in sector_name or "gıda" in sector_name or "kasap" in sector_name:
+            keywords = "supermarket grocery shopping cart"
         elif "giyim" in sector_name or "kozmetik" in sector_name:
-            keywords = "fashion shopping boutique"
+            keywords = "fashion shopping clothes makeup"
         elif "akaryakıt" in sector_name or "otomotiv" in sector_name:
-            keywords = "car driving gas"
-        elif "elektronik" in sector_name:
-            keywords = "technology electronics laptop"
+            keywords = "gas station car driving"
+        elif "elektronik" in sector_name or "teknoloji" in sector_name:
+            keywords = "technology electronics smartphone"
+        elif "restoran" in sector_name or "kafe" in sector_name or "yemek" in sector_name:
+            keywords = "restaurant cafe food dining"
+        elif "e-ticaret" in sector_name or "online" in sector_name:
+            keywords = "ecommerce online shopping delivery"
+        elif "sağlık" in sector_name or "hastane" in sector_name or "eczane" in sector_name:
+            keywords = "health pharmacy medical"
+        elif "eğitim" in sector_name or "okul" in sector_name or "kırtasiye" in sector_name:
+            keywords = "education school university"
+        elif "eğlence" in sector_name or "sinema" in sector_name or "tiyatro" in sector_name:
+            keywords = "cinema theater concert entertainment"
+        elif "fatura" in sector_name or "telekom" in sector_name:
+            keywords = "telecommunication internet bill"
         else:
-            keywords = "shopping lifestyle"
+            keywords = "finance lifestyle shopping"
     elif bank:
-        keywords = "corporate banking business"
+        keywords = "corporate banking business money"
         
     encoded_query = urllib.parse.quote(keywords)
     
     if PIXABAY_API_KEY:
         try:
+            # Pick a random page between 1 and 5 to ensure uniqueness over time
+            random_page = random.randint(1, 5)
             res = requests.get(
-                f"https://pixabay.com/api/?key={PIXABAY_API_KEY}&q={encoded_query}&image_type=illustration&orientation=horizontal&safesearch=true&per_page=20",
+                f"https://pixabay.com/api/?key={PIXABAY_API_KEY}&q={encoded_query}&image_type=illustration&orientation=horizontal&safesearch=true&per_page=100&page={random_page}",
                 timeout=5
             )
             if res.status_code == 200:
                 hits = res.json().get("hits", [])
                 if hits:
-                    # Rastgele bir tanesini seç (çeşitlilik olsun diye)
-                    hit = random.choice(hits[:10])
+                    # Pick a completely random hit from the 100 results on this page
+                    hit = random.choice(hits)
                     return hit.get("largeImageURL") or hit.get("webformatURL")
+                elif random_page > 1: # Fallback to page 1 if random page had no results
+                    res = requests.get(
+                        f"https://pixabay.com/api/?key={PIXABAY_API_KEY}&q={encoded_query}&image_type=illustration&orientation=horizontal&safesearch=true&per_page=50&page=1",
+                        timeout=5
+                    )
+                    if res.status_code == 200 and res.json().get("hits"):
+                        return random.choice(res.json()["hits"]).get("largeImageURL")
         except Exception as e:
             print(f"⚠️ Pixabay Hatası: {e}")
             
