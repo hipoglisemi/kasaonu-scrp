@@ -22,49 +22,30 @@ if not DB_URL:
 # ── Gemini modeli (3'lü key rotation kullanılır) ─────────────────────────────
 BLOG_MODEL = os.getenv("BLOG_MODEL", "gemini-3.5-flash")
 
-# ── Unsplash görselleri ──────────────────────────────────────────────────────
-import random
+# ── Ücretsiz AI Görselleri (Pollinations AI) ──────────────────────────────
 import time
-import requests
+import urllib.parse
 
-UNSPLASH_ACCESS_KEY = os.getenv("UNSPLASH_ACCESS_KEY")
-
-def get_unsplash_url(title: str, existing_urls: list) -> str:
+def get_ai_image_url(title: str, bank: Optional[Any], sector: Optional[Any]) -> str:
     """
-    Doğrudan Unsplash API'den konuya uygun benzersiz bir görsel üretir.
-    existing_urls listesine bakarak daha önce kullanılmamış bir görsel garanti eder.
+    Pollinations.ai kullanarak %100 ücretsiz, blog başlığına uygun 
+    özel flat vector illüstrasyon üretir.
     """
-    keywords = "finance, money, business, credit card"
+    # Create an English prompt base from the title for better AI results
     clean_title = slugify(title).replace("-", " ")
     
-    if UNSPLASH_ACCESS_KEY:
-        for _ in range(5): # Maks 5 deneme
-            try:
-                res = requests.get(
-                    "https://api.unsplash.com/photos/random",
-                    params={
-                        "query": f"{clean_title} {keywords}",
-                        "orientation": "landscape",
-                        "client_id": UNSPLASH_ACCESS_KEY
-                    },
-                    timeout=5
-                )
-                if res.status_code == 200:
-                    url = res.json()["urls"]["regular"]
-                    base_url = url.split("?")[0]
-                    # Check uniqueness
-                    if not any(base_url in ext for ext in existing_urls):
-                        return url
-                elif res.status_code == 403:
-                    print("⚠️ Unsplash Rate Limit (Saatlik 50 limit).")
-                    break
-            except Exception as e:
-                print(f"⚠️  Unsplash Bağlantı Hatası: {e}")
-                break
-            
-    # Fallback
-    sig = int(time.time() * 1000) + random.randint(1, 100000)
-    return f"https://loremflickr.com/1200/800/finance,business/all?lock={sig}"
+    # Construct a strong English prompt for high quality illustrations
+    prompt = f"Modern flat vector illustration about {clean_title}, finance concept, credit card, banking, vibrant colors, dribbble style, corporate, minimalist, high quality, colorful"
+    
+    # URL encode the prompt
+    encoded_prompt = urllib.parse.quote(prompt)
+    
+    # Add a unique seed so we don't get cached duplicate images
+    seed = int(time.time() * 1000) % 100000
+    
+    # Pollinations AI URL (nologo=true removes watermarks)
+    url = f"https://image.pollinations.ai/prompt/{encoded_prompt}?width=1200&height=800&nologo=true&seed={seed}"
+    return url
 
 # ── Veritabanı yardımcıları ──────────────────────────────────────────────────
 
@@ -345,7 +326,7 @@ def main():
     bank = topic["bank"]
     sector = topic["sector"]
 
-    image_url = get_unsplash_url(title, existing_urls)
+    image_url = get_ai_image_url(title, bank, sector)
 
     print(f"📝  Seçilen konu: {title}")
 
