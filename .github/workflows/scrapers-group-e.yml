@@ -4,7 +4,7 @@ name: "🍬 Scrapers – Grup E"
 on:
   schedule:
     - cron: '19 0 2-31 * *'
-    - cron: '0 10 1 * *'   # TSİ 03:30 (UTC 00:30)
+    - cron: '0 10 1 * *'   # TSİ 13:00 (Her Ayın 1i)
   workflow_dispatch: {}
 
 jobs:
