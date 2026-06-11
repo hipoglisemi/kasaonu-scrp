@@ -22,28 +22,57 @@ if not DB_URL:
 # ── Gemini modeli (3'lü key rotation kullanılır) ─────────────────────────────
 BLOG_MODEL = os.getenv("BLOG_MODEL", "gemini-3.5-flash")
 
-# ── Satori (Next.js OG Image) Görselleri ──────────────────────────────────────────
+# ── Pixabay API Görselleri (İllüstrasyon) ──────────────────────────────────────────
+import requests
+import random
+import time
 import urllib.parse
+
+PIXABAY_API_KEY = os.getenv("PIXABAY_API_KEY")
 
 def get_ai_image_url(title: str, bank: Optional[Any], sector: Optional[Any]) -> str:
     """
-    Satori (Next.js) altyapısı kullanılarak blog başlığına özel
-    kurumsal ve %100 limitsiz görseller üretir.
+    Pixabay API kullanarak blog başlığına uygun vektör/illüstrasyon çeker.
     """
-    # Just construct the relative URL to our Next.js API route
-    encoded_title = urllib.parse.quote(title)
+    keywords = "finance credit card"
     
-    category = "Rehber"
     if sector:
-        category = sector[1]
+        sector_name = sector[1].lower()
+        if "seyahat" in sector_name or "turizm" in sector_name:
+            keywords = "travel holiday flight"
+        elif "market" in sector_name or "gıda" in sector_name:
+            keywords = "supermarket grocery shopping"
+        elif "giyim" in sector_name or "kozmetik" in sector_name:
+            keywords = "fashion shopping boutique"
+        elif "akaryakıt" in sector_name or "otomotiv" in sector_name:
+            keywords = "car driving gas"
+        elif "elektronik" in sector_name:
+            keywords = "technology electronics laptop"
+        else:
+            keywords = "shopping lifestyle"
     elif bank:
-        category = bank[1]
+        keywords = "corporate banking business"
         
-    encoded_category = urllib.parse.quote(category)
+    encoded_query = urllib.parse.quote(keywords)
     
-    # We store the relative URL so it works seamlessly in local development 
-    # and automatically resolves to the correct domain in production.
-    return f"/api/og/blog?title={encoded_title}&category={encoded_category}"
+    if PIXABAY_API_KEY:
+        try:
+            res = requests.get(
+                f"https://pixabay.com/api/?key={PIXABAY_API_KEY}&q={encoded_query}&image_type=illustration&orientation=horizontal&safesearch=true&per_page=20",
+                timeout=5
+            )
+            if res.status_code == 200:
+                hits = res.json().get("hits", [])
+                if hits:
+                    # Rastgele bir tanesini seç (çeşitlilik olsun diye)
+                    hit = random.choice(hits[:10])
+                    return hit.get("largeImageURL") or hit.get("webformatURL")
+        except Exception as e:
+            print(f"⚠️ Pixabay Hatası: {e}")
+            
+    # Fallback if Pixabay fails
+    sig = int(time.time() * 1000) + random.randint(1, 100000)
+    return f"https://loremflickr.com/1200/800/{keywords.split(' ')[0].strip()}?lock={sig}"
 
 # ── Veritabanı yardımcıları ──────────────────────────────────────────────────
 
