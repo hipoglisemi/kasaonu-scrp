@@ -41,8 +41,9 @@ def get_ai_image_url(title: str, bank: Optional[Any], sector: Optional[Any]) -> 
         
     encoded_category = urllib.parse.quote(category)
     
-    # We store the absolute URL pointing to production so the mobile app and frontend work perfectly
-    return f"https://kartavantaj.com/api/og/blog?title={encoded_title}&category={encoded_category}"
+    # We store the relative URL so it works seamlessly in local development 
+    # and automatically resolves to the correct domain in production.
+    return f"/api/og/blog?title={encoded_title}&category={encoded_category}"
 
 # ── Veritabanı yardımcıları ──────────────────────────────────────────────────
 
