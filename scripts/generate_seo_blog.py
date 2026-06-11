@@ -22,61 +22,27 @@ if not DB_URL:
 # ── Gemini modeli (3'lü key rotation kullanılır) ─────────────────────────────
 BLOG_MODEL = os.getenv("BLOG_MODEL", "gemini-3.5-flash")
 
-# ── Unsplash Görselleri ──────────────────────────────────────────────────────
-import random
-import time
-import requests
-
-UNSPLASH_ACCESS_KEY = os.getenv("UNSPLASH_ACCESS_KEY")
+# ── Satori (Next.js OG Image) Görselleri ──────────────────────────────────────────
+import urllib.parse
 
 def get_ai_image_url(title: str, bank: Optional[Any], sector: Optional[Any]) -> str:
     """
-    Unsplash API kullanarak blog başlığına ve sektörüne uygun görsel üretir.
-    Pollinations AI ücretli olduğu için Unsplash'e akıllı kelimelerle dönüldü.
+    Satori (Next.js) altyapısı kullanılarak blog başlığına özel
+    kurumsal ve %100 limitsiz görseller üretir.
     """
-    # Akıllı kelime seçimi
-    clean_title = slugify(title).replace("-", " ")
-    keywords = "finance, credit card"
+    # Just construct the relative URL to our Next.js API route
+    encoded_title = urllib.parse.quote(title)
     
+    category = "Rehber"
     if sector:
-        sector_name = sector[1].lower()
-        if "seyahat" in sector_name or "turizm" in sector_name:
-            keywords = "travel, holiday, flight"
-        elif "market" in sector_name or "gıda" in sector_name:
-            keywords = "supermarket, grocery, shopping"
-        elif "giyim" in sector_name or "kozmetik" in sector_name:
-            keywords = "fashion, shopping, boutique"
-        elif "akaryakıt" in sector_name or "otomotiv" in sector_name:
-            keywords = "car, driving, gas station"
-        elif "elektronik" in sector_name:
-            keywords = "technology, electronics, laptop"
-        else:
-            keywords = "shopping, lifestyle"
+        category = sector[1]
     elif bank:
-        keywords = "corporate, banking, business, laptop"
-
-    if UNSPLASH_ACCESS_KEY:
-        for _ in range(3): # Maks 3 deneme
-            try:
-                res = requests.get(
-                    "https://api.unsplash.com/photos/random",
-                    params={
-                        "query": keywords,
-                        "orientation": "landscape",
-                        "client_id": UNSPLASH_ACCESS_KEY
-                    },
-                    timeout=5
-                )
-                if res.status_code == 200:
-                    return res.json()["urls"]["regular"]
-                elif res.status_code == 403:
-                    break
-            except Exception as e:
-                break
-            
-    # Fallback
-    sig = int(time.time() * 1000) + random.randint(1, 100000)
-    return f"https://loremflickr.com/1200/800/{keywords.split(',')[0].strip()}?lock={sig}"
+        category = bank[1]
+        
+    encoded_category = urllib.parse.quote(category)
+    
+    # We store the absolute URL pointing to production so the mobile app and frontend work perfectly
+    return f"https://kartavantaj.com/api/og/blog?title={encoded_title}&category={encoded_category}"
 
 # ── Veritabanı yardımcıları ──────────────────────────────────────────────────
 
