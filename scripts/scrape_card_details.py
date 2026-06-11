@@ -265,11 +265,11 @@ METİN:
                 print(f"    ⚠️  Gemini API hatası: {e}")
                 return None
                 
-    if not response:
-        print("    ⚠️  Gemini API yanıt vermedi, atlanıyor.")
+    if not response or not hasattr(response, 'text') or not response.text:
+        print("    ⚠️  API yanıt vermedi veya metin döndürmedi, atlanıyor.")
         return None
         
-    text = response.text.strip()
+    text = str(response.text).strip()
     
     # Markdown temizle
     text = re.sub(r'```[a-z]*\n?', '', text).strip()
