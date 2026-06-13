@@ -170,6 +170,16 @@ def upsert_campaign(db: Session, campaign: Campaign) -> Tuple[Campaign, str]:
     if existing:
         status = "saved"
         if existing.is_active is False:
+            today_date = datetime.now(timezone.utc).date()
+            new_end_date = campaign.end_date.date() if campaign.end_date else None
+
+            # 🛡️ AKILLI REVIVE KONTROLÜ:
+            # AI kesin bir geçmiş tarih döndürdüyse → banka tarihi güncellememiş, pasif bırak.
+            # AI null döndürdüyse (tarih bulunamadı) → belirsiz durum, revive et (benefit of doubt).
+            if new_end_date is not None and new_end_date < today_date:
+                print(f"   ⏭️ [Akıllı Revive] Kampanya tarihi geçmişte ({new_end_date}) ve AI kesin tarih döndürdü → canlandırılmıyor, döngü engellendi: {existing.title[:40]}")
+                return existing, "skipped"
+
             print(f"   🔄 Reviving passive campaign: {existing.title[:40]}...")
             existing.is_active = True
             
