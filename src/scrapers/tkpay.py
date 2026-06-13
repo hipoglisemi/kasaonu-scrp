@@ -148,6 +148,10 @@ class TkpayScraper:
         return campaigns
 
     def _process_campaign(self, campaign_data, force: bool = False):
+        import codecs
+        import re
+        import json
+
         url = campaign_data['url']
         list_img_url = campaign_data.get('img_url')
 
@@ -155,6 +159,7 @@ class TkpayScraper:
         
         try:
             response = self.session.get(url, timeout=30)
+            html_content = response.content
             soup = BeautifulSoup(response.text, 'html.parser')
             
             h1 = soup.find('h1')
@@ -183,11 +188,59 @@ class TkpayScraper:
                     detail_img = urljoin(self.BASE_URL, src)
                     break
 
-            final_image = list_img_url or detail_img
+            # --- NEXT.JS RSC PAYLOAD EXTRACTION ---
+            json_img = None
+            json_end_date = None
+            
+            pushes = re.findall(b'self\\.__next_f\\.push\\(\\[\\s*\\d+\\s*,\\s*"(.*?)"\\s*\\]\\)', html_content)
+            if not pushes:
+                pushes = re.findall(b"self\\.__next_f\\.push\\(\\[\\s*\\d+\\s*,\\s*'(.*?)'\\s*\\]\\)", html_content)
+
+            full_payload_bytes = b""
+            for push in pushes:
+                try:
+                    decoded_bytes, _ = codecs.escape_decode(push)
+                    full_payload_bytes += decoded_bytes
+                except Exception:
+                    pass
+
+            full_payload = full_payload_bytes.decode('utf-8', errors='ignore')
+
+            query_match = re.search(r'"queries"\s*:\s*(\[.*?\])\s*\}', full_payload)
+            rsc_campaign_data = None
+            if query_match:
+                try:
+                    queries_json = json.loads(query_match.group(1))
+                    for query in queries_json:
+                        if "state" in query and "data" in query["state"]:
+                            rsc_campaign_data = query["state"]["data"]
+                            break
+                except Exception:
+                    pass
+
+            if rsc_campaign_data:
+                title = rsc_campaign_data.get("name", title)
+                desc = rsc_campaign_data.get("description", "")
+                
+                # Clean rules HTML
+                rules_html = rsc_campaign_data.get("rules", "")
+                rules_cleaned = re.sub(r'<br\s*/?>', '\n', rules_html)
+                rules_cleaned = re.sub(r'</?(?:p|ul|li|div|span|strong|em)\s*>', '', rules_cleaned)
+                rules_cleaned = re.sub(r'\s*\n\s*', '\n', rules_cleaned).strip()
+                raw_html = rules_cleaned
+                
+                json_end_date = rsc_campaign_data.get("endDate")
+                json_img = rsc_campaign_data.get("webDetailImagePath") or rsc_campaign_data.get("sdkDetailImagePath")
+                if json_img and not json_img.startswith("http"):
+                    json_img = urljoin("https://tkpay.com", json_img)
+            else:
+                desc = title
+
+            final_image = json_img or list_img_url or detail_img
 
             ai_data = parse_api_campaign(
                 title=title,
-                short_description=title,
+                short_description=desc,
                 content_html=raw_html,
                 bank_name="Tkpay",
                 scraper_sector=None,
@@ -201,7 +254,7 @@ class TkpayScraper:
                 return "error"
 
             title = ai_data.get("title", title)
-            desc = ai_data.get("description", "")
+            desc = ai_data.get("description", desc)
             
             sector_slug = ai_data.get("sector")
             sector = self._get_sector(sector_slug)
@@ -222,7 +275,7 @@ class TkpayScraper:
                 conds = [c.strip() for c in conds.split("\n") if c.strip()]
             
             part_method = ai_data.get("participation")
-            final_conditions = "\n".join(conds)
+            final_conditions = "\n".join(conds) if conds else raw_html
 
             cards_raw = ai_data.get("cards", [])
             if isinstance(cards_raw, str):
@@ -230,10 +283,17 @@ class TkpayScraper:
 
             vf = None
             vu = None
+            
+            if json_end_date:
+                try:
+                    vu = datetime.strptime(json_end_date[:19], "%Y-%m-%dT%H:%M:%S")
+                except Exception as de:
+                    print("Date parsing error:", de)
+                    
             if ai_data.get("start_date"):
                 try: vf = datetime.strptime(ai_data.get("start_date"), "%Y-%m-%d")
                 except: pass
-            if ai_data.get("end_date"):
+            if ai_data.get("end_date") and not vu:
                 try: vu = datetime.strptime(ai_data.get("end_date"), "%Y-%m-%d")
                 except: pass
             
