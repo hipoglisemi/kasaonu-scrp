@@ -7,6 +7,7 @@ import urllib3
 from concurrent.futures import ThreadPoolExecutor, as_completed
 import threading
 import time
+import calendar
 
 # Setup path to include project root for src.* imports
 project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -216,7 +217,7 @@ def proactive_expiry_audit(max_audits=2000):
             soon_expiring = db.query(Campaign).filter(
                 Campaign.is_active == True,
                 Campaign.end_date >= today,                     # Bugün biten kampanyalar
-                Campaign.end_date <= today + timedelta(days=1), # ve Yarın biten kampanyalar
+                Campaign.end_date <= today + timedelta(days=5), # ve 5 gün içinde biten kampanyalar
                 Campaign.tracking_url.isnot(None)
             ).all()
             
@@ -301,8 +302,24 @@ def proactive_expiry_audit(max_audits=2000):
             ai_end_date_str = ai_dates.get("end_date")
 
             if not ai_end_date_str:
-                print(f"   ❌ No end date found | ID: #{c['id']} | {c['title'][:50]}")
-                return False
+                # Banka sayfası açık ama tarih yok → süresiz kampanya
+                # Bir sonraki ayın son gününe uzat ve onaya düşür
+                if today.month == 12:
+                    next_month_num, next_year_num = 1, today.year + 1
+                else:
+                    next_month_num, next_year_num = today.month + 1, today.year
+                last_day = calendar.monthrange(next_year_num, next_month_num)[1]
+                indefinite_date = datetime(next_year_num, next_month_num, last_day).date()
+                print(f"   📅 [Süresiz Kampanya] Tarih bulunamadı → {indefinite_date} tarihine uzatılıyor | ID: #{c['id']} | {c['title'][:50]}")
+                with get_db_session() as db:
+                    db_camp = db.query(Campaign).filter(Campaign.id == c["id"]).first()
+                    if db_camp:
+                        db_camp.end_date = indefinite_date
+                        db_camp.date_extended = True
+                        db_camp.is_approved = False
+                        db_camp.updated_at = datetime.now()
+                        db.commit()
+                return True
 
             try:
                 latest_date = datetime.strptime(ai_end_date_str, "%Y-%m-%d").date()

@@ -111,7 +111,21 @@ def upsert_campaign(db: Session, campaign: Campaign) -> Tuple[Campaign, str]:
             Campaign.card_id == campaign.card_id
         ).first()
         
-    # 2b. Robust Fallback: Match by cleaned alphanumeric Title + Card ID
+    # 2b. Month-Aware Fallback: Match by normalized title (strips month names like mayis/haziran)
+    # This catches cases like "Tatilsepeti Mayıs Kampanyası" vs "Tatilsepeti Haziran Kampanyası"
+    # which are the SAME campaign but with a monthly URL/title rotation.
+    if not existing:
+        norm_target_title = normalize_text_for_comparison(campaign.title)
+        if norm_target_title and len(norm_target_title) > 10:
+            all_card_camps = db.query(Campaign).filter(Campaign.card_id == campaign.card_id).all()
+            for camp in all_card_camps:
+                norm_camp_title = normalize_text_for_comparison(camp.title)
+                if norm_camp_title and norm_camp_title == norm_target_title:
+                    existing = camp
+                    print(f"      🗓️  [Month-Aware Title Match] Found duplicate via normalized title: ID {existing.id} - '{camp.title}' ≈ '{campaign.title}'")
+                    break
+
+    # 2c. Robust Fallback: Match by cleaned alphanumeric Title + Card ID
     if not existing:
         clean_target_title = clean_title_for_matching(campaign.title)
         all_card_camps = db.query(Campaign).filter(Campaign.card_id == campaign.card_id).all()
