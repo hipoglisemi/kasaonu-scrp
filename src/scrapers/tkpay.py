@@ -76,8 +76,21 @@ class TkpayScraper:
                 # Wait for React to render the campaigns
                 time.sleep(5)
                 
-                # Scroll a bit to trigger lazy loading if any
-                page.evaluate("window.scrollTo(0, document.body.scrollHeight)")
+                print("   🔄 Scrolling and loading all campaigns...")
+                # Scroll to trigger lazy loading and click Load More button if any
+                for _ in range(15):
+                    page.evaluate("window.scrollTo(0, document.body.scrollHeight)")
+                    time.sleep(1)
+                    try:
+                        btns = page.query_selector_all("button")
+                        for btn in btns:
+                            text = btn.inner_text()
+                            if text and 'Daha' in text:
+                                btn.click()
+                                time.sleep(1.5)
+                    except Exception:
+                        pass
+                
                 time.sleep(2)
                 
                 links = page.query_selector_all("a")
