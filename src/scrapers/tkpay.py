@@ -1,0 +1,369 @@
+import sys
+import os
+import time
+import traceback
+import requests
+from typing import Dict, Optional, List, Any
+from bs4 import BeautifulSoup
+from datetime import datetime
+from urllib.parse import urljoin
+
+project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+if project_root not in sys.path:
+    sys.path.insert(0, project_root)
+
+from src.database import get_db_session
+from src.models import Bank, Card, Sector, Campaign, CampaignBrand
+from src.utils.scraper_utils import is_url_blocked, upsert_campaign, should_skip_campaign
+from src.services.brand_matcher import get_or_create_brands_list
+from src.services.ai_parser import parse_api_campaign
+from src.utils.slug_generator import get_unique_slug
+from src.utils.logger_utils import log_scraper_execution
+
+# PostgreSQL fix for modern SQLAlchemy
+DATABASE_URL = os.environ.get("DATABASE_URL")
+if DATABASE_URL and DATABASE_URL.startswith("postgres://"):
+    DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
+    os.environ["DATABASE_URL"] = DATABASE_URL
+
+class TkpayScraper:
+    BASE_URL = "https://tkpay.com/tr/all-campaigns"
+
+    def __init__(self):
+        self.session = requests.Session()
+        self.session.headers.update({
+            "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+        })
+        self.db = get_db_session()
+        
+        self.sector_cache: Dict[str, Sector] = {}
+        self._load_cache()
+        
+        self.bank = self.db.query(Bank).filter(Bank.slug == 'tkpay').first()
+        if not self.bank:
+            self.bank = Bank(name='Tkpay', slug='tkpay', logo_url='/logos/tkpay.png', is_active=True)
+            self.db.add(self.bank)
+            self.db.commit()
+            
+        self.card = self.db.query(Card).filter(Card.slug == 'tkpay-cuzdan').first()
+        if not self.card:
+             self.card = Card(bank_id=self.bank.id, name='Tkpay Cüzdan', slug='tkpay-cuzdan', is_active=True, card_type='debit')
+             self.db.add(self.card)
+             self.db.commit()
+        
+        self.card_id = self.card.id
+
+    def _load_cache(self):
+        for s in self.db.query(Sector).all():
+            self.sector_cache[s.slug] = s
+            self.sector_cache[s.name.lower()] = s
+
+    def _get_sector(self, slug: str) -> Optional[Sector]:
+        if not slug:
+            return self.sector_cache.get("diger")
+        return self.sector_cache.get(slug.lower()) or self.sector_cache.get("diger")
+
+    def _fetch_campaign_list(self) -> List[Dict[str, str]]:
+        print(f"📄 Fetching Tkpay campaigns using Playwright for dynamic rendering...")
+        campaigns = []
+        try:
+            from playwright.sync_api import sync_playwright
+            with sync_playwright() as p:
+                browser = p.chromium.launch(headless=True, channel="chrome", args=["--no-sandbox", "--disable-setuid-sandbox"])
+                page = browser.new_page(user_agent="Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
+                page.goto(self.BASE_URL, timeout=45000, wait_until="domcontentloaded")
+                
+                # Wait for React to render the campaigns
+                time.sleep(5)
+                
+                # Scroll a bit to trigger lazy loading if any
+                page.evaluate("window.scrollTo(0, document.body.scrollHeight)")
+                time.sleep(2)
+                
+                links = page.query_selector_all("a")
+                seen = set()
+                for link in links:
+                    href = link.get_attribute("href")
+                    if href and ('kampanya' in href.lower() or 'campaign' in href.lower()) and href != "/tr/all-campaigns":
+                        full_url = urljoin("https://tkpay.com", href)
+                        if full_url not in seen:
+                            seen.add(full_url)
+                            
+                            # Try to get the image if it's inside the anchor tag
+                            img = link.query_selector("img")
+                            img_url = img.get_attribute("src") if img else None
+                            if img_url:
+                                img_url = urljoin("https://tkpay.com", img_url)
+                                
+                            campaigns.append({
+                                'url': full_url,
+                                'img_url': img_url
+                            })
+                
+                browser.close()
+                print(f"   ✅ Total found via Playwright: {len(campaigns)} items.")
+        except Exception as e:
+            print(f"   ⚠️ Playwright failed, falling back to Requests: {e}")
+            try:
+                response = self.session.get(self.BASE_URL, timeout=30)
+                response.raise_for_status()
+                
+                soup = BeautifulSoup(response.text, 'html.parser')
+                links = soup.find_all('a')
+                
+                seen = set()
+                for a in links:
+                    href = a.get('href', '')
+                    if ('kampanya' in href.lower() or 'campaign' in href.lower()) and href != "/tr/all-campaigns" and len(href) > 5:
+                        full_url = urljoin("https://tkpay.com", href)
+                        
+                        img = a.find('img')
+                        img_url = img.get('src') if img else None
+                        if img_url:
+                            img_url = urljoin("https://tkpay.com", img_url)
+                        
+                        if full_url not in seen:
+                            seen.add(full_url)
+                            campaigns.append({
+                                'url': full_url,
+                                'img_url': img_url
+                            })
+                            
+                print(f"   ✅ Total found via fallback: {len(campaigns)} items.")
+            except Exception as e2:
+                print(f"   ⚠️ Error fetching list: {e2}")
+        return campaigns
+
+    def _process_campaign(self, campaign_data, force: bool = False):
+        url = campaign_data['url']
+        list_img_url = campaign_data.get('img_url')
+
+        print(f"🔍 Processing (AI Enabled): {url}")
+        
+        try:
+            response = self.session.get(url, timeout=30)
+            soup = BeautifulSoup(response.text, 'html.parser')
+            
+            h1 = soup.find('h1')
+            title = h1.text.strip() if h1 else "Kampanya"
+
+            og_title_el = soup.find("meta", property="og:title")
+            og_title = og_title_el.get("content") if og_title_el else None
+            
+            main = soup.find('main')
+            if not main:
+                main = soup.body
+
+            content_blocks = []
+            if main:
+                for element in main.find_all(['p', 'li']):
+                    text = element.text.strip()
+                    if len(text) > 15:
+                        content_blocks.append(text)
+                        
+            raw_html = "\n".join(content_blocks)
+            
+            detail_img = None
+            for img in soup.select('img'):
+                src = img.get('src', '')
+                if 'kampanya' in src.lower() or 'banner' in src.lower() or 'upload' in src.lower():
+                    detail_img = urljoin(self.BASE_URL, src)
+                    break
+
+            final_image = list_img_url or detail_img
+
+            ai_data = parse_api_campaign(
+                title=title,
+                short_description=title,
+                content_html=raw_html,
+                bank_name="Tkpay",
+                scraper_sector=None,
+                tracking_url=url,
+                og_title=og_title,
+                force=force
+            )
+            
+            if not ai_data:
+                print("   ❌ AI Parsing failed.")
+                return "error"
+
+            title = ai_data.get("title", title)
+            desc = ai_data.get("description", "")
+            
+            sector_slug = ai_data.get("sector")
+            sector = self._get_sector(sector_slug)
+            
+            slug = get_unique_slug(
+                title=title,
+                db_session=self.db,
+                campaign_model=Campaign,
+                tracking_url=url,
+                card_name="Tkpay Cüzdan",
+                bank_name="Tkpay"
+            )
+
+            conds = ai_data.get("conditions", [])
+            if isinstance(conds, list):
+                conds = [str(c).strip() for c in conds if c]
+            elif isinstance(conds, str):
+                conds = [c.strip() for c in conds.split("\n") if c.strip()]
+            
+            part_method = ai_data.get("participation")
+            final_conditions = "\n".join(conds)
+
+            cards_raw = ai_data.get("cards", [])
+            if isinstance(cards_raw, str):
+                cards_raw = [c.strip() for c in cards_raw.split(",") if c.strip()]
+
+            vf = None
+            vu = None
+            if ai_data.get("start_date"):
+                try: vf = datetime.strptime(ai_data.get("start_date"), "%Y-%m-%d")
+                except: pass
+            if ai_data.get("end_date"):
+                try: vu = datetime.strptime(ai_data.get("end_date"), "%Y-%m-%d")
+                except: pass
+            
+            if not vf:
+                vf = datetime.utcnow()
+
+            campaign = Campaign(
+                card_id=self.card_id,
+                sector_id=sector.id if sector else None,
+                slug=slug,
+                title=title,
+                description=desc,
+                ai_marketing_text=ai_data.get("ai_marketing_text"),
+                reward_text=ai_data.get("reward_text"),
+                reward_value=ai_data.get("reward_value"),
+                reward_type=ai_data.get("reward_type"),
+                conditions=final_conditions,
+                eligible_cards=", ".join(cards_raw) if cards_raw else "Tkpay Cüzdan",
+                participation=part_method,
+                image_url=final_image,
+                start_date=vf,
+                end_date=vu,
+                clean_text=ai_data.get("_clean_text"),
+                is_active=True,
+                tracking_url=url,
+                created_at=datetime.utcnow(),
+                updated_at=datetime.utcnow()
+            )
+            
+            campaign, op_status = upsert_campaign(self.db, campaign)
+            self.db.commit()
+            
+            if op_status == "revived":
+                print(f"   ♻️  Revived: {campaign.title}")
+            elif op_status == "saved":
+                 print(f"   ✅ Saved: {campaign.title}")
+            
+            self.db.refresh(campaign)
+
+            brand_ids = get_or_create_brands_list(
+                db_session=self.db,
+                brand_names=ai_data.get("brands", []),
+                brand_cache=getattr(self, 'brand_cache', {}),
+                sector_id=sector.id if sector else None
+            )
+            for bid in brand_ids:
+                try:
+                    link = self.db.query(CampaignBrand).filter(
+                        CampaignBrand.campaign_id == campaign.id,
+                        CampaignBrand.brand_id == bid
+                    ).first()
+                    if not link:
+                        self.db.add(CampaignBrand(campaign_id=campaign.id, brand_id=bid))
+                        self.db.commit()
+                except Exception as e:
+                    self.db.rollback()
+            return op_status
+            
+        except Exception as e:
+            print(f"   ❌ Error processing {url}: {e}")
+            if self.db: self.db.rollback()
+            traceback.print_exc()
+            return "error"
+
+    def run(self, limit: Optional[int] = None, force: bool = False):
+        print("🚀 Starting Tkpay Scraper...")
+        
+        if os.getenv("TEST_MODE") == "1" and not limit:
+            print("🧪 TEST_MODE active: Limiting to 1 campaign.")
+            limit = 1
+            
+        campaigns = self._fetch_campaign_list()
+        
+        if limit:
+            campaigns = campaigns[:limit]
+        
+        total_found = len(campaigns)
+        success_count = 0
+        total_revived = 0
+        skipped_count = 0
+        failed_count = 0
+        error_details = []
+
+        for i, camp in enumerate(campaigns):
+            url = camp.get('url')
+            if not url:
+                continue
+                
+            print(f"[{i+1}/{total_found}] Processing: {url}")
+            
+            try:
+                # Early check
+                if not force and should_skip_campaign(self.db, url, card_id=self.card_id):
+                    print(f"   ⏭️ Skipped (Already exists or blocked)")
+                    skipped_count += 1
+                    continue
+                    
+                # Force re-parse if campaign is passive
+                current_force = force
+                existing = self.db.query(Campaign).filter(Campaign.tracking_url == url, Campaign.card_id == self.card_id).first()
+                if existing and not existing.is_active:
+                    current_force = True
+                    
+                res = self._process_campaign(camp, force=current_force)
+                if res in ["saved", "updated"]: success_count += 1
+                elif res == "revived": total_revived += 1
+                elif res == "skipped": skipped_count += 1
+                else: 
+                    failed_count += 1
+                    error_details.append({"url": url, "error": f"Process returned {res}"})
+            except Exception as e:
+                failed_count += 1
+                error_details.append({"url": url, "error": str(e)})
+            
+            time.sleep(1)
+            
+        print(f"✅ Özet: {total_found} bulundu, {success_count} eklendi, {total_revived} canlandı, {skipped_count} atlandı, {failed_count} hata aldı.")
+        
+        status = "SUCCESS"
+        if failed_count > 0:
+             status = "PARTIAL" if (success_count > 0 or skipped_count > 0) else "FAILED"
+             
+        try:
+            log_scraper_execution(
+                 db=self.db,
+                 scraper_name="tkpay",
+                 status=status,
+                 total_found=total_found,
+                 total_saved=success_count,
+                 total_skipped=skipped_count,
+                 total_failed=failed_count,
+                 total_revived=total_revived,
+                 error_details={"errors": error_details} if error_details else None
+            )
+        except Exception as le:
+             print(f"⚠️ Could not save scraper log: {le}")
+             
+        print("🏁 Finished.")
+
+if __name__ == "__main__":
+    try:
+        scraper = TkpayScraper()
+        scraper.run()
+    finally:
+        if hasattr(scraper, 'db') and scraper.db:
+            scraper.db.close()
