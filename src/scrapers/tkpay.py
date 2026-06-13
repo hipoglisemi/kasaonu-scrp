@@ -5,7 +5,7 @@ import traceback
 import requests
 from typing import Dict, Optional, List, Any
 from bs4 import BeautifulSoup
-from datetime import datetime
+from datetime import datetime, timedelta
 from urllib.parse import urljoin
 
 project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -102,9 +102,25 @@ class TkpayScraper:
                         if full_url not in seen:
                             seen.add(full_url)
                             
-                            # Try to get the image if it's inside the anchor tag
-                            img = link.query_selector("img")
-                            img_url = img.get_attribute("src") if img else None
+                            # Try to get the image from the card container (sibling img of overlay link)
+                            img_url = None
+                            try:
+                                card_container = link.evaluate_handle("el => el.closest('.relative') || el.parentElement")
+                                if card_container:
+                                    img = card_container.as_element().query_selector("img")
+                                    if img:
+                                        img_url = img.get_attribute("src")
+                            except Exception:
+                                pass
+                                
+                            if not img_url:
+                                # Fallback to standard check
+                                try:
+                                    img = link.query_selector("img")
+                                    img_url = img.get_attribute("src") if img else None
+                                except Exception:
+                                    pass
+
                             if img_url:
                                 img_url = urljoin("https://tkpay.com", img_url)
                                 
@@ -130,8 +146,17 @@ class TkpayScraper:
                     if ('kampanya' in href.lower() or 'campaign' in href.lower()) and href != "/tr/all-campaigns" and len(href) > 5:
                         full_url = urljoin("https://tkpay.com", href)
                         
-                        img = a.find('img')
-                        img_url = img.get('src') if img else None
+                        img_url = None
+                        # Try to find img in the card container
+                        card_div = a.find_parent('div', class_=lambda c: c and 'relative' in c)
+                        if card_div:
+                            img = card_div.find('img')
+                            if img:
+                                img_url = img.get('src')
+                        if not img_url:
+                            img = a.find('img')
+                            img_url = img.get('src') if img else None
+                            
                         if img_url:
                             img_url = urljoin("https://tkpay.com", img_url)
                         
@@ -184,8 +209,8 @@ class TkpayScraper:
             detail_img = None
             for img in soup.select('img'):
                 src = img.get('src', '')
-                if 'kampanya' in src.lower() or 'banner' in src.lower() or 'upload' in src.lower():
-                    detail_img = urljoin(self.BASE_URL, src)
+                if '/api/image/' in src or any(x in src.lower() for x in ['kampanya', 'banner', 'upload', 'campaign']):
+                    detail_img = urljoin("https://tkpay.com", src)
                     break
 
             # --- NEXT.JS RSC PAYLOAD EXTRACTION ---
@@ -287,6 +312,8 @@ class TkpayScraper:
             if json_end_date:
                 try:
                     vu = datetime.strptime(json_end_date[:19], "%Y-%m-%dT%H:%M:%S")
+                    if json_end_date.endswith("Z"):
+                        vu = vu + timedelta(hours=3)
                 except Exception as de:
                     print("Date parsing error:", de)
                     
