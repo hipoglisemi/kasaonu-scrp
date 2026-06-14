@@ -35,6 +35,7 @@ on:
           - kuveytturk
           - masterpass
           - nays
+          - nkolay
           - on_digital
           - opet
           - paraf
@@ -78,7 +79,7 @@ jobs:
     steps:
       - id: set-matrix
         run: |
-          ALL='["ahlpay","akbank_axess","akbank_business","akbank_free","akbank_wings","albaraka","americanexpress","anadolubank","chippin","denizbank","dunyakatilim","emlakkatilim","enpara","garanti_bonus","garanti_milesandsmiles","garanti_shopandfly","hsbc","isbankasi_genc","isbankasi_maximiles","isbankasi_maximum","kuveytturk","masterpass","nays","on_digital","opet","paraf","paraf_genc","param","paycell","petrolofisi","qnb","sekerbank","shell","tami","teb","tkpay","tombank","totalenergies","turkcell","turkiyefinans","turktelekom","uption","vakif_katilim","vakifbank","vodafone","yapikredi_adios","yapikredi_crystal","yapikredi_play","yapikredi_world","ziraat","ziraat_dinamik","ziraat_katilim"]'
+          ALL='["ahlpay","akbank_axess","akbank_business","akbank_free","akbank_wings","albaraka","americanexpress","anadolubank","chippin","denizbank","dunyakatilim","emlakkatilim","enpara","garanti_bonus","garanti_milesandsmiles","garanti_shopandfly","hsbc","isbankasi_genc","isbankasi_maximiles","isbankasi_maximum","kuveytturk","masterpass","nays","nkolay","on_digital","opet","paraf","paraf_genc","param","paycell","petrolofisi","qnb","sekerbank","shell","tami","teb","tkpay","tombank","totalenergies","turkcell","turkiyefinans","turktelekom","uption","vakif_katilim","vakifbank","vodafone","yapikredi_adios","yapikredi_crystal","yapikredi_play","yapikredi_world","ziraat","ziraat_dinamik","ziraat_katilim"]'
           INPUT="${{ github.event.inputs.scraper }}"
           if [ -z "$INPUT" ] || [ "$INPUT" = "all" ]; then
             echo "scrapers=$ALL" >> $GITHUB_OUTPUT

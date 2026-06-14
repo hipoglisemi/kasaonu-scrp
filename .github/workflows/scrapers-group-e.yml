@@ -25,6 +25,7 @@ jobs:
           - vakif_katilim
           - anadolubank
           - tkpay
+          - nkolay
 
     name: "🤖 ${{ matrix.scraper }}"
 
