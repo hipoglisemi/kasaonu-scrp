@@ -123,38 +123,47 @@ def update_dates_in_text(text: str, old_end_date, new_end_date) -> str:
 
     return result
 
-def extract_dates_via_ai(title: str, clean_text: str, key_index: int = 1):
+def extract_dates_via_ai(title: str, clean_text: str, key_index: int = 1, today_date = None):
     """
     Extracts campaign start and end dates from the campaign HTML text using Gemini.
-    Returns a dict with 'start_date' and 'end_date' keys, values are date strings in YYYY-MM-DD or None.
+    Returns a dict with 'start_date', 'end_date', 'is_expired', and 'is_indefinite'.
     key_index: 1-based API key index this worker should start from.
     """
     if not clean_text:
-        return {"start_date": None, "end_date": None}
+        return {"start_date": None, "end_date": None, "is_expired": True, "is_indefinite": False}
+
+    if not today_date:
+        today_date = (datetime.now(timezone.utc) + timedelta(hours=3)).date()
         
     system_instruction = (
-        "Sen KartAvantaj projesinde kampanya başlangıç ve bitiş tarihlerini tespit eden uzman bir veri analistisin.\n"
-        "Gönderilen metni analiz ederek kampanyanın başlangıç ve son geçerlilik (bitiş) tarihlerini bulmalısın.\n\n"
-        "ÇOK ÖNEMLİ GÜVENLİK KURALLARI:\n"
-        "1. Eğer metinde kampanyanın bittiğine, yayından kaldırıldığına dair bir ibare varsa ('Kampanya sona ermiştir', 'Süresi doldu', 'Sayfa bulunamadı', '404' vb.) KESİNLİKLE her iki tarihi de null döndür.\n"
-        "2. Eğer metin tek bir kampanyayı değil, birçok farklı kampanyayı listeliyorsa (genel banka anasayfasına yönlendirilmişse) null döndür.\n"
-        "3. Sadece ve sadece metin aktif bir kampanyadan bahsediyorsa tarihleri YYYY-MM-DD formatında döndür.\n"
-        "4. Çıktıyı her zaman belirtilen JSON formatında ver.\n"
+        "Sen KartAvantaj projesinde kampanya tarihlerini ve durumunu tespit eden uzman bir veri analistisin.\n"
+        "Gönderilen metni analiz ederek kampanyanın durumunu ve başlangıç/bitiş tarihlerini bulmalısın.\n\n"
+        "ÇOK ÖNEMLİ KURALLAR:\n"
+        "1. Eğer metinde kampanyanın bittiğine, süresinin dolduğuna veya yayından kaldırıldığına dair bir ibare varsa ('Kampanya sona ermiştir', 'Süresi doldu', 'Sayfa bulunamadı', '404' vb.) veya tarihler geçmişte kalmışsa 'is_expired' alanını true yap.\n"
+        "2. Eğer metin tek bir kampanyayı değil, many farklı kampanyayı listeliyorsa (genel banka anasayfasına yönlendirilmişse) 'is_expired' alanını true yap.\n"
+        "3. Kampanya aktif olmasına rağmen metinde herhangi bir bitiş tarihi belirtilmemişse 'is_indefinite' alanını true yap.\n"
+        "4. Sadece kampanya aktifse ve bitiş tarihi varsa 'end_date' alanını YYYY-MM-DD formatında doldur, aksi halde null bırak.\n"
+        "5. Çıktıyı her zaman belirtilen JSON formatında ver.\n"
+        "6. Kart başvurusu, kampanyaya katılım (Juzdan/SMS katılım süresi) veya ana promosyonun (örn. indirim/chip-para kazanma) bitiş tarihi ile son harcama/ödül kullanım süresi farklı ise, her zaman KATILIM / BAŞVURU / ANA PROMOSYONUN son gününü kampanya bitiş tarihi (end_date) olarak seç. Harcama veya puan son kullanım tarihini bitiş tarihi olarak alma. Örn: '1-30 Haziran arasında başvuranlar 15 Temmuz'a kadar harcayabilir' veya '1-30 Haziran tarihleri arasında başvurulabilir' ifadesinde bitiş tarihi 2026-06-30 olmalıdır.\n"
     )
     
     prompt = f"""
+BUGÜNÜN TARİHİ: {today_date.strftime('%Y-%m-%d')}
+
 KAMPANYA BAŞLIĞI: {title}
 KAMPANYA SAYFA METNİ:
 ---
 {clean_text}
 ---
 
-GÖREV: Sayfa metnini ve kampanya başlığını inceleyerek kampanyanın başlangıç ve bitiş tarihlerini tespit et. Çıktıyı kesinlikle aşağıdaki JSON şemasına göre üret:
+GÖREV: Sayfa metnini ve kampanya başlığını inceleyerek kampanyanın başlangıç/bitiş tarihlerini ve durumunu tespit et. Çıktıyı kesinlikle aşağıdaki JSON şemasına göre üret:
 
 ```json
 {{
-  "start_date": "YYYY-MM-DD", // Tespit edilen başlangıç tarihi (örn. "2026-06-01"), eğer kesin olarak bulunamadıysa null.
-  "end_date": "YYYY-MM-DD" // Tespit edilen bitiş tarihi (örn. "2026-06-30"), eğer kesin olarak bulunamadıysa null.
+  "start_date": "YYYY-MM-DD", // Tespit edilen başlangıç tarihi (örn. "2026-06-01"), bulunamadıysa null.
+  "end_date": "YYYY-MM-DD", // Tespit edilen bitiş tarihi (örn. "2026-06-30"), bulunamadıysa null.
+  "is_expired": false, // Kampanya sona ermişse, süresi dolmuşsa veya sayfa yönlendirilmiş/hata veriyorsa true, aksi halde false.
+  "is_indefinite": false // Kampanya aktif fakat metinde herhangi bir bitiş tarihi bulunmuyorsa true, aksi halde false.
 }}
 ```
 """
@@ -175,7 +184,7 @@ GÖREV: Sayfa metnini ve kampanya başlığını inceleyerek kampanyanın başla
         )
         
         if not result_str:
-            return {"start_date": None, "end_date": None}
+            return {"start_date": None, "end_date": None, "is_expired": False, "is_indefinite": False}
             
         cleaned_result = result_str.strip()
         if cleaned_result.startswith("```"):
@@ -193,11 +202,13 @@ GÖREV: Sayfa metnini ve kampanya başlığını inceleyerek kampanyanın başla
         data = json.loads(cleaned_result)
         return {
             "start_date": data.get("start_date"),
-            "end_date": data.get("end_date")
+            "end_date": data.get("end_date"),
+            "is_expired": data.get("is_expired", False),
+            "is_indefinite": data.get("is_indefinite", False)
         }
     except Exception as e:
         print(f"      ⚠️  Tarih çıkartma hatası: {e}")
-        return {"start_date": None, "end_date": None}
+        return {"start_date": None, "end_date": None, "is_expired": False, "is_indefinite": False}
 
 
 def proactive_expiry_audit(max_audits=2000):
@@ -296,30 +307,51 @@ def proactive_expiry_audit(max_audits=2000):
 
             # ✅ Düzgün temizlenmiş metin: text_cleaner pipeline'ından geçir
             clean_text = clean_html_to_text(c["html"], title=c.get("title", ""))
-            ai_dates = extract_dates_via_ai(c["title"], clean_text, key_index=key_index)
+            ai_dates = extract_dates_via_ai(c["title"], clean_text, key_index=key_index, today_date=today)
 
             ai_start_date_str = ai_dates.get("start_date")
             ai_end_date_str = ai_dates.get("end_date")
+            is_expired = ai_dates.get("is_expired", False)
+            is_indefinite = ai_dates.get("is_indefinite", False)
 
-            if not ai_end_date_str:
-                # Banka sayfası açık ama tarih yok → süresiz kampanya
-                # Bir sonraki ayın son gününe uzat ve onaya düşür
-                if today.month == 12:
-                    next_month_num, next_year_num = 1, today.year + 1
-                else:
-                    next_month_num, next_year_num = today.month + 1, today.year
-                last_day = calendar.monthrange(next_year_num, next_month_num)[1]
-                indefinite_date = datetime(next_year_num, next_month_num, last_day).date()
-                print(f"   📅 [Süresiz Kampanya] Tarih bulunamadı → {indefinite_date} tarihine uzatılıyor | ID: #{c['id']} | {c['title'][:50]}")
+            if is_expired:
+                print(f"   🛑 [Kampanya Bitti] Sayfada kampanya sona ermiş görünüyor → Pasife alınıyor | ID: #{c['id']} | {c['title'][:50]}")
                 with get_db_session() as db:
                     db_camp = db.query(Campaign).filter(Campaign.id == c["id"]).first()
                     if db_camp:
-                        db_camp.end_date = indefinite_date
-                        db_camp.date_extended = True
-                        db_camp.is_approved = False
+                        db_camp.is_active = False
                         db_camp.updated_at = datetime.now()
                         db.commit()
-                return True
+                return False
+
+            if not ai_end_date_str:
+                if is_indefinite:
+                    # Süresiz kampanya
+                    # Ay sonuna kadar uzat. Eğer ay sonuna 5 günden az kaldıysa bir sonraki ayın sonuna uzat.
+                    last_day_current = calendar.monthrange(today.year, today.month)[1]
+                    if (last_day_current - today.day) > 5:
+                        indefinite_date = datetime(today.year, today.month, last_day_current).date()
+                    else:
+                        if today.month == 12:
+                            next_month_num, next_year_num = 1, today.year + 1
+                        else:
+                            next_month_num, next_year_num = today.month + 1, today.year
+                        last_day_next = calendar.monthrange(next_year_num, next_month_num)[1]
+                        indefinite_date = datetime(next_year_num, next_month_num, last_day_next).date()
+
+                    print(f"   📅 [Süresiz Kampanya] Bitiş tarihi yok (aktif) → {indefinite_date} tarihine uzatılıyor | ID: #{c['id']} | {c['title'][:50]}")
+                    with get_db_session() as db:
+                        db_camp = db.query(Campaign).filter(Campaign.id == c["id"]).first()
+                        if db_camp:
+                            db_camp.end_date = indefinite_date
+                            db_camp.date_extended = True
+                            db_camp.is_approved = False
+                            db_camp.updated_at = datetime.now()
+                            db.commit()
+                    return True
+                else:
+                    print(f"   ❌ No end date found and not marked indefinite | ID: #{c['id']} | {c['title'][:50]}")
+                    return False
 
             try:
                 latest_date = datetime.strptime(ai_end_date_str, "%Y-%m-%d").date()
@@ -369,6 +401,13 @@ def proactive_expiry_audit(max_audits=2000):
                             if updated_description != db_camp.description:
                                 print(f"   📅 [Description Tarihi Güncellendi] #{c['id']}")
                                 db_camp.description = updated_description
+                        if hasattr(db_camp, 'ai_marketing_text') and db_camp.ai_marketing_text:
+                            updated_marketing = update_dates_in_text(
+                                db_camp.ai_marketing_text, current_end, latest_date
+                            )
+                            if updated_marketing != db_camp.ai_marketing_text:
+                                print(f"   📅 [Marketing Text Tarihi Güncellendi] #{c['id']}")
+                                db_camp.ai_marketing_text = updated_marketing
 
                         # 🔗 URL Redirect tespiti: tracking_url ve slug güncelle
                         final_url = c.get("final_url")

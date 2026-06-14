@@ -72,7 +72,7 @@ def get_ai_image_url(title: str, bank: Optional[Any], sector: Optional[Any]) -> 
             # Pick a random page between 1 and 5 to ensure uniqueness over time
             random_page = random.randint(1, 5)
             res = requests.get(
-                f"https://pixabay.com/api/?key={PIXABAY_API_KEY}&q={encoded_query}&image_type=illustration&orientation=horizontal&safesearch=true&per_page=100&page={random_page}",
+                f"https://pixabay.com/api/?key={PIXABAY_API_KEY}&q={encoded_query}&image_type=photo&orientation=horizontal&safesearch=true&per_page=100&page={random_page}",
                 timeout=5
             )
             if res.status_code == 200:
@@ -83,7 +83,7 @@ def get_ai_image_url(title: str, bank: Optional[Any], sector: Optional[Any]) -> 
                     return hit.get("largeImageURL") or hit.get("webformatURL")
                 elif random_page > 1: # Fallback to page 1 if random page had no results
                     res = requests.get(
-                        f"https://pixabay.com/api/?key={PIXABAY_API_KEY}&q={encoded_query}&image_type=illustration&orientation=horizontal&safesearch=true&per_page=50&page=1",
+                        f"https://pixabay.com/api/?key={PIXABAY_API_KEY}&q={encoded_query}&image_type=photo&orientation=horizontal&safesearch=true&per_page=50&page=1",
                         timeout=5
                     )
                     if res.status_code == 200 and res.json().get("hits"):

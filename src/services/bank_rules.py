@@ -484,8 +484,9 @@ AHL PAY SPECIFIC RULES:
         - Boş bırakma durumunda kampanya herkes için geçerliyse "AHL Card" yaz.
 - CUSTOMER TARGET (MÜŞTERİ KİTLESİ): 
     - İhtiyaç Finansmanı, Araç Finansmanı, Konut Finansmanı gibi kampanyalarda veya "İlk defa yatırım yapanlar" gibi özel bir müşteri kitlesi belirtilmişse, bunu kampanya koşullarında ve açıklamalarında mutlaka vurgula.
-- 🚨 **FOOTER GÜRÜLTÜSÜ YASAĞI (ULTRA CRITICAL)**:
+- 🚨 **FOOTER GÜRÜLTÜSÜ VE YASAKLI MARKALAR (ULTRA CRITICAL)**:
     - Sayfa altındaki "AHL Pay Başvuru", "Hakkımızda", "Kurumsal Yönetim" gibi genel menü başlıklarını ASLA kampanyaya dahil etme.
+    - Metinde "iWallet" ibaresi geçse bile (altyapı sağlayıcısı olduğundan) KESİNLİKLE 'brands' listesine marka olarak EKLEME. iWallet asla bir kampanya markası değildir.
 - PARTICIPATION (katilim_sekli):
     - Genellikle "AHL Pay Mobil Uygulaması" üzerinden işlem yapılır.
 """,

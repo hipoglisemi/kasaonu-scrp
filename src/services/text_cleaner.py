@@ -20,6 +20,10 @@ def clean_campaign_text(raw_text: str, og_title: Optional[str] = None, title: Op
         try:
             soup = BeautifulSoup(raw_text, "html.parser")
             
+            page_title = ""
+            if soup.title:
+                page_title = " ".join(soup.title.get_text().split()).strip()
+            
             # 1. Global Tag Removal (Kökten ayıklama)
             for element in soup(["script", "style", "nav", "footer", "header", "noscript", "meta", "iframe", "svg", "link", "aside", "title"]):
                 element.decompose()
@@ -104,9 +108,9 @@ def clean_campaign_text(raw_text: str, og_title: Optional[str] = None, title: Op
                     except Exception:
                         pass
             
-            # 3. Content Targeting
-            # Use space instead of newline to prevent "ladder text" (Vakifbank issue)
             raw_text = soup.get_text(separator="\n", strip=True)
+            if page_title:
+                raw_text = f"Sayfa Başlığı: {page_title}\n\n" + raw_text
             
             # --- INTELLIGENT FLATTENING (The fix for fragmented text) ---
             # 1. Remove excessive spaces
