@@ -244,6 +244,64 @@ class TkpayScraper:
                     pass
 
             if rsc_campaign_data:
+                # 1. Parse slots
+                slots = {}
+                current_id = None
+                for line in full_payload.split('\n'):
+                    match = re.match(r'^(\d+):(.*)', line)
+                    if match:
+                        current_id = match.group(1)
+                        slots[current_id] = match.group(2)
+                    elif current_id is not None:
+                        slots[current_id] += '\n' + line
+
+                # 2. Clean slot prefixes, slice to length, unescape and truncate if HTML
+                clean_slots = {}
+                for k, v in slots.items():
+                    match_prefix = re.match(r'^T([0-9a-fA-F]+),(.*)', v, re.DOTALL)
+                    if match_prefix:
+                        length_hex = match_prefix.group(1)
+                        length = int(length_hex, 16)
+                        content = match_prefix.group(2)
+                        
+                        # Slice raw escaped string first
+                        sliced = content[:length]
+                        
+                        # Unescape unicode sequences
+                        def unescape_unicode(m):
+                            try:
+                                return chr(int(m.group(1), 16))
+                            except Exception:
+                                return m.group(0)
+                        
+                        decoded = re.sub(r'\\u([0-9a-fA-F]{4})', unescape_unicode, sliced)
+                        
+                        # Truncate at closing HTML tags if any (Next.js stream boundary protection)
+                        for tag in ['</p>', '</ul>', '</div>', '</td>', '</span>', '</ol>']:
+                            idx = decoded.rfind(tag)
+                            if idx != -1:
+                                decoded = decoded[:idx + len(tag)]
+                                break
+                        clean_slots[k] = decoded
+                    else:
+                        clean_slots[k] = v
+
+                # 3. Resolve function
+                def resolve_all(val, clean_slots):
+                    if isinstance(val, str):
+                        if val.startswith("$") and val[1:].isdigit():
+                            ref_id = val[1:]
+                            if ref_id in clean_slots:
+                                return resolve_all(clean_slots[ref_id], clean_slots)
+                        return val
+                    elif isinstance(val, dict):
+                        return {k: resolve_all(v, clean_slots) for k, v in val.items()}
+                    elif isinstance(val, list):
+                        return [resolve_all(v, clean_slots) for v in val]
+                    return val
+
+                rsc_campaign_data = resolve_all(rsc_campaign_data, clean_slots)
+
                 title = rsc_campaign_data.get("name", title)
                 desc = rsc_campaign_data.get("description", "")
                 
@@ -260,13 +318,14 @@ class TkpayScraper:
                     json_img = urljoin("https://tkpay.com", json_img)
             else:
                 desc = title
+                rules_html = ""
 
             final_image = json_img or list_img_url or detail_img
 
             ai_data = parse_api_campaign(
                 title=title,
                 short_description=desc,
-                content_html=raw_html,
+                content_html=rules_html if rsc_campaign_data else raw_html,
                 bank_name="Tkpay",
                 scraper_sector=None,
                 tracking_url=url,
