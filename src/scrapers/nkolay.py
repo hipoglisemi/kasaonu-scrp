@@ -152,31 +152,35 @@ class NkolayScraper:
         except Exception as e:
             print(f"   No cookie banner dismissed: {e}")
 
-        # Click 'Daha fazla göster' button repeatedly
+        # Click active 'Daha fazla göster' button repeatedly
         click_count = 0
         while True:
             try:
-                show_more_btns = driver.find_elements(By.XPATH, "//button[contains(text(),'Daha fazla') or contains(text(),'daha fazla') or contains(text(),'DAHA FAZLA') or contains(text(),'Göster') or contains(text(),'göster')]")
-                clicked = False
-                for btn in show_more_btns:
-                    if btn.is_displayed() and btn.is_enabled():
-                        driver.execute_script("arguments[0].scrollIntoView({block: 'center'});", btn)
-                        time.sleep(1.5)
-                        btn.click()
-                        click_count += 1
-                        print(f"   [{click_count}] Clicked 'Daha fazla göster' button")
-                        time.sleep(3.5)
-                        clicked = True
-                        break
-                if not clicked:
+                # Target specifically the button for active campaigns list (before Geçmiş Kampanyalar)
+                btn = driver.find_element(By.CSS_SELECTOR, 'div[class*="productList"] > ul[class*="productList"] + div button')
+                if btn.is_displayed() and btn.is_enabled():
+                    driver.execute_script("arguments[0].scrollIntoView({block: 'center'});", btn)
+                    time.sleep(1.5)
+                    btn.click()
+                    click_count += 1
+                    print(f"   [{click_count}] Clicked active 'Daha fazla göster' button")
+                    time.sleep(3.5)
+                else:
                     break
-            except Exception as e:
-                print(f"   No more 'Daha fazla göster' button or error: {e}")
+            except Exception:
+                # Button not found or no longer active
                 break
 
         soup = BeautifulSoup(driver.page_source, 'html.parser')
-        cards = soup.select('a[class*="productCardLink"]')
-        print(f"   DEBUG: Found {len(cards)} potential card elements")
+        
+        # Select ONLY active campaigns (first product list ul)
+        active_ul = soup.select_one('div[class*="productList"] > ul[class*="productList"]')
+        if not active_ul:
+            print("   ⚠️ Active campaigns list container not found!")
+            return campaigns
+
+        cards = active_ul.select('a[class*="productCardLink"]')
+        print(f"   DEBUG: Found {len(cards)} active card elements")
 
         for card in cards:
             href = card.get('href')
@@ -212,7 +216,7 @@ class NkolayScraper:
                 seen.add(c['url'])
                 unique.append(c)
 
-        print(f"✅ Found {len(unique)} unique campaign cards")
+        print(f"✅ Found {len(unique)} unique active campaign cards")
         return unique
 
     def _fetch_detail(self, url: str) -> str:
