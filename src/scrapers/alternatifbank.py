@@ -164,8 +164,8 @@ class AlternatifBankScraper:
             
             # 1. Try to get background-image from section.component-promo div.bg or div.bg-mobile
             promo_bg = soup.select_one("section.component-promo div.bg") or soup.select_one("section.component-promo div.bg-mobile")
-            if promo_bg and promo_bg.get("style"):
-                style_str = promo_bg.get("style")
+            if promo_bg and isinstance(promo_bg.get("style"), str):
+                style_str = str(promo_bg.get("style"))
                 img_match = re.search(r"url\(['\"]?(.*?)['\"]?\)", style_str)
                 if img_match:
                     detail_img = img_match.group(1)
@@ -188,7 +188,8 @@ class AlternatifBankScraper:
                 if img_el and img_el.get('src'):
                     detail_img = img_el.get('src')
 
-            final_image = detail_img or list_img_url
+            # Prioritize list page image (list_img_url) over detail page image (detail_img)
+            final_image = list_img_url or detail_img
             if final_image:
                 final_image = urljoin("https://www.alternatifbank.com.tr", final_image).strip()
 
