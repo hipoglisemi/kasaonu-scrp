@@ -396,8 +396,6 @@ def clean_campaign_text(raw_text: str, og_title: Optional[str] = None, title: Op
         r"(?i)sizin için seçtiklerimiz",
         r"(?i)öne çıkan ayrıcalıklar",
         r"(?i)(paylaş|yazdır)$",
-        r"(?i)kampanyayı (durdurma|değiştirme|değişiklik yapma).*(hakkını saklı tutar|hakkına sahiptir)",
-        r"(?i)kampanya (koşullarını|koşullarında|şartlarını|şartlarında) (değişiklik yapma|değiştirme|durdurma).*(hakkını saklı tutar|hakkına sahiptir)",
         r"(?i)türkiye finans katılım bankası a\.ş\. kampanya koşullarını değiştirme hakkını saklı tutar",
         r"(?i)akbank t\.a\.ş\. kampanyayı durdurma",
         r"(?i)miles&smiles dünyası ayrıcalıklarınız",
@@ -418,6 +416,20 @@ def clean_campaign_text(raw_text: str, og_title: Optional[str] = None, title: Op
         r"(?i)^diğer kampanyalar\s*$",
     ]
     
+    is_pep = False
+    if title and "pep" in title.lower():
+        is_pep = True
+    elif og_title and "pep" in og_title.lower():
+        is_pep = True
+    elif "peple.com.tr" in raw_text.lower() or "pep kart" in raw_text.lower() or "pep ödül" in raw_text.lower():
+        is_pep = True
+
+    if not is_pep:
+        HARD_CUT_MARKERS.extend([
+            r"(?i)kampanyayı (durdurma|değiştirme|değişiklik yapma).*(hakkını saklı tutar|hakkına sahiptir)",
+            r"(?i)kampanya (koşullarını|koşullarında|şartlarını|şartlarında) (değişiklik yapma|değiştirme|durdurma).*(hakkını saklı tutar|hakkına sahiptir)"
+        ])
+
     # 1. First evaluate hard cuts (no minimum percentage threshold required)
     for marker in HARD_CUT_MARKERS:
         for match in re.finditer(marker, text_lower, re.MULTILINE):
