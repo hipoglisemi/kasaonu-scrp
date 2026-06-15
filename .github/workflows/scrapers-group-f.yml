@@ -20,6 +20,7 @@ jobs:
           - shell
           - totalenergies
           - alternatifbank
+          - vodafonepay
 
     name: "🤖 ${{ matrix.scraper }}"
 
