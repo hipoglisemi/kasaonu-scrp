@@ -142,7 +142,12 @@ class AlternatifBankScraper:
             html = response.text
             soup = BeautifulSoup(html, 'html.parser')
 
-            title_el = soup.select_one('section.component-text-content div.heading-inner h2') or soup.find('h1')
+            title_el = (
+                soup.select_one('section.component-promo h1') or
+                soup.select_one('section.component-promo div.card-promo h1') or
+                soup.find('h1') or
+                soup.select_one('section.component-text-content div.heading-inner h2')
+            )
             title = title_el.get_text(strip=True) if title_el else "Kampanya"
 
             if is_url_blocked(self.db, url):
@@ -157,18 +162,35 @@ class AlternatifBankScraper:
 
             detail_img = None
             
-            # Check og:image meta tag first
-            og_img = soup.find("meta", property="og:image")
-            if og_img and og_img.get("content") and "favicon" not in og_img.get("content").lower() and "logo" not in og_img.get("content").lower():
-                detail_img = og_img.get("content")
+            # 1. Try to get background-image from section.component-promo div.bg or div.bg-mobile
+            promo_bg = soup.select_one("section.component-promo div.bg") or soup.select_one("section.component-promo div.bg-mobile")
+            if promo_bg and promo_bg.get("style"):
+                style_str = promo_bg.get("style")
+                img_match = re.search(r"url\(['\"]?(.*?)['\"]?\)", style_str)
+                if img_match:
+                    detail_img = img_match.group(1)
             
-            # Fallback to image tag in content area
+            # Filter out generic default corporate banners/logos
+            if detail_img and ("201906271524521054.png" in detail_img or "logo" in detail_img.lower() or "favicon" in detail_img.lower()):
+                detail_img = None
+
+            # 2. Fallback to og:image meta tag
+            if not detail_img:
+                og_img = soup.find("meta", property="og:image")
+                if og_img and og_img.get("content"):
+                    og_url = og_img.get("content")
+                    if "favicon" not in og_url.lower() and "logo" not in og_url.lower() and "201906271524521054.png" not in og_url:
+                        detail_img = og_url
+            
+            # 3. Fallback to image tag in content area
             if not detail_img:
                 img_el = soup.select_one('section.component-text-content img')
                 if img_el and img_el.get('src'):
-                    detail_img = urljoin("https://www.alternatifbank.com.tr", img_el.get('src'))
+                    detail_img = img_el.get('src')
 
             final_image = detail_img or list_img_url
+            if final_image:
+                final_image = urljoin("https://www.alternatifbank.com.tr", final_image).strip()
 
             from src.services.ai_parser_golden import parse_api_campaign
             ai_data = parse_api_campaign(
