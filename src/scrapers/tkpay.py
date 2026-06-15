@@ -97,6 +97,8 @@ class TkpayScraper:
                 seen = set()
                 for link in links:
                     href = link.get_attribute("href")
+                    if href:
+                        href = href.strip()
                     if href and ('kampanya' in href.lower() or 'campaign' in href.lower()) and href != "/tr/all-campaigns":
                         full_url = urljoin("https://tkpay.com", href)
                         if full_url not in seen:
@@ -143,7 +145,9 @@ class TkpayScraper:
                 seen = set()
                 for a in links:
                     href = a.get('href', '')
-                    if ('kampanya' in href.lower() or 'campaign' in href.lower()) and href != "/tr/all-campaigns" and len(href) > 5:
+                    if href:
+                        href = href.strip()
+                    if href and ('kampanya' in href.lower() or 'campaign' in href.lower()) and href != "/tr/all-campaigns" and len(href) > 5:
                         full_url = urljoin("https://tkpay.com", href)
                         
                         img_url = None
@@ -177,13 +181,17 @@ class TkpayScraper:
         import re
         import json
 
-        url = campaign_data['url']
+        url = campaign_data['url'].strip()
         list_img_url = campaign_data.get('img_url')
 
         print(f"🔍 Processing (AI Enabled): {url}")
         
         try:
             response = self.session.get(url, timeout=30)
+            if response.status_code != 200:
+                print(f"   ⚠️ Page returned status code {response.status_code}. Skipping.")
+                return "error"
+                
             html_content = response.content
             soup = BeautifulSoup(response.text, 'html.parser')
             

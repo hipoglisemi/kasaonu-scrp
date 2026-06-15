@@ -366,8 +366,6 @@ class OpetScraper:
         finally:
             if self.driver:
                 self.driver.quit()
-            if self.db:
-                self.db.close()
             
         # Log Result
         log_scraper_execution(
@@ -375,9 +373,14 @@ class OpetScraper:
             scraper_name=self.SOURCE_NAME,
             status=stats.get("status", "SUCCESS"),
             total_found=len(cards) if 'cards' in locals() else 0,
+            total_saved=stats["total_saved"],
+            total_skipped=stats["total_skipped"],
+            total_failed=stats["total_failed"],
             total_revived=stats["total_revived"],
             error_details={"errors": stats["errors"]} if stats["errors"] else None
         )
+        if self.db:
+            self.db.close()
         print(f"🏁 Finished {self.SOURCE_NAME}. Saved: {stats['total_saved']}, Revived: {stats['total_revived']}, Skipped: {stats['total_skipped']}, Failed: {stats['total_failed']}")
 
     def _get_sector_id(self, sector_slug: Optional[str]) -> Optional[int]:
