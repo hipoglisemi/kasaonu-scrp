@@ -21,6 +21,7 @@ jobs:
           - totalenergies
           - alternatifbank
           - vodafonepay
+          - pep
 
     name: "🤖 ${{ matrix.scraper }}"
 
