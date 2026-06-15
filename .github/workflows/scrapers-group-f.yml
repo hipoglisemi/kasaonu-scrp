@@ -19,6 +19,7 @@ jobs:
           - petrolofisi
           - shell
           - totalenergies
+          - alternatifbank
 
     name: "🤖 ${{ matrix.scraper }}"
 
