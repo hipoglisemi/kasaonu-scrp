@@ -1341,6 +1341,13 @@ def parse_api_campaign(
 
     for _sel in _noise_selectors:
         for _el in _soup.select(_sel):
+            if _el.name == 'body':
+                continue
+            cl = _el.get("class") or []
+            if isinstance(cl, str):
+                cl = [cl]
+            if any(c in ["no-sidebar", "has-sidebar", "no-header", "has-header", "no-footer", "has-footer"] for c in cl):
+                continue
             _el.decompose()
 
     # 2c. BANKA-ÖZEL içerik selector öncelik listesi
