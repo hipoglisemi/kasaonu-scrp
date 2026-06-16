@@ -79,9 +79,12 @@ class AkbankWingsScraper(AkbankBaseScraper):
         return campaign_urls  # type: ignore # pyre-ignore[7]
 
     def _process_campaign(self, url: str, force: bool = False) -> str:
-        """Override to use Wings-specific selectors."""
+        """Override to use Wings-specific selectors and Angular state extraction."""
         from bs4 import BeautifulSoup  # type: ignore # pyre-ignore[21]
         from src.services.ai_parser import parse_api_campaign  # type: ignore # pyre-ignore[21]
+        import json
+        import html
+        import re
         
         try:
             print(f"🔍 Processing: {url}")
@@ -90,36 +93,66 @@ class AkbankWingsScraper(AkbankBaseScraper):
             
             soup = BeautifulSoup(response.text, 'html.parser')
             
-            # --- Wings Specific Selectors ---
-            # Title is in h1.banner-title according to wings.ts
-            title_elm = soup.select_one('h1.banner-title')
-            if not title_elm:
-                title_elm = soup.select_one('h2.pageTitle') # Fallback
-            
-            title = title_elm.get_text(strip=True) if title_elm else "Kampanya"
-            
-            # Image is in .privileges-detail-image img
-            img_elm = soup.select_one('.privileges-detail-image img')
+            title = None
             image_url = None
-            if img_elm:
-                image_url = urljoin(self.WINGS_BASE_URL, img_elm.get('src', ''))
+            details_text = ""
             
-            # Get background image if main one missing
+            # 1. Try to extract from Angular SSR State JSON
+            script = soup.find('script', type='application/json')
+            if script:
+                try:
+                    content = script.string or ''
+                    # Replace encoded quotes and other chars
+                    content_clean = content.replace('&q;', '\"').replace('&s;', '\'').replace('&a;', '&')
+                    data = json.loads(content_clean)
+                    for k, v in data.items():
+                        if 'api/page' in k:
+                            body = v.get('body', {})
+                            data_list = body.get('data', [])
+                            for comp in data_list:
+                                if comp.get('componentname') == 'campaign_detail':
+                                    comp_data = comp.get('data', {})
+                                    title = comp_data.get('title')
+                                    image_url = comp_data.get('banner_image')
+                                    
+                                    banner_spot = comp_data.get('banner_spot') or ''
+                                    detail_content = comp_data.get('detail_content') or ''
+                                    
+                                    def clean_html(text):
+                                        if not text:
+                                            return ''
+                                        text = text.replace('&l;', '<').replace('&g;', '>')
+                                        text = html.unescape(text)
+                                        return BeautifulSoup(text, 'html.parser').get_text(separator='\n', strip=True)
+                                        
+                                    details_text = clean_html(banner_spot) + '\n' + clean_html(detail_content)
+                                    print(f"   ✨ Successfully extracted data from Angular SSR state JSON")
+                                    break
+                except Exception as json_err:
+                    print(f"   ⚠️ SSR State JSON parsing failed: {json_err}")
+            
+            # 2. Fallbacks if SSR extraction was incomplete or failed
+            if not title:
+                title_elm = soup.select_one('h1.banner-title')
+                if not title_elm:
+                    title_elm = soup.select_one('h2.pageTitle')
+                title = title_elm.get_text(strip=True) if title_elm else "Kampanya"
+                
             if not image_url:
-                banner = soup.select_one('.privileges-detail-banner')
-                if banner and 'style' in banner.attrs:
-                    import re  # type: ignore # pyre-ignore[21]
-                    match = re.search(r'url\(["\']?(.*?)["\']?\)', banner['style'])
-                    if match:
-                        image_url = urljoin(self.WINGS_BASE_URL, match.group(1))
-
-            # Details text for AI
-            details_container = soup.select_one('.privileges-detail-content') or soup.select_one('.cmsContent')
-            details_text = details_container.get_text(separator='\n', strip=True) if details_container else ""
-            
+                img_elm = soup.select_one('.privileges-detail-image img')
+                if img_elm:
+                    image_url = urljoin(self.WINGS_BASE_URL, img_elm.get('src', ''))
+                else:
+                    banner = soup.select_one('.privileges-detail-banner')
+                    if banner and 'style' in banner.attrs:
+                        match = re.search(r'url\(["\']?(.*?)["\']?\)', banner['style'])
+                        if match:
+                            image_url = urljoin(self.WINGS_BASE_URL, match.group(1))
+                            
             if not details_text:
-                details_text = title
-
+                details_container = soup.select_one('.privileges-detail-content') or soup.select_one('.cmsContent')
+                details_text = details_container.get_text(separator='\n', strip=True) if details_container else title
+                
             # AI Parsing
             ai_data = parse_api_campaign(
                 title=title,
