@@ -602,6 +602,22 @@ class DenizbankScraper:
         if eligible_cards_str and len(eligible_cards_str) > 255:
             eligible_cards_str = eligible_cards_str[:255]  # type: ignore # pyre-ignore[16,6]
         
+        # Convert string dates from AI to datetime.date objects
+        from datetime import datetime
+        start_date = None
+        if ai_data.get('start_date'):
+            try:
+                start_date = datetime.strptime(ai_data['start_date'], "%Y-%m-%d").date()
+            except Exception:
+                pass
+                
+        end_date = None
+        if ai_data.get('end_date'):
+            try:
+                end_date = datetime.strptime(ai_data['end_date'], "%Y-%m-%d").date()
+            except Exception:
+                pass
+
         campaign_data = {
             "title": ai_data.get('title') or title,
             "description": ai_data.get('description'),
@@ -609,8 +625,8 @@ class DenizbankScraper:
             "image_url": image_url,
             "tracking_url": url,
             "slug": slug,
-            "start_date": ai_data.get('start_date'),
-            "end_date": ai_data.get('end_date'),
+            "start_date": start_date,
+            "end_date": end_date,
             "is_active": True,
             "sector_id": self._resolve_sector_by_name(ai_data.get('sector')),
             "participation": participation,

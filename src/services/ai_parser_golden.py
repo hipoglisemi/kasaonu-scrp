@@ -1341,7 +1341,7 @@ def parse_api_campaign(
 
     for _sel in _noise_selectors:
         for _el in _soup.select(_sel):
-            if _el.name == 'body':
+            if _el.attrs is None or _el.name == 'body':
                 continue
             cl = _el.get("class") or []
             if isinstance(cl, str):
