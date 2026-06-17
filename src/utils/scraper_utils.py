@@ -237,6 +237,11 @@ def upsert_campaign(db: Session, campaign: Campaign) -> Tuple[Campaign, str]:
             if campaign.tracking_url and existing.tracking_url != campaign.tracking_url:
                 print(f"      🔗 [URL Güncelleme] tracking_url changed even in date-lock: {existing.tracking_url} → {campaign.tracking_url}")
                 existing.tracking_url = campaign.tracking_url
+            # 🖼️ Image URL Update: If the bank changed the image URL (or to fix broken extensions),
+            # update image_url even in date-lock mode.
+            if campaign.image_url and existing.image_url != campaign.image_url:
+                print(f"      🖼️ [Görsel Güncelleme] image_url changed even in date-lock: {existing.image_url} → {campaign.image_url}")
+                existing.image_url = campaign.image_url
         else:
             # Update URLs and Slug ONLY when it's a completely new/modified campaign
             existing.tracking_url = campaign.tracking_url  
