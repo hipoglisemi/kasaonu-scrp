@@ -171,8 +171,8 @@ class TurkcellScraper:
     async def _scrape_detail(self, context, url: str) -> str:
         with get_db_session() as db:
             existing = db.query(Campaign).filter(Campaign.tracking_url == url).first()  # type: ignore # pyre-ignore[16]
-            if existing:
-                print(f"   ⏭️ Skipped (Already exists): {existing.title}")
+            if existing and existing.is_active:
+                print(f"   ⏭️ Skipped (Already exists and active): {existing.title}")
                 return "skipped"  # type: ignore # pyre-ignore[7]
         
         from src.utils.scraper_utils import is_url_blocked  # type: ignore

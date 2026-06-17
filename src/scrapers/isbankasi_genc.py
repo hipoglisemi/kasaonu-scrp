@@ -439,12 +439,12 @@ class IsbankMaximumGencScraper:
             counter += 1  # type: ignore # pyre-ignore[58]
         return slug  # type: ignore # pyre-ignore[7]
 
-    def _process_campaign(self, url: str) -> str:
+    def _process_campaign(self, url: str, force: bool = False) -> str:
         existing = self.db.query(Campaign).filter(  # type: ignore # pyre-ignore[16]
             Campaign.tracking_url == url, Campaign.card_id == self.card_id
         ).first()
-        if existing:
-            print(f"   ⏭️  Skipped (Already exists): {existing.title[:40]}")
+        if existing and existing.is_active and not force:
+            print(f"   ⏭️  Skipped (Already exists and active): {existing.title[:40]}")
             return "skipped"  # type: ignore # pyre-ignore[7]
 
         # Blocklist check
@@ -656,7 +656,7 @@ class IsbankMaximumGencScraper:
             for i, url in enumerate(urls, 1):
                 print(f"\n[{i}/{len(urls)}]")
                 try:
-                    res = self._process_campaign(url)
+                    res = self._process_campaign(url, force=force)
                     if res == "saved":
                         success += 1  # type: ignore # pyre-ignore[58]
                     elif res == "revived":

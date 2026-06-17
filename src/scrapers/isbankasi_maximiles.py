@@ -540,8 +540,8 @@ class IsbankMaximilesScraper:
             Campaign.tracking_url == url, Campaign.card_id == self.card_id
         ).first()
         
-        if existing and not force:
-            print(f"   ⏭️  Skipped (Already exists): {existing.title[:40]}")
+        if existing and existing.is_active and not force:
+            print(f"   ⏭️  Skipped (Already exists and active): {existing.title[:40]}")
             return "skipped"  # type: ignore # pyre-ignore[7]
         
         # Blocklist check

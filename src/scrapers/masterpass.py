@@ -279,8 +279,8 @@ class MasterpassScraper:
                 Campaign.tracking_url == url,
                 Campaign.card_id == self.card_id
             ).first()
-            if existing:
-                print(f"      ⏭️  Skipped (Already exists): {existing.title}")
+            if existing and existing.is_active:
+                print(f"      ⏭️  Skipped (Already exists and active): {existing.title}")
                 return "skipped"  # type: ignore # pyre-ignore[7]
 
         print(f"   🔍 Processing: {url}")
