@@ -53,6 +53,44 @@ class TkpayScraper:
         
         self.card_id = self.card.id
 
+        # Check if direct connection works, fallback to TR proxy if needed
+        self.proxy = None
+        print("   🔍 Checking direct connection to tkpay.com...")
+        try:
+            r = requests.get(self.BASE_URL, timeout=4, headers=self.session.headers)
+            if r.status_code == 200:
+                print("   🌐 Direct connection to tkpay.com is successful. No proxy needed.")
+            else:
+                self.proxy = self._find_working_tr_proxy()
+        except Exception:
+            self.proxy = self._find_working_tr_proxy()
+
+        if self.proxy:
+            self.session.proxies = {
+                "http": self.proxy,
+                "https": self.proxy
+            }
+
+    def _find_working_tr_proxy(self) -> Optional[str]:
+        print("   🔍 Direct connection to tkpay.com failed or timed out. Fetching free Turkey proxy list...")
+        try:
+            url = "https://api.proxyscrape.com/v4/free-proxy-list/get?request=display_proxies&proxy_format=protocolipport&format=text&country=tr"
+            resp = requests.get(url, timeout=10)
+            proxies = [p.strip() for p in resp.text.split('\n') if p.strip()]
+            print(f"   📋 Found {len(proxies)} Turkey proxies to test.")
+            for proxy in proxies[:15]:
+                try:
+                    proxies_dict = {'http': proxy, 'https': proxy}
+                    test_resp = requests.get(self.BASE_URL, proxies=proxies_dict, timeout=5, headers=self.session.headers)
+                    if test_resp.status_code == 200:
+                        print(f"   ✅ Found working TR proxy: {proxy}")
+                        return proxy
+                except Exception:
+                    pass
+        except Exception as e:
+            print(f"   ⚠️ Failed to get/test Turkey proxies: {e}")
+        return None
+
     def _load_cache(self):
         for s in self.db.query(Sector).all():
             self.sector_cache[s.slug] = s
@@ -69,7 +107,14 @@ class TkpayScraper:
         try:
             from playwright.sync_api import sync_playwright
             with sync_playwright() as p:
-                browser = p.chromium.launch(headless=True, channel="chrome", args=["--no-sandbox", "--disable-setuid-sandbox"])
+                launch_args = {
+                    "headless": True,
+                    "channel": "chrome",
+                    "args": ["--no-sandbox", "--disable-setuid-sandbox"]
+                }
+                if self.proxy:
+                    launch_args["proxy"] = {"server": self.proxy}
+                browser = p.chromium.launch(**launch_args)
                 page = browser.new_page(user_agent="Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
                 page.goto(self.BASE_URL, timeout=45000, wait_until="domcontentloaded")
                 

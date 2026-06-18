@@ -138,10 +138,15 @@ class UptionScraper:
                 print(f"   🎯 Found {len(cards)} strategy cards.")
 
                 found_items = []
+                seen_urls = set()
                 for card in cards:
                     href = card.get('href')
                     if href:
                         url = urljoin(self.BASE_URL, href)
+                        if url in seen_urls:
+                            continue
+                        seen_urls.add(url)
+                        
                         # Extract basic info from card
                         title_div = card.select_one('div')
                         item_title = title_div.get_text(strip=True) if title_div else ""
