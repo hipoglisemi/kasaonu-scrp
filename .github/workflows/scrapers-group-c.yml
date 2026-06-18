@@ -49,7 +49,7 @@ jobs:
         pip install selenium-stealth pyvirtualdisplay webdriver-manager
 
     - name: Install Playwright Browsers
-      run: playwright install chromium firefox --with-deps
+      run: playwright install chromium
 
     - name: Run Scraper
       env:
