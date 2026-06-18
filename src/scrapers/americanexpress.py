@@ -220,17 +220,32 @@ class AmericanExpressScraper:
         # Check if already exists by URL
         existing = self.db.query(Campaign).filter_by(tracking_url=url).first()  # type: ignore # pyre-ignore[16]
         if existing:
-            print(f"  -> Already exists (url): {existing.title}")
-            self.stats["skipped"] += 1  # type: ignore # pyre-ignore[58]
+            if existing.is_active is False:
+                print(f"   🔄 Reviving passive campaign (url): {existing.title[:40]}...")
+                existing.is_active = True
+                existing.is_approved = False
+                existing.cards_audited_at = None
+                self.db.commit()
+                self.stats["revived"] += 1
+            else:
+                print(f"  -> Already exists (url) and active: {existing.title}")
+                self.stats["skipped"] += 1  # type: ignore # pyre-ignore[58]
             return
-        
         
         # Check by URL slug as well
         slug = url.rstrip('/').split('/')[-1]
         existing_slug = self.db.query(Campaign).filter_by(slug=slug[:120]).first()  # type: ignore # pyre-ignore[16,6]
         if existing_slug:
-            print(f"  -> Already exists (slug): {slug}")
-            self.stats["skipped"] += 1  # type: ignore # pyre-ignore[58]
+            if existing_slug.is_active is False:
+                print(f"   🔄 Reviving passive campaign (slug): {existing_slug.title[:40]}...")
+                existing_slug.is_active = True
+                existing_slug.is_approved = False
+                existing_slug.cards_audited_at = None
+                self.db.commit()
+                self.stats["revived"] += 1
+            else:
+                print(f"  -> Already exists (slug) and active: {slug}")
+                self.stats["skipped"] += 1  # type: ignore # pyre-ignore[58]
             return
 
         # Navigate to detail — force utf-8 decoding
