@@ -171,7 +171,14 @@ def upsert_campaign(db: Session, campaign: Campaign) -> Tuple[Campaign, str]:
         status = "saved"
         if existing.is_active is False:
             today_date = datetime.now(timezone.utc).date()
-            new_end_date = campaign.end_date.date() if hasattr(campaign.end_date, 'date') else campaign.end_date
+            new_end_date = campaign.end_date
+            if isinstance(new_end_date, str):
+                try:
+                    new_end_date = datetime.strptime(new_end_date.split()[0], "%Y-%m-%d").date()
+                except Exception:
+                    new_end_date = None
+            elif hasattr(new_end_date, 'date'):
+                new_end_date = new_end_date.date()
 
             # 🛡️ AKILLI REVIVE KONTROLÜ:
             # AI kesin bir geçmiş tarih döndürdüyse → banka tarihi güncellememiş, pasif bırak.

@@ -30,7 +30,7 @@ from src.services.ai_parser_golden import parse_api_campaign  # type: ignore # p
 from src.utils.scraper_utils import is_url_blocked  # type: ignore # pyre-ignore[21]
 from src.services.brand_matcher import get_or_create_brands_list  # type: ignore # pyre-ignore[21]
 from src.utils.logger_utils import log_scraper_execution  # type: ignore # pyre-ignore[21]
-from src.utils.slug_generator import generate_slug  # type: ignore # pyre-ignore[21]
+from src.utils.slug_generator import generate_slug, get_unique_slug  # type: ignore # pyre-ignore[21]
 
 class TurkTelekomScraper:
     """
@@ -294,11 +294,11 @@ class TurkTelekomScraper:
                     clean_link = link.split('?')[0].rstrip('/')
                     if any(x['url'].rstrip('/') == clean_link for x in items): continue
                     
-                    container = a.find_parent(class_=re.compile(r'card|item|category-item'))
-                    if not container: container = a.parent.parent
+                    container = a.find_parent(class_=re.compile(r'card|item|category-item|mega-menu-img'))
+                    if not container: container = a.parent
                     
-                    brand = container.find(['h3', 'h4', 'h5', 'strong'])
-                    desc = container.select_one('.card-desc, .category-desc, p')
+                    brand = container.find(['h3', 'h4', 'h5', 'strong']) if container else None
+                    desc = container.select_one('.card-desc, .category-desc, p') if container else None
                     
                     b_text = brand.get_text(strip=True) if brand else ""
                     d_text = desc.get_text(strip=True) if desc else ""
@@ -347,11 +347,11 @@ class TurkTelekomScraper:
                     clean_link = link.split('?')[0].rstrip('/')
                     if any(x['url'].rstrip('/') == clean_link for x in items): continue
                     
-                    container = a.find_parent(class_=re.compile(r'card|item|category-item'))
-                    if not container: container = a.parent.parent
+                    container = a.find_parent(class_=re.compile(r'card|item|category-item|mega-menu-img'))
+                    if not container: container = a.parent
                     
-                    brand = container.find(['h3', 'h4', 'h5', 'strong'])
-                    desc = container.select_one('.card-desc, .category-desc, p')
+                    brand = container.find(['h3', 'h4', 'h5', 'strong']) if container else None
+                    desc = container.select_one('.card-desc, .category-desc, p') if container else None
                     
                     b_text = brand.get_text(strip=True) if brand else ""
                     d_text = desc.get_text(strip=True) if desc else ""
@@ -396,10 +396,10 @@ class TurkTelekomScraper:
                             if any(x['url'].rstrip('/') == clean_url for x in items): continue
                             
                             container = a.find_parent(class_=re.compile(r'item|card|campaign'))
-                            if not container: container = a.parent.parent
+                            if not container: container = a.parent
                             
-                            brand = container.select_one(".item-title, h3, h4")
-                            detail = container.select_one(".campaign-detail, .item-text, p")
+                            brand = container.select_one(".item-title, h3, h4") if container else None
+                            detail = container.select_one(".campaign-detail, .item-text, p") if container else None
                             
                             b_text = brand.get_text(strip=True) if brand else ""
                             d_text = detail.get_text(strip=True) if detail else ""
@@ -547,20 +547,7 @@ class TurkTelekomScraper:
             content_parts = []
             participation_text = ""
             
-            # 3.1 Check for Static Information Box (Important for Participation)
-            # This box often contains "Kampanyadan Faydalanmak İçin" outside accordions
-            static_boxes = soup.select(".campaign-detail-box, .campaign-detail-info, .tabs-content")
-            for box in static_boxes:
-                box_text = box.get_text(separator="\n", strip=True)
-                if box_text:
-                    # If it looks like participation info, prioritize it
-                    lower_box = box_text.lower()
-                    if any(x in lower_box for x in ["faydalan", "katılım", "nasıl", "şifre"]):
-                        participation_text += f"\n[Önemli Talimat]: {box_text}"
-                    else:
-                        content_parts.append(f"### Bilgi Notu\n{box_text}")
-
-            # Sometimes the headers and contents are direct children of a container
+            # 3.1 Extract Accordion Content first
             headers = soup.select(".accordion-header")
             for header in headers:
                 header_text = header.get_text(strip=True)
@@ -580,6 +567,32 @@ class TurkTelekomScraper:
                         if any(x in lower_header for x in ["katılım", "nasil", "faydalan", "detay"]):  # type: ignore # pyre-ignore[16,6]
                             participation_text += f"\n[{header_text}]: {text}"  # type: ignore # pyre-ignore[58,16,6]
 
+            # Decompose accordions to prevent duplication in static text extraction
+            for accordion in soup.select(".accordion-item, .accordion-header, .accordion-content"):
+                accordion.decompose()
+
+            # 3.2 Check for Static Information Box (Important for Participation)
+            candidate_boxes = soup.select(".campaign-detail-box, .campaign-detail-info, .tabs-content, .detail-right-content, .detail-content, .ms-rtestate-field")
+            static_boxes = []
+            for box in candidate_boxes:
+                is_descendant = False
+                for other in candidate_boxes:
+                    if other != box and box in other.descendants:
+                        is_descendant = True
+                        break
+                if not is_descendant:
+                    static_boxes.append(box)
+
+            for box in static_boxes:
+                box_text = box.get_text(separator="\n", strip=True)
+                if box_text:
+                    # If it looks like participation info, prioritize it
+                    lower_box = box_text.lower()
+                    if any(x in lower_box for x in ["faydalan", "katılım", "nasıl", "şifre"]) and any(x in lower_box for x in ["şifre", "sms", "kod"]):
+                        participation_text += f"\n[Önemli Talimat]: {box_text}"
+                    else:
+                        content_parts.append(f"### Bilgi Notu\n{box_text}")
+
             # og:title for Header Sniper
             og_title_el = soup.find("meta", property="og:title")
             og_title = og_title_el.get("content", "").strip() if og_title_el else title
@@ -598,13 +611,17 @@ class TurkTelekomScraper:
                     if og_title.endswith(suffix):
                         og_title = og_title[:-len(suffix)].strip()
 
+                # If og_title is too generic, clear it to prevent overriding the more specific predefined listing title
+                if any(x in og_title.lower() for x in ["avantajlar ve ayrıcalıklar", "türk telekomlulara özel", "başlık yok"]):
+                    og_title = None
+
             # Build a super clean HTML containing only the relevant campaign content
             # to prevent AI parser from getting confused by footer links, KVKK texts, or expired campaign lists.
             clean_html_parts = []
-            if og_title:
-                clean_html_parts.append(f"<h1>{og_title}</h1>")
-            else:
+            if title:
                 clean_html_parts.append(f"<h1>{title}</h1>")
+            if og_title and og_title != title:
+                clean_html_parts.append(f"<h2>{og_title}</h2>")
                 
             if content_parts:
                 clean_html_parts.append("\n".join(content_parts))
@@ -669,7 +686,14 @@ class TurkTelekomScraper:
             brand_ids = self._get_or_create_brands(data.get("brands", []), sector.id if sector else None)  # type: ignore # pyre-ignore[16]
             
             # Slug - always use get_unique_slug for consistency and deterministic hashing
-            slug = generate_slug(data.get("title") or "Kampanya")
+            slug = get_unique_slug(
+                title=data.get("title") or "Kampanya",
+                db_session=self.db,
+                campaign_model=Campaign,
+                tracking_url=url,
+                card_name="Türk Telekom Müşterisi",
+                bank_name="Türk Telekom"
+            )
             
             ai_marketing_text = data.get("ai_marketing_text")
             participation_text = data.get("participation", "")
