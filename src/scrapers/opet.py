@@ -157,58 +157,106 @@ class OpetScraper:
             # Handling "Daha Fazla Göster"
             print("   ⏳ Loading all campaigns (Clicking 'Daha Fazla Göster')...")
             click_count = 0
-            while click_count < 20:
+            prev_card_count = 0
+            while click_count < 30:
                 try:
-                    # More robust selector covering different button variants
-                    selectors = [
-                        "a.btn.btn-primary.mx-auto", 
-                        "div.btn-more", 
-                        "a[href='#'].btn",
-                        ".campaign-list-more a"
-                    ]
-                    
                     btn = None
-                    for selector in selectors:
-                        try:
-                            found = WebDriverWait(self.driver, 3).until(
-                                EC.presence_of_element_located((By.CSS_SELECTOR, selector))
-                            )
-                            if found.is_displayed() and "DAHA FAZLA" in found.text.upper():
-                                btn = found
+
+                    # 1) XPath text-based search (most reliable — selector-agnostic)
+                    try:
+                        candidates = self.driver.find_elements(
+                            By.XPATH,
+                            "//*[contains(translate(text(), 'daha fazla göster', 'DAHA FAZLA GÖSTER'), 'DAHA FAZLA')]"
+                        )
+                        for candidate in candidates:
+                            if candidate.is_displayed() and candidate.is_enabled():
+                                btn = candidate
                                 break
-                        except:
-                            continue
+                    except:
+                        pass
+
+                    # 2) CSS fallback selectors
+                    if not btn:
+                        css_selectors = [
+                            "a.btn.btn-primary.mx-auto",
+                            "button.btn-more",
+                            "div.btn-more",
+                            "a[href='#'].btn",
+                            ".campaign-list-more a",
+                            "[class*='more'][class*='btn']",
+                            "[class*='load-more']",
+                        ]
+                        for selector in css_selectors:
+                            try:
+                                found = self.driver.find_element(By.CSS_SELECTOR, selector)
+                                if found.is_displayed() and found.is_enabled():
+                                    btn = found
+                                    break
+                            except:
+                                continue
 
                     if not btn:
-                        break
-                        
-                    # Scroll to button
+                        # Scroll to bottom as a last resort to trigger lazy load
+                        self.driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
+                        time.sleep(2)
+                        # Check if card count increased (lazy-loaded)
+                        current_soup = BeautifulSoup(self.driver.page_source, "html.parser")
+                        current_cards = current_soup.select(
+                            "a.position-relative.h-100, .campaign-item, "
+                            "[class*='campaign-card'], [class*='kampanya'], "
+                            "div.col-12.col-md-6.col-lg-3 a, div.col-6 a[href*='kampanya']"
+                        )
+                        if len(current_cards) == prev_card_count:
+                            break  # Nothing new loaded — truly done
+                        prev_card_count = len(current_cards)
+                        click_count += 1
+                        print(f"   📜 Scrolled (lazy load round {click_count}) — {len(current_cards)} cards so far...")
+                        continue
+
+                    # Scroll to button & click
                     self.driver.execute_script("arguments[0].scrollIntoView({block: 'center'});", btn)
                     time.sleep(1)
-                    
-                    # Use JS click for reliability
                     self.driver.execute_script("arguments[0].click();", btn)
-                        
+
                     click_count += 1
-                    print(f"   🖱️ Clicked 'Show More' {click_count} times.")
-                    time.sleep(3) # Wait for content to load
+                    print(f"   🖱️ Clicked 'Daha Fazla Göster' ({click_count} times).")
+                    time.sleep(3)  # Wait for content to load
                 except Exception as e:
                     break
 
-            # Collect cards
-            time.sleep(5) # Final wait for everything to render
+            # Collect cards — final wait for everything to render
+            time.sleep(5)
+            # Scroll one more time to ensure all lazy-loaded content is visible
+            self.driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
+            time.sleep(2)
             soup = BeautifulSoup(self.driver.page_source, "html.parser")
-            cards = soup.select("a.position-relative.h-100, .campaign-item")
-            
+
+            # Broad selector covering all known Opet card variants
+            cards = soup.select(
+                "a.position-relative.h-100, "
+                ".campaign-item, "
+                "[class*='campaign-card'], "
+                "[class*='kampanya-kart'], "
+                "div.col-12.col-md-6.col-lg-3 a[href*='kampanya'], "
+                "div.col-6 a[href*='kampanya'], "
+                "a[href*='/kampanyalar/']"
+            )
+
+            # Deduplicate by href
+            seen_hrefs = set()
+            unique_cards = []
+            for c in cards:
+                href = c.get('href') if c.name == 'a' else (c.select_one('a') or c).get('href', '')
+                if href and href not in seen_hrefs:
+                    seen_hrefs.add(href)
+                    unique_cards.append(c)
+            cards = unique_cards
+
             if not cards:
-                print("   ⚠️ No cards found with '.campaign-item'. Diagnostic info:")
+                print("   ⚠️ No cards found. Diagnostic info:")
                 unique_classes = sorted(list(set([cls for el in soup.find_all(True) for cls in el.get("class", [])])))
                 print(f"   📂 Found {len(unique_classes)} unique classes in DOM.")
                 print(f"   📑 First 1000 chars of source: {self.driver.page_source[:1000]}")
-                # Try fallback selector from previous version
-                cards = soup.select("div.col-12.col-md-6.col-lg-3")
-                if cards:
-                    print(f"   💡 Fallback selector 'div.col-12.col-md-6.col-lg-3' found {len(cards)} cards.")
 
             print(f"   🎯 Found {len(cards)} potential campaign cards.")
 
