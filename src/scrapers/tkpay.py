@@ -5,7 +5,7 @@ import traceback
 import requests
 from typing import Dict, Optional, List, Any
 from bs4 import BeautifulSoup
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from urllib.parse import urljoin
 
 project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -107,7 +107,7 @@ class TkpayScraper:
         try:
             from playwright.sync_api import sync_playwright
             with sync_playwright() as p:
-                launch_args = {
+                launch_args: Dict[str, Any] = {
                     "headless": True,
                     "channel": "chrome",
                     "args": ["--no-sandbox", "--disable-setuid-sandbox"]
@@ -437,7 +437,7 @@ class TkpayScraper:
                 except: pass
             
             if not vf:
-                vf = datetime.utcnow()
+                vf = datetime.now(timezone.utc).replace(tzinfo=None)
 
             campaign = Campaign(
                 card_id=self.card_id,
@@ -458,8 +458,8 @@ class TkpayScraper:
                 clean_text=ai_data.get("_clean_text"),
                 is_active=True,
                 tracking_url=url,
-                created_at=datetime.utcnow(),
-                updated_at=datetime.utcnow()
+                created_at=datetime.now(timezone.utc).replace(tzinfo=None),
+                updated_at=datetime.now(timezone.utc).replace(tzinfo=None)
             )
             
             campaign, op_status = upsert_campaign(self.db, campaign)

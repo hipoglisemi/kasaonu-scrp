@@ -86,6 +86,9 @@ class YapikrediWorldScraper:
         else:
             full_url = f"{self.BASE_URL}{url_suffix}"
         
+        start_date = self._parse_iso_date(item.get('StartDate'))
+        end_date = self._parse_iso_date(item.get('EndDate'))
+        
         with get_db_session() as db:
             if is_url_blocked(db, full_url):
                 print(f"   🚫 Skipped (Blocklisted): {title}")
@@ -93,8 +96,9 @@ class YapikrediWorldScraper:
             
             existing = db.query(Campaign).filter(Campaign.tracking_url == full_url).first()  # type: ignore # pyre-ignore[16]
             if existing and existing.is_active and existing.is_approved and existing.clean_text and len(existing.clean_text) >= 600:
-                print(f"   ⏭️ Skipped (Already exists, active and fully scraped): {title}")
-                return "skipped"  # type: ignore # pyre-ignore[7]
+                if existing.end_date == end_date:
+                    print(f"   ⏭️ Skipped (Already exists, active and end date matches): {title}")
+                    return "skipped"  # type: ignore # pyre-ignore[7]
 
         print(f"   Processing: {title}")
         
@@ -104,11 +108,6 @@ class YapikrediWorldScraper:
         
         short_description = item.get('ShortDescription') or ''
         content_html = item.get('Content') or ''
-        start_date_str = item.get('StartDate')
-        end_date_str = item.get('EndDate')
-        
-        start_date = self._parse_iso_date(start_date_str)
-        end_date = self._parse_iso_date(end_date_str)
         
         # NEW: Fetch detail page for full content using a browser for dynamic content
         print(f"      🌐 Fetching detail page (Browser Mode) for full content: {full_url}")
@@ -272,6 +271,14 @@ class YapikrediWorldScraper:
     def _parse_iso_date(self, date_str: Optional[str]) -> Optional[datetime]:  # type: ignore # pyre-ignore[16,6]
         if not date_str:
             return None  # type: ignore # pyre-ignore[7]
+        if '/Date(' in date_str:
+            try:
+                import re
+                m = re.search(r'\d+', date_str)
+                if m:
+                    return datetime.fromtimestamp(int(m.group(0))/1000)
+            except:
+                pass
         try:
             return datetime.fromisoformat(date_str)  # type: ignore # pyre-ignore[7]
         except:

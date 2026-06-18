@@ -84,15 +84,19 @@ class YapikrediPlayScraper:
         else:
             full_url = f"{self.BASE_URL}{url_suffix}"
         
+        start_date = self._parse_iso_date(item.get('StartDate'))
+        end_date = self._parse_iso_date(item.get('EndDate'))
+        
         with get_db_session() as db:
             if is_url_blocked(db, full_url):
                 print(f"   🚫 Skipped (Blocklisted): {title}")
                 return "skipped"  # type: ignore # pyre-ignore[7]
 
             existing = db.query(Campaign).filter(Campaign.tracking_url == full_url).first()  # type: ignore # pyre-ignore[16]
-            if existing and existing.clean_text and len(existing.clean_text) >= 600:
-                print(f"   ⏭️ Skipped (Already exists and fully scraped): {title}")
-                return "skipped"  # type: ignore # pyre-ignore[7]
+            if existing and existing.is_active and existing.is_approved and existing.clean_text and len(existing.clean_text) >= 600:
+                if existing.end_date == end_date:
+                    print(f"   ⏭️ Skipped (Already exists, active and end date matches): {title}")
+                    return "skipped"  # type: ignore # pyre-ignore[7]
 
         print(f"   Processing: {title}")
         
@@ -159,23 +163,14 @@ class YapikrediPlayScraper:
             tracking_url=full_url,
             og_title=og_title
         )
-        
-        start_date_str = item.get('StartDate')
-        end_date_str = item.get('EndDate')
-        
-        from datetime import datetime
-        def parse_date(date_str):
-            if not date_str: return None
-            # e.g., /Date(1711929600000)/ or normal format
-            if '/Date(' in date_str:
-                import re
-                m = re.search(r'\d+', date_str)
-                if m:
-                    return datetime.fromtimestamp(int(m.group(0))/1000)
-            return None
 
-        start_date = parse_date(start_date_str) or ai_result.get('start_date')
-        end_date = parse_date(end_date_str) or ai_result.get('end_date')
+        # Fallback to AI dates if API dates are None
+        if not start_date and ai_result.get('start_date'):
+            try: start_date = datetime.strptime(ai_result.get('start_date'), "%Y-%m-%d")
+            except: pass
+        if not end_date and ai_result.get('end_date'):
+            try: end_date = datetime.strptime(ai_result.get('end_date'), "%Y-%m-%d")
+            except: pass
 
         display_title = ai_result.get('short_title') or title
         
@@ -275,6 +270,14 @@ class YapikrediPlayScraper:
     def _parse_iso_date(self, date_str: Optional[str]) -> Optional[datetime]:  # type: ignore # pyre-ignore[16,6]
         if not date_str:
             return None  # type: ignore # pyre-ignore[7]
+        if '/Date(' in date_str:
+            try:
+                import re
+                m = re.search(r'\d+', date_str)
+                if m:
+                    return datetime.fromtimestamp(int(m.group(0))/1000)
+            except:
+                pass
         try:
             return datetime.fromisoformat(date_str)  # type: ignore # pyre-ignore[7]
         except:

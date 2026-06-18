@@ -28,7 +28,55 @@ class ZiraatDinamikScraper:
         self.session.headers.update({
             "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
         })
+        
+        # Geoblock bypass: Find a working TR proxy if direct connection fails
+        proxy_url = self._find_working_tr_proxy()
+        if proxy_url:
+            self.session.proxies.update({
+                "http": proxy_url,
+                "https": proxy_url
+            })
+            
         self.db = get_db_session()
+
+    def _find_working_tr_proxy(self) -> Optional[str]:
+        """
+        Fetches public TR proxies from proxyscrape and tests them against the target URL.
+        Returns the first working proxy URL (e.g. 'http://ip:port') or None.
+        """
+        print("   🔍 Testing direct connection to Ziraat Dinamik first...")
+        try:
+            resp = self.session.get(self.LIST_URL, timeout=10)
+            if resp.status_code == 200:
+                print("   ✅ Direct connection works! No proxy needed.")
+                return None
+        except Exception as e:
+            print(f"   ⚠️ Direct connection failed (might be geoblocked): {e}")
+
+        print("   🌐 Fetching TR proxy list from proxyscrape...")
+        proxy_list_url = "https://api.proxyscrape.com/v2/?request=displayproxies&protocol=http&timeout=10000&country=TR&ssl=all&anonymity=all"
+        try:
+            r = requests.get(proxy_list_url, timeout=10)
+            proxies = [p.strip() for p in r.text.strip().split("\n") if p.strip()]
+            print(f"   📋 Found {len(proxies)} TR proxies. Testing them...")
+        except Exception as pe:
+            print(f"   ❌ Failed to fetch proxy list: {pe}")
+            return None
+
+        for proxy in proxies[:15]:  # Test first 15 proxies
+            proxy_url = f"http://{proxy}"
+            proxies_dict = {"http": proxy_url, "https": proxy_url}
+            try:
+                print(f"      Testing proxy: {proxy} ...")
+                test_resp = requests.get(self.LIST_URL, headers=self.session.headers, proxies=proxies_dict, timeout=5)
+                if test_resp.status_code == 200:
+                    print(f"      ✅ Found working TR proxy: {proxy}")
+                    return proxy_url
+            except Exception:
+                pass
+        
+        print("   ❌ No working TR proxy found from the list.")
+        return None
         
         self.sector_cache: Dict[str, Sector] = {}
         self._load_cache()
