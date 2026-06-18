@@ -5,6 +5,7 @@
 import sys
 import os
 import time  # type: ignore # pyre-ignore[21]
+import random
 import re  # type: ignore # pyre-ignore[21]
 import uuid  # type: ignore # pyre-ignore[21]
 import traceback  # type: ignore # pyre-ignore[21]
@@ -152,25 +153,57 @@ class IsbankMaximumScraper:
         from playwright.sync_api import sync_playwright  # type: ignore # pyre-ignore[21]
         self.playwright = sync_playwright().start()
         
-        # Reverted to Chromium - Firefox was causing NET_RESET errors
-        self.browser = self.playwright.chromium.launch(
-            headless=True,
-            args=["--no-sandbox", "--disable-setuid-sandbox", 
-                  "--disable-dev-shm-usage", "--disable-gpu", 
-                  "--window-size=1920,1080", "--disable-blink-features=AutomationControlled"]
-        )
-        context = self.browser.new_context(
-            viewport={"width": 1920, "height": 1080},
-            user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36",
-            locale="tr-TR",
-            timezone_id="Europe/Istanbul",
-            extra_http_headers={"Accept-Language": "tr-TR,tr;q=0.9,en-US;q=0.8,en;q=0.7"}
-        )
-        # Stealth init script
-        context.add_init_script("Object.defineProperty(navigator, 'webdriver', {get: () => undefined})")
-        self.page = context.new_page()
-        self.page.set_default_timeout(60000)
-        print("✅ Playwright browser started for Maximum Scraper.")
+        is_ci = os.getenv("GITHUB_ACTIONS") == "true" or os.getenv("CI") == "true"
+        connected = False
+
+        pw = self.playwright
+        if pw and pw.chromium:
+            if not is_ci:
+                try:
+                    print("   🔌 Attempting to connect to local Chrome debug instance at http://localhost:9222...")
+                    self.browser = pw.chromium.connect_over_cdp("http://localhost:9222")
+                    connected = True
+                    print("   ✅ Connected to local existing Chrome instance")
+                    
+                    # Use existing context if available
+                    br = self.browser
+                    if br and len(br.contexts) > 0:
+                        context = br.contexts[0]
+                    else:
+                        context = br.new_context() if br else None
+                        
+                    if context:
+                        self.page = context.new_page()
+                    pg = self.page
+                    if pg:
+                        pg.set_default_timeout(180000)
+                    return
+                except Exception as e:
+                    print(f"   ⚠️  Could not connect to debug Chrome, launching headless... ({e})")
+                    
+            if not connected:
+                self.browser = pw.chromium.launch(
+                    headless=True,
+                    args=["--no-sandbox", "--disable-setuid-sandbox", 
+                          "--disable-dev-shm-usage", "--disable-gpu", 
+                          "--window-size=1920,1080", "--disable-blink-features=AutomationControlled",
+                          "--disable-extensions", "--disable-web-security"]
+                )
+                br = self.browser
+                if br:
+                    context = br.new_context(
+                        viewport={"width": 1920, "height": 1080},
+                        user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36",
+                        locale="tr-TR",
+                        timezone_id="Europe/Istanbul",
+                        extra_http_headers={"Accept-Language": "tr-TR,tr;q=0.9,en-US;q=0.8,en;q=0.7"}
+                    )
+                    context.add_init_script("Object.defineProperty(navigator, 'webdriver', {get: () => undefined})")
+                    self.page = context.new_page()
+                    pg = self.page
+                    if pg:
+                        pg.set_default_timeout(180000)
+                    print("✅ Playwright browser started for Maximum Scraper.")
 
     def _stop_browser(self):
         try:
@@ -827,7 +860,9 @@ class IsbankMaximumScraper:
                     failed += 1  # type: ignore # pyre-ignore[58]
                     error_details.append({"url": url, "error": str(e)})
                 
-                time.sleep(1.5)
+                sleep_time = random.uniform(3.0, 7.0)
+                print(f"   💤 Sleeping for {sleep_time:.2f}s...")
+                time.sleep(sleep_time)
 
             print(f"\n🏁 Finished. {len(urls)} found, {success} saved, {total_revived} revived, {skipped} skipped, {failed} errors")
             
