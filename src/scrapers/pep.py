@@ -89,6 +89,8 @@ class PepScraper:
                 # Parse list using Playwright HTML
                 campaigns = self._parse_list_soup(soup, seen)
                 print(f"   ✅ Total active campaigns found via Playwright: {len(campaigns)}")
+                if len(campaigns) == 0:
+                    raise ValueError("Playwright returned 0 campaigns (possibly blocked or lazy load failed)")
                 
         except Exception as e:
             # 2. Fall back to standard requests (popup doesn't render here)
