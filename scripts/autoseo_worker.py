@@ -14,7 +14,9 @@ load_dotenv()
 
 DB_URL = os.getenv("DATABASE_URL")
 # Default olarak hızlı ve ucuz olan 2.5 Flash kullan
-MODEL = os.getenv("GEMINI_MODEL", "gemini-3.5-flash")
+MODEL = os.getenv("GEMINI_MODEL", "gemini-3.1-flash-lite")
+if "3.5" in MODEL:
+    MODEL = "gemini-3.1-flash-lite"
 
 def get_connection():
     return psycopg2.connect(DB_URL)
@@ -63,44 +65,57 @@ def process_missing_seos():
     try:
         cur = conn.cursor()
         
+        # 0. Auto-create card_details for cards that don't have it
+        cur.execute("""
+            INSERT INTO card_details (card_id, created_at, updated_at)
+            SELECT id, NOW(), NOW()
+            FROM cards
+            WHERE id NOT IN (SELECT card_id FROM card_details)
+        """)
+        conn.commit()
+        print("💳 Missing card_details rows auto-created.")
+        
         # 1. Banks
-        cur.execute("SELECT id, name FROM banks WHERE seo_summary IS NULL OR seo_summary = ''")
+        cur.execute("SELECT id, name FROM banks WHERE seo_summary IS NULL OR TRIM(seo_summary) = '' OR LENGTH(seo_summary) < 500")
         banks = cur.fetchall()
-        print(f"🔍  SEO özeti eksik {len(banks)} banka bulundu.")
+        print(f"🔍  SEO özeti eksik/kısa {len(banks)} banka bulundu.")
         for b_id, b_name in banks:
-            summary = generate_seo_content(b_name, "banka")
+            b_name_clean = b_name.strip()
+            summary = generate_seo_content(b_name_clean, "banka")
             if summary:
                 cur.execute("UPDATE banks SET seo_summary = %s WHERE id = %s", (summary, b_id))
                 conn.commit()
-                print(f"✅  {b_name} (Banka) güncellendi.")
+                print(f"✅  {b_name_clean} (Banka) güncellendi.")
 
         # 2. Sectors (Categories)
-        cur.execute("SELECT id, name FROM sectors WHERE ai_summary IS NULL OR ai_summary = ''")
+        cur.execute("SELECT id, name FROM sectors WHERE ai_summary IS NULL OR TRIM(ai_summary) = '' OR LENGTH(ai_summary) < 500")
         sectors = cur.fetchall()
-        print(f"🔍  SEO içeriği eksik {len(sectors)} sektör bulundu.")
+        print(f"🔍  SEO içeriği eksik/kısa {len(sectors)} sektör bulundu.")
         for s_id, s_name in sectors:
-            content = generate_seo_content(s_name, "kampanya kategorisi")
+            s_name_clean = s_name.strip()
+            content = generate_seo_content(s_name_clean, "kampanya kategorisi")
             if content:
                 cur.execute("UPDATE sectors SET ai_summary = %s WHERE id = %s", (content, s_id))
                 conn.commit()
-                print(f"✅  {s_name} (Sektör) güncellendi.")
+                print(f"✅  {s_name_clean} (Sektör) güncellendi.")
 
         # 3. Card Details
         query = """
             SELECT cd.id, c.name 
             FROM card_details cd 
             JOIN cards c ON cd.card_id = c.id 
-            WHERE cd.seo_summary IS NULL OR cd.seo_summary = ''
+            WHERE cd.seo_summary IS NULL OR TRIM(cd.seo_summary) = '' OR LENGTH(cd.seo_summary) < 500
         """
         cur.execute(query)
         details = cur.fetchall()
-        print(f"🔍  SEO özeti eksik {len(details)} kart detayı bulundu.")
+        print(f"🔍  SEO özeti eksik/kısa {len(details)} kart detayı bulundu.")
         for d_id, c_name in details:
-            summary = generate_seo_content(c_name, "kredi kartı")
+            c_name_clean = c_name.strip()
+            summary = generate_seo_content(c_name_clean, "kredi kartı")
             if summary:
                 cur.execute("UPDATE card_details SET seo_summary = %s WHERE id = %s", (summary, d_id))
                 conn.commit()
-                print(f"✅  {c_name} (Kart) güncellendi.")
+                print(f"✅  {c_name_clean} (Kart) güncellendi.")
 
     except Exception as e:
         print(f"❌  Hata: {e}")
