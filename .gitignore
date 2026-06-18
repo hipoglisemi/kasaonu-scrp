@@ -23,3 +23,5 @@ temp_backup/
 !/logos/*.png # keep logos
 !/docs/*.png # keep docs
 scripts/proactive_audit_local.py
+chrome_profile/
+
