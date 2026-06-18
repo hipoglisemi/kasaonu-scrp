@@ -364,10 +364,11 @@ Kampanya Sahibi Banka/Kurum: {bank_name}
 5. **KOŞULLAR**: 
     - En fazla 10 madde.
     - 🚨 İKİNCİL ÖDÜLLER: Ana ödülden farklı olan taksit, ek fayda vb. durumları ve onlara özel geçerli kartları burada belirt (Örn: "Peşin fiyatına 6 taksit fırsatından Axess kartlar da yararlanabilir").
+    - 🚨 GEÇERLİ OLAN VE OLMAYAN KANALLAR (ZORUNLU): Kampanyanın geçerli olduğu (dahil olan) veya geçerli olmadığı (hariç tutulan) website, mobil uygulama, fiziksel mağaza, marka, platform veya bayi gibi kanal bilgilerini MUTLAKA 'conditions' listesine ayrı ayrı maddeler halinde her zaman ekle (Örn: "Kampanya X mobil uygulamasında geçerlidir", "Y web sitesinde geçerli değildir", "Z fiziksel mağazaları hariçtir").
     - 🚨 GEÇERLİ OLDUĞU YERLER (ZORUNLU): Kampanyanın dahil olduğu/geçerli olduğu mağaza, marka, platform veya web siteleri metinde geçiyorsa, bunu EKSİKSİZ VE KESİN OLARAK maddelerden biri yap (Örn: "Kampanya sadece www.ornek.com ve X mağazalarında geçerlidir").
     - 🚨 İSTİSNALAR VE HARİÇ OLANLAR (KRİTİK): Kampanya kapsamında **geçerli OLMAYAN** markalar, ürün grupları, mağazalar veya kart tipleri metinde belirtilmişse (Örn: "Tütün harcamaları dahil değildir", "X mağazaları hariçtir", "Ticari kartlar geçerli değildir"), bunları MUTLAKA 'conditions' listesine madde olarak ekle. Kullanıcı neyin kapsam dışı olduğunu bilmeli.
     - 🚨 MAĞAZA/POS KURALI: Eğer 'sadece X Bankası POS cihazlarından geçen işlemler' gibi fiziksel/altyapı şartları varsa, bunu DİREKT OLARAK maddelerden biri yap.
-    - 🚨 ULTRA KRİTİK - YASAK: Tarih, Geçerli Kartlar ve Katılım adımlarını 'conditions' içerisine KESİNLİKLE YAZMA (Tepede zaten var). Sadece harcama alt sınırı, POS şartları, ödül limitleri gibi işlemsel koşulları özetle.
+    - 🚨 ULTRA KRİTİK - YASAK: Tarih (başlangıç, bitiş tarihleri veya geçerlilik tarih aralıkları), Geçerli Kartlar ve Katılım adımlarını 'conditions' içerisine KESİNLİKLE YAZMA (Tarihler ve kartlar tepedeki diğer alanlarda zaten var. Tarihlerin buraya yazılması tarih uzatımlarında gereksiz metin değişimi algılamasına yol açar).
     - 🚨 JURIDICAL BOILERPLATE REMOVAL (ULTRA STRICT): Aşağıdaki jenerik hukuki metinleri KESİNLİKLE SİL, ASLA MADDE OLARAK YAZMA:
       * "Taksit sayısı ürün gruplarına göre yasal mevzuat çerçevesinde belirlenir."
       * "Bireysel kredi kartlarıyla.. BDDK kuralları gereği..."
@@ -375,13 +376,13 @@ Kampanya Sahibi Banka/Kurum: {bank_name}
       * "Kampanya farklı kampanyalarla birleştirilemez."
     - Sıkıcı hukuki detayları silebilirsin, odak sadece müşteri kazancı.
 
-6. **PAZARLAMA**: 2-3 cümle, emojili, enerjik. Somut rakamları belirt. Metin SEO dostu olmalı; kampanyanın avantajını kullanıcıya coşkulu bir dille sun.
+6. **PAZARLAMA**: 2-3 cümle, emojili, enerjik. Somut rakamları belirt. Metin SEO dostu olmalı; kampanyanın avantajını kullanıcıya coşkulu bir dille sun. 🚨 ULTRA KRİTİK - YASAK: Pazarlama metni (ai_marketing_text) ve açıklama (description) içine kampanyanın son geçerlilik tarihini veya tarih aralığını KESİNLİKLE yazma.
 
 JSON FORMATI:
 {{
   "title": "Metnin en üstündeki doğal ve spesifik başlığı bul. Aksi kanıtlanmadıkça 'Opet Kampanyası' gibi sonradan atanmış jenerik/sıkıcı başlık isimlerini GÖRMEZDEN GEL, sadece asıl içeriği yansıtan resmî başlığı (Örn: Çek Kazan Superfresh Fırsatı) kullan.",
-  "description": "Kampanyanın ne olduğunu anlatan 2-3 cümlelik net ve bilgilendirici özet. (Örn: 'X mağazasında Y kartı ile Z TL indirim fırsatı sizi bekliyor.')",
-  "ai_marketing_text": "Kullanıcıyı heyecanlandıracak, SEO odaklı pazarlama metni. 🚨 ASLA description ile aynı olmamalıdır. Kampanya içeriğiyle (Sektör ve Marka) doğrudan ilgili, çeşitli ve yaratıcı emojiler kullanarak enerjik bir dil kur. 'Hadi hemen katıl!', 'Fırsatı kaçırma!' gibi eylem çağrıları içermelidir.",
+  "description": "Kampanyanın ne olduğunu anlatan 2-3 cümlelik net ve bilgilendirici özet. (Örn: 'X mağazasında Y kartı ile Z TL indirim fırsatı sizi bekliyor.'). 🚨 ASLA kampanya geçerlilik tarihlerini (başlangıç/bitiş tarihleri) bu açıklamaya yazma.",
+  "ai_marketing_text": "Kullanıcıyı heyecanlandıracak, SEO odaklı pazarlama metni. 🚨 ASLA description ile aynı olmamalıdır. Kampanya içeriğiyle (Sektör ve Marka) doğrudan ilgili, çeşitli ve yaratıcı emojiler kullanarak enerjik bir dil kur. 'Hadi hemen katıl!', 'Fırsatı kaçırma!' gibi eylem çağrıları içermelidir. 🚨 ASLA kampanya geçerlilik tarihlerini (başlangıç/bitiş veya son katılım tarihleri) bu metne dahil etme.",
   "reward_value": 0.0,
   "reward_type": "puan/indirim/taksit/mil/cashback",
   "reward_text": "Kısa ve Çarpıcı. Peşin fiyatına gibi detayları yazma. Örn: '150 TL Yakıt Puan' veya '%20 İndirim'",
@@ -393,7 +394,7 @@ JSON FORMATI:
   "cards": ["Ana ödül için geçerli olan kart tanımlarını (Örn: 'Bonus', 'Axess', 'Mastercard logolu TEB Bireysel Kredi Kartı') listele. 🚨 TROY KURALI: Eğer metinde 'TROY logolu banka kartı', 'TROY logolu kredi kartı', 'TROY logolu ön ödemeli kart' veya 'TROY logolu kartlar' gibi TROY-özel ifadeler geçiyorsa, bunları MUTLAKA bu şekilde netçe listele. 🚨 KISALTMA/BİRLEŞTİRME KURALI: Aynı banka/marka ön ekine sahip kartlar peş peşe yazılmışsa (Örn: 'Anadolubank Silver logolu Mastercard banka kartı', 'Anadolubank Silver logolu Mastercard ön ödemeli kart', 'Anadolubank Silver logolu Mastercard kredi kartı'), bu uzun ön eki TEKRARLAMA! Bunun yerine bunları virgülle tek bir maddede birleştir: 'Anadolubank Silver logolu Mastercard banka kartı, ön ödemeli kart, kredi kartı'. 🚨 SIRALAMA KURALI: 'Ek kartlar' ve 'Sanal kartlar' ibarelerini MUTLAKA listenin EN SONUNA ekle. 🚨 OLUMSUZLUK KURALI: Sadece 'hariçtir', 'dahil değildir' gibi kelimelerle yasaklanan kartı 'excluded_cards' listesine yaz, 'cards' listesinden KESİNLİKLE çıkar."],
   "excluded_cards": ["Metinde 'hariçtir', 'dahil değildir', 'kapsam dışıdır', 'geçerli değildir', 'yararlanamaz' gibi OLUMSUZLUK ifadeleriyle birlikte doğrudan yasaklanan spesifik kart varyasyonlarını (Örn: 'World Eko', 'Ticari kartlar') buraya yaz. Hiç yasaklı kart yoksa boş bırak: []"],
   "participation": "🚨 KRİTİK KURAL: Metinde 'KATILMAK İÇİN', 'NASIL KATILIRIM', 'Hemen Katıl', 'SMS', 'yazıp', 'numarasına', 'ÖNEMLİ BİLGİLER' gibi ifadeler VARSA, o bölümdeki bilgiyi AYNEN kopyala — özetleme ve kısaltma. SMS varsa 'X yazıp 1234'e SMS gönderin' formatıyla, buton varsa 'Uygulamadan Hemen Katıl butonuna tıklayın' formatıyla yaz. 🚫 YASAK: 'Otomatik Katılım' — metinde katılımla ilgili HERHANGİ bir bilgi (kelime, cümle, yönlendirme) varsa bunu ASLA yazma. Gerçekten hiçbir katılım yöntemi belirtilmemişse (metni dikkatlice okuduktan sonra), o zaman yazabilirsin. Eğer katılım bilgisi bulamıyorsan, kampanyadan yararlanmak için yapılması gereken eylemi (POS, taksit seçimi, kasada belirtme) yaz.",
-  "conditions": ["Önemli Şart 1", "İkincil ödül (örn: taksit) varsa ve farklı kartlar için geçerliyse mutlaka belirt.", "Önemli Şart 2"]
+  "conditions": ["Önemli Şart 1", "İkincil ödül (örn: taksit) varsa ve farklı kartlar için geçerliyse mutlaka belirt.", "🚨 Kampanya geçerlilik tarihlerini (başlangıç/bitiş) buraya KESİNLİKLE yazma.", "Muhakkak kampanya kapsamında geçerli olan ve geçerli olmayan website, uygulama, fiziksel mağaza ve marka detaylarını ekle."]
 }}
 
 ANALİZ EDİLECEK METİN:
