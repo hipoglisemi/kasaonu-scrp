@@ -442,7 +442,7 @@ class GarantiMilesAndSmilesScraper:
             print(f"❌ Fatal error: {e}")
             from src.utils.logger_utils import log_scraper_execution  # type: ignore # pyre-ignore[21]
             with get_db_session() as db:
-                 log_scraper_execution(db, "garanti-miles-smiles", "FAILED", 0, 0, 0, 1, {"error": str(e)})
+                 log_scraper_execution(db, "garanti-miles-smiles", "FAILED", 0, 0, 0, 1, 0, {"error": str(e)})
             raise
 
 if __name__ == "__main__":

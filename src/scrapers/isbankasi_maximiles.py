@@ -158,6 +158,7 @@ class IsbankMaximilesScraper:
             if not connected:
                 self.browser = pw.chromium.launch(
                     headless=True,
+                    channel="chrome",
                     args=["--no-sandbox", "--disable-setuid-sandbox",
                           "--disable-dev-shm-usage", "--disable-gpu", "--window-size=1920,1080",
                           "--disable-blink-features=AutomationControlled",
@@ -194,6 +195,9 @@ class IsbankMaximilesScraper:
             pass
 
     def _fetch_campaign_urls(self, limit: Optional[int] = None) -> tuple[List[str], List[str]]:  # type: ignore # pyre-ignore[16,6]
+        if not self.page:
+            print("      🔄 Lazily starting Playwright browser for listing page...")
+            self._start_browser()
         pg = self.page
         if not pg:
             print("❌ No page object found.")
@@ -354,50 +358,74 @@ class IsbankMaximilesScraper:
 
     def _extract_campaign_data(self, url: str) -> Optional[Dict[str, Any]]:  # type: ignore # pyre-ignore[16,6]
         try:
-            success = False
-            for attempt in range(3):
-                try:
-                    pg = cast(Any, self.page)
-                    if pg:
-                        pg.goto(url, wait_until="domcontentloaded", timeout=60000)
-                        success = True
-                        break
-                    else:
-                        print("      ❌ self.page is None")
-                        return None
-                except Exception as e:
-                    print(f"      ⚠️ Detail load attempt {attempt+1}/3 failed: {e}. Retrying...")
-                    time.sleep(3 + attempt * 2)
+            html_content = None
             
-            if not success:
-                print(f"      ❌ Could not load detail page after 3 attempts: {url}")
-                return None  # type: ignore # pyre-ignore[7]
-                
-            # Scroll to bottom to trigger lazy loading of content
-            pg = cast(Any, self.page)
-            if pg:
-                pg.evaluate("""async () => {
-                    await new Promise((resolve) => {
-                        let totalHeight = 0;
-                        let distance = 300;
-                        let timer = setInterval(() => {
-                            let scrollHeight = document.body.scrollHeight;
-                            window.scrollBy(0, distance);
-                            totalHeight += distance; // JS syntax fix
-                            if(totalHeight >= scrollHeight){
-                                clearInterval(timer);
-                                resolve();
-                            }
-                        }, 100);
-                    });
-                }""")
-                time.sleep(2)
-            pg = cast(Any, self.page)
-            if not pg:
-                print("      ❌ self.page is None, cannot extract content")
-                return None
+            # Try loading via requests first (fast & stealthy, bypasses connection reset)
+            try:
+                import requests
+                import urllib3
+                urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+                headers = {
+                    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
+                    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8",
+                    "Accept-Language": "tr-TR,tr;q=0.9,en;q=0.8"
+                }
+                response = requests.get(url, headers=headers, verify=False, timeout=15)
+                if response.status_code == 200 and ("detail" in response.text or "campaign" in response.text or "Opportunity" in response.text or "OpportunityDetail" in response.text or "opportunity" in response.text):
+                    html_content = response.text
+                    print("      ⚡ Detail page fetched successfully via requests")
+            except Exception as req_err:
+                print(f"      ⚠️ Requests detail fetch failed: {req_err}. Falling back to Playwright...")
 
-            soup = BeautifulSoup(pg.content(), "html.parser")
+            if not html_content:
+                success = False
+                for attempt in range(3):
+                    try:
+                        if not self.page:
+                            print("      🔄 Lazily starting Playwright browser...")
+                            self._start_browser()
+                        pg = cast(Any, self.page)
+                        if pg:
+                            pg.goto(url, wait_until="domcontentloaded", timeout=60000)
+                            success = True
+                            break
+                        else:
+                            print("      ❌ self.page is None")
+                            return None
+                    except Exception as e:
+                        print(f"      ⚠️ Detail load attempt {attempt+1}/3 failed: {e}. Retrying...")
+                        time.sleep(3 + attempt * 2)
+                
+                if not success:
+                    print(f"      ❌ Could not load detail page after 3 attempts: {url}")
+                    return None  # type: ignore # pyre-ignore[7]
+                    
+                # Scroll to bottom to trigger lazy loading of content
+                pg = cast(Any, self.page)
+                if pg:
+                    pg.evaluate("""async () => {
+                        await new Promise((resolve) => {
+                            let totalHeight = 0;
+                            let distance = 300;
+                            let timer = setInterval(() => {
+                                let scrollHeight = document.body.scrollHeight;
+                                window.scrollBy(0, distance);
+                                totalHeight += distance; // JS syntax fix
+                                if(totalHeight >= scrollHeight){
+                                    clearInterval(timer);
+                                    resolve();
+                                }
+                            }, 100);
+                        });
+                    }""")
+                    time.sleep(2)
+                pg = cast(Any, self.page)
+                if not pg:
+                    print("      ❌ self.page is None, cannot extract content")
+                    return None
+                html_content = pg.content()
+
+            soup = BeautifulSoup(html_content, "html.parser")
             
             title_el = soup.select_one("h1")
             title = self._clean(title_el.text) if title_el else "Başlık Yok"
@@ -690,7 +718,6 @@ class IsbankMaximilesScraper:
     def run(self, limit: Optional[int] = None, urls: Optional[List[str]] = None, force: bool = False):  # type: ignore # pyre-ignore[16,6]
         try:
             print("🚀 Starting İşbankası Maximiles Scraper (Playwright)...")
-            self._start_browser()
             
             # Keep DB session open, it's safer for small runs
             # if self.db:
@@ -777,7 +804,7 @@ class IsbankMaximilesScraper:
                 from src.utils.logger_utils import log_scraper_execution  # type: ignore # pyre-ignore[21]
                 Session = sessionmaker(bind=self.engine)
                 with Session() as db:
-                     log_scraper_execution(db, "maximiles", "FAILED", 0, 0, 0, 1, {"error": str(e)})
+                     log_scraper_execution(db, "maximiles", "FAILED", 0, 0, 0, 1, 0, {"error": str(e)})
             except:
                 pass
             raise
