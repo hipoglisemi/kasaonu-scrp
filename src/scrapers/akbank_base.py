@@ -208,7 +208,14 @@ class AkbankBaseScraper:
             campaign = Campaign(  # type: ignore
                 card_id=self.card_id,  # type: ignore
                 sector_id=sector.id if sector else None,  # type: ignore
-                slug=get_unique_slug(final_title, db, Campaign),  # type: ignore
+                slug=get_unique_slug(
+                    title=final_title,
+                    db_session=db,
+                    campaign_model=Campaign,
+                    tracking_url=source_url,
+                    card_name=self.card_name,
+                    bank_name="Akbank"
+                ),  # type: ignore
                 title=final_title,  # type: ignore
                 description=ai_data.get('description') or title,  # type: ignore
                 ai_marketing_text=ai_data.get('ai_marketing_text'),  # type: ignore

@@ -328,32 +328,49 @@ class IsbankMaximumScraper:
 
     def _extract_campaign_data(self, url: str) -> Optional[Dict[str, Any]]:  # type: ignore # pyre-ignore[16,6]
         try:
-            success = False
-            for attempt in range(3):
-                try:
-                    if not self.page:
-                        print("      ❌ self.page is None")
-                        return None
-                    
-                    self.page.goto(url, wait_until="domcontentloaded", timeout=60000)
-                    # Simple scroll to ensure lazy content loads
-                    self.page.evaluate("window.scrollTo(0, document.body.scrollHeight/2)")
-                    time.sleep(1)
-                    self.page.evaluate("window.scrollTo(0, document.body.scrollHeight)")
-                    time.sleep(1)
-                    
-                    html_content = self.page.content()
-                    success = True
-                    break
-                except Exception as e:
-                    print(f"      ⚠️ Detail load attempt {attempt+1}/3 failed: {e}. Retrying...")
-                    time.sleep(3 + attempt * 2)
+            html_content = None
             
-            if not success:
-                print(f"      ❌ Could not load detail page after 3 attempts: {url}")
-                return None  # type: ignore # pyre-ignore[7]
+            # Try loading via requests first (fast & stealthy, bypasses connection reset)
+            try:
+                import requests
+                import urllib3
+                urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+                response = requests.get(url, headers=self.headers, verify=False, timeout=15)
+                if response.status_code == 200 and ("CampaignImage" in response.text or "CampaignDetail" in response.text):
+                    html_content = response.text
+                    print("      ⚡ Detail page fetched successfully via requests")
+            except Exception as req_err:
+                print(f"      ⚠️ Requests detail fetch failed: {req_err}. Falling back to Playwright...")
 
+            if not html_content:
+                success = False
+                for attempt in range(3):
+                    try:
+                        if not self.page:
+                            print("      🔄 Lazily starting Playwright browser...")
+                            self._start_browser()
+                        if not self.page:
+                            print("      ❌ self.page is None")
+                            return None
+                        
+                        self.page.goto(url, wait_until="domcontentloaded", timeout=60000)
+                        # Simple scroll to ensure lazy content loads
+                        self.page.evaluate("window.scrollTo(0, document.body.scrollHeight/2)")
+                        time.sleep(1)
+                        self.page.evaluate("window.scrollTo(0, document.body.scrollHeight)")
+                        time.sleep(1)
+                        
+                        html_content = self.page.content()
+                        success = True
+                        break
+                    except Exception as e:
+                        print(f"      ⚠️ Detail load attempt {attempt+1}/3 failed: {e}. Retrying...")
+                        time.sleep(3 + attempt * 2)
                 
+                if not success or not html_content:
+                    print(f"      ❌ Could not load detail page after 3 attempts: {url}")
+                    return None  # type: ignore # pyre-ignore[7]
+
             import urllib3  # type: ignore # pyre-ignore[21]
             urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
@@ -718,9 +735,6 @@ class IsbankMaximumScraper:
         print(f"✅ Card: Maximum (ID: {card_id}, slug: {self.CARD_SLUG})")
         print("🚀 Starting İşbankası Maximum Scraper (Requests + Playwright)...")
         
-        self._start_browser()
-
-
         try:
             if urls:
                 print(f"🎯 Running specific URLs: {len(urls)}")
