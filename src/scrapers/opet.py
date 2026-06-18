@@ -138,6 +138,8 @@ class OpetScraper:
             "total_revived": 0,
             "errors": []
         }
+        scraper_status = "SUCCESS"
+        cards: list = []
 
         try:
             self.setup_driver()
@@ -409,18 +411,18 @@ class OpetScraper:
 
         except Exception as e:
             print(f"   ❌ Scraper Crashed: {e}")
-            stats["status"] = "FAILED"
+            scraper_status = "FAILED"
             stats["errors"].append(str(e))
         finally:
             if self.driver:
                 self.driver.quit()
-            
+
         # Log Result
         log_scraper_execution(
             db=self.db,
             scraper_name=self.SOURCE_NAME,
-            status=stats.get("status", "SUCCESS"),
-            total_found=len(cards) if 'cards' in locals() else 0,
+            status=scraper_status,
+            total_found=len(cards),
             total_saved=stats["total_saved"],
             total_skipped=stats["total_skipped"],
             total_failed=stats["total_failed"],
