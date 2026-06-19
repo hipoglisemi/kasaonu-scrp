@@ -21,7 +21,8 @@ from src.services.brand_normalizer import normalize_brand_name  # type: ignore
 # merging into a shorter generic parent (e.g., 'Amazon Prime' vs 'Amazon')
 PROTECTED_SEGMENTS = {
     'prime', 'yemek', 'hemen', 'go', 'music', 'premium', 'cloud', 'ads', 
-    'play', 'tv', 'video', 'spor', 'yanimda', 'market', 'online'
+    'play', 'tv', 'video', 'spor', 'yanimda', 'market', 'online',
+    'tatil', 'seyahat', 'bilet', 'otel'
 }
 
 def _simplify(name: str) -> str:
