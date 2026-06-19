@@ -79,9 +79,8 @@ class TurkcellScraper:
 
         try:
             async with async_playwright() as p:
-                browser = await p.chromium.launch(
-                    headless=self.headless,
-                    args=["--no-sandbox", "--disable-dev-shm-usage"]
+                browser = await p.firefox.launch(
+                    headless=self.headless
                 )
                 context = await browser.new_context(
                     user_agent="Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
@@ -204,6 +203,8 @@ class TurkcellScraper:
                 // We scope it to 'main' or high-level wrappers to avoid footer logos
                 const mainArea = document.querySelector('main, #main-content, arc-container');
                 const bannerSelectors = [
+                    'img.Detail_detail__image__omC5p',
+                    'img[class*="Detail_detail__image"]',
                     '.Detail_detail__image__omC5p img', 
                     '[class*="Detail_detail__image"] img',
                     '.m-detail-image img'
