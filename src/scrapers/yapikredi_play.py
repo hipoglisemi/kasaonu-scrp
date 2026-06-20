@@ -93,9 +93,9 @@ class YapikrediPlayScraper:
                 return "skipped"  # type: ignore # pyre-ignore[7]
 
             existing = db.query(Campaign).filter(Campaign.tracking_url == full_url).first()  # type: ignore # pyre-ignore[16]
-            if existing and existing.is_active and existing.is_approved and existing.clean_text and len(existing.clean_text) >= 600:
+            if existing and existing.is_active and existing.is_approved:
                 if existing.end_date == end_date:
-                    print(f"   ⏭️ Skipped (Already exists, active and end date matches): {title}")
+                    print(f"   ⏭️ Skipped (Already exists, active and approved): {title}")
                     return "skipped"  # type: ignore # pyre-ignore[7]
 
         print(f"   Processing: {title}")
@@ -110,35 +110,61 @@ class YapikrediPlayScraper:
         browser_html = ""
         content_html = ""
         og_title = None
+        is_dead = False
+        generic_paths = ['/kampanyalar', '/kampanyalar/', '/firsatlar', '/firsatlar/', '/indirimler', '/indirimler/']
         try:
             with sync_playwright() as p:
                 browser = p.firefox.launch(headless=True)
                 context = browser.new_context(user_agent="Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
                 page = context.new_page()
                 # Go to URL and wait for domcontentloaded
-                page.goto(full_url, wait_until="domcontentloaded", timeout=20000)
-                page.evaluate("window.scrollTo(0, document.body.scrollHeight)")
-                page.wait_for_timeout(2000)
+                response = page.goto(full_url, wait_until="domcontentloaded", timeout=20000)
                 
-                # Extract og:title
-                og_title = page.locator('meta[property="og:title"]').get_attribute('content')
+                final_url_actual = page.url
+                is_redirect_to_generic = any(final_url_actual.rstrip("/").endswith(p.rstrip("/")) for p in generic_paths)
                 
-                browser_html = page.content()
+                if (response and response.status in [404, 410]) or is_redirect_to_generic:
+                    print(f"      ❌ Page is dead (Status: {response.status if response else 'Unknown'}, Redirect: {final_url_actual})")
+                    is_dead = True
+                else:
+                    page.evaluate("window.scrollTo(0, document.body.scrollHeight)")
+                    page.wait_for_timeout(2000)
+                    
+                    # Extract og:title
+                    og_title = page.locator('meta[property="og:title"]').get_attribute('content')
+                    
+                    browser_html = page.content()
                 browser.close()
             
+            if is_dead:
+                return "skipped"
             if browser_html:
                 content_html = browser_html
         except Exception as e:
+            if is_dead:
+                return "skipped"
             print(f"      ⚠️ Browser fetch failed, attempting standard HTTP fallback: {e}")
             try:
                 headers = {
                     'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
                 }
                 resp = requests.get(full_url, headers=headers, timeout=15)
+                if resp.status_code in [404, 410]:
+                    print(f"      ❌ HTTP fallback returned {resp.status_code}: {full_url}")
+                    return "skipped"
+                
+                final_http_url = resp.url
+                is_http_redirect = any(final_http_url.rstrip("/").endswith(p.rstrip("/")) for p in generic_paths)
+                if is_http_redirect:
+                    print(f"      ❌ HTTP fallback redirected to generic: {final_http_url}")
+                    return "skipped"
+                    
                 resp.raise_for_status()
                 browser_html = resp.text
                 print(f"      ✅ HTTP fallback successful! (Length: {len(browser_html)} chars)")
             except Exception as httpe:
+                if "skipped" in str(httpe) or (hasattr(httpe, 'response') and httpe.response and httpe.response.status_code in [404, 410]):
+                    return "skipped"
                 print(f"      ❌ HTTP fallback failed too: {httpe}")
                 browser_html = ""
             

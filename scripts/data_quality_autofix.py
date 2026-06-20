@@ -139,13 +139,13 @@ def _needs_selenium(raw_html: str, url: str) -> bool:
     if not raw_html or len(raw_html) < 1500:
         return True  # Neredeyse hiç içerik yok
 
-    # 🔒 Bilinen captcha/oturum formu döndüren siteler — her zaman Selenium
     force_selenium_domains = [
         "ziraatkatilim.com.tr",
         "bankkart.com.tr",
         "ziraatbank.com.tr",
         "dunyakatilim.com.tr",
         "turkiyefinans.com.tr",
+        "opet.com.tr",
     ]
     if any(d in url for d in force_selenium_domains):
         return True
@@ -398,7 +398,7 @@ def fetch_html(url: str, title: str = "") -> str:
     # 🔒 Captcha/form siteleri için Header Sniper'ı devre dışı bırak.
     # Bu siteler form metnini başa yerleştirdiği için başlık erken bulunuyor
     # ve gerçek kampanya içeriği yanlışlıkla kesiliyor.
-    _sniper_domains = ["ziraatkatilim.com.tr", "bankkart.com.tr", "ziraatbank.com.tr", "dunyakatilim.com.tr", "turkiyefinans.com.tr"]
+    _sniper_domains = ["ziraatkatilim.com.tr", "bankkart.com.tr", "ziraatbank.com.tr", "dunyakatilim.com.tr", "turkiyefinans.com.tr", "opet.com.tr"]
     _skip_title_sniper = any(d in url for d in _sniper_domains)
     text = clean_campaign_text(text, title=None if _skip_title_sniper else (title or None))
 

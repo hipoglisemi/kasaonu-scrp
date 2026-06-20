@@ -142,27 +142,31 @@ def is_link_dead(url: str, title: str = "") -> bool:
                 return True
                 
             # 4. SOFT 404 TITLE HEURISTICS
-            try:
-                from bs4 import BeautifulSoup
-                soup = BeautifulSoup(resp.text, 'html.parser')
-                if soup.title and soup.title.string:
-                    page_title = soup.title.string.strip().lower()
-                    generic_titles = [
-                        "kampanyalar", "prime ayrıcalıkları", "tüm kampanyalar", 
-                        "fırsatlar", "ayrıcalıklar", "kampanyaları", "axess kampanyalar",
-                        "hata", "sayfa bulunamadı", "404", "arama sonuçları"
-                    ]
-                    if any(gt in page_title for gt in generic_titles) and len(page_title) < 45:
-                        if title:
-                            # Verify if any specific content words from original title are in the page title
-                            words = [w.strip(".,!?\"'") for w in title.lower().split() if len(w) > 3]
-                            matches = [w for w in words if w in page_title]
-                            if not matches:
-                                return True
-                        else:
-                            return True
-            except Exception:
+            # Alternatif Bank uses a generic title tag for all detail pages, which causes false-positives
+            if 'alternatifbank.com.tr' in url.lower():
                 pass
+            else:
+                try:
+                    from bs4 import BeautifulSoup
+                    soup = BeautifulSoup(resp.text, 'html.parser')
+                    if soup.title and soup.title.string:
+                        page_title = soup.title.string.strip().lower()
+                        generic_titles = [
+                            "kampanyalar", "prime ayrıcalıkları", "tüm kampanyalar", 
+                            "fırsatlar", "ayrıcalıklar", "kampanyaları", "axess kampanyalar",
+                            "hata", "sayfa bulunamadı", "404", "arama sonuçları"
+                        ]
+                        if any(gt in page_title for gt in generic_titles) and len(page_title) < 45:
+                            if title:
+                                # Verify if any specific content words from original title are in the page title
+                                words = [w.strip(".,!?\"'") for w in title.lower().split() if len(w) > 3]
+                                matches = [w for w in words if w in page_title]
+                                if not matches:
+                                    return True
+                            else:
+                                return True
+                except Exception:
+                    pass
             
             # If it's a 200 OK or 403 Forbidden (Anti-Bot), we MUST assume it's alive to be safe.
             return False

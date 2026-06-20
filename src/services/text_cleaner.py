@@ -260,10 +260,17 @@ def clean_campaign_text(raw_text: str, og_title: Optional[str] = None, title: Op
 
     final_text = '\n'.join(cleaned_lines)
 
-    # ── Step 2.5: Header Sniper (og_title / title) & Bank specific header markers ──
-    # This runs BEFORE boilerplate chopping to ensure navigation links (which may contain
-    # "KVKK" or "Çerez" terms in menus) are discarded before boilerplate matching.
     title_to_find = og_title or title
+    if title_to_find:
+        title_lower = title_to_find.lower()
+        generic_indicators = [
+            "opet mobil", "opet kampanya", "mobil uygulama", "genel kampanya",
+            "bankkart kampanya", "maximum fırsat", "kart kampanyası", "ayrıcalıklar",
+            "fırsatlar", "ahl pay", "ahlpay", "nays'ın kazandıran", "kart kampanyaları"
+        ]
+        if any(ind in title_lower for ind in generic_indicators) or len(title_to_find) < 6:
+            title_to_find = None
+
     if title_to_find and len(title_to_find) > 5:
         words = title_to_find.split()
         first_few_words = " ".join(words[:3]) if len(words) >= 3 else title_to_find

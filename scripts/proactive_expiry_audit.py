@@ -175,12 +175,17 @@ GÖREV: Sayfa metnini ve kampanya başlığını inceleyerek kampanyanın başla
         system_instruction=system_instruction
     )
     
+    # Generate the rotated list of keys starting from key_index to allow fallbacks
+    NUM_WORKERS = 8
+    key_indices = [((key_index - 1 + offset) % NUM_WORKERS) + 1 for offset in range(NUM_WORKERS)]
+
     try:
         result_str = generate_with_rotation(
             prompt=prompt,
-            model="models/gemma-4-31b-it",
+            model="gemini-3.1-flash-lite",
+            fallback_model="models/gemma-4-31b-it",
             config=config,
-            key_indices=[key_index]  # Her işçi kendi anahtarından başlar
+            key_indices=key_indices
         )
         
         if not result_str:
@@ -303,7 +308,8 @@ def proactive_expiry_audit(max_audits=2000):
         key_index = (worker_idx % NUM_WORKERS) + 1
         current_end = c["end_date"]
         try:
-            time.sleep(5.0)
+            # Stagger requests to prevent concurrent bursts
+            time.sleep(1.0 + worker_idx * 2.0)
 
             # ✅ Düzgün temizlenmiş metin: text_cleaner pipeline'ından geçir
             clean_text = clean_html_to_text(c["html"], title=c.get("title", ""))
