@@ -788,6 +788,18 @@ def run_autofix(limit: int = 250, campaign_id: Optional[int] = None, force_all: 
             
             if not to_fix_ids:
                 print("✅ All active campaigns look healthy!")
+                if ui_mode and campaign_id:
+                    # Find the campaign to see if it exists and what's wrong with it
+                    camp_chk = db.query(Campaign).filter(Campaign.id == campaign_id).first()
+                    err_msg = "Kampanya bulunamadı."
+                    if camp_chk:
+                        if not camp_chk.tracking_url:
+                            err_msg = "Bu kampanyanın kaynak/takip URL'i (trackingUrl) bulunmadığı için AI ile yeniden parse edilemez. Lütfen önce 'Düzenleme Modu' üzerinden kampanya URL'ini girip kaydedin."
+                        else:
+                            err_msg = "Kampanya sağlıklı görünüyor veya işlenemedi."
+                    print("\n---AIPARSER_JSON_START---")
+                    print(json.dumps({"error": err_msg}, ensure_ascii=False))
+                    print("---AIPARSER_JSON_END---")
                 if not ui_mode and audit_approved:
                     audit_approved_campaign_cards()
                 return
