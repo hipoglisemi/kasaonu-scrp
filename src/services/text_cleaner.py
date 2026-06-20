@@ -391,6 +391,7 @@ def clean_campaign_text(raw_text: str, og_title: Optional[str] = None, title: Op
     # 🛑 HARD CUTS: Metni kökten kesen işaretçiler. 
     # Markdown listesi (- veya *) olabileceği için başa [\s\-_•*]* ekliyoruz.
     HARD_CUT_MARKERS = [
+        r"(?i)ilgili kampanyalar",
         r"(?i)ilginizi çekebilecek (diğer )?kampanyalar",
         r"(?i)ilginizi\s+çekebilir",
         r"(?i)benzer kampanyalar",
