@@ -46,7 +46,10 @@ class CardValidator:
             is_excluded = any(self._normalize(excl) == card_norm for excl in CARD_EXCLUSION_TERMS)
             if "lira" in card_norm or is_excluded:
                 continue
-            if card_norm in CARD_PASSTHROUGH_TERMS:
+                
+            # Allow target customer segment strings to pass through directly
+            is_customer_segment = any(x in card_norm for x in ["musteri", "kullanici", "uye", "olanlar", "akbankli"])
+            if card_norm in CARD_PASSTHROUGH_TERMS or is_customer_segment:
                 validated.append(card)
                 continue
 
