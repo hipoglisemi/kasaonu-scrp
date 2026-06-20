@@ -77,6 +77,15 @@ class AkbankKartScraper(AkbankBaseScraper):
             for footer in soup.find_all('footer'):
                 footer.decompose()
             
+            # Decompose 'İlgili Kampanyalar' (Related Campaigns) section to prevent brand/tag pollution
+            import re
+            related_el = soup.find(string=re.compile("İlgili Kampanyalar", re.I))
+            if related_el:
+                parent_section = related_el.find_parent('section')
+                if parent_section:
+                    parent_section.decompose()
+                    print("   🗑️ Decomposed 'İlgili Kampanyalar' section.")
+            
             main_el = soup.find("main")
             raw_html = str(main_el) if main_el else str(soup.find("body") or soup)
                 

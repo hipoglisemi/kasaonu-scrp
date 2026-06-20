@@ -302,6 +302,14 @@ def fetch_html(url: str, title: str = "") -> str:
     if not is_trafilatura_text:
         soup = BeautifulSoup(raw_html, 'html.parser')
 
+        # Decompose Related Campaigns section to prevent brand/tag pollution
+        import re
+        related_el = soup.find(string=re.compile("İlgili Kampanyalar", re.I))
+        if related_el:
+            parent_section = related_el.find_parent('section')
+            if parent_section:
+                parent_section.decompose()
+
         for tag in soup(["script", "style", "nav", "footer", "header", "noscript"]):
             tag.extract()
 
