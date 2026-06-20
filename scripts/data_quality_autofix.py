@@ -318,7 +318,9 @@ def fetch_html(url: str, title: str = "") -> str:
             '.campaign-recommendations', 'section.news-carousel',
             '#related-campaigns', '.campaignDetail-others',
             '.footer-cookie-policy', '.cookie-banner', '.cookie-modal',
-            '#cookie-dialog-content', '.cookie-consent', '#cookie-all-apply'
+            '#cookie-dialog-content', '.cookie-consent', '#cookie-all-apply',
+            '.product-list__slider', '.product-list__grid', '.swiper', '.swiper-wrapper', '.swiper-slide',
+            '.breadcrumb', 'noindex', '.noindex', '.dropdown__menu'
         ]
         for selector in noise_selectors:
             for element in soup.select(selector):

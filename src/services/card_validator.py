@@ -41,6 +41,11 @@ class CardValidator:
                 continue
             
             card_norm = self._normalize(card)
+            
+            # Map customer segment variations to standardized forms
+            if "mobilin akbanklisi" in card_norm:
+                card = "Akbank Mobil Kullanıcıları"
+                card_norm = "akbank mobil kullanicilari"
 
             # 1. EXCLUSION / PASSTHROUGH
             is_excluded = any(self._normalize(excl) == card_norm for excl in CARD_EXCLUSION_TERMS)

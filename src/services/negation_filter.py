@@ -390,6 +390,11 @@ def filter_excluded_cards(cards, text, bank_name=None):
                         is_power_safe = True
                         break
                     
+        # Special check for standardized customer segments to bypass Hallucination Guard
+        if "akbank mobil kullanicilari" in card_clean:
+            if "mobilin akbanklisi" in text_normalized or "akbank mobil" in text_normalized:
+                is_power_safe = True
+                    
         # Robust core card words check to bypass Hallucination Guard
         card_words = set(card_clean.split())
         bank_name_words = {"yapi", "akbank", "is", "isbank", "garanti", "bbva", "ziraat", "vakifbank", "halkbank", "denizbank", "qnb", "finansbank", "teb", "burgan", "albaraka"}

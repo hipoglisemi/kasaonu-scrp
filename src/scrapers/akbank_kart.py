@@ -76,15 +76,14 @@ class AkbankKartScraper(AkbankBaseScraper):
                 noise.decompose()
             for footer in soup.find_all('footer'):
                 footer.decompose()
+            for header in soup.find_all('header'):
+                header.decompose()
+            for nav in soup.find_all('nav'):
+                nav.decompose()
             
-            # Decompose 'İlgili Kampanyalar' (Related Campaigns) section to prevent brand/tag pollution
-            import re
-            related_el = soup.find(string=re.compile("İlgili Kampanyalar", re.I))
-            if related_el:
-                parent_section = related_el.find_parent('section')
-                if parent_section:
-                    parent_section.decompose()
-                    print("   🗑️ Decomposed 'İlgili Kampanyalar' section.")
+            # Decompose swiper/slider containers and breadcrumb dropdowns of other campaigns to prevent brand/tag pollution
+            for slider in soup.select('.product-list__slider, .product-list__grid, .swiper, .swiper-wrapper, .swiper-slide, .other-campaigns, .campaignDetail-others, .breadcrumb, noindex, .noindex, .dropdown__menu'):
+                slider.decompose()
             
             main_el = soup.find("main")
             raw_html = str(main_el) if main_el else str(soup.find("body") or soup)

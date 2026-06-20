@@ -136,6 +136,12 @@ class AkbankBaseScraper:
                 if src:
                     image_url = urljoin(self.base_url, src)
             
+            # Decompose headers, footers, navs, and other campaigns slider/swiper to prevent card/brand pollution
+            for tag in soup(["script", "style", "nav", "footer", "header", "noscript"]):
+                tag.extract()
+            for noise in soup.select('.breadcrumb, .product-list__slider, .product-list__grid, .swiper, .swiper-wrapper, .swiper-slide, .other-campaigns, .campaignDetail-others, noindex, .noindex, .dropdown__menu'):
+                noise.decompose()
+            
             # Extract FULL BODY for Autofix-standard global cleaning
             body_el = soup.find("body")
             raw_html = str(body_el) if body_el else str(soup)
