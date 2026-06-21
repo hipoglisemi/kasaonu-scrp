@@ -25,6 +25,7 @@ urllib3.disable_warnings()
 import re
 from google.genai import types # type: ignore
 from src.utils.gemini_client import generate_with_rotation
+from bs4 import BeautifulSoup
 
 def clean_html_to_text(html: str, title: str = "") -> str:
     """
@@ -216,6 +217,121 @@ GÖREV: Sayfa metnini ve kampanya başlığını inceleyerek kampanyanın başla
         return {"start_date": None, "end_date": None, "is_expired": False, "is_indefinite": False}
 
 
+chrome_semaphore = threading.Semaphore(2)
+
+def _needs_selenium(raw_html: str, url: str) -> bool:
+    """Hızlı içerik kalite kontrolü — sayfanın JS render gerektirip gerektirmediğini tespit eder."""
+    if not raw_html or len(raw_html) < 1500:
+        return True  # Neredeyse hiç içerik yok
+
+    force_selenium_domains = [
+        "ziraatkatilim.com.tr",
+        "bankkart.com.tr",
+        "ziraatbank.com.tr",
+        "dunyakatilim.com.tr",
+        "turkiyefinans.com.tr",
+        "opet.com.tr",
+    ]
+    if any(d in url for d in force_selenium_domains):
+        return True
+
+    soup = BeautifulSoup(raw_html, 'html.parser')
+    visible_text = soup.get_text(separator=' ', strip=True)
+    visible_lower = visible_text.lower()
+
+    # 🚨 Captcha / güvenlik kodu formu tespiti
+    captcha_signals = [
+        "güvenlik kodu", "security code", "enter the characters",
+        "yenile güvenlik", "kvkk ve kampanya koşullarını okudum",
+        "cep telefon numaranız", "kartınızın son 6 hanesi",
+    ]
+    if sum(1 for s in captcha_signals if s in visible_lower) >= 2:
+        return True  # Captcha/form sayfası — Selenium ile gerçek içeriği al
+
+    # Kampanya anahtar kelimeleri bulunamıyorsa sayfa render olmamıştır
+    campaign_keywords = ["kampanya", "indirim", "kazan", "puan", "iade", "tl", "hediye", "fırsat"]
+    if len(visible_text) < 400 or not any(k in visible_lower for k in campaign_keywords):
+        return True
+
+    # React/Next.js SPA sinyalleri — içerik boş root div veya __NEXT_DATA__ ile yükleniyorsa
+    root_div = soup.find("div", id="root") or soup.find("div", id="__next")
+    if root_div and len(root_div.get_text(strip=True)) < 100:
+        return True
+
+    # Noscript içinde anlamlı içerik varsa → JS olmadan sayfa çalışmıyor
+    noscript = soup.find("noscript")
+    if noscript and len(noscript.get_text(strip=True)) > 50:
+        return True
+
+    return False
+
+
+def _run_selenium(url: str) -> str:
+    """Headless Chrome/Selenium ile sayfayı açar ve HTML döner."""
+    chrome_semaphore.acquire()
+    print(f"   🚀 Escalating to Headless Chrome for: {url}")
+    try:
+        from selenium import webdriver
+        from selenium.webdriver.common.by import By
+        from selenium.webdriver.chrome.service import Service
+
+        options = webdriver.ChromeOptions()
+        if os.getenv("CHROME_BIN"):
+            options.binary_location = os.getenv("CHROME_BIN")
+        options.add_argument('--disable-blink-features=AutomationControlled')
+        options.add_argument('--no-sandbox')
+        options.add_argument('--disable-dev-shm-usage')
+        options.add_argument('--disable-gpu')
+        options.add_argument('--headless=new')
+        options.add_argument('--ignore-certificate-errors')
+        options.add_argument('--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36')
+        options.add_experimental_option("excludeSwitches", ["enable-automation"])
+        options.add_experimental_option('useAutomationExtension', False)
+
+        try:
+            service = Service(executable_path=os.getenv("CHROMEDRIVER_PATH", "chromedriver"))
+            driver = webdriver.Chrome(service=service, options=options)
+        except Exception:
+            driver = webdriver.Chrome(options=options)
+
+        driver.set_page_load_timeout(60)
+        driver.get(url)
+        time.sleep(4)
+        driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
+        time.sleep(2)
+        driver.execute_script("window.scrollTo(0, document.body.scrollHeight - 500);")
+        time.sleep(2)
+
+        # Site bazlı özel aksiyonlar
+        if "dunyakatilim.com.tr" in url:
+            try:
+                cookie_btn = driver.find_element(By.ID, "cookie-all-apply")
+                driver.execute_script("arguments[0].click();", cookie_btn)
+                time.sleep(2)
+            except Exception:
+                pass
+
+        if "bonus.com.tr" in url:
+            try:
+                tabs = driver.find_elements(By.CSS_SELECTOR, ".tabs-list li, .how-to-win-tabs li, .tab-item, .nav-tabs li a")
+                for tab in tabs:
+                    if any(t in tab.text.lower() for t in ["diğer bilgiler", "diger bilgiler", "nasıl kazanırım", "dahil kartlar"]):
+                        driver.execute_script("arguments[0].scrollIntoView();", tab)
+                        driver.execute_script("arguments[0].click();", tab)
+                        time.sleep(2)
+            except Exception:
+                pass
+
+        html = driver.page_source
+        driver.quit()
+        return html
+    except Exception as e:
+        print(f"   ⚠️ Selenium failed: {e}")
+        return ""
+    finally:
+        chrome_semaphore.release()
+
+
 def proactive_expiry_audit(max_audits=2000):
     """
     Checks campaigns expiring TODAY.
@@ -280,9 +396,18 @@ def proactive_expiry_audit(max_audits=2000):
                 url_changed = final_url.rstrip("/") != c["url"].rstrip("/")
                 if url_changed:
                     print(f"   🔗 [URL Redirect] #{c['id']} | {c['url']} → {final_url}")
-                return {**c, "html": resp.text, "final_url": final_url, "url_changed": url_changed}
-        except Exception:
-            pass
+                
+                html_content = resp.text
+                if _needs_selenium(html_content, c["url"]):
+                    print(f"   🔍 [JS Render Gerekli] #{c['id']} için Selenium başlatılıyor...")
+                    rendered_html = _run_selenium(c["url"])
+                    if rendered_html and len(rendered_html) > len(html_content):
+                        html_content = rendered_html
+                        print(f"   ✅ [Selenium Başarılı] #{c['id']} için {len(html_content)} karakter çekildi.")
+                        
+                return {**c, "html": html_content, "final_url": final_url, "url_changed": url_changed}
+        except Exception as e:
+            print(f"   ⚠️ fetch_html error for #{c['id']}: {e}")
         return None
         
     with ThreadPoolExecutor(max_workers=10) as executor:
@@ -351,7 +476,6 @@ def proactive_expiry_audit(max_audits=2000):
                         if db_camp:
                             db_camp.end_date = indefinite_date
                             db_camp.date_extended = True
-                            db_camp.is_approved = False
                             db_camp.updated_at = datetime.now()
                             db.commit()
                     return True
@@ -389,7 +513,6 @@ def proactive_expiry_audit(max_audits=2000):
                         if clean_text and len(clean_text) > 100:
                             db_camp.clean_text = clean_text
                         db_camp.date_extended = True
-                        db_camp.is_approved = False
                         db_camp.updated_at = datetime.now()
 
                         # 📅 Conditions ve description metnindeki eski tarihleri güncelle

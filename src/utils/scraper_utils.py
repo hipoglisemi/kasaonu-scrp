@@ -59,6 +59,32 @@ def normalize_text_for_comparison(text: str) -> str:
     t = _re.sub(r'[^a-zıişğüç]', '', t)
     return t
 
+def have_different_critical_numbers(title1: str, title2: str) -> bool:
+    """
+    Check if two campaign titles contain different critical numbers (like 1.75 vs 2 vs 2.5),
+    excluding calendar year numbers (2020-2030). If they differ in these numbers, they
+    are likely different campaigns and should not be merged under fallback matching.
+    """
+    if not title1 or not title2:
+        return False
+    import re
+    # Normalize commas to dots for decimal comparison
+    t1 = title1.replace(',', '.')
+    t2 = title2.replace(',', '.')
+    
+    # Find all numbers (integers or decimals)
+    nums1 = set(re.findall(r'\b\d+(?:\.\d+)?\b', t1))
+    nums2 = set(re.findall(r'\b\d+(?:\.\d+)?\b', t2))
+    
+    # Filter out calendar years (2020 to 2030)
+    years = {str(y) for y in range(2020, 2031)}
+    nums1 = {n for n in nums1 if n not in years}
+    nums2 = {n for n in nums2 if n not in years}
+    
+    if nums1 and nums2 and nums1 != nums2:
+        return True
+    return False
+
 def should_skip_campaign(db: Session, url: str, card_id: Any = None) -> bool:
     """
     Check if a campaign should be skipped because:
@@ -121,6 +147,9 @@ def upsert_campaign(db: Session, campaign: Campaign) -> Tuple[Campaign, str]:
             for camp in all_card_camps:
                 norm_camp_title = normalize_text_for_comparison(camp.title)
                 if norm_camp_title and norm_camp_title == norm_target_title:
+                    # Prevent matching if titles contain different reward numbers/multipliers
+                    if have_different_critical_numbers(camp.title, campaign.title):
+                        continue
                     existing = camp
                     print(f"      🗓️  [Month-Aware Title Match] Found duplicate via normalized title: ID {existing.id} - '{camp.title}' ≈ '{campaign.title}'")
                     break
@@ -218,6 +247,23 @@ def upsert_campaign(db: Session, campaign: Campaign) -> Tuple[Campaign, str]:
             if similarity >= 0.92:
                 is_date_only_ext = True
                 print(f"      🎉 [Date-Only Extension] Similarity is {similarity:.1%}, marking date_extended=True")
+            else:
+                # Fallback multi-layered check to prevent false positives from AI/Scraper variations
+                cond_desc_old = (existing.conditions or "") + "\n" + (existing.description or "")
+                cond_desc_new = (campaign.conditions or "") + "\n" + (campaign.description or "")
+                cd_old_norm = normalize_text_for_comparison(cond_desc_old)
+                cd_new_norm = normalize_text_for_comparison(cond_desc_new)
+                cd_similarity = 0.0
+                if cd_old_norm and cd_new_norm:
+                    cd_similarity = difflib.SequenceMatcher(None, cd_old_norm, cd_new_norm).ratio()
+                
+                # Check for matches in reward details
+                reward_val_match = (existing.reward_value == campaign.reward_value)
+                reward_type_match = (existing.reward_type == campaign.reward_type)
+                
+                if cd_similarity >= 0.50 and reward_val_match and reward_type_match:
+                    is_date_only_ext = True
+                    print(f"      🎉 [Date-Only Extension Fallback] AI conditions similarity is {cd_similarity:.1%}, reward values/types match. Marking date_extended=True")
         
         existing.date_extended = is_date_only_ext
         
@@ -289,5 +335,23 @@ def upsert_campaign(db: Session, campaign: Campaign) -> Tuple[Campaign, str]:
     else:
         # New campaigns are strictly NOT approved by default
         campaign.is_approved = False
+        
+        # 🛡️ EXPIRY SHIELD FOR NEW CAMPAIGNS:
+        # If a completely new campaign is scraped but its end_date is in the past,
+        # save it as inactive (is_active = False) by default to keep the database and approval queue clean.
+        today_date = datetime.now(timezone.utc).date()
+        new_end_date = campaign.end_date
+        if isinstance(new_end_date, str):
+            try:
+                new_end_date = datetime.strptime(new_end_date.split()[0], "%Y-%m-%d").date()
+            except Exception:
+                new_end_date = None
+        elif hasattr(new_end_date, 'date'):
+            new_end_date = new_end_date.date()
+            
+        if new_end_date is not None and new_end_date < today_date:
+            print(f"      🛡️ [Tarih Kilidi] Yeni kampanya tarihi geçmişte ({new_end_date}) → pasif olarak kaydediliyor: {campaign.title[:40]}")
+            campaign.is_active = False
+            
         db.add(campaign)
         return campaign, "saved"
