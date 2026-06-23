@@ -42,7 +42,29 @@ class AkbankKartScraper(AkbankBaseScraper):
         try:
             response = self.session.get(url, timeout=20)
             response.raise_for_status()
+            
+            # Check for redirect to generic list/homepage
+            redirect_status = self._check_redirect(response, url)
+            if redirect_status == "skipped":
+                return "skipped"
+            
             soup = BeautifulSoup(response.content, 'html.parser')
+            
+            # 🛡️ EXPIRY BADGE CHECK: Akbank keeps dead campaigns alive with "Arşivden Gösterim"
+            badge = soup.select_one('.campaign-item-box__badge')
+            if badge and 'arşiv' in badge.get_text(strip=True).lower():
+                print(f"   ⚠️ [Archived] Found 'Arşivden Gösterim' badge. Skipping.")
+                with get_db_session() as db:
+                    url_slug = url.strip('/').split('/')[-1]
+                    from src.models import Campaign
+                    all_camps = db.query(Campaign).filter(
+                        Campaign.card_id == self.card_id,
+                        Campaign.tracking_url.like(f"%/{url_slug}%")
+                    ).all()
+                    for camp in all_camps:
+                        camp.is_active = False
+                    db.commit()
+                return "skipped"
             
             # --- 1. Raw HTML Extraction ---
             og_title_el = soup.find("meta", property="og:title")

@@ -846,6 +846,12 @@ def run_autofix(limit: int = 250, campaign_id: Optional[int] = None, force_all: 
                     
                     # Store everything we need in local memory
                     c_id = c.id
+                    
+                    # 🛡️ RACE CONDITION CHECK: If the user approved it while we were waiting in the queue!
+                    if c.is_approved and campaign_id is None and not ids_file:
+                        print(f"\n✨ [RACE CONDITION] Skipping [{c_id}]: Campaign was manually approved by an editor while waiting in the Auto-Fix queue!")
+                        return False
+
                     c_title = c.title or ""
                     c_tracking_url = c.tracking_url or ""
                     c_clean_text = c.clean_text or ""

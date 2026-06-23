@@ -54,13 +54,13 @@ def notify_google_deleted(slugs: list[str]):
 
 urllib3.disable_warnings()
 
-def is_link_dead(url: str, title: str = "") -> bool:
+def is_link_dead(url: str, title: str = "") -> tuple:
     """
-    Safely pings a tracking URL. Returns True ONLY if we are 100% sure it's dead.
+    Safely pings a tracking URL. Returns (is_dead, final_url).
     Tolerates slow banks (retries) and prevents false-positives on 403 Forbidden.
     Supports soft-redirect and soft 404 (generic listing redirect) detection.
     """
-    if not url: return False
+    if not url: return (False, url)
     
     session = requests.Session()
     session.headers.update({
@@ -75,7 +75,7 @@ def is_link_dead(url: str, title: str = "") -> bool:
             
             # Explicit 404 means the campaign is definitely gone
             if resp.status_code in [404, 410]:
-                return True
+                return (True, resp.url)
                 
             final_url = resp.url.lower()
             
@@ -103,16 +103,38 @@ def is_link_dead(url: str, title: str = "") -> bool:
                         img_style = (img.get('style') or "").lower()
                         if 'opacity' in img_classes or 'opacity' in img_style or 'pasif' in img_classes or 'passive' in img_classes or 'sona-eren' in img_classes:
                             print(f"      🚨 [Albaraka Opak Görsel] Expired visual style detected! Marking as dead link.")
-                            return True
+                            return (True, final_url)
                     # Check main campaign wrapper classes
                     for wrap in soup.select('.campaign-detail, .campaign-image, .detail-image, .campaign-detail-img'):
                         wrap_classes = " ".join(wrap.get('class', [])).lower()
                         if 'pasif' in wrap_classes or 'passive' in wrap_classes or 'opaque' in wrap_classes:
                             print(f"      🚨 [Albaraka Pasif Sınıfı] Expired wrapper class detected! Marking as dead link.")
-                            return True
+                            return (True, final_url)
                 except Exception:
                     pass
             
+            # 5. HALK / PARAF RULE: Generic list / ana sayfa
+            if 'paraf.com.tr' in final_url:
+                if final_url.endswith('/kampanyalar') or final_url.endswith('/kampanyalar/') or final_url == 'https://www.paraf.com.tr/' or final_url == 'https://www.paraf.com.tr':
+                    return (True, final_url)
+                    
+            # 6. YAPİKREDİ RULE
+            if 'yapikredi.com.tr' in final_url or 'worldcard.com.tr' in final_url:
+                if final_url.endswith('/kampanyalar') or final_url.endswith('/kampanyalar/') or final_url.endswith('/kampanya'):
+                    return (True, final_url)
+                    
+            # Check for generic "Kampanya Sona Erdi" texts in HTML content
+            if resp.status_code == 200:
+                try:
+                    from bs4 import BeautifulSoup
+                    soup = BeautifulSoup(resp.text, 'html.parser')
+                    badge = soup.select_one('.campaign-item-box__badge')
+                    if badge and 'arşiv' in badge.get_text(strip=True).lower():
+                        print(f"      🚨 [Akbank Arşiv] Found 'Arşivden Gösterim' badge. Marking as dead link.")
+                        return (True, final_url)
+                except Exception:
+                    pass
+
             # Extract path without query parameters or trailing slash
             path = ""
             try:
@@ -122,15 +144,15 @@ def is_link_dead(url: str, title: str = "") -> bool:
                 pass
             
             # 1. AKBANK / WINGS RULE: If it redirects to the generic list, it's silently removed
-            if 'axess.com.tr' in url or 'wingscard.com.tr' in url:
+            if 'axess.com.tr' in url or 'wingscard.com.tr' in url or 'akbank.com' in url:
                 if final_url.endswith('/kampanyalar') or final_url.endswith('/kampanyalar/'):
-                    return True
+                    return (True, final_url)
                     
             # 2. TÜRK TELEKOM RULE: If it redirects to the listing or home/portal page
             if 'turktelekom.com.tr' in final_url:
                 listing_endpoints = ('/prime-ayricaliklari', '/ayricaliklar', '/kampanyalar', '/firsatlar', '/bireysel')
                 if path.endswith(listing_endpoints) or path == "":
-                    return True
+                    return (True, final_url)
                     
             # 3. GENERIC LISTING PATH RULE
             generic_listing_paths = (
@@ -138,9 +160,13 @@ def is_link_dead(url: str, title: str = "") -> bool:
                 '/ayricaliklar', '/ayricaliklar/', '/indirimler', '/indirimler/',
                 '/kampanya-listesi', '/kampanyalarimiz'
             )
-            if any(final_url.endswith(p) for p in generic_listing_paths):
-                return True
+            if path in generic_listing_paths:
+                return (True, final_url)
                 
+            # 4. IF IT REDIRECTS TO HOMEPAGE (e.g. max 1 slash in path)
+            if len(path) <= 1:
+                return (True, final_url)
+
             # 4. SOFT 404 TITLE HEURISTICS
             # Alternatif Bank uses a generic title tag for all detail pages, which causes false-positives
             if 'alternatifbank.com.tr' in url.lower():
@@ -162,23 +188,23 @@ def is_link_dead(url: str, title: str = "") -> bool:
                                 words = [w.strip(".,!?\"'") for w in title.lower().split() if len(w) > 3]
                                 matches = [w for w in words if w in page_title]
                                 if not matches:
-                                    return True
+                                    return (True, final_url)
                             else:
-                                return True
+                                return (True, final_url)
                 except Exception:
                     pass
             
             # If it's a 200 OK or 403 Forbidden (Anti-Bot), we MUST assume it's alive to be safe.
-            return False
+            return (False, final_url)
             
         except requests.exceptions.Timeout:
-            if attempt == 2: return False
+            if attempt == 2: return (False, url)
             time.sleep(2)
         except Exception:
-            if attempt == 2: return False
+            if attempt == 2: return (False, url)
             time.sleep(2)
             
-    return False
+    return (False, url)
 
 def cleanup_campaigns():
     """
@@ -207,6 +233,7 @@ def cleanup_campaigns():
         
     # --- STAGE 0.5: Concurrent HTTP Checks (Outside DB Session to prevent connection drops) ---
     dead_campaign_ids = []
+    redirected_urls = {}
     if campaigns_to_check:
         print(f"🌐 Checking {len(campaigns_to_check)} URLs for 404/removal...")
         with ThreadPoolExecutor(max_workers=10) as executor:
@@ -214,14 +241,37 @@ def cleanup_campaigns():
             for future in as_completed(futures):
                 c = futures[future]
                 try:
-                    if future.result() == True:
+                    is_dead, final_url = future.result()
+                    if is_dead:
                         print(f"   👻 Dead link detected: '{c['title']}' | URL: {c['url']}")
                         dead_campaign_ids.append(c["id"])
+                    else:
+                        # Store the final resolved URL to check for duplicate redirects
+                        from src.utils.scraper_utils import clean_url_for_matching
+                        clean_orig = clean_url_for_matching(c["url"])
+                        clean_final = clean_url_for_matching(final_url)
+                        if clean_orig != clean_final:
+                            redirected_urls[c["id"]] = clean_final
                 except Exception as e:
                     pass
 
     # --- STAGE 1 & 2: Database Updates (New DB Session) ---
     with get_db_session() as db:
+        # Check if any redirected URL points to an ALREADY EXISTING active campaign's URL
+        # If so, the original campaign is a duplicate and should be killed.
+        if redirected_urls:
+            from src.utils.scraper_utils import clean_url_for_matching
+            all_active_camps = db.query(Campaign).filter(Campaign.is_active == True, Campaign.tracking_url.isnot(None)).all()
+            active_clean_urls = {c.id: clean_url_for_matching(c.tracking_url) for c in all_active_camps}
+            
+            for cid, r_url in redirected_urls.items():
+                # Is this final URL the tracking URL of ANOTHER campaign?
+                for target_id, target_url in active_clean_urls.items():
+                    if target_id != cid and target_url == r_url:
+                        print(f"   🔄 Redirect Duplicate Detected! ID {cid} redirects to ID {target_id}. Killing {cid}.")
+                        dead_campaign_ids.append(cid)
+                        break
+
         if dead_campaign_ids:
             print(f"💾 Marking {len(dead_campaign_ids)} dead campaigns as passive...")
             for dead_id in dead_campaign_ids:

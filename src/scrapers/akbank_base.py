@@ -66,6 +66,52 @@ class AkbankBaseScraper:
             self.card = card
             self.card_id = card.id  # type: ignore # pyre-ignore[16]
 
+    def _check_redirect(self, response: requests.Response, url: str) -> str:
+        """
+        Checks if the request was redirected to a generic listing page or homepage.
+        If so, deactivates the campaign in the database and returns 'skipped'.
+        """
+        final_url = response.url
+        from src.utils.scraper_utils import clean_url_for_matching
+        clean_orig = clean_url_for_matching(url)
+        clean_final = clean_url_for_matching(final_url)
+        
+        if clean_final != clean_orig:
+            # Check if final URL is a generic listing page or homepage
+            generic_listing_paths = [
+                'akbank.com/kampanyalar', 'axess.com.tr/kampanyalar', 'wingscard.com.tr/kampanyalar',
+                'akbank.com/tr-tr/kampanyalar', 'axess.com.tr/tr-tr/kampanyalar', 'wingscard.com.tr/tr-tr/kampanyalar'
+            ]
+            is_generic_redirect = False
+            for p in generic_listing_paths:
+                if p in clean_final:
+                    is_generic_redirect = True
+                    break
+                    
+            if clean_final in [
+                'akbank.com', 'axess.com.tr', 'wingscard.com.tr', 
+                'akbank.com/tr-tr', 'axess.com.tr/tr-tr', 'wingscard.com.tr/tr-tr'
+            ]:
+                is_generic_redirect = True
+                
+            if is_generic_redirect:
+                print(f"   ⚠️ [Redirect Protection] Campaign URL '{url}' redirected to generic page '{final_url}'. Skipping and deactivating.")
+                # Deactivate in database
+                with get_db_session() as db:
+                    clean_target = clean_orig
+                    all_camps = db.query(Campaign).filter(
+                        Campaign.card_id == self.card_id,
+                        Campaign.tracking_url.isnot(None)
+                    ).all()
+                    for camp in all_camps:
+                        if clean_url_for_matching(camp.tracking_url) == clean_target:
+                            camp.is_active = False
+                            db.commit()
+                            print(f"      ➔ Deactivated duplicate/dead campaign ID: {camp.id}")
+                            break
+                return "skipped"
+        return "ok"
+
     def _fetch_campaign_list(self) -> List[str]:  # type: ignore # pyre-ignore[16,6]
         """Iterate through AJAX pages to get all campaign URLs"""
         print(f"📥 Fetching campaign list for {self.card_name}...")
@@ -119,7 +165,30 @@ class AkbankBaseScraper:
             
             response = self.session.get(url, timeout=20)
             response.raise_for_status()
+            
+            # Check for redirect to generic list/homepage
+            redirect_status = self._check_redirect(response, url)
+            if redirect_status == "skipped":
+                return "skipped"
+            
             soup = BeautifulSoup(response.content, 'html.parser')
+            
+            # 🛡️ EXPIRY BADGE CHECK: Akbank keeps dead campaigns alive with "Arşivden Gösterim"
+            badge = soup.select_one('.campaign-item-box__badge')
+            if badge and 'arşiv' in badge.get_text(strip=True).lower():
+                print(f"   ⚠️ [Archived] Found 'Arşivden Gösterim' badge. Skipping.")
+                # Return skipped and let the _check_redirect logic know it's dead?
+                # Actually we can just deactivate it right here to be safe
+                with get_db_session() as db:
+                    url_slug = url.strip('/').split('/')[-1]
+                    all_camps = db.query(Campaign).filter(
+                        Campaign.card_id == self.card_id,
+                        Campaign.tracking_url.like(f"%/{url_slug}%")
+                    ).all()
+                    for camp in all_camps:
+                        camp.is_active = False
+                    db.commit()
+                return "skipped"
             
             # --- 1. Raw HTML Extraction ---
             title_elm = soup.select_one('h2.pageTitle')
