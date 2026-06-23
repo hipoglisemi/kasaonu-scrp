@@ -14,6 +14,7 @@ if project_root not in sys.path:
     sys.path.insert(0, project_root)
 
 from src.scrapers.akbank_base import AkbankBaseScraper  # type: ignore # pyre-ignore[21]
+from src.database import get_db_session
 
 class AkbankWingsScraper(AkbankBaseScraper):
     """

@@ -11,6 +11,7 @@ if project_root not in sys.path:
     sys.path.insert(0, project_root)
 
 from src.scrapers.akbank_base import AkbankBaseScraper
+from src.database import get_db_session
 from src.services.ai_parser import parse_api_campaign
 
 class AkbankKartScraper(AkbankBaseScraper):
