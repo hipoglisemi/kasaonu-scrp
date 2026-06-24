@@ -212,6 +212,7 @@ def save_to_database(title, slug, content_html, excerpt, meta_description, image
 # ── Konu üreteci ─────────────────────────────────────────────────────────────
 
 TOPIC_TEMPLATES: List[Tuple[str, str]] = [
+    # Mevcut Matris Formatları
     ("{bank} Kredi Kartı Kampanyaları {year} — En İyi Fırsatlar", "bank"),
     ("{sector} Alışverişinde En Çok Kazandıran Kredi Kartları {year}", "sector"),
     ("{bank} ile {sector} Harcamalarında Maksimum Avantaj", "bank_sector"),
@@ -219,6 +220,24 @@ TOPIC_TEMPLATES: List[Tuple[str, str]] = [
     ("{bank} Kredi Kartı ile {sector}'da Nasıl Tasarruf Edilir?", "bank_sector"),
     ("Türkiye'nin En İyi {sector} İndirimli Kredi Kartları", "sector"),
     ("{bank} Kampanyaları: {sector} Kategorisinde Öne Çıkan Teklifler", "bank_sector"),
+    
+    # --- YENİ EKLENEN KARŞILAŞTIRMA VE REHBER FORMATLARI ---
+    # Rehber - Banka Odaklı
+    ("{bank} Aidatsız Kredi Kartı Seçenekleri: Hangi Kart Daha Avantajlı?", "bank"),
+    ("{bank} Kredi Kartı Başvurusu Nasıl Yapılır? Hızlı Onay Tüyoları", "bank"),
+    ("Mil Kazandıran {bank} Kredi Kartları ile Bedava Uçak Bileti Rehberi", "bank"),
+    ("{bank} Öğrenci Kredi Kartı Alma Rehberi ve En İyi Kampanyalar", "bank"),
+    ("{bank} Kredi Kartı Asgari Ödeme Hesaplama ve Kredi Notu Etkisi", "bank"),
+    
+    # Karşılaştırma & Rehber - Sektör Odaklı
+    ("{sector} Kategorisinde Hangi Kredi Kartı Daha Mantıklı? Karşılaştırma Rehberi", "sector"),
+    ("{sector} Alışverişlerinde Maksimum Puan Kazandıran Taktikler ve Kartlar", "sector"),
+    ("{sector} Harcamalarınızı Taksitlendirme Rehberi: Hangi Kart Ne Sunuyor?", "sector"),
+    
+    # Acı Noktası (Pain-Point) Çözümleri
+    ("Kredi Notu Düşük Olanlar İçin {bank} Kredi Kartı Fırsatları", "bank"),
+    ("{bank} Kredi Kartı Limiti Nasıl Hızlı Yükseltilir? Anında Onay Taktikleri", "bank"),
+    ("{bank} Kredi Kartı Borcu Taksitlendirme ve Yapılandırma Seçenekleri", "bank"),
 ]
 
 
