@@ -169,7 +169,7 @@ class QNBScraper:
                     reward_type=ai_data.get("reward_type"),
                     start_date=ai_data.get("start_date"),
                     end_date=ai_data.get("end_date"),
-                    image_url=image_url or "https://www.qnbcard.com.tr/Content/images/logo.png",
+                    image_url=image_url or "https://www.qnbcard.com.tr/_assets/img/qnb-logo.png",
                     tracking_url=url,
                     is_active=True,
                     ai_marketing_text=ai_data.get("ai_marketing_text"),

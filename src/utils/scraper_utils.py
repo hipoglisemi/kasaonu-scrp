@@ -3,6 +3,7 @@ from typing import Any, Tuple
 from sqlalchemy.orm import Session
 from src.models import CampaignBlocklist, Campaign
 from datetime import datetime, timezone
+from src.utils.date_utils import update_dates_in_text
 
 def is_url_blocked(db: Session, url: str) -> bool:
     """Check if a URL is in the blocklist."""
@@ -219,10 +220,15 @@ def upsert_campaign(db: Session, campaign: Campaign) -> Tuple[Campaign, str]:
             print(f"   🔄 Reviving passive campaign: {existing.title[:40]}...")
             existing.is_active = True
             
-            # Resurrected campaigns always go to approval queue
+            # Keep track of original approval state so we can restore it if it's just a false alarm
+            was_approved_before = existing.is_approved
+            
+            # Resurrected campaigns temporarily go to approval queue
             existing.is_approved = False
             existing.cards_audited_at = None
             status = "revived"
+        else:
+            was_approved_before = existing.is_approved
             
         # Check if only the date was extended (Fuzzy similarity of text >= 92%)
         import difflib
@@ -234,9 +240,15 @@ def upsert_campaign(db: Session, campaign: Campaign) -> Tuple[Campaign, str]:
         # DO NOT update or overwrite the existing database record! Keep the healthy DB data.
         if old_text and not new_text:
             print(f"      🛡️ [AI Kalkanı] AI parsing failed for incoming payload (possibly 429). Shielding database record '{existing.title[:30]}' from being wiped!")
+            # If we revived it, revert the revive effects
+            if status == "revived":
+                existing.is_active = False
+                existing.is_approved = was_approved_before
             return existing, "skipped"
             
         is_date_only_ext = False
+        is_exact_match = False # Content is same, date is same
+        
         if old_text and new_text:
             t1_norm = normalize_text_for_comparison(new_text)
             t2_norm = normalize_text_for_comparison(old_text)
@@ -245,8 +257,12 @@ def upsert_campaign(db: Session, campaign: Campaign) -> Tuple[Campaign, str]:
                 similarity = difflib.SequenceMatcher(None, t1_norm, t2_norm).ratio()
             
             if similarity >= 0.92:
-                is_date_only_ext = True
-                print(f"      🎉 [Date-Only Extension] Similarity is {similarity:.1%}, marking date_extended=True")
+                if campaign.end_date != existing.end_date:
+                    is_date_only_ext = True
+                    print(f"      🎉 [Date-Only Extension] Similarity is {similarity:.1%}, date changed. Marking date_extended=True")
+                else:
+                    is_exact_match = True
+                    print(f"      ✅ [Exact Match] Similarity is {similarity:.1%}, but date is exactly same. Not an extension.")
             else:
                 # Fallback multi-layered check to prevent false positives from AI/Scraper variations
                 cond_desc_old = (existing.conditions or "") + "\n" + (existing.description or "")
@@ -262,29 +278,54 @@ def upsert_campaign(db: Session, campaign: Campaign) -> Tuple[Campaign, str]:
                 reward_type_match = (existing.reward_type == campaign.reward_type)
                 
                 if cd_similarity >= 0.50 and reward_val_match and reward_type_match:
-                    is_date_only_ext = True
-                    print(f"      🎉 [Date-Only Extension Fallback] AI conditions similarity is {cd_similarity:.1%}, reward values/types match. Marking date_extended=True")
+                    if campaign.end_date != existing.end_date:
+                        is_date_only_ext = True
+                        print(f"      🎉 [Date-Only Extension Fallback] AI conditions similarity is {cd_similarity:.1%}, reward values/types match. Marking date_extended=True")
+                    else:
+                        is_exact_match = True
+                        print(f"      ✅ [Exact Match Fallback] Conditions similarity is {cd_similarity:.1%}, but date is exactly same. Not an extension.")
         
+        # Only mark date_extended if the date ACTUALLY changed
         existing.date_extended = is_date_only_ext
         
         # 🔒 APPROVAL LOGIC:
-        # - Tarih uzaması (date_extended=True, similarity ≥%92) → is_approved'u KORU.
-        #   Yalnızca tarih değişti, editörün zaten onayladığı içerik hâlâ geçerli.
-        # - İçerik gerçekten değiştiyse (date_extended=False) → onaya düşür.
-        # - Revived kampanyalar (is_active=False iken yakalandı) → yukarıda 163. satırda False yapıldı.
-        if not is_date_only_ext:
+        if is_date_only_ext or is_exact_match:
+            # Sadece tarih uzaması veya birebir aynı içerik → onay durumunu eski haline döndür / koru
+            existing.is_approved = was_approved_before
+            reason = "tarih uzaması" if is_date_only_ext else "birebir aynı içerik"
+            print(f"      ✅ [Onay Korundu] {reason} → is_approved={existing.is_approved} korundu.")
+            
+            # Treat exact matches as date-only extensions for the locking logic (to prevent overwriting columns)
+            is_date_only_ext = True 
+        else:
+            # İçerik gerçekten değiştiyse (date_extended=False ve exact match değilse) → onaya düşür.
             existing.is_approved = False
             print(f"      🔒 [Onay Kilidi] İçerik değişti → onaya düşürüldü.")
-        else:
-            print(f"      ✅ [Onay Korundu] Sadece tarih uzaması → is_approved={existing.is_approved} korundu.")
 
         existing.updated_at = datetime.now(timezone.utc).replace(tzinfo=None)
 
         if is_date_only_ext:
             # 🔒 MEASURE A (Tarih Kilidi): If only the date has changed, STRICTLY update only date-related fields!
             print(f"      🔒 [Tarih Kilidi] Campaign '{existing.title[:30]}' is a date-only extension. Content fields and URL are STRICTLY locked!")
+            
+            # 📅 YENİ: Metin içindeki tarihleri otomatik güncelle (Proactive mantığı)
+            old_end_date_for_text = existing.end_date
+            
             existing.start_date = campaign.start_date
             existing.end_date = campaign.end_date
+            
+            if old_end_date_for_text and campaign.end_date and old_end_date_for_text != campaign.end_date:
+                if existing.conditions:
+                    existing.conditions = update_dates_in_text(existing.conditions, old_end_date_for_text, campaign.end_date)
+                if existing.description:
+                    existing.description = update_dates_in_text(existing.description, old_end_date_for_text, campaign.end_date)
+                if existing.participation:
+                    existing.participation = update_dates_in_text(existing.participation, old_end_date_for_text, campaign.end_date)
+                if existing.ai_marketing_text:
+                    existing.ai_marketing_text = update_dates_in_text(existing.ai_marketing_text, old_end_date_for_text, campaign.end_date)
+                if existing.clean_text:
+                    existing.clean_text = update_dates_in_text(existing.clean_text, old_end_date_for_text, campaign.end_date)
+                    
             # 🔗 URL Slug Fix: If the bank changed the URL slug (e.g. TEB /akaryakit-iade/ → /akaryakit-kampanyasi/),
             # update tracking_url even in date-lock mode — otherwise the "Katıl" button breaks.
             if campaign.tracking_url and existing.tracking_url != campaign.tracking_url:

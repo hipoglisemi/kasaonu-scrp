@@ -408,7 +408,7 @@ def fetch_html(url: str, title: str = "") -> str:
     # 🔒 Captcha/form siteleri için Header Sniper'ı devre dışı bırak.
     # Bu siteler form metnini başa yerleştirdiği için başlık erken bulunuyor
     # ve gerçek kampanya içeriği yanlışlıkla kesiliyor.
-    _sniper_domains = ["ziraatkatilim.com.tr", "bankkart.com.tr", "ziraatbank.com.tr", "dunyakatilim.com.tr", "turkiyefinans.com.tr", "opet.com.tr"]
+    _sniper_domains = ["ziraatkatilim.com.tr", "bankkart.com.tr", "ziraatbank.com.tr", "dunyakatilim.com.tr", "turkiyefinans.com.tr", "opet.com.tr", "denizbonus.com"]
     _skip_title_sniper = any(d in url for d in _sniper_domains)
     text = clean_campaign_text(text, title=None if _skip_title_sniper else (title or None))
 
@@ -961,7 +961,9 @@ def run_autofix(limit: int = 250, campaign_id: Optional[int] = None, force_all: 
                                 html_text = ""
                         
                         if html_text and len(html_text) >= 150:
-                            fetched_cleaned = clean_campaign_text(html_text, og_title=og_title, title=c_title)
+                            _sniper_domains2 = ["ziraatkatilim.com.tr", "bankkart.com.tr", "ziraatbank.com.tr", "dunyakatilim.com.tr", "turkiyefinans.com.tr", "opet.com.tr", "denizbonus.com"]
+                            _skip_title2 = any(d in (c_tracking_url or "") for d in _sniper_domains2)
+                            fetched_cleaned = clean_campaign_text(html_text, og_title=None if _skip_title2 else og_title, title=None if _skip_title2 else c_title)
                             # 🛡️ DB TEXT PROTECTION: Never overwrite longer DB text with shorter live content UNLESS live content is already long enough and clean (350+ chars)
                             is_live_trustworthy = len(fetched_cleaned) >= 350 or (campaign_id is not None)
                             if db_text_len > 0 and len(fetched_cleaned) < db_text_len * 0.7 and not is_live_trustworthy:

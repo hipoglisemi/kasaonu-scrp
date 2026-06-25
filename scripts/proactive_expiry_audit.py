@@ -37,92 +37,7 @@ def clean_html_to_text(html: str, title: str = "") -> str:
         return ""
     return clean_campaign_text(html, title=title or None)
 
-# Türkçe ay isimleri (büyük harf başlangıç)
-_TR_MONTHS = {
-    1: "Ocak", 2: "Şubat", 3: "Mart", 4: "Nisan",
-    5: "Mayıs", 6: "Haziran", 7: "Temmuz", 8: "Ağustos",
-    9: "Eylül", 10: "Ekim", 11: "Kasım", 12: "Aralık"
-}
-_TR_MONTHS_LOWER = {v.lower(): k for k, v in _TR_MONTHS.items()}
-# Türkçe ay + iyelik ekleri (Mayıs'a, Haziran'a, Temmuz'a vb.)
-_TR_MONTH_VARIANTS = {
-    "ocak": ["ocak", "ocakta", "ocağa", "ocağın"],
-    "şubat": ["şubat", "şubatta", "şubata", "şubatın"],
-    "mart": ["mart", "martta", "marta", "martın"],
-    "nisan": ["nisan", "nisanda", "nisana", "nisanın", "nisanın"],
-    "mayıs": ["mayıs", "mayısın", "mayısa", "mayıs'a", "mayıs'ın"],
-    "haziran": ["haziran", "haziranın", "hazirana", "haziran'a", "haziran'ın"],
-    "temmuz": ["temmuz", "temmuzun", "temmuza", "temmuz'a", "temmuz'un"],
-    "ağustos": ["ağustos", "ağustosun", "ağustosa", "ağustos'a"],
-    "eylül": ["eylül", "eylülün", "eylüle", "eylül'e", "eylül'ün"],
-    "ekim": ["ekim", "ekimin", "ekime", "ekim'e"],
-    "kasım": ["kasım", "kasımın", "kasıma", "kasım'a"],
-    "aralık": ["aralık", "aralığın", "aralığa", "aralık'a"],
-}
-
-def update_dates_in_text(text: str, old_end_date, new_end_date) -> str:
-    """
-    Conditions gibi metinlerdeki eski bitiş tarihini yeni tarihle değiştirir.
-    Desteklenen formatlar:
-      - "8 Haziran 2026"  → "9 Temmuz 2026"
-      - "08.06.2026"      → "09.07.2026"
-      - "2026-06-08"      → "2026-07-09"
-      - "Haziran 2026'ya kadar" → "Temmuz 2026'ya kadar"
-    """
-    if not text or not old_end_date or not new_end_date:
-        return text
-
-    old_day   = old_end_date.day
-    old_month = old_end_date.month
-    old_year  = old_end_date.year
-    new_day   = new_end_date.day
-    new_month = new_end_date.month
-    new_year  = new_end_date.year
-
-    old_month_tr = _TR_MONTHS[old_month]
-    new_month_tr = _TR_MONTHS[new_month]
-
-    result = text
-
-    # 1. ISO format: 2026-06-08 → 2026-07-09
-    result = result.replace(
-        f"{old_year}-{old_month:02d}-{old_day:02d}",
-        f"{new_year}-{new_month:02d}-{new_day:02d}"
-    )
-
-    # 2. Noktalı format: 08.06.2026 → 09.07.2026
-    result = result.replace(
-        f"{old_day:02d}.{old_month:02d}.{old_year}",
-        f"{new_day:02d}.{new_month:02d}.{new_year}"
-    )
-    result = result.replace(
-        f"{old_day}.{old_month}.{old_year}",
-        f"{new_day}.{new_month}.{new_year}"
-    )
-
-    # 3. Türkçe format: "8 Haziran 2026" veya "8 Haziran" → "9 Temmuz 2026" / "9 Temmuz"
-    if old_month_tr != new_month_tr or old_day != new_day or old_year != new_year:
-        # Tam tarih: gün + ay + yıl
-        result = re.sub(
-            rf'\b{old_day}\s+{old_month_tr}\s+{old_year}\b',
-            f"{new_day} {new_month_tr} {new_year}",
-            result, flags=re.IGNORECASE
-        )
-        # Sadece gün + ay (yılsız)
-        result = re.sub(
-            rf'\b{old_day}\s+{old_month_tr}\b(?!\s+\d{{4}})',
-            f"{new_day} {new_month_tr}",
-            result, flags=re.IGNORECASE
-        )
-        # Sadece ay + yıl (günsüz, ör: "Haziran 2026'ya kadar")
-        if old_month != new_month:
-            result = re.sub(
-                rf'\b{old_month_tr}\b',
-                new_month_tr,
-                result, flags=re.IGNORECASE
-            )
-
-    return result
+from src.utils.date_utils import update_dates_in_text
 
 def extract_dates_via_ai(title: str, clean_text: str, key_index: int = 1, today_date = None):
     """
@@ -217,7 +132,7 @@ GÖREV: Sayfa metnini ve kampanya başlığını inceleyerek kampanyanın başla
         return {"start_date": None, "end_date": None, "is_expired": False, "is_indefinite": False}
 
 
-chrome_semaphore = threading.Semaphore(2)
+chrome_lock = threading.Lock()
 
 def _needs_selenium(raw_html: str, url: str) -> bool:
     """Hızlı içerik kalite kontrolü — sayfanın JS render gerektirip gerektirmediğini tespit eder."""
@@ -267,69 +182,68 @@ def _needs_selenium(raw_html: str, url: str) -> bool:
 
 
 def _run_selenium(url: str) -> str:
-    """Headless Chrome/Selenium ile sayfayı açar ve HTML döner."""
-    chrome_semaphore.acquire()
-    print(f"   🚀 Escalating to Headless Chrome for: {url}")
+    """Playwright ile sayfayı açar ve HTML döner. (Fonksiyon adı uyumluluk için aynı bırakıldı)"""
+    chrome_lock.acquire()
+    print(f"   🚀 Escalating to Playwright for: {url}")
     try:
-        from selenium import webdriver
-        from selenium.webdriver.common.by import By
-        from selenium.webdriver.chrome.service import Service
-
-        options = webdriver.ChromeOptions()
-        if os.getenv("CHROME_BIN"):
-            options.binary_location = os.getenv("CHROME_BIN")
-        options.add_argument('--disable-blink-features=AutomationControlled')
-        options.add_argument('--no-sandbox')
-        options.add_argument('--disable-dev-shm-usage')
-        options.add_argument('--disable-gpu')
-        options.add_argument('--headless=new')
-        options.add_argument('--ignore-certificate-errors')
-        options.add_argument('--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36')
-        options.add_experimental_option("excludeSwitches", ["enable-automation"])
-        options.add_experimental_option('useAutomationExtension', False)
-
-        try:
-            service = Service(executable_path=os.getenv("CHROMEDRIVER_PATH", "chromedriver"))
-            driver = webdriver.Chrome(service=service, options=options)
-        except Exception:
-            driver = webdriver.Chrome(options=options)
-
-        driver.set_page_load_timeout(60)
-        driver.get(url)
-        time.sleep(4)
-        driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
-        time.sleep(2)
-        driver.execute_script("window.scrollTo(0, document.body.scrollHeight - 500);")
-        time.sleep(2)
-
-        # Site bazlı özel aksiyonlar
-        if "dunyakatilim.com.tr" in url:
+        from playwright.sync_api import sync_playwright
+        with sync_playwright() as p:
+            browser = p.chromium.launch(
+                headless=True, 
+                args=['--disable-blink-features=AutomationControlled', '--no-sandbox', '--disable-dev-shm-usage']
+            )
+            context = browser.new_context(
+                user_agent='Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36',
+                viewport={'width': 1920, 'height': 1080},
+                ignore_https_errors=True
+            )
+            page = context.new_page()
+            
+            # Anti-bot bypass script
+            page.add_init_script("Object.defineProperty(navigator, 'webdriver', {get: () => undefined})")
+            
             try:
-                cookie_btn = driver.find_element(By.ID, "cookie-all-apply")
-                driver.execute_script("arguments[0].click();", cookie_btn)
-                time.sleep(2)
+                page.goto(url, timeout=60000, wait_until='domcontentloaded')
+                page.wait_for_timeout(4000)
+            except Exception as e:
+                print(f"      [Playwright] Warning during goto: {e}")
+            
+            try:
+                page.evaluate("window.scrollTo(0, document.body.scrollHeight);")
+                page.wait_for_timeout(2000)
+                page.evaluate("window.scrollTo(0, document.body.scrollHeight - 500);")
+                page.wait_for_timeout(2000)
             except Exception:
                 pass
 
-        if "bonus.com.tr" in url:
-            try:
-                tabs = driver.find_elements(By.CSS_SELECTOR, ".tabs-list li, .how-to-win-tabs li, .tab-item, .nav-tabs li a")
-                for tab in tabs:
-                    if any(t in tab.text.lower() for t in ["diğer bilgiler", "diger bilgiler", "nasıl kazanırım", "dahil kartlar"]):
-                        driver.execute_script("arguments[0].scrollIntoView();", tab)
-                        driver.execute_script("arguments[0].click();", tab)
-                        time.sleep(2)
-            except Exception:
-                pass
+            # Site bazlı özel aksiyonlar
+            if "dunyakatilim.com.tr" in url:
+                try:
+                    page.click("#cookie-all-apply", timeout=5000)
+                    page.wait_for_timeout(2000)
+                except Exception:
+                    pass
 
-        html = driver.page_source
-        driver.quit()
-        return html
+            if "bonus.com.tr" in url:
+                try:
+                    tabs = page.query_selector_all(".tabs-list li, .how-to-win-tabs li, .tab-item, .nav-tabs li a")
+                    for tab in tabs:
+                        text = (tab.inner_text() or "").lower()
+                        if any(t in text for t in ["diğer bilgiler", "diger bilgiler", "nasıl kazanırım", "dahil kartlar"]):
+                            tab.scroll_into_view_if_needed()
+                            tab.click(force=True)
+                            page.wait_for_timeout(2000)
+                except Exception:
+                    pass
+
+            html = page.content()
+            browser.close()
+            return html
     except Exception as e:
-        print(f"   ⚠️ Selenium failed: {e}")
+        print(f"   ⚠️ Playwright failed: {e}")
         return ""
     finally:
-        chrome_semaphore.release()
+        chrome_lock.release()
 
 
 def proactive_expiry_audit(max_audits=2000):
@@ -407,7 +321,13 @@ def proactive_expiry_audit(max_audits=2000):
                         
                 return {**c, "html": html_content, "final_url": final_url, "url_changed": url_changed}
         except Exception as e:
-            print(f"   ⚠️ fetch_html error for #{c['id']}: {e}")
+            print(f"   ⚠️ fetch_html error for #{c['id']}: {e}. Escalating to Playwright...")
+            try:
+                rendered_html = _run_selenium(c["url"])
+                if rendered_html:
+                    return {**c, "html": rendered_html, "final_url": c["url"], "url_changed": False}
+            except Exception as pe:
+                print(f"   ⚠️ Playwright fallback also failed for #{c['id']}: {pe}")
         return None
         
     with ThreadPoolExecutor(max_workers=10) as executor:
@@ -438,6 +358,17 @@ def proactive_expiry_audit(max_audits=2000):
 
             # ✅ Düzgün temizlenmiş metin: text_cleaner pipeline'ından geçir
             clean_text = clean_html_to_text(c["html"], title=c.get("title", ""))
+            
+            # 🛡️ BOT/ENGEL KALKANI:
+            # If the clean_text is suspiciously short or contains typical WAF/Bot block phrases,
+            # we should SKIP rather than letting AI hallucinate or falsely mark as expired.
+            lower_text = clean_text.lower()
+            block_phrases = ["access denied", "cloudflare", "security check", "güvenlik kontrolü", "are you human", "robot olmadığınızı", "sayfa bulunamadı", "aradığınız sayfa"]
+            
+            if len(clean_text) < 200 or any(bp in lower_text for bp in block_phrases):
+                print(f"   🛡️ [Bot Engeli/Eksik İçerik] #{c['id']} için içerik şüpheli veya bloke edilmiş. Pas geçiliyor.")
+                return False
+
             ai_dates = extract_dates_via_ai(c["title"], clean_text, key_index=key_index, today_date=today)
 
             ai_start_date_str = ai_dates.get("start_date")
@@ -457,7 +388,14 @@ def proactive_expiry_audit(max_audits=2000):
 
             if not ai_end_date_str:
                 if is_indefinite:
-                    # Süresiz kampanya
+                    # 🛡️ GEÇMİŞE SAYGI (Respect History) KURALI
+                    # Eğer sistemde halihazırda belli bir bitiş tarihi varsa, AI bot engeli veya sayfa eksikliği yüzünden
+                    # tarihi bulamayıp "Süresiz" sanmış olabilir. Bu durumda eski tarihi ezme!
+                    if c["end_date"]:
+                        print(f"   🛡️ [Geçmişe Saygı] AI 'Süresiz' dedi ancak sistemde eski tarih ({c['end_date']}) var. Orijinal tarih korunuyor! | ID: #{c['id']} | {c['title'][:50]}")
+                        return False
+
+                    # Gerçek Süresiz kampanya (Eskiden de tarihi yoktu)
                     # Ay sonuna kadar uzat. Eğer ay sonuna 5 günden az kaldıysa bir sonraki ayın sonuna uzat.
                     last_day_current = calendar.monthrange(today.year, today.month)[1]
                     if (last_day_current - today.day) > 5:
