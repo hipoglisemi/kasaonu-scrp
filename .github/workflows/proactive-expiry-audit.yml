@@ -29,11 +29,21 @@ jobs:
         python-version: '3.10'
         cache: 'pip'
         
+    - name: Install System Dependencies (Chrome & Xvfb)
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y google-chrome-stable xvfb
+
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
         pip install -r requirements.txt
+        pip install selenium-stealth pyvirtualdisplay webdriver-manager playwright
         
+    - name: Install Playwright Browsers
+      run: |
+        playwright install chromium
+
     - name: Run Proactive Expiry Audit
       env:
         DATABASE_URL: ${{ secrets.DATABASE_URL }}
@@ -47,7 +57,11 @@ jobs:
         GEMINI_API_KEY_7: ${{ secrets.GEMINI_API_KEY_7 }}
         GEMINI_API_KEY_8: ${{ secrets.GEMINI_API_KEY_8 }}
         REVERSE_KEYS: "False"
+        DISPLAY: ':99'
       run: |
+        Xvfb :99 -screen 0 1920x1080x24 &
+        sleep 2
+        
         # Use dispatch input or default to 2000
         MAX_AUDITS="${{ github.event.inputs.max_audits || '2000' }}"
         echo "🚀 Running proactive expiry audit with max_audits=$MAX_AUDITS"
