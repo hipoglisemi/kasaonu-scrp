@@ -34,9 +34,17 @@ def clean_campaign_text(raw_text: str, og_title: Optional[str] = None, title: Op
                 tag_classes = tag.get("class") or []
                 tag_id = tag.get("id") or ""
                 keywords = ["footer", "header", "menu", "nav", "sidebar", "breadcrumb", "cookie", "cookie-consent", "modal", "popup", "sitemap", "quick-links"]
+                
+                safe_classes = ["sub-header", "page-header", "campaign-header", "content-header", "section-header", "card-header"]
+                
                 for kw in keywords:
                     if kw in tag_id: return True
-                    if any(kw in str(c).lower() for c in tag_classes): return True
+                    for c in tag_classes:
+                        c_lower = str(c).lower()
+                        if kw in c_lower:
+                            if any(safe in c_lower for safe in safe_classes):
+                                continue
+                            return True
                 return False
 
             for tag in soup.find_all(is_noise_tag):
@@ -413,17 +421,17 @@ def clean_campaign_text(raw_text: str, og_title: Optional[str] = None, title: Op
         r"(?i)©\s*copyright",
         r"(?i)tüm hakları saklıdır",
         # 🛑 İş Bankası Arşiv Gürültüsü: Geçmiş kampanyaların tekrar eklenmesi
-        r"(?i)^geçmiş kampanyalarımız\s*$",
-        r"(?i)^geçmiş kampanyalar\s*$",
-        r"(?i)^diğer kampanyalarımız\s*$",
+        r"(?i)geçmiş kampanyalarımız",
+        r"(?i)geçmiş kampanyalar",
+        r"(?i)diğer kampanyalarımız",
         # 🛑 Yapı Kredi Footer Gürültüsü
-        r"(?i)^finansal çözümler\s*$",
-        r"(?i)^banka ve kredi kartları\s*$",
-        r"(?i)^sık ziyaret edilenler\s*$",
-        r"(?i)^faydalı sayfalar\s*$",
-        r"(?i)^diğer yapı kredi kartları\s*$",
-        r"(?i)^öne çıkan kampanyalar\s*$",
-        r"(?i)^diğer kampanyalar\s*$",
+        r"(?i)finansal çözümler",
+        r"(?i)banka ve kredi kartları",
+        r"(?i)sık ziyaret edilenler",
+        r"(?i)faydalı sayfalar",
+        r"(?i)diğer yapı kredi kartları",
+        r"(?i)öne çıkan kampanyalar",
+        r"(?i)diğer kampanyalar",
     ]
     
     is_pep = False
