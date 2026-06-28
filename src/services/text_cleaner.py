@@ -285,8 +285,18 @@ def clean_campaign_text(raw_text: str, og_title: Optional[str] = None, title: Op
         matches = list(re.finditer(re.escape(first_few_words), final_text, re.IGNORECASE))
         if matches:
             target_match = matches[0]
+            
+            # Find the earliest noise index BEFORE doing the chop to prevent jumping over it
+            pre_chop_noise_idx = len(final_text)
+            text_lower_pre = final_text.translate({ord('I'): 'ı', ord('İ'): 'i', ord('Ş'): 'ş', ord('Ğ'): 'ğ', ord('Ç'): 'ç', ord('Ö'): 'ö', ord('Ü'): 'ü'}).lower()
+            
+            for marker in [r"(?i)geçmiş kampanyalarımız", r"(?i)geçmiş kampanyalar", r"(?i)diğer kampanyalarımız", r"(?i)ilgili kampanyalar", r"(?i)benzer kampanyalar"]:
+                for match in re.finditer(marker, text_lower_pre, re.MULTILINE):
+                    if match.start() >= 100 and match.start() < pre_chop_noise_idx:
+                        pre_chop_noise_idx = match.start()
+
             if len(matches) > 1 and matches[0].start() < 300:
-                if matches[1].start() < 4000:
+                if matches[1].start() < 4000 and matches[1].start() < pre_chop_noise_idx:
                     target_match = matches[1]
             if 0 < target_match.start() < 4000:
                 final_text = final_text[target_match.start():].strip()
