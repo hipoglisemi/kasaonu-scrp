@@ -32,7 +32,7 @@ def _load_keys() -> List[str]:
     # Other scrapers/scripts must only use rotation keys (GEMINI_API_KEY_1, _2, etc.)
     import sys
     running_script = sys.argv[0] if sys.argv else ""
-    is_proactive = any(x in running_script for x in ["proactive_expiry_audit", "proactive_audit_local", "test_ai_cost"])
+    is_proactive = any(x in running_script for x in ["proactive_expiry_audit", "proactive_audit_local", "test_ai_cost", "reactivate_and_audit"])
     
     if not is_proactive and "GEMINI_API_KEY" in all_env_keys:
         all_env_keys.remove("GEMINI_API_KEY")

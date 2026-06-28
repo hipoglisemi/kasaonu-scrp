@@ -93,7 +93,7 @@ GÖREV: Sayfa metnini ve kampanya başlığını inceleyerek kampanyanın başla
     
     # Paid tier: tek key yeterli, rotation sadece fallback için
     NUM_WORKERS = 8
-    key_indices = [1]  # Paid tier: sadece KEY_1 kullan, 429 alırsa rotation devreye girer
+    key_indices = [key_index]  # Use the passed key_index for rotation across threads
 
     try:
         result_str, usage = generate_with_rotation_tracked(
@@ -247,7 +247,7 @@ def _run_selenium(url: str) -> str:
         chrome_lock.release()
 
 
-def proactive_expiry_audit(max_audits=2500):
+def proactive_expiry_audit(max_audits=2500, specific_ids=None):
     """
     Checks campaigns expiring TODAY.
     Fetches their tracking URL and parses them with AI to get the actual end_date.
@@ -267,12 +267,18 @@ def proactive_expiry_audit(max_audits=2500):
     campaigns_to_audit = []
     try:
         with get_db_session() as db:
-            soon_expiring = db.query(Campaign).filter(
-                Campaign.is_active == True,
-                Campaign.end_date >= start_date,                # Bugün bitenler (ayın 1'indeysek dünden itibaren)
-                Campaign.end_date <= today + timedelta(days=2), # ve 2 gün içinde biten kampanyalar
-                Campaign.tracking_url.isnot(None)
-            ).all()
+            if specific_ids:
+                soon_expiring = db.query(Campaign).filter(
+                    Campaign.id.in_(specific_ids),
+                    Campaign.tracking_url.isnot(None)
+                ).all()
+            else:
+                soon_expiring = db.query(Campaign).filter(
+                    Campaign.is_active == True,
+                    Campaign.end_date >= start_date,                # Bugün bitenler (ayın 1'indeysek dünden itibaren)
+                    Campaign.end_date <= today + timedelta(days=2), # ve 2 gün içinde biten kampanyalar
+                    Campaign.tracking_url.isnot(None)
+                ).all()
             
             campaigns_to_audit = [
                 {
@@ -361,7 +367,7 @@ def proactive_expiry_audit(max_audits=2500):
     PRICE_OUTPUT_PER_M = 1.50  # $1.50 per 1M output tokens
     USD_TO_TRY = 47.0          # Güncel kur
 
-    NUM_WORKERS = 8  # 8 işçi × 8 anahtar, her biri kendi key'ine kilitli
+    NUM_WORKERS = 1 if specific_ids else 8  # 8 işçi × 8 anahtar, her biri kendi key'ine kilitli
 
     def audit_one(args):
         """Audit a single campaign: AI parse → DB update. Thread-safe."""

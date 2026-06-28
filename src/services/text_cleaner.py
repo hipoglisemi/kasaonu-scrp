@@ -418,7 +418,6 @@ def clean_campaign_text(raw_text: str, og_title: Optional[str] = None, title: Op
         r"(?i)^\s*diğer kampanyalara göz atın\s*$",
         r"(?i)^\s*sizin için seçtiklerimiz\s*$",
         r"(?i)^\s*öne çıkan ayrıcalıklar\s*$",
-        r"(?i)(paylaş|yazdır)$",
         # ⚠️ Yasal hak saklı tutma uyarıları cümle ortasında geçebildiği için HARD_CUT_MARKERS'tan kaldırıldı.
         # Bunları temizlemeyi tamamen Gemini/Yapay zekaya bırakıyoruz.
         r"(?i)miles&smiles dünyası ayrıcalıklarınız",
