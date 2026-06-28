@@ -4,6 +4,10 @@ import requests
 from psycopg2.extras import RealDictCursor
 from datetime import datetime, timezone
 from urllib.parse import urlparse
+from dotenv import load_dotenv
+
+# Load local environment variables (.env file) if present
+load_dotenv()
 
 DATABASE_URL = os.getenv(
     "DATABASE_URL",
