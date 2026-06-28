@@ -295,9 +295,6 @@ def clean_campaign_text(raw_text: str, og_title: Optional[str] = None, title: Op
                     if match.start() >= 100 and match.start() < pre_chop_noise_idx:
                         pre_chop_noise_idx = match.start()
 
-            if len(matches) > 1 and matches[0].start() < 300:
-                if matches[1].start() < 4000 and matches[1].start() < pre_chop_noise_idx:
-                    target_match = matches[1]
             if 0 < target_match.start() < 4000:
                 final_text = final_text[target_match.start():].strip()
             
@@ -407,41 +404,39 @@ def clean_campaign_text(raw_text: str, og_title: Optional[str] = None, title: Op
     earliest_noise_idx = len(final_text)
     
     # 🛑 HARD CUTS: Metni kökten kesen işaretçiler. 
-    # Markdown listesi (- veya *) olabileceği için başa [\s\-_•*]* ekliyoruz.
+    # Bunları satır başı/sonu sınırlı yapıyoruz ki cümle içinde geçince metni doğramasın.
     HARD_CUT_MARKERS = [
-        r"(?i)ilgili kampanyalar",
-        r"(?i)ilginizi çekebilecek (diğer )?kampanyalar",
-        r"(?i)ilginizi\s+çekebilir",
-        r"(?i)benzer kampanyalar",
-        r"(?i)benzer fırsatlar",
-        r"(?i)ayın kampanyaları",
-        r"(?i)on'un\s+(kazandıran\s+)?dünyas",
-        r"(?i)diğer\s+on\s+(fırsat|kampanya)",
-        r"(?i)on\s+kredi\s+kartı\s+ayrıcalıkları",
-        r"(?i)diğer kampanyalara göz atın",
-        r"(?i)sizin için seçtiklerimiz",
-        r"(?i)öne çıkan ayrıcalıklar",
+        r"(?i)^\s*ilgili kampanyalar\s*$",
+        r"(?i)^\s*ilginizi çekebilecek (diğer )?kampanyalar\s*$",
+        r"(?i)^\s*ilginizi\s+çekebilir\s*$",
+        r"(?i)^\s*benzer kampanyalar\s*$",
+        r"(?i)^\s*benzer fırsatlar\s*$",
+        r"(?i)^\s*ayın kampanyaları\s*$",
+        r"(?i)^\s*on'un\s+(kazandıran\s+)?dünyas",
+        r"(?i)^\s*diğer\s+on\s+(fırsat|kampanya)",
+        r"(?i)^\s*on\s+kredi\s+kartı\s+ayrıcalıkları",
+        r"(?i)^\s*diğer kampanyalara göz atın\s*$",
+        r"(?i)^\s*sizin için seçtiklerimiz\s*$",
+        r"(?i)^\s*öne çıkan ayrıcalıklar\s*$",
         r"(?i)(paylaş|yazdır)$",
-        r"(?i)kampanyayı (durdurma|değiştirme|değişiklik yapma).*(hakkını saklı tutar|hakkına sahiptir)",
-        r"(?i)kampanya (koşullarını|koşullarında|şartlarını|şartlarında) (değişiklik yapma|değiştirme|durdurma).*(hakkını saklı tutar|hakkına sahiptir)",
-        r"(?i)türkiye finans katılım bankası a\.ş\. kampanya koşullarını değiştirme hakkını saklı tutar",
-        r"(?i)akbank t\.a\.ş\. kampanyayı durdurma",
+        # ⚠️ Yasal hak saklı tutma uyarıları cümle ortasında geçebildiği için HARD_CUT_MARKERS'tan kaldırıldı.
+        # Bunları temizlemeyi tamamen Gemini/Yapay zekaya bırakıyoruz.
         r"(?i)miles&smiles dünyası ayrıcalıklarınız",
         r"(?i)mıl programı mıl kazanımı",
         r"(?i)©\s*copyright",
-        r"(?i)tüm hakları saklıdır",
-        # 🛑 İş Bankası Arşiv Gürültüsü: Geçmiş kampanyaların tekrar eklenmesi
-        r"(?i)geçmiş kampanyalarımız",
-        r"(?i)geçmiş kampanyalar",
-        r"(?i)diğer kampanyalarımız",
+        r"(?i)^\s*tüm hakları saklıdır\s*$",
+        # 🛑 İş Bankası Arşiv Gürültüsü
+        r"(?i)^\s*geçmiş kampanyalarımız\s*$",
+        r"(?i)^\s*geçmiş kampanyalar\s*$",
+        r"(?i)^\s*diğer kampanyalarımız\s*$",
         # 🛑 Yapı Kredi Footer Gürültüsü
-        r"(?i)finansal çözümler",
-        r"(?i)banka ve kredi kartları",
-        r"(?i)sık ziyaret edilenler",
-        r"(?i)faydalı sayfalar",
-        r"(?i)diğer yapı kredi kartları",
-        r"(?i)öne çıkan kampanyalar",
-        r"(?i)diğer kampanyalar",
+        r"(?i)^\s*finansal çözümler\s*$",
+        r"(?i)^\s*banka ve kredi kartları\s*$",
+        r"(?i)^\s*sık ziyaret edilenler\s*$",
+        r"(?i)^\s*faydalı sayfalar\s*$",
+        r"(?i)^\s*diğer yapı kredi kartları\s*$",
+        r"(?i)^\s*öne çıkan kampanyalar\s*$",
+        r"(?i)^\s*diğer kampanyalar\s*$",
     ]
     
     is_pep = False
