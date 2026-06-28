@@ -2,9 +2,10 @@ name: "🅰️ Scrapers – Grup A"
 # Akbank (4), Albaraka, AmericanExpress, Chippin, Denizbank
 # TSİ 03:00 → UTC 00:00
 on:
-  schedule:
-    - cron: '17 22 2-31 * *'
-    - cron: '0 8 1 * *'   # TSİ 11:00 (Her Ayın 1i)
+  workflow_run:
+    workflows: ["Cleanup Expired Campaigns"]
+    types:
+      - completed
   workflow_dispatch: {}
 
 jobs:

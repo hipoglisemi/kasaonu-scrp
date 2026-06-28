@@ -1,9 +1,10 @@
 name: Data Quality Auto-Fixer
 
 on:
-  schedule:
-    # TSİ 04:30 (UTC 01:30) — Tüm scraper grupları (A-F) bittikten sonra çalışır
-    - cron: '14 1 * * *'
+  workflow_run:
+    workflows: ["⛽ Scrapers – Grup F"]
+    types:
+      - completed
   workflow_dispatch:
     inputs:
       limit:

@@ -2,9 +2,10 @@ name: "🍬 Scrapers – Grup E"
 # Şekerbank, Tami, Uption, Nays, Paycell, HSBC, Vakıf Katılım
 # TSİ 05:00 → UTC 02:00
 on:
-  schedule:
-    - cron: '19 0 2-31 * *'
-    - cron: '0 10 1 * *'   # TSİ 13:00 (Her Ayın 1i)
+  workflow_run:
+    workflows: ["🆗 Scrapers – Grup D"]
+    types:
+      - completed
   workflow_dispatch: {}
 
 jobs:

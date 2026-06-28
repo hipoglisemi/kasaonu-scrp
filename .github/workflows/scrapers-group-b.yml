@@ -2,9 +2,10 @@ name: "🅱️ Scrapers – Grup B"
 # DünyaKatılım, Enpara, Garanti (Bonus + Miles&Smiles + ShopAndFly), Turkcell
 # TSİ 03:30 → UTC 00:30
 on:
-  schedule:
-    - cron: '43 22 2-31 * *'
-    - cron: '30 8 1 * *'   # TSİ 11:30 (Her Ayın 1i)
+  workflow_run:
+    workflows: ["🅰️ Scrapers – Grup A"]
+    types:
+      - completed
   workflow_dispatch: {}
 
 jobs:

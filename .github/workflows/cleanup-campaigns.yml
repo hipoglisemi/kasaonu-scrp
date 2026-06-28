@@ -4,11 +4,10 @@ on:
   push:
     paths:
       - '.github/workflows/cleanup-campaigns.yml'
-  schedule:
-    # TSİ 00:51 (UTC 21:51) — Ayın 2-31'i her gün
-    - cron: '51 21 2-31 * *'
-    # TSİ 10:00 (UTC 07:00) — Her ayın 1'i (Scraperlardan hemen önce)
-    - cron: '0 7 1 * *'
+  workflow_run:
+    workflows: ["Proactive Expiry Audit (AI Campaign Extension)"]
+    types:
+      - completed
   workflow_dispatch: # Allow manual trigger
 
 jobs:
