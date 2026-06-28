@@ -67,6 +67,16 @@ jobs:
         echo "🚀 Running proactive expiry audit with max_audits=$MAX_AUDITS"
         python -u scripts/proactive_expiry_audit.py $MAX_AUDITS
 
+    - name: Run System-Wide Extension Audit (Anomaly Detection)
+      if: always()
+      env:
+        DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+        TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+      run: |
+        echo "🔍 Running system-wide extension audit for anomaly detection..."
+        python -u scripts/system_wide_extension_audit.py
+
     - name: Bildirim Gönder
       if: always()
       uses: dawidd6/action-send-mail@v18

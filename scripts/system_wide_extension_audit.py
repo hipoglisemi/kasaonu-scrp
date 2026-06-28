@@ -1,10 +1,14 @@
 import os
 import psycopg2
+import requests
 from psycopg2.extras import RealDictCursor
-from datetime import datetime
+from datetime import datetime, timezone
 from urllib.parse import urlparse
 
-DATABASE_URL = "postgres://postgres:OKaNWkuA52DaZoaTsGm6gCCqTgk03W9PXsFIWsc77NhTAGwZID3wqOel58mkOsBB@localhost:5434/postgres"
+DATABASE_URL = os.getenv(
+    "DATABASE_URL",
+    "postgres://postgres:OKaNWkuA52DaZoaTsGm6gCCqTgk03W9PXsFIWsc77NhTAGwZID3wqOel58mkOsBB@localhost:5434/postgres"
+)
 
 # Domain mapping to detect domain mismatch anomalies
 BANK_DOMAINS = {
@@ -54,6 +58,49 @@ def check_url_anomaly(bank_name, tracking_url):
         
     return False, "Normal"
 
+def send_telegram_alert(anomalies):
+    token = os.getenv("TELEGRAM_BOT_TOKEN")
+    chat_id = os.getenv("TELEGRAM_CHAT_ID")
+    
+    if not token or not chat_id:
+        print("⚠️ Telegram credentials not found in environment. Skipping alert.")
+        return
+        
+    message = "🚨 *KARTAVANTAJ - ŞÜPHELİ UZATILAN KAMPANYALAR* 🚨\n"
+    message += f"Toplam Hatalı Kampanya: *{len(anomalies)}*\n"
+    message += "==================================\n\n"
+    
+    # Send up to 10 anomalies in one message to avoid hitting telegram character limit
+    for idx, a in enumerate(anomalies[:10]):
+        message += f"*{idx+1}. Kampanya ID: #{a['id']}*\n"
+        message += f"• *Başlık:* {a['title']}\n"
+        message += f"• *Banka/Kart:* {a['bank']} - {a['card']}\n"
+        message += f"• *Hatalar:*\n"
+        for r in a['reasons']:
+            message += f"  ❌ {r}\n"
+        message += f"• [Kampanya Linki]({a['url']})\n"
+        message += "----------------------------------\n"
+        
+    if len(anomalies) > 10:
+        message += f"\nve {len(anomalies) - 10} adet daha şüpheli kampanya var. Detaylar için GitHub loglarına bakın."
+        
+    url = f"https://api.telegram.org/bot{token}/sendMessage"
+    payload = {
+        "chat_id": chat_id,
+        "text": message,
+        "parse_mode": "Markdown",
+        "disable_web_page_preview": True
+    }
+    
+    try:
+        response = requests.post(url, json=payload, timeout=10)
+        if response.status_code == 200:
+            print("✉️ Telegram alert sent successfully.")
+        else:
+            print(f"⚠️ Failed to send Telegram alert: {response.text}")
+    except Exception as e:
+        print(f"⚠️ Error sending Telegram alert: {e}")
+
 def run_system_audit():
     conn = psycopg2.connect(DATABASE_URL)
     cur = conn.cursor(cursor_factory=RealDictCursor)
@@ -72,7 +119,7 @@ def run_system_audit():
         cur.close()
         conn.close()
         return
-
+ 
     print(f"\n🚀 SİSTEMİN DEVREYE GİRİŞ TARİHİ (MİLAT): {live_date}")
     print("==========================================================================")
     
@@ -159,7 +206,7 @@ def run_system_audit():
             })
         else:
             clean_count += 1
-
+ 
     # Print anomalies
     print(f"\n🚨 TOPLAM TESPİT EDİLEN BOZUK KAMPANYA: {corrupted_count}")
     print(f"✅ HATA İÇERMEYEN OTOMATİK UZATILAN: {clean_count}")
@@ -175,7 +222,11 @@ def run_system_audit():
             print(f"     ❌ {r}")
         print(f"   Tarihçe: {a['updated_at'].strftime('%Y-%m-%d %H:%M:%S')}")
         print("-" * 74)
-
+ 
+    # Send Telegram alert if any anomalies found
+    if anomalies_log:
+        send_telegram_alert(anomalies_log)
+ 
     cur.close()
     conn.close()
 
