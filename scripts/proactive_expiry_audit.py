@@ -258,13 +258,18 @@ def proactive_expiry_audit(max_audits=2500):
     run_start_time = time.time()
     today = (datetime.now(timezone.utc) + timedelta(hours=3)).date()
     
-    # Fetch campaigns expiring strictly today
+    start_date = today
+    if today.day == 1:
+        start_date = today - timedelta(days=1)
+        print(f"📅 Today is the 1st of the month! Including campaigns expiring yesterday ({start_date}) in the audit.")
+
+    # Fetch campaigns expiring soon
     campaigns_to_audit = []
     try:
         with get_db_session() as db:
             soon_expiring = db.query(Campaign).filter(
                 Campaign.is_active == True,
-                Campaign.end_date >= today,                     # Bugün biten kampanyalar
+                Campaign.end_date >= start_date,                # Bugün bitenler (ayın 1'indeysek dünden itibaren)
                 Campaign.end_date <= today + timedelta(days=2), # ve 2 gün içinde biten kampanyalar
                 Campaign.tracking_url.isnot(None)
             ).all()
