@@ -9,7 +9,7 @@ import json  # type: ignore # pyre-ignore[21]
 import requests  # type: ignore # pyre-ignore[21]
 import urllib3  # type: ignore # pyre-ignore[21]
 import random  # type: ignore # pyre-ignore[21]
-from datetime import datetime  # type: ignore # pyre-ignore[21]
+from datetime import datetime, timezone  # type: ignore # pyre-ignore[21]
 from typing import Optional, List, Dict, Any  # type: ignore # pyre-ignore[21]
 from bs4 import BeautifulSoup  # type: ignore # pyre-ignore[21]
 from dotenv import load_dotenv  # type: ignore # pyre-ignore[21]
@@ -21,7 +21,7 @@ if project_root not in sys.path:
 
 from sqlalchemy import create_engine, text  # type: ignore # pyre-ignore[21]
 from sqlalchemy.orm import Session, sessionmaker  # type: ignore # pyre-ignore[21]
-from src.database import get_db_session  # type: ignore # pyre-ignore[21]
+from src.database import get_db_session, SessionLocal  # type: ignore # pyre-ignore[21]
 from src.models import Bank, Card, Sector, Brand, Campaign, CampaignBrand  # type: ignore # pyre-ignore[21]
 from src.utils.scraper_utils import is_url_blocked, upsert_campaign  # type: ignore # pyre-ignore[21]
 from src.utils.logger_utils import log_scraper_execution  # type: ignore # pyre-ignore[21]
@@ -168,6 +168,7 @@ class ChippinScraper:
 
     def run(self, limit: int = 1000):
         print("🚀 Starting Chippin Scraper (Requests + JSON)...")
+        campaigns_to_process = []
         self._get_or_create_bank()
         
         card_key = "chippin"
@@ -279,7 +280,7 @@ class ChippinScraper:
                             )
                             if is_placeholder and image_url:
                                 existing.image_url = image_url
-                                existing.updated_at = datetime.utcnow()
+                                existing.updated_at = datetime.now(timezone.utc)
                                 db.commit()
                                 print(f"   🔄 Görsel güncellendi: {title[:40]}")
                             
@@ -294,7 +295,6 @@ class ChippinScraper:
                 # Use get_unique_slug
                 from src.utils.slug_generator import get_unique_slug
                 # We need a temporary session for slug generation before Campaign instantiation
-                from src.database import SessionLocal
                 with SessionLocal() as temp_db:
                     slug = get_unique_slug(
                         title=title,
@@ -378,7 +378,7 @@ class ChippinScraper:
                             end_date=ai_data.get("end_date") or c.get("campaignEndDate"),
                             is_active=True,
                             tracking_url=tracking_url,
-                            updated_at=datetime.utcnow(),
+                            updated_at=datetime.now(timezone.utc),
                             clean_text=ai_data.get('_clean_text') or ai_data.get('clean_text')
                         )
 
