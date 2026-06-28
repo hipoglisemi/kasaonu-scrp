@@ -28,6 +28,15 @@ def _load_keys() -> List[str]:
     """
     all_env_keys = [k for k in os.environ.keys() if k.startswith("GEMINI_API_KEY")]
     
+    # 🛡️ PROTECT TIER-1 KEY: Only allow the base GEMINI_API_KEY (paid key) for proactive audit scripts.
+    # Other scrapers/scripts must only use rotation keys (GEMINI_API_KEY_1, _2, etc.)
+    import sys
+    running_script = sys.argv[0] if sys.argv else ""
+    is_proactive = any(x in running_script for x in ["proactive_expiry_audit", "proactive_audit_local", "test_ai_cost"])
+    
+    if not is_proactive and "GEMINI_API_KEY" in all_env_keys:
+        all_env_keys.remove("GEMINI_API_KEY")
+    
     # Sort keys to ensure stable order: GEMINI_API_KEY, then GEMINI_API_KEY_1, _2, etc.
     def sort_key(k):
         if k == "GEMINI_API_KEY": return 0
