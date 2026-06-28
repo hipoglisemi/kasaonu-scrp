@@ -354,7 +354,7 @@ def proactive_expiry_audit(max_audits=2000):
     # Gemini 3.1 Flash-Lite fiyatları (resmi)
     PRICE_INPUT_PER_M = 0.25   # $0.25 per 1M input tokens
     PRICE_OUTPUT_PER_M = 1.50  # $1.50 per 1M output tokens
-    USD_TO_TRY = 35.0          # Yaklaşık kur
+    USD_TO_TRY = 47.0          # Güncel kur
 
     NUM_WORKERS = 8  # 8 işçi × 8 anahtar, her biri kendi key'ine kilitli
 
