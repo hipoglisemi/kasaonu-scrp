@@ -21,10 +21,10 @@ jobs:
     runs-on: ubuntu-22.04
     
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v7
     
     - name: Set up Python
-      uses: actions/setup-python@v5
+      uses: actions/setup-python@v6
       with:
         python-version: '3.10'
         cache: 'pip'
@@ -69,7 +69,7 @@ jobs:
 
     - name: Bildirim Gönder
       if: always()
-      uses: dawidd6/action-send-mail@v3
+      uses: dawidd6/action-send-mail@v18
       with:
         server_address: smtp.gmail.com
         server_port: 465
