@@ -481,18 +481,21 @@ def proactive_expiry_audit(max_audits=2000):
                         if final_url and c.get("url_changed"):
                             print(f"   🔗 [URL Güncelleme] #{c['id']} | tracking_url → {final_url}")
                             db_camp.tracking_url = final_url
-                            # Slug'ı yeni URL'den üret
                             try:
                                 new_slug_part = final_url.rstrip("/").split("/")[-1]
                                 if new_slug_part and len(new_slug_part) > 3:
                                     # Mevcut slug'ın sadece son segmentini güncelle
                                     old_slug = db_camp.slug or ""
                                     slug_parts = old_slug.rsplit("/", 1)
-                                    if len(slug_parts) == 2:
-                                        db_camp.slug = slug_parts[0] + "/" + new_slug_part
+                                    proposed_slug = slug_parts[0] + "/" + new_slug_part if len(slug_parts) == 2 else new_slug_part
+                                    
+                                    existing = db.query(Campaign).filter(Campaign.slug == proposed_slug).first()
+                                    if existing and existing.id != db_camp.id:
+                                        print(f"   ⚠️ [Slug Çakışması] '{proposed_slug}' zaten var (#{existing.id}). Eski kampanya pasife alınıyor.")
+                                        db_camp.is_active = False
                                     else:
-                                        db_camp.slug = new_slug_part
-                                    print(f"   🔗 [Slug Güncelleme] #{c['id']} | slug → {db_camp.slug}")
+                                        db_camp.slug = proposed_slug
+                                        print(f"   🔗 [Slug Güncelleme] #{c['id']} | slug → {db_camp.slug}")
                             except Exception as slug_err:
                                 print(f"   ⚠️ Slug güncelleme hatası: {slug_err}")
 
@@ -512,10 +515,14 @@ def proactive_expiry_audit(max_audits=2000):
                                 if new_slug_part and len(new_slug_part) > 3:
                                     old_slug = db_camp.slug or ""
                                     slug_parts = old_slug.rsplit("/", 1)
-                                    if len(slug_parts) == 2:
-                                        db_camp.slug = slug_parts[0] + "/" + new_slug_part
+                                    proposed_slug = slug_parts[0] + "/" + new_slug_part if len(slug_parts) == 2 else new_slug_part
+                                    
+                                    existing = db.query(Campaign).filter(Campaign.slug == proposed_slug).first()
+                                    if existing and existing.id != db_camp.id:
+                                        print(f"   ⚠️ [Slug Çakışması] '{proposed_slug}' zaten var (#{existing.id}). Eski kampanya pasife alınıyor.")
+                                        db_camp.is_active = False
                                     else:
-                                        db_camp.slug = new_slug_part
+                                        db_camp.slug = proposed_slug
                             except Exception:
                                 pass
                             db_camp.updated_at = datetime.now()
