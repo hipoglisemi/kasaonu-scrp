@@ -61,12 +61,29 @@ def generate_with_rotation(
     retry_delay: float = 5.0, # Linear delay between keys
     **kwargs: Any
 ) -> str:
+    text, _ = _generate_internal(prompt, model, fallback_model, retry_delay, **kwargs)
+    return text
+
+def generate_with_rotation_tracked(
+    prompt: str,
+    model: Optional[str] = None,
+    fallback_model: Optional[str] = None,
+    retry_delay: float = 5.0,
+    **kwargs: Any
+):
+    """Same as generate_with_rotation but also returns (text, usage_dict).
+    usage_dict has keys: input_tokens, output_tokens
     """
-    Sends prompt to Gemini API with a simple Linear Loop and optional fallback model.
-    1. Tries keys 0 to N in fixed order with the primary model.
-    2. Waits 5s between keys if Rate Limited (429/503).
-    3. If all keys fail and fallback_model is provided, repeats the loop with the fallback model.
-    """
+    return _generate_internal(prompt, model, fallback_model, retry_delay, **kwargs)
+
+def _generate_internal(
+    prompt: str,
+    model: Optional[str] = None,
+    fallback_model: Optional[str] = None,
+    retry_delay: float = 5.0,
+    **kwargs: Any
+):
+    """Core implementation — returns (text, usage_dict)."""
     if not HAS_GENAI:
         raise ImportError("google-genai kütüphanesi yüklü değil.")
 
@@ -123,10 +140,20 @@ def generate_with_rotation(
                         config=config
                     )
                     
+                    # Parse usage metadata if available
+                    usage = {"input_tokens": 0, "output_tokens": 0}
+                    try:
+                        meta = getattr(response, "usage_metadata", None)
+                        if meta:
+                            usage["input_tokens"] = getattr(meta, "prompt_token_count", 0) or 0
+                            usage["output_tokens"] = getattr(meta, "candidates_token_count", 0) or 0
+                    except Exception:
+                        pass
+                    
                     # Success Log
                     if idx > 0 or model_role == "Fallback" or reverse_keys or attempt > 1:
                         print(f"[KeyLoop] ✨ Success with Key #{orig_idx} using {model_role} model ({current_model}) (Global Attempt {attempt}/{max_global_attempts})")
-                    return response.text.strip()
+                    return response.text.strip(), usage
 
                 except Exception as e:
                     err_str = str(e).lower()

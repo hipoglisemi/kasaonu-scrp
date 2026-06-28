@@ -24,7 +24,7 @@ urllib3.disable_warnings()
 
 import re
 from google.genai import types # type: ignore
-from src.utils.gemini_client import generate_with_rotation
+from src.utils.gemini_client import generate_with_rotation, generate_with_rotation_tracked
 from bs4 import BeautifulSoup
 
 def clean_html_to_text(html: str, title: str = "") -> str:
@@ -91,12 +91,12 @@ GÖREV: Sayfa metnini ve kampanya başlığını inceleyerek kampanyanın başla
         system_instruction=system_instruction
     )
     
-    # Generate the rotated list of keys starting from key_index to allow fallbacks
+    # Paid tier: tek key yeterli, rotation sadece fallback için
     NUM_WORKERS = 8
-    key_indices = [((key_index - 1 + offset) % NUM_WORKERS) + 1 for offset in range(NUM_WORKERS)]
+    key_indices = [1]  # Paid tier: sadece KEY_1 kullan, 429 alırsa rotation devreye girer
 
     try:
-        result_str = generate_with_rotation(
+        result_str, usage = generate_with_rotation_tracked(
             prompt=prompt,
             model="gemini-3.1-flash-lite",
             fallback_model="models/gemma-4-31b-it",
@@ -105,7 +105,7 @@ GÖREV: Sayfa metnini ve kampanya başlığını inceleyerek kampanyanın başla
         )
         
         if not result_str:
-            return {"start_date": None, "end_date": None, "is_expired": False, "is_indefinite": False}
+            return {"start_date": None, "end_date": None, "is_expired": False, "is_indefinite": False, "_usage": {"input_tokens": 0, "output_tokens": 0}}
             
         cleaned_result = result_str.strip()
         if cleaned_result.startswith("```"):
@@ -125,11 +125,12 @@ GÖREV: Sayfa metnini ve kampanya başlığını inceleyerek kampanyanın başla
             "start_date": data.get("start_date"),
             "end_date": data.get("end_date"),
             "is_expired": data.get("is_expired", False),
-            "is_indefinite": data.get("is_indefinite", False)
+            "is_indefinite": data.get("is_indefinite", False),
+            "_usage": usage
         }
     except Exception as e:
         print(f"      ⚠️  Tarih çıkartma hatası: {e}")
-        return {"start_date": None, "end_date": None, "is_expired": False, "is_indefinite": False}
+        return {"start_date": None, "end_date": None, "is_expired": False, "is_indefinite": False, "_usage": {"input_tokens": 0, "output_tokens": 0}}
 
 
 chrome_lock = threading.Lock()
@@ -254,6 +255,7 @@ def proactive_expiry_audit(max_audits=2000):
     This prevents unnecessary deactivations and rescraping/AI parsing cost.
     """
     print("🕰️ Starting Proactive Expiry Audit (Grace Period check via AI)...")
+    run_start_time = time.time()
     today = (datetime.now(timezone.utc) + timedelta(hours=3)).date()
     
     # Fetch campaigns expiring strictly today
@@ -330,32 +332,39 @@ def proactive_expiry_audit(max_audits=2000):
                 print(f"   ⚠️ Playwright fallback also failed for #{c['id']}: {pe}")
         return None
         
-    with ThreadPoolExecutor(max_workers=10) as executor:
+    with ThreadPoolExecutor(max_workers=20) as executor:  # 20 workers for HTML fetching (network bottleneck)
         futures = [executor.submit(fetch_html, c) for c in campaigns_to_audit]
         for future in as_completed(futures):
             res = future.result()
             if res:
                 campaigns_with_html.append(res)
                  
-    print(f"📥 Successfully fetched {len(campaigns_with_html)} pages. Starting AI parsing with 9 parallel workers...")
+    print(f"📥 Successfully fetched {len(campaigns_with_html)} pages. Starting AI parsing with 8 parallel workers...")
 
     extended_count = 0
     processed_count = 0
     lock = threading.Lock()
     total = len(campaigns_with_html)
+    
+    # 📊 Token ve maliyet takibi
+    total_input_tokens = 0
+    total_output_tokens = 0
+    token_lock = threading.Lock()
+    
+    # Gemini 3.1 Flash-Lite fiyatları (resmi)
+    PRICE_INPUT_PER_M = 0.25   # $0.25 per 1M input tokens
+    PRICE_OUTPUT_PER_M = 1.50  # $1.50 per 1M output tokens
+    USD_TO_TRY = 35.0          # Yaklaşık kur
 
     NUM_WORKERS = 8  # 8 işçi × 8 anahtar, her biri kendi key'ine kilitli
 
     def audit_one(args):
-        """Audit a single campaign: sleep → AI parse → DB update. Thread-safe."""
+        """Audit a single campaign: AI parse → DB update. Thread-safe."""
+        nonlocal total_input_tokens, total_output_tokens
         c, worker_idx = args
-        # Her işçiye farklı anahtar: işçi 0→Key #1, işçi 1→Key #2, ..., işçi 8→Key #9
         key_index = (worker_idx % NUM_WORKERS) + 1
         current_end = c["end_date"]
         try:
-            # Stagger requests to prevent concurrent bursts
-            time.sleep(1.0 + worker_idx * 2.0)
-
             # ✅ Düzgün temizlenmiş metin: text_cleaner pipeline'ından geçir
             clean_text = clean_html_to_text(c["html"], title=c.get("title", ""))
             
@@ -370,6 +379,12 @@ def proactive_expiry_audit(max_audits=2000):
                 return False
 
             ai_dates = extract_dates_via_ai(c["title"], clean_text, key_index=key_index, today_date=today)
+            
+            # Token kullanımını kaydet
+            usage = ai_dates.get("_usage", {})
+            with token_lock:
+                total_input_tokens += usage.get("input_tokens", 0)
+                total_output_tokens += usage.get("output_tokens", 0)
 
             ai_start_date_str = ai_dates.get("start_date")
             ai_end_date_str = ai_dates.get("end_date")
@@ -547,7 +562,29 @@ def proactive_expiry_audit(max_audits=2000):
                 if processed_count % 25 == 0:
                     print(f"   📊 Progress: {processed_count}/{total} audited, {extended_count} extended so far...")
 
-    print(f"✅ Proactive Expiry Audit complete. Extended {extended_count}/{total} campaigns.")
+    run_end_time = time.time()
+    run_duration = run_end_time - run_start_time
+    run_minutes = int(run_duration // 60)
+    run_seconds = int(run_duration % 60)
+    
+    # 💰 Maliyet hesabı
+    cost_input = (total_input_tokens / 1_000_000) * PRICE_INPUT_PER_M
+    cost_output = (total_output_tokens / 1_000_000) * PRICE_OUTPUT_PER_M
+    cost_total_usd = cost_input + cost_output
+    cost_total_try = cost_total_usd * USD_TO_TRY
+    
+    print(f"")
+    print(f"{'='*60}")
+    print(f"✅ Proactive Expiry Audit Tamamlandı!")
+    print(f"{'='*60}")
+    print(f"  ⏱  Süre           : {run_minutes} dakika {run_seconds} saniye")
+    print(f"  📊 Taranan Kampanya: {total} adet")
+    print(f"  📅 Uzatılan        : {extended_count} adet")
+    print(f"  🔵 Giren Token     : {total_input_tokens:,}")
+    print(f"  🟠 Çıkan Token      : {total_output_tokens:,}")
+    print(f"  💵 Maliyet (USD)  : ${cost_total_usd:.4f}")
+    print(f"  💸 Maliyet (TL)   : {cost_total_try:.2f} TL")
+    print(f"{'='*60}")
 
 if __name__ == "__main__":
     max_audits = 2000
