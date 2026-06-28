@@ -1,10 +1,7 @@
 name: Data Quality Auto-Fixer
 
 on:
-  workflow_run:
-    workflows: ["⛽ Scrapers – Grup F"]
-    types:
-      - completed
+  workflow_call:
   workflow_dispatch:
     inputs:
       limit:

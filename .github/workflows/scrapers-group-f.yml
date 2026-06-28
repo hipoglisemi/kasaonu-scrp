@@ -2,10 +2,7 @@ name: "⛽ Scrapers – Grup F"
 # Opet (Akaryakıt Grubu)
 # TSİ 06:00 → UTC 03:00
 on:
-  workflow_run:
-    workflows: ["🍬 Scrapers – Grup E"]
-    types:
-      - completed
+  workflow_call:
   workflow_dispatch: {}
 
 jobs:

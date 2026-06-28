@@ -2,10 +2,7 @@ name: "🅱️ Scrapers – Grup B"
 # DünyaKatılım, Enpara, Garanti (Bonus + Miles&Smiles + ShopAndFly), Turkcell
 # TSİ 03:30 → UTC 00:30
 on:
-  workflow_run:
-    workflows: ["🅰️ Scrapers – Grup A"]
-    types:
-      - completed
+  workflow_call:
   workflow_dispatch: {}
 
 jobs:

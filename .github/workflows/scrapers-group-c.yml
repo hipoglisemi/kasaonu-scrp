@@ -2,10 +2,7 @@ name: "🆑 Scrapers – Grup C"
 # İşbankası (Genç + Maximiles + Maximum), Masterpass, Paraf (x2), Param, QNB, Ziraat Katılım
 # TSİ 04:00 → UTC 01:00
 on:
-  workflow_run:
-    workflows: ["🅱️ Scrapers – Grup B"]
-    types:
-      - completed
+  workflow_call:
   workflow_dispatch: {}
 
 jobs:

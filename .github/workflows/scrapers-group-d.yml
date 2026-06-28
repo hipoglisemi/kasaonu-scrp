@@ -2,10 +2,7 @@ name: "🆗 Scrapers – Grup D"
 # Kuveytürk, TEB, TürkiyeFinans, Vakıfbank, YapıKredi (Adios + Crystal + Play + World), Ziraat, Ziraat Dinamik, Türktelekom, Vodafone
 # TSİ 04:30 → UTC 01:30
 on:
-  workflow_run:
-    workflows: ["🆑 Scrapers – Grup C"]
-    types:
-      - completed
+  workflow_call:
   workflow_dispatch: {}
 
 jobs:

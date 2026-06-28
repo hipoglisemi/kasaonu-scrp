@@ -1,0 +1,63 @@
+name: "🔄 Scheduled Scrapers Pipeline"
+
+on:
+  schedule:
+    # TSİ 00:23 (UTC 21:23) — Ayın 2-31'i her gün
+    - cron: '23 21 2-31 * *'
+    # TSİ 09:00 (UTC 06:00) — Her ayın 1'i
+    - cron: '0 6 1 * *'
+  workflow_dispatch:
+
+jobs:
+  proactive:
+    name: "🕰️ Proactive Expiry Audit"
+    uses: ./.github/workflows/proactive-expiry-audit.yml
+    secrets: inherit
+
+  cleanup:
+    name: "🧹 Cleanup Campaigns"
+    needs: proactive
+    uses: ./.github/workflows/cleanup-campaigns.yml
+    secrets: inherit
+
+  group-a:
+    name: "🅰️ Scrapers – Grup A"
+    needs: cleanup
+    uses: ./.github/workflows/scrapers-group-a.yml
+    secrets: inherit
+
+  group-b:
+    name: "🅱️ Scrapers – Grup B"
+    needs: group-a
+    uses: ./.github/workflows/scrapers-group-b.yml
+    secrets: inherit
+
+  group-c:
+    name: "🆑 Scrapers – Grup C"
+    needs: group-b
+    uses: ./.github/workflows/scrapers-group-c.yml
+    secrets: inherit
+
+  group-d:
+    name: "🆗 Scrapers – Grup D"
+    needs: group-c
+    uses: ./.github/workflows/scrapers-group-d.yml
+    secrets: inherit
+
+  group-e:
+    name: "🍬 Scrapers – Grup E"
+    needs: group-d
+    uses: ./.github/workflows/scrapers-group-e.yml
+    secrets: inherit
+
+  group-f:
+    name: "⛽ Scrapers – Grup F"
+    needs: group-e
+    uses: ./.github/workflows/scrapers-group-f.yml
+    secrets: inherit
+
+  autofix:
+    name: "🛠️ Data Quality Auto-Fixer"
+    needs: group-f
+    uses: ./.github/workflows/data-quality-autofix.yml
+    secrets: inherit

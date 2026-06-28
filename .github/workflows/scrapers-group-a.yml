@@ -2,10 +2,7 @@ name: "🅰️ Scrapers – Grup A"
 # Akbank (4), Albaraka, AmericanExpress, Chippin, Denizbank
 # TSİ 03:00 → UTC 00:00
 on:
-  workflow_run:
-    workflows: ["Cleanup Expired Campaigns"]
-    types:
-      - completed
+  workflow_call:
   workflow_dispatch: {}
 
 jobs:
