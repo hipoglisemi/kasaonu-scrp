@@ -155,10 +155,10 @@ def run_system_audit():
             c."created_at" as createdAt,
             c."updated_at" as updatedAt,
             c."eligible_cards" as eligibleCards
-        FROM "campaigns" c
+                FROM "campaigns" c
         LEFT JOIN "cards" card ON card.id = c.card_id
         LEFT JOIN "banks" bank ON bank.id = card.bank_id
-        WHERE c.date_extended = true AND c.updated_at >= %s
+        WHERE c.date_extended = true AND c.is_active = true AND c.updated_at >= %s
         ORDER BY c.updated_at DESC
     """, (live_date,))
     
