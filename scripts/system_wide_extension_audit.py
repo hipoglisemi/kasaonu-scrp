@@ -16,18 +16,29 @@ DATABASE_URL = os.getenv(
 
 # Domain mapping to detect domain mismatch anomalies
 BANK_DOMAINS = {
-    "halkbank": ["paraf.com.tr", "halkbank.com.tr"],
-    "paraf": ["paraf.com.tr", "halkbank.com.tr"],
-    "akbank": ["axess.com.tr", "akbank.com", "wingscard.com.tr"],
-    "axess": ["axess.com.tr", "akbank.com", "wingscard.com.tr"],
+    "halkbank": ["paraf.com.tr", "halkbank.com.tr", "parafly.com.tr", "parafgenc.com.tr"],
+    "paraf": ["paraf.com.tr", "halkbank.com.tr", "parafly.com.tr", "parafgenc.com.tr"],
+    "akbank": ["axess.com.tr", "akbank.com", "wingscard.com.tr", "kartfree.com"],
+    "axess": ["axess.com.tr", "akbank.com", "wingscard.com.tr", "kartfree.com"],
     "yapıkredi": ["worldcard.com.tr", "yapikredi.com.tr"],
     "world": ["worldcard.com.tr", "yapikredi.com.tr"],
     "işbankası": ["isbank.com.tr", "maximiles.com.tr"],
     "maximiles": ["isbank.com.tr", "maximiles.com.tr"],
-    "garanti": ["bonus.com.tr", "garantibbva.com.tr", "milesandsmiles"],
-    "qnb": ["qnbfinansbank.com", "cardfinans.com", "milesandsmiles"],
+    "garanti": ["bonus.com.tr", "garantibbva.com.tr", "milesandsmiles", "shopandfly.com.tr"],
+    "qnb": ["qnbfinansbank.com", "cardfinans.com", "milesandsmiles", "qnbcard.com.tr"],
     "teb": ["teb.com.tr", "cepteteb.com.tr"],
-    "dünyakatılım": ["dunyakatilim.com.tr"]
+    "dünyakatılım": ["dunyakatilim.com.tr"],
+    "emlakkatılım": ["emlakkatilim.com.tr"],
+    "ziraat": ["ziraatbank.com.tr", "ziraatkatilim.com.tr", "bankkart.com.tr"],
+    "tami": ["tami.com.tr"],
+    "shell": ["shell.com.tr"],
+    "opet": ["opet.com.tr"],
+    "tom": ["tombankhadi.com"],
+    "hadi": ["tombankhadi.com"],
+    "turktelekom": ["turktelekom.com.tr"],
+    "alternatifbank": ["alternatifbank.com.tr"],
+    "vakıf": ["vakifbank.com.tr", "vakifkart.com.tr"],
+    "vakıfkatılım": ["vakifkatilim.com.tr"]
 }
 
 def clean_bank_name(name):
@@ -226,6 +237,28 @@ def run_system_audit():
             print(f"     ❌ {r}")
         print(f"   Tarihçe: {a['updated_at'].strftime('%Y-%m-%d %H:%M:%S')}")
         print("-" * 74)
+ 
+    # Write Markdown file
+    md_path = "/Users/hipoglisemi/Desktop/kartavantaj/anomalies_report.md"
+    if not os.path.exists(os.path.dirname(md_path)):
+        md_path = "anomalies_report.md"  # fallback to current directory
+        
+    with open(md_path, "w", encoding="utf-8") as f:
+        f.write("# 🚨 KartAvantaj - Şüpheli Uzatılan Kampanyalar Raporu\n\n")
+        f.write(f"Bu rapor otomatik oluşturulmuştur. Toplam şüpheli kampanya sayısı: **{len(anomalies_log)}**\n\n")
+        f.write("Aşağıdaki listeden hatalı kampanyaları inceleyebilir ve düzelttikçe işaretleyebilirsiniz:\n\n")
+        
+        for idx, a in enumerate(anomalies_log):
+            f.write(f"### - [ ] {idx+1}. ID: #{a['id']} - {a['title']}\n")
+            f.write(f"- **Banka / Kart:** {a['bank']} - {a['card']}\n")
+            f.write(f"- **Uzatılma Tarihi:** {a['updated_at'].strftime('%Y-%m-%d %H:%M:%S')}\n")
+            f.write(f"- **Kaynak Linki:** [{a['url']}]({a['url']})\n")
+            f.write("- **Tespit Edilen Hatalar:**\n")
+            for r in a["reasons"]:
+                f.write(f"  - ❌ {r}\n")
+            f.write("\n---\n\n")
+            
+    print(f"✅ Markdown report generated: {md_path}")
  
     # Send Telegram alert if any anomalies found
     if anomalies_log:
