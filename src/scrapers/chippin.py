@@ -44,14 +44,14 @@ GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 
 BANK_NAME = "Chippin"
 BANK_SLUG = "chippin"
-BANK_LOGO = "https://www.chippin.com.tr/assets/img/logo.png"
+BANK_LOGO = "https://www.chippin.com/assets/img/logo.png"
 
 # Card definitions
 CARD_DEFINITIONS = {
     "chippin": {
         "name": "Chippin", 
         "slug": "chippin",
-        "domain": "https://www.chippin.com.tr"
+        "domain": "https://www.chippin.com"
     }
 }
 
@@ -174,7 +174,7 @@ class ChippinScraper:
         card_def = CARD_DEFINITIONS[card_key]
         card_id = self._get_or_create_card(card_def)
         
-        url = "https://www.chippin.com.tr/kampanyalar"
+        url = "https://www.chippin.com/kampanyalar"
         print(f"   🌐 Fetching: {url}")
         
         total_saved = 0
@@ -214,8 +214,8 @@ class ChippinScraper:
                 print(f"[{idx+1}/{len(campaigns_to_process)}] {title[:50]}...")  # type: ignore # pyre-ignore[16,6]
                 
                 # Image Handling — gerçek görseli JSON'dan çek
-                CHIPPIN_CDN = "https://cdn.chippin.com.tr"
-                CHIPPIN_BASE = "https://www.chippin.com.tr"
+                CHIPPIN_CDN = "https://cdn.chippin.com"
+                CHIPPIN_BASE = "https://www.chippin.com"
                 image_url = None
                 
                 # 1. JSON alanlarını dene (olası key isimleri)
@@ -234,7 +234,7 @@ class ChippinScraper:
                 if not image_url:
                     cid_for_img = c.get("id")
                     if cid_for_img:
-                        detail_url = f"https://www.chippin.com.tr/kampanyalar/{cid_for_img}"
+                        detail_url = f"https://www.chippin.com/kampanyalar/{cid_for_img}"
                         try:
                             det_r = requests.get(detail_url, headers=headers, verify=False, timeout=10)
                             if det_r.status_code == 200:
@@ -261,7 +261,7 @@ class ChippinScraper:
                 # Slug & URL Handling
                 cid = c.get("id")
                 if not cid: continue
-                tracking_url = f"https://www.chippin.com.tr/kampanyalar/{cid}"
+                tracking_url = f"https://www.chippin.com/kampanyalar/{cid}"
 
                 # Database Ops - EARLIER CHECK TO SAVE AI CALLS
                 SessionLocal = sessionmaker(bind=self.engine)
