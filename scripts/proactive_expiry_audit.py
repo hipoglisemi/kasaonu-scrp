@@ -247,7 +247,7 @@ def _run_selenium(url: str) -> str:
         chrome_lock.release()
 
 
-def proactive_expiry_audit(max_audits=2000):
+def proactive_expiry_audit(max_audits=2500):
     """
     Checks campaigns expiring TODAY.
     Fetches their tracking URL and parses them with AI to get the actual end_date.
@@ -265,7 +265,7 @@ def proactive_expiry_audit(max_audits=2000):
             soon_expiring = db.query(Campaign).filter(
                 Campaign.is_active == True,
                 Campaign.end_date >= today,                     # Bugün biten kampanyalar
-                Campaign.end_date <= today + timedelta(days=5), # ve 5 gün içinde biten kampanyalar
+                Campaign.end_date <= today + timedelta(days=2), # ve 2 gün içinde biten kampanyalar
                 Campaign.tracking_url.isnot(None)
             ).all()
             
@@ -283,7 +283,7 @@ def proactive_expiry_audit(max_audits=2000):
         return
         
     if not campaigns_to_audit:
-        print("✅ No campaigns expiring within the next 3 days.")
+        print("✅ No campaigns expiring within the next 2 days.")
         return
         
     print(f"🔍 Found {len(campaigns_to_audit)} campaigns expiring soon. Checking for extension using AI...")
@@ -587,7 +587,7 @@ def proactive_expiry_audit(max_audits=2000):
     print(f"{'='*60}")
 
 if __name__ == "__main__":
-    max_audits = 2000
+    max_audits = 2500
     if len(sys.argv) > 1:
         try:
             max_audits = int(sys.argv[1])

@@ -14,7 +14,7 @@ on:
       max_audits:
         description: 'Maksimum taranacak kampanya sayısı (Kota limitini korumak için)'
         required: true
-        default: '2000'
+        default: '2500'
 
 jobs:
   proactive-expiry-audit:
@@ -63,7 +63,7 @@ jobs:
         sleep 2
         
         # Use dispatch input or default to 2000
-        MAX_AUDITS="${{ github.event.inputs.max_audits || '2000' }}"
+        MAX_AUDITS="${{ github.event.inputs.max_audits || '2500' }}"
         echo "🚀 Running proactive expiry audit with max_audits=$MAX_AUDITS"
         python -u scripts/proactive_expiry_audit.py $MAX_AUDITS
 
