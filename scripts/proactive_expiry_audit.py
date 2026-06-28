@@ -93,7 +93,7 @@ GÖREV: Sayfa metnini ve kampanya başlığını inceleyerek kampanyanın başla
     
     # Paid tier: tek key yeterli, rotation sadece fallback için
     NUM_WORKERS = 8
-    key_indices = [key_index]  # Use the passed key_index for rotation across threads
+    key_indices = [1]  # Paid tier: sadece KEY_1 kullan, 429 alırsa rotation devreye girer
 
     try:
         result_str, usage = generate_with_rotation_tracked(
@@ -367,7 +367,7 @@ def proactive_expiry_audit(max_audits=2500, specific_ids=None):
     PRICE_OUTPUT_PER_M = 1.50  # $1.50 per 1M output tokens
     USD_TO_TRY = 47.0          # Güncel kur
 
-    NUM_WORKERS = 1 if specific_ids else 8  # 8 işçi × 8 anahtar, her biri kendi key'ine kilitli
+    NUM_WORKERS = 8  # 8 işçi × 8 anahtar, her biri kendi key'ine kilitli
 
     def audit_one(args):
         """Audit a single campaign: AI parse → DB update. Thread-safe."""
