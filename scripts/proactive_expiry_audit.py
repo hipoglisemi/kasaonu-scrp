@@ -284,7 +284,7 @@ def proactive_expiry_audit(max_audits=2500, specific_ids=None):
                 soon_expiring = db.query(Campaign).filter(
                     Campaign.is_active == True,
                     Campaign.end_date >= start_date,                # Bugün bitenler (ayın 1'indeysek dünden itibaren)
-                    Campaign.end_date <= today + timedelta(days=2), # ve 2 gün içinde biten kampanyalar
+                    Campaign.end_date <= today + timedelta(days=1), # ve 1 gün içinde biten kampanyalar (bugün ve yarın)
                     Campaign.tracking_url.isnot(None)
                 ).all()
             
@@ -302,7 +302,7 @@ def proactive_expiry_audit(max_audits=2500, specific_ids=None):
         return
         
     if not campaigns_to_audit:
-        print("✅ No campaigns expiring within the next 2 days.")
+        print("✅ No campaigns expiring today or tomorrow.")
         return
         
     print(f"🔍 Found {len(campaigns_to_audit)} campaigns expiring soon. Checking for extension using AI...")
