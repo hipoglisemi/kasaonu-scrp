@@ -94,9 +94,22 @@ class YapikrediWorldScraper:
                 print(f"   🚫 Skipped (Blocklisted): {title}")
                 return "skipped"  # type: ignore # pyre-ignore[7]
             
-            existing = db.query(Campaign).filter(Campaign.tracking_url == full_url).first()  # type: ignore # pyre-ignore[16]
+            from src.utils.scraper_utils import clean_url_for_matching
+            clean_target = clean_url_for_matching(full_url)
+            existing = None
+            all_camps = db.query(Campaign).filter(
+                Campaign.tracking_url.isnot(None),
+                Campaign.card_id == (self.card.id if self.card else None)
+            ).order_by(Campaign.is_active.desc()).all()
+            for camp in all_camps:
+                if clean_url_for_matching(camp.tracking_url) == clean_target:
+                    existing = camp
+                    break
+            
             if existing and existing.is_active and existing.is_approved:
-                if existing.end_date == end_date:
+                existing_end = existing.end_date.date() if hasattr(existing.end_date, 'date') else existing.end_date
+                incoming_end = end_date.date() if hasattr(end_date, 'date') else end_date
+                if existing_end == incoming_end:
                     print(f"   ⏭️ Skipped (Already exists, active and approved): {title}")
                     return "skipped"  # type: ignore # pyre-ignore[7]
 

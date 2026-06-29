@@ -15,11 +15,17 @@ def is_url_blocked(db: Session, url: str) -> bool:
 
 def clean_url_for_matching(url: str) -> str:
     """
-    Cleans a URL for robust comparison by stripping query parameters,
-    trailing slashes, protocols (http/https), and subdomains (www).
+    Cleans a URL for robust comparison by decoding percent-encoded characters,
+    stripping query parameters, trailing slashes, protocols (http/https),
+    and subdomains (www).
     """
     if not url:
         return ""
+    import urllib.parse
+    try:
+        url = urllib.parse.unquote(url)
+    except Exception:
+        pass
     # Strip query parameters
     url = url.split("?")[0]
     # Strip trailing slashes
@@ -118,14 +124,18 @@ def upsert_campaign(db: Session, campaign: Campaign) -> Tuple[Campaign, str]:
     from sqlalchemy import func
     
     # 1. Match by EXACT tracking_url across ANY card ID to prevent duplication of the unique bank page
-    existing = db.query(Campaign).filter(
-        Campaign.tracking_url == campaign.tracking_url
-    ).first()
+    existing = None
+    if campaign.tracking_url:
+        existing = db.query(Campaign).filter(
+            Campaign.tracking_url == campaign.tracking_url
+        ).order_by(Campaign.is_active.desc()).first()
     
     # 1b. Robust Fallback: Match by cleaned tracking_url across ANY card ID
     if not existing and campaign.tracking_url:
         clean_target = clean_url_for_matching(campaign.tracking_url)
-        all_camps = db.query(Campaign).filter(Campaign.tracking_url.isnot(None)).all()
+        all_camps = db.query(Campaign).filter(
+            Campaign.tracking_url.isnot(None)
+        ).order_by(Campaign.is_active.desc()).all()
         for camp in all_camps:
             if clean_url_for_matching(camp.tracking_url) == clean_target:
                 existing = camp
