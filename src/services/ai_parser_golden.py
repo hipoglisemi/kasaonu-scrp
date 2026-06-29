@@ -1526,6 +1526,9 @@ def parse_api_campaign(
     if not result:
         result = {}
 
+    # Store the raw text as _clean_text so that saving/comparison logic works correctly
+    result["_clean_text"] = raw_text
+
     # 4. Apply short_description fallback
     if not result.get("description") and short_description:
         result["description"] = short_description
@@ -1551,7 +1554,8 @@ def parse_api_campaign(
             "participation": "",
             "ai_marketing_text": "",
             "start_date": None,
-            "end_date": None
+            "end_date": None,
+            "_clean_text": raw_text
         }
 
     return result

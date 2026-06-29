@@ -1,4 +1,5 @@
 import re
+from datetime import datetime, date
 
 _TR_MONTHS = {
     1: "Ocak", 2: "Şubat", 3: "Mart", 4: "Nisan",
@@ -9,6 +10,24 @@ _TR_MONTHS = {
 def update_dates_in_text(text: str, old_end_date, new_end_date) -> str:
     if not text or not old_end_date or not new_end_date:
         return text
+
+    # Parse old_end_date safely
+    if isinstance(old_end_date, str):
+        try:
+            old_end_date = datetime.strptime(old_end_date.split()[0], "%Y-%m-%d").date()
+        except Exception:
+            return text
+    elif hasattr(old_end_date, 'date'):
+        old_end_date = old_end_date.date()
+
+    # Parse new_end_date safely
+    if isinstance(new_end_date, str):
+        try:
+            new_end_date = datetime.strptime(new_end_date.split()[0], "%Y-%m-%d").date()
+        except Exception:
+            return text
+    elif hasattr(new_end_date, 'date'):
+        new_end_date = new_end_date.date()
 
     old_day   = old_end_date.day
     old_month = old_end_date.month

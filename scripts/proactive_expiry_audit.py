@@ -147,6 +147,14 @@ def _needs_selenium(raw_html: str, url: str) -> bool:
         "dunyakatilim.com.tr",
         "turkiyefinans.com.tr",
         "opet.com.tr",
+        "teb.com.tr",
+        "vakifkart.com.tr",
+        "vakifbank.com.tr",
+        "worldcard.com.tr",
+        "yapikrediplay.com.tr",
+        "maximiles.com.tr",
+        "maximum.com.tr",
+        "maximumgenc.com.tr",
     ]
     if any(d in url for d in force_selenium_domains):
         return True

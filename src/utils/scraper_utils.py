@@ -275,7 +275,18 @@ def upsert_campaign(db: Session, campaign: Campaign) -> Tuple[Campaign, str]:
                 
                 # Check for matches in reward details
                 reward_val_match = (existing.reward_value == campaign.reward_value)
-                reward_type_match = (existing.reward_type == campaign.reward_type)
+                
+                # Normalize reward types for comparison (e.g. puan/points, indirim/discount)
+                def _norm_rt(t):
+                    if not t: return ""
+                    t_l = t.lower()
+                    if t_l in ["points", "puan"]: return "points"
+                    if t_l in ["cashback", "nakit", "iade"]: return "cashback"
+                    if t_l in ["discount", "indirim"]: return "discount"
+                    if t_l in ["installment", "taksit"]: return "installment"
+                    return t_l
+                
+                reward_type_match = (_norm_rt(existing.reward_type) == _norm_rt(campaign.reward_type))
                 
                 if cd_similarity >= 0.50 and reward_val_match and reward_type_match:
                     if campaign.end_date != existing.end_date:
