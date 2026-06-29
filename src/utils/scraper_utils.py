@@ -105,7 +105,12 @@ def should_skip_campaign(db: Session, url: str, card_id: Any = None) -> bool:
     # 2. Existence check (robust clean URL comparison)
     if url:
         clean_target = clean_url_for_matching(url)
-        all_camps = db.query(Campaign).filter(Campaign.tracking_url.isnot(None))
+        # Only skip if the campaign is already active in the DB.
+        # If it is passive (inactive), we want to process it so we can revive it!
+        all_camps = db.query(Campaign).filter(
+            Campaign.tracking_url.isnot(None),
+            Campaign.is_active == True
+        )
         if card_id:
             all_camps = all_camps.filter(Campaign.card_id == card_id)
         
