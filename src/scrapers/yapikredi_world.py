@@ -196,6 +196,31 @@ class YapikrediWorldScraper:
             else:
                 content_html = item.get('Content') or ''
 
+        # Extract high-resolution detail image if available
+        detail_img_url = None
+        if content_html:
+            from bs4 import BeautifulSoup
+            try:
+                detail_soup = BeautifulSoup(content_html, 'html.parser')
+                img_el = detail_soup.select_one('img#ContentPlaceHolder1_imgDetail')
+                if not img_el:
+                    for img in detail_soup.find_all('img'):
+                        src = img.get('src', '')
+                        if '/getmedia/' in src:
+                            img_el = img
+                            break
+                if img_el:
+                    src = img_el.get('src', '')
+                    if src:
+                        detail_img_url = urljoin(self.BASE_URL, src)
+            except Exception as e:
+                print(f"      ⚠️ Failed to parse detail image: {e}")
+
+        final_image_url = api_image_url
+        if detail_img_url and (not final_image_url or 'dummy' in final_image_url.lower()):
+            final_image_url = detail_img_url
+            print(f"      📸 Using detail page image: {final_image_url}")
+
         # COMBINE: API data is usually cleaner, so we keep that context for AI too.
         api_desc = item.get('Description') or ''
         combined_content = f"--- API DATA ---\n{api_desc}\n\n--- DETAIL PAGE ---\n{content_html}"
@@ -218,7 +243,7 @@ class YapikrediWorldScraper:
         return self._save_campaign(  # type: ignore # pyre-ignore[7]
             title=display_title,
             details_text=short_description,
-            image_url=api_image_url,
+            image_url=final_image_url,
             tracking_url=full_url,
             start_date=start_date,
             end_date=end_date,
