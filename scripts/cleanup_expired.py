@@ -81,11 +81,15 @@ def is_link_dead(url: str, title: str = "") -> tuple:
             
             # 💡 CHIPPIN SPECIFIC CHECK: React/Next.js Client-Side Exception Detection
             # When a Chippin campaign is deactivated, it triggers a client-side crash
-            if 'chippin.com.tr' in url:
+            # NOTE: DB'deki Chippin URL'leri chippin.com domain'inde (.com.tr değil)
+            if 'chippin.com' in url:
                 resp_text = resp.text
+                # WAF bloğu: "Request Rejected" → bot engeli, kampanya ölü değil
+                if "request rejected" in resp_text.lower():
+                    return (False, resp.url)  # Güvenli taraf: alive say
                 if "client-side exception" in resp_text or "Application error" in resp_text:
                     print(f"      🚨 [Chippin Kırık Link] Client-side exception detected on page! Marking as dead link.")
-                    return True
+                    return (True, resp.url)
             
             # 💡 ALBARAKA SPECIFIC CHECK: Expired Opaque Images / Status Check
             if 'albaraka.com.tr' in url:
