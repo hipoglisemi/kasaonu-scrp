@@ -411,13 +411,13 @@ def proactive_expiry_audit(max_audits=2500, specific_ids=None):
             is_indefinite = ai_dates.get("is_indefinite", False)
 
             if is_expired:
-                print(f"   🛑 [Kampanya Bitti] Sayfada kampanya sona ermiş görünüyor → Pasife alınıyor | ID: #{c['id']} | {c['title'][:50]}")
-                with get_db_session() as db:
-                    db_camp = db.query(Campaign).filter(Campaign.id == c["id"]).first()
-                    if db_camp:
-                        db_camp.is_active = False
-                        db_camp.updated_at = datetime.now()
-                        db.commit()
+                # 🚫 Proactive pasife ALMAZ — bu cleanup'ın görevidir.
+                # Sebepler:
+                # 1. JS-render siteler (TEB, Şekerbank vb.) aynı URL'de yeni ay kampanyasını yayınlar.
+                #    AI sayfada eski tarihi görüp "expired" diyebilir ama kampanya hâlâ aktif olabilir.
+                # 2. Yanlış pozitif pasife almalar kullanıcıya görünür zararlar verir.
+                # 3. Cleanup, end_date + scraper eşleşmesiyle daha güvenilir bir şekilde pasife alır.
+                print(f"   ⏭️ [Expired Atlandı] AI 'bitti' dedi ama pasife ALMIYOR (cleanup yapacak) | ID: #{c['id']} | {c['title'][:50]}")
                 return False
 
             if not ai_end_date_str:
