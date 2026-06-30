@@ -73,11 +73,16 @@ def is_link_dead(url: str, title: str = "") -> tuple:
         try:
             resp = session.get(url, allow_redirects=True, timeout=15, verify=False)
             
+            # 🔤 Encoding fix: charset belirtmeyen siteler için requests ISO-8859-1 varsayar
+            if resp.encoding and resp.encoding.upper() in ('ISO-8859-1', 'LATIN-1', 'LATIN1'):
+                resp.encoding = 'utf-8'
+            
             # Explicit 404 means the campaign is definitely gone
             if resp.status_code in [404, 410]:
                 return (True, resp.url)
                 
             final_url = resp.url.lower()
+
             
             # 💡 CHIPPIN SPECIFIC CHECK: React/Next.js Client-Side Exception Detection
             # When a Chippin campaign is deactivated, it triggers a client-side crash

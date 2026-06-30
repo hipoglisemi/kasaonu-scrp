@@ -332,6 +332,10 @@ def proactive_expiry_audit(max_audits=2500, specific_ids=None):
                 if url_changed:
                     print(f"   🔗 [URL Redirect] #{c['id']} | {c['url']} → {final_url}")
                 
+                # 🔤 Encoding fix: charset belirtmeyen siteler (Amex vb.) için requests
+                # ISO-8859-1 varsayar ama içerik UTF-8'dir. Zorla UTF-8 set et.
+                if resp.encoding and resp.encoding.upper() in ('ISO-8859-1', 'LATIN-1', 'LATIN1'):
+                    resp.encoding = 'utf-8'
                 html_content = resp.text
                 if _needs_selenium(html_content, c["url"]):
                     print(f"   🔍 [JS Render Gerekli] #{c['id']} için Selenium başlatılıyor...")
