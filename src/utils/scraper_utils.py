@@ -125,6 +125,12 @@ def should_skip_campaign(db: Session, url: str, card_id: Any = None) -> bool:
         
         for camp in all_camps.all():
             if clean_url_for_matching(camp.tracking_url) == clean_target:
+                # Stamp last_seen_at: this campaign was seen on the bank site today
+                try:
+                    camp.last_seen_at = datetime.now(timezone.utc).replace(tzinfo=None)
+                    db.commit()
+                except Exception:
+                    db.rollback()
                 return True
                 
     return False
@@ -338,6 +344,7 @@ def upsert_campaign(db: Session, campaign: Campaign) -> Tuple[Campaign, str]:
             print(f"      🔒 [Onay Kilidi] İçerik değişti → onaya düşürüldü.")
 
         existing.updated_at = datetime.now(timezone.utc).replace(tzinfo=None)
+        existing.last_seen_at = datetime.now(timezone.utc).replace(tzinfo=None)
 
         if is_date_only_ext:
             # 🔒 MEASURE A (Tarih Kilidi): If only the date has changed, STRICTLY update only date-related fields!

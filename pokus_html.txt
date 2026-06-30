@@ -1,0 +1,1338 @@
+
+
+
+
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+
+    <title>Kampanyalar</title>
+
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0" />
+    <meta name="format-detection" content="telephone=no">
+    <meta name="author" content="ONE AS">
+    
+
+        <meta name="description" content="Pokus ve Pokus Kart&#39;ınla yaptığın harcamalarda harcadık&#231;a kazanırsın. Giyim, market, alışveriş, oyun, eğitim t&#252;m sekt&#246;rlerdeki cashback kampanyalarımızı keşfet." />
+        <meta name="keywords" content="" />
+
+
+    <link rel="icon" type="image/svg" href="/Content/Images/Icons/pokus-favicon.png">
+
+    <link href="/DependencyHandler.axd?s=L0NvbnRlbnQvU3R5bGVzL0Nzcy9Qb2t1cy9CYXNlL1Jlc2V0LmNzczsvQ29udGVudC9TdHlsZXMvQ3NzL1Bva3VzL0Jhc2UvTWVkaWEuY3NzOy9Db250ZW50L1N0eWxlcy9Dc3MvUG9rdXMvQmFzZS9TaGFyZWQuY3NzOy9Db250ZW50L1N0eWxlcy9Dc3MvUG9rdXMvQmFzZS9NZW51LmNzczsvQ29udGVudC9QbHVnaW5zL3NlbGVjdDItNC4xLjAtcmMuMC9jc3Mvc2VsZWN0Mi5taW4uY3NzOy9Db250ZW50L1BsdWdpbnMvT3dsQ2Fyb3VzZWwvb3dsLmNhcm91c2VsLm1pbi5jc3M7L0NvbnRlbnQvU3R5bGVzL0Nzcy9Qb2t1cy9Db21wb25lbnQvTWlzYy9CYXNlLmNzczsvQ29udGVudC9TdHlsZXMvQ3NzL1Bva3VzL0Zvcm0vQmFzZS5jc3M7L0NvbnRlbnQvU3R5bGVzL0Nzcy9Qb2t1cy9Gb3JtL1ZhbGlkYXRpb24uY3NzOy9Db250ZW50L1N0eWxlcy9Dc3MvUG9rdXMvL01pc2MvQW5pbWF0aW9ucy5jc3M7L0NvbnRlbnQvU3R5bGVzL0Nzcy9Qb2t1cy8vTWlzYy9GZWVkYmFjay5jc3M7L0NvbnRlbnQvU3R5bGVzL0Nzcy9Qb2t1cy8vTWlzYy9MaW5rQnV0dG9ucy5jc3M7L0NvbnRlbnQvU3R5bGVzL0Nzcy9Qb2t1cy8vTWlzYy9NaXNjLmNzczsvQ29udGVudC9TdHlsZXMvQ3NzL1Bva3VzL1R5cG9ncmFwaHkvRm9udC5jc3M7L0NvbnRlbnQvU3R5bGVzL0Nzcy9Qb2t1cy9UeXBvZ3JhcGh5L0Jhc2UuY3NzOy9Db250ZW50L1N0eWxlcy9Dc3MvQ29tcG9uZW50L0xheW91dC9CYXNlLmNzczsvQ29udGVudC9TdHlsZXMvQ3NzL09ORS9ibG9nLWxpc3QuY3NzOy9Db250ZW50L1N0eWxlcy9Dc3MvT05FL2Jsb2ctZGV0YWlsLmNzczs&amp;t=Css&amp;cdv=1" type="text/css" rel="stylesheet"/>
+
+    
+
+
+
+
+    <script>var pageIs = "campaignList";</script>
+    <script src="https://www.google.com/recaptcha/api.js?render=6Lf5A1keAAAAAA5vDXFJMg4jmaU4cXbHRaei4L19"></script>
+
+
+
+<!--Efilli Çerez Yönetimi Start-->
+<script src="https://bundles.efilli.com/pokus.com.tr.prod.js" ></script>
+<!--Efilli Çerez Yönetimi End-->
+<!-- Google Tag Manager -->
+<script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
+new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
+j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
+'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
+})(window,document,'script','dataLayer','GTM-PWP49SC');</script>
+<!-- End Google Tag Manager -->
+
+<!-- Tiktok Pixel Code-->
+<script>
+!function (w, d, t) {
+  w.TiktokAnalyticsObject=t;var ttq=w[t]=w[t]||[];ttq.methods=["page","track","identify","instances","debug","on","off","once","ready","alias","group","enableCookie","disableCookie"],ttq.setAndDefer=function(t,e){t[e]=function(){t.push([e].concat(Array.prototype.slice.call(arguments,0)))}};for(var i=0;i<ttq.methods.length;i++)ttq.setAndDefer(ttq,ttq.methods[i]);ttq.instance=function(t){for(var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n]);return e},ttq.load=function(e,n){var i="https://analytics.tiktok.com/i18n/pixel/events.js";ttq._i=ttq._i||{},ttq._i[e]=[],ttq._i[e]._u=i,ttq._t=ttq._t||{},ttq._t[e]=+new Date,ttq._o=ttq._o||{},ttq._o[e]=n||{};var o=document.createElement("script");o.type="text/javascript",o.async=!0,o.src=i+"?sdkid="+e+"&lib="+t;var a=document.getElementsByTagName("script")[0];a.parentNode.insertBefore(o,a)};
+
+  ttq.load('CCORR5JC77UE78HT7R70');
+  ttq.page();
+}(window, document, 'ttq');
+</script>
+<!--End TikTok Pixel Code -->    <link rel="stylesheet" href="/css/one.css" />
+    <link rel="stylesheet" href="/css/kampanyalar.css" />
+    <link rel="stylesheet" href="/css/limits-and-prices.css" />
+    
+    <!-- Meta Pixel Code -->
+    <script>
+    !function(f,b,e,v,n,t,s)
+    {if(f.fbq)return;n=f.fbq=function(){n.callMethod?
+    n.callMethod.apply(n,arguments):n.queue.push(arguments)};
+    if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
+    n.queue=[];t=b.createElement(e);t.async=!0;
+    t.src=v;s=b.getElementsByTagName(e)[0];
+    s.parentNode.insertBefore(t,s)}(window, document,'script',
+    'https://connect.facebook.net/en_US/fbevents.js');
+    fbq('init', '209577664344456');
+    fbq('track', 'PageView');
+    </script>
+    <noscript><img height="1" width="1" style="display:none"
+    src="https://www.facebook.com/tr?id=209577664344456&ev=PageView&noscript=1"
+    /></noscript>
+    <!-- End Meta Pixel Code -->
+	<script src="https://www.googleoptimize.com/optimize.js?id=OPT-PXCRLK9"></script>
+    <link rel=canonical href="https://pokus.com.tr/tum-kampanyalar" />
+</head>
+
+<body>
+
+   
+	
+<!-- Google Tag Manager (noscript) -->
+<noscript><iframe src=https://www.googletagmanager.com/ns.html?id=GTM-PWP49SC
+height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
+<!-- End Google Tag Manager (noscript) -->
+
+
+
+    <div id="page-wrapper">
+
+        
+
+<header class="comp-layout-header-01 header-ui-01">
+        <a id="site-logo" href="/">
+            <svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="124" height="81" viewBox="0 0 124 81"class="site-logo-01">
+                <defs>
+                    <path id="h7wgr2d7aa" d="M11.662 43.063c5.778 0 8.934 4.029 8.934 9.99v7.359c0 5.962-3.156 9.99-8.934 9.99-2.728 0-4.922-1.074-6.312-2.793v9.937c0 1.557-1.07 2.632-2.675 2.632C1.123 80.178 0 79.103 0 77.546v-31.69c0-1.558.856-2.524 2.407-2.524 1.017 0 2.087.43 2.3 1.718l.215 1.29c1.444-1.988 3.744-3.277 6.74-3.277zm24.662 0c6.152 0 10.378 4.028 10.378 10.42v6.5c0 6.39-4.226 10.42-10.378 10.42s-10.378-4.03-10.378-10.42v-6.5c0-6.392 4.226-10.42 10.378-10.42zm59.54.269c1.551 0 2.675 1.074 2.675 2.632v21.645c0 1.504-.91 2.525-2.407 2.525-1.017 0-2.033-.484-2.3-1.72l-.268-1.288c-1.445 1.987-3.799 3.276-6.794 3.276-5.617 0-8.56-3.813-8.56-9.4V45.965c0-1.558 1.07-2.632 2.622-2.632 1.605 0 2.728 1.074 2.728 2.632v14.824c0 2.847 1.551 4.941 4.547 4.941 3.157 0 5.082-2.363 5.082-5.478V45.964c0-1.558 1.07-2.632 2.675-2.632zm18.242-.269c4.815 0 7.917 1.934 9.201 5.157.589 1.503-.106 3.437-1.979 3.437-1.23 0-1.926-.59-2.46-1.665-.75-1.611-2.034-2.9-4.708-2.9-2.3 0-4.44 1.074-4.44 3.168 0 1.343.695 2.31 2.835 2.955l4.065 1.235c3.906 1.181 7.222 2.954 7.222 7.734 0 4.888-3.744 8.218-9.79 8.218-5.189 0-8.88-2.31-9.843-6.123-.374-1.504.589-3.061 2.247-3.061 1.07 0 1.712.43 2.193 1.61.75 1.88 2.087 3.492 5.35 3.492 3.21 0 4.815-1.396 4.815-3.599 0-1.718-.91-2.631-3.05-3.276l-4.814-1.504c-3.263-1.02-6.152-3.115-6.152-7.25 0-4.083 3.691-7.628 9.308-7.628zM55.528 26.107c1.605 0 2.675 1.074 2.675 2.632v26.14l10.539-10.741c.428-.43.91-.807 1.765-.807 1.177 0 2.408 1.021 2.408 2.418 0 .483-.215 1.128-.59 1.504l-6.632 6.714 7.435 12.138c.215.484.375.967.375 1.397 0 1.45-1.123 2.632-2.568 2.632-1.016 0-1.872-.591-2.3-1.397l-6.74-11.01-3.692 3.76v6.015c0 1.558-1.123 2.632-2.675 2.632-1.605 0-2.674-1.074-2.674-2.632V28.739c0-1.558 1.07-2.632 2.674-2.632zM36.324 47.629c-3.21 0-5.029 2.31-5.029 5.425v7.358c0 3.115 1.82 5.425 5.029 5.425 3.21 0 5.028-2.31 5.028-5.425v-7.358c0-3.116-1.819-5.425-5.028-5.425zm-25.892.107c-3.157 0-5.082 2.363-5.082 5.425v7.09c0 3.115 1.925 5.478 5.082 5.478 3.21 0 4.868-2.256 4.868-5.21v-7.573c0-2.954-1.658-5.21-4.868-5.21z" />
+                    <path id="yw4rsgff6b" d="M39.062 19.947c.843.002 1.516.69 1.514 1.536v3.663h3.623c.843.003 1.525.69 1.523 1.537-.002.84-.676 1.52-1.511 1.53h-3.643v3.644c-.001.84-.685 1.52-1.52 1.529h-.02c-.842-.002-1.524-.69-1.522-1.536v-3.654H33.86c-.843-.003-1.525-.7-1.523-1.546.002-.847.692-1.53 1.53-1.53h3.664v-3.644c.003-.847.689-1.53 1.531-1.53zm27.761 2.386c.604-.592 1.57-.58 2.159.027l2.552 2.628 2.605-2.552c.604-.591 1.57-.578 2.16.028.588.606.576 1.576-.028 2.167l-2.605 2.551 2.53 2.605c.588.606.576 1.576-.028 2.167-.297.29-.681.436-1.066.436-.397 0-.794-.155-1.093-.463l-2.53-2.604-2.605 2.55c-.297.291-.681.436-1.066.436-.397 0-.794-.155-1.093-.463-.588-.606-.576-1.576.027-2.167l2.606-2.551-2.552-2.628c-.589-.606-.577-1.576.027-2.167zm5.938 3.594c-.676-.696-1.785-.71-2.478-.032-.693.679-.707 1.793-.03 2.488.675.696 1.784.71 2.477.031.693-.678.707-1.792.031-2.487zm-33.711-1.02c-.968-.002-1.754.784-1.757 1.755-.002.972.78 1.761 1.748 1.764.968.002 1.754-.783 1.757-1.755.002-.972-.78-1.762-1.748-1.764zm8.834-9.52c.968.013 1.743.81 1.73 1.782-.012.971-.806 1.75-1.774 1.737-.968-.012-1.742-.81-1.73-1.782.012-.971.807-1.749 1.774-1.737zm15.04 0c.967.013 1.742.81 1.73 1.782-.012.971-.807 1.75-1.775 1.737-.967-.012-1.742-.81-1.73-1.781.012-.972.807-1.75 1.775-1.738zm-22.411-7.94l4.133 4.151c.596.599.596 1.57 0 2.168-.298.299-.69.449-1.08.449-.39 0-.781-.15-1.08-.45l-4.133-4.15c-.596-.598-.596-1.568 0-2.167.596-.599 1.563-.599 2.16 0zm31.812 0c.596.6.596 1.57 0 2.169l-4.134 4.15c-.298.3-.689.449-1.08.449-.39 0-.78-.15-1.079-.45-.596-.598-.596-1.568 0-2.167l4.133-4.15c.597-.599 1.563-.599 2.16 0zM55.36 2.366c.346 0 .676.14.918.388l4.494 4.617c.487.5.487 1.3 0 1.802l-4.494 4.617c-.242.248-.572.388-.918.388-.346 0-.677-.14-.918-.388l-4.494-4.617c-.488-.501-.488-1.301 0-1.802l4.494-4.617c.241-.248.572-.388.918-.388zm0 3.133L52.66 8.27l2.699 2.773 2.699-2.773-2.7-2.773zM45.766.833c.967.012 1.742.81 1.73 1.781-.012.972-.806 1.75-1.774 1.738-.968-.013-1.742-.81-1.73-1.782.012-.971.806-1.749 1.774-1.737zM64.983.83c.967.012 1.742.81 1.73 1.781-.012.972-.807 1.75-1.775 1.737-.967-.012-1.742-.81-1.73-1.781.013-.972.807-1.75 1.775-1.737z" />
+                </defs>
+                <g fill="none" fill-rule="evenodd">
+                    <use fill="#FFF" xlink:href="#h7wgr2d7aa" />
+                    <use fill="#FFF" xlink:href="#yw4rsgff6b" />
+                </g>
+            </svg>
+            <svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="124" height="81" viewBox="0 0 124 81" class="site-logo-02">
+                <defs>
+                    <path id="h7wgr2d7aa" d="M11.662 43.063c5.778 0 8.934 4.029 8.934 9.99v7.359c0 5.962-3.156 9.99-8.934 9.99-2.728 0-4.922-1.074-6.312-2.793v9.937c0 1.557-1.07 2.632-2.675 2.632C1.123 80.178 0 79.103 0 77.546v-31.69c0-1.558.856-2.524 2.407-2.524 1.017 0 2.087.43 2.3 1.718l.215 1.29c1.444-1.988 3.744-3.277 6.74-3.277zm24.662 0c6.152 0 10.378 4.028 10.378 10.42v6.5c0 6.39-4.226 10.42-10.378 10.42s-10.378-4.03-10.378-10.42v-6.5c0-6.392 4.226-10.42 10.378-10.42zm59.54.269c1.551 0 2.675 1.074 2.675 2.632v21.645c0 1.504-.91 2.525-2.407 2.525-1.017 0-2.033-.484-2.3-1.72l-.268-1.288c-1.445 1.987-3.799 3.276-6.794 3.276-5.617 0-8.56-3.813-8.56-9.4V45.965c0-1.558 1.07-2.632 2.622-2.632 1.605 0 2.728 1.074 2.728 2.632v14.824c0 2.847 1.551 4.941 4.547 4.941 3.157 0 5.082-2.363 5.082-5.478V45.964c0-1.558 1.07-2.632 2.675-2.632zm18.242-.269c4.815 0 7.917 1.934 9.201 5.157.589 1.503-.106 3.437-1.979 3.437-1.23 0-1.926-.59-2.46-1.665-.75-1.611-2.034-2.9-4.708-2.9-2.3 0-4.44 1.074-4.44 3.168 0 1.343.695 2.31 2.835 2.955l4.065 1.235c3.906 1.181 7.222 2.954 7.222 7.734 0 4.888-3.744 8.218-9.79 8.218-5.189 0-8.88-2.31-9.843-6.123-.374-1.504.589-3.061 2.247-3.061 1.07 0 1.712.43 2.193 1.61.75 1.88 2.087 3.492 5.35 3.492 3.21 0 4.815-1.396 4.815-3.599 0-1.718-.91-2.631-3.05-3.276l-4.814-1.504c-3.263-1.02-6.152-3.115-6.152-7.25 0-4.083 3.691-7.628 9.308-7.628zM55.528 26.107c1.605 0 2.675 1.074 2.675 2.632v26.14l10.539-10.741c.428-.43.91-.807 1.765-.807 1.177 0 2.408 1.021 2.408 2.418 0 .483-.215 1.128-.59 1.504l-6.632 6.714 7.435 12.138c.215.484.375.967.375 1.397 0 1.45-1.123 2.632-2.568 2.632-1.016 0-1.872-.591-2.3-1.397l-6.74-11.01-3.692 3.76v6.015c0 1.558-1.123 2.632-2.675 2.632-1.605 0-2.674-1.074-2.674-2.632V28.739c0-1.558 1.07-2.632 2.674-2.632zM36.324 47.629c-3.21 0-5.029 2.31-5.029 5.425v7.358c0 3.115 1.82 5.425 5.029 5.425 3.21 0 5.028-2.31 5.028-5.425v-7.358c0-3.116-1.819-5.425-5.028-5.425zm-25.892.107c-3.157 0-5.082 2.363-5.082 5.425v7.09c0 3.115 1.925 5.478 5.082 5.478 3.21 0 4.868-2.256 4.868-5.21v-7.573c0-2.954-1.658-5.21-4.868-5.21z" />
+                    <path id="yw4rsgff6b" d="M39.062 19.947c.843.002 1.516.69 1.514 1.536v3.663h3.623c.843.003 1.525.69 1.523 1.537-.002.84-.676 1.52-1.511 1.53h-3.643v3.644c-.001.84-.685 1.52-1.52 1.529h-.02c-.842-.002-1.524-.69-1.522-1.536v-3.654H33.86c-.843-.003-1.525-.7-1.523-1.546.002-.847.692-1.53 1.53-1.53h3.664v-3.644c.003-.847.689-1.53 1.531-1.53zm27.761 2.386c.604-.592 1.57-.58 2.159.027l2.552 2.628 2.605-2.552c.604-.591 1.57-.578 2.16.028.588.606.576 1.576-.028 2.167l-2.605 2.551 2.53 2.605c.588.606.576 1.576-.028 2.167-.297.29-.681.436-1.066.436-.397 0-.794-.155-1.093-.463l-2.53-2.604-2.605 2.55c-.297.291-.681.436-1.066.436-.397 0-.794-.155-1.093-.463-.588-.606-.576-1.576.027-2.167l2.606-2.551-2.552-2.628c-.589-.606-.577-1.576.027-2.167zm5.938 3.594c-.676-.696-1.785-.71-2.478-.032-.693.679-.707 1.793-.03 2.488.675.696 1.784.71 2.477.031.693-.678.707-1.792.031-2.487zm-33.711-1.02c-.968-.002-1.754.784-1.757 1.755-.002.972.78 1.761 1.748 1.764.968.002 1.754-.783 1.757-1.755.002-.972-.78-1.762-1.748-1.764zm8.834-9.52c.968.013 1.743.81 1.73 1.782-.012.971-.806 1.75-1.774 1.737-.968-.012-1.742-.81-1.73-1.782.012-.971.807-1.749 1.774-1.737zm15.04 0c.967.013 1.742.81 1.73 1.782-.012.971-.807 1.75-1.775 1.737-.967-.012-1.742-.81-1.73-1.781.012-.972.807-1.75 1.775-1.738zm-22.411-7.94l4.133 4.151c.596.599.596 1.57 0 2.168-.298.299-.69.449-1.08.449-.39 0-.781-.15-1.08-.45l-4.133-4.15c-.596-.598-.596-1.568 0-2.167.596-.599 1.563-.599 2.16 0zm31.812 0c.596.6.596 1.57 0 2.169l-4.134 4.15c-.298.3-.689.449-1.08.449-.39 0-.78-.15-1.079-.45-.596-.598-.596-1.568 0-2.167l4.133-4.15c.597-.599 1.563-.599 2.16 0zM55.36 2.366c.346 0 .676.14.918.388l4.494 4.617c.487.5.487 1.3 0 1.802l-4.494 4.617c-.242.248-.572.388-.918.388-.346 0-.677-.14-.918-.388l-4.494-4.617c-.488-.501-.488-1.301 0-1.802l4.494-4.617c.241-.248.572-.388.918-.388zm0 3.133L52.66 8.27l2.699 2.773 2.699-2.773-2.7-2.773zM45.766.833c.967.012 1.742.81 1.73 1.781-.012.972-.806 1.75-1.774 1.738-.968-.013-1.742-.81-1.73-1.782.012-.971.806-1.749 1.774-1.737zM64.983.83c.967.012 1.742.81 1.73 1.781-.012.972-.807 1.75-1.775 1.737-.967-.012-1.742-.81-1.73-1.781.013-.972.807-1.75 1.775-1.737z" />
+                </defs>
+                <g fill="none" fill-rule="evenodd">
+                    <use fill="#3e15b2" xlink:href="#h7wgr2d7aa" />
+                    <use fill="#3e15b2" xlink:href="#yw4rsgff6b" />
+                </g>
+            </svg>
+        </a>
+        <nav id="menu-primary">
+            <ul class="level-1">
+                        <li><a href="/ekspres-hesap" class="lnk-J ">Ekspres Hesap</a></li>
+                        <li><a href="/limitler-ve-ucretler" class="lnk-J ">Limitler &amp; &#220;cretler</a></li>
+                        <li><a href="/pokus-kilavuzu" class="lnk-J ">Pokus Kılavuzu</a></li>
+                        <li><a href="/tum-kampanyalar" class="lnk-J active">Kampanyalar</a></li>
+                        <li><a href="/sepet" class="lnk-J ">Kart Siparişi Ver</a></li>
+            </ul>
+        </nav>
+        <a href="/sepet" style="text-decoration: none;height: 64px;"><div class='new-orange-button'>KART SİPARİŞİ VER</div></a>
+        <a id="btn-hamburger" href="javascript:void(0);" onclick="Feux.Menu.showOrHide()">
+        <img src="/Content/Images/Logos/icon-hamburger-navigation.svg" alt="Pokus hamburger menü"/>
+    </a>
+</header>
+
+        <div id="content-wrapper">
+
+            
+    
+
+            
+    
+
+            
+
+
+
+
+
+
+
+
+<main id="campaignList" data-body-class="campaignListPage">
+    
+
+
+<section data-type="Pokus-ShowCase01" class="comp-layout-showcase-01 showcase-01-ui">
+    <div class="c-wrapper" style="background-image:url(/media/xduebzav/ic-sayfalar-doku.png);">
+    </div>
+    <h1 class="c-unit-02 hdr-A">
+        Kampanyalar
+    </h1>
+</section>
+
+
+    <section data-type="Pokus-Section17" class="comp-layout-section-28 comp-ui-16">
+        <div class="c-wrapper">
+            <div class="c-unit-01">
+                <ul>
+
+                            <li class="active"><a href="tum-kampanyalar" class="lnk-G active">Aktif kampanyalar</a></li>
+                            <li class=""><a href="tum-kampanyalar?isActive=false" class="lnk-G">Geçmiş Kampanyalar</a></li>
+                </ul>
+            </div>
+        </div>
+    </section>
+    <section data-type="Pokus-Section10" class="comp-layout-section-21 comp-ui-09">
+        <section class="categories" style="padding: 0;padding-top: 20px;">
+            <div class="c-container">
+                <div class="left-content">
+                            <a href="tum-kampanyalar" class="c-item-01-A lnk-D active">#Tüm kategoriler</a>
+                                                            <a href="alisveris" class="c-item-01-A lnk-D">Alışveriş</a>
+                                        <a href="internet" class="c-item-01-A lnk-D">İnternet</a>
+                                        <a href="eglence" class="c-item-01-A lnk-D">Eğlence</a>
+                                        <a href="yeme-icme" class="c-item-01-A lnk-D">Yeme İ&#231;me</a>
+                </div>
+                <div class="right-content">
+                    <input type="text" id="search-box" name="query" data-rule-nowhitespace="true">
+                    <a id="search-button" href="javascript:void(0);">
+                        <svg width="32" height="32" viewBox="0 0 20 20" fill="rgb(62, 21, 178)" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M18.1256 17.2408L13.4056 12.5208C14.5398 11.1591 15.1054 9.41264 14.9847 7.64461C14.864 5.87658 14.0663 4.22315 12.7576 3.02827C11.4488 1.83339 9.72983 1.18906 7.95814 1.22932C6.18646 1.26958 4.49849 1.99133 3.2454 3.24442C1.9923 4.49752 1.27055 6.18548 1.23029 7.95717C1.19003 9.72885 1.83436 11.4479 3.02924 12.7566C4.22412 14.0653 5.87756 14.863 7.64559 14.9837C9.41361 15.1044 11.1601 14.5388 12.5218 13.4046L17.2418 18.1247L18.1256 17.2408ZM2.50064 8.12466C2.50064 7.01214 2.83054 5.9246 3.44862 4.99958C4.0667 4.07455 4.94521 3.35358 5.97304 2.92784C7.00088 2.50209 8.13188 2.3907 9.22302 2.60774C10.3142 2.82478 11.3164 3.36051 12.1031 4.14718C12.8898 4.93385 13.4255 5.93613 13.6426 7.02728C13.8596 8.11842 13.7482 9.24942 13.3225 10.2773C12.8967 11.3051 12.1757 12.1836 11.2507 12.8017C10.3257 13.4198 9.23816 13.7497 8.12564 13.7497C6.6343 13.748 5.20452 13.1548 4.14999 12.1003C3.09545 11.0458 2.50229 9.616 2.50064 8.12466Z" fill="rgb(62, 21, 178)"></path>
+                        </svg>
+                    </a>
+
+                </div>
+                
+            </div>
+        </section>
+        <div class="c-wrapper">
+            
+            <div id="pagination" class="c-unit-02">
+
+            </div>
+
+            <div id="paginator" class="c-unit-03">
+                <a class="c-unit-03-D">
+
+                </a>
+                <div class="c-unit-03-B">
+
+                </div>
+                <a class="c-unit-03-F">
+
+                </a>
+
+
+            </div>
+        </div>
+    </section>
+    <section data-type="Pokus-Section12" style="background-image:url(/media/d2ajxvwt/ince-banner.png)" class="comp-layout-section-30 comp-ui-20">
+        <div class="c-wrapper">
+            <div class="c-unit-04">
+                <p class="c-unit-02-C pr-Z">Pokus’a kampanya &#246;ner! </p>
+            </div>
+            <div class="c-unit-03">
+                <a href="javascript:Feux.Modal.show({css: 'rightSideModal suggestModal', hdr: '', bodyContentId: 'suggestModalContent'});" class="lnk-K">ÖNER</a>
+            </div>
+        </div>
+    </section>
+    <div id="pageComponent" style="display:none;">
+        <a href="item.UmbracoUrlAlias" class="comp-micro-layout-20 micro-ui-08">
+            <img class="c-item-01"/>
+            <p class="c-item-02 pr-E">item.Title01</p>
+            <p class="c-item-03 pr-F">item.CampaignDiscount</p>
+        </a>
+    </div>
+</main>
+
+
+
+
+
+
+            
+
+
+<footer id="footer01" data-type="Pokus-Footer1" class="comp-layout-footer-01 font-footer">
+    <div class="c-wrapper">
+
+        <div class="c-container-01">
+            <img src="/Content/Images/Pokus/footer-logo.png" alt="Pokus sihirli asa"/>
+        </div>
+        <div class="c-container-03">
+            <div class="c-container-02">
+                <nav>
+                    <ul class="c-level-01" style="">
+                        <li>
+                            <a href="/hakkimizda" class="ff-A">Hakkımızda</a>
+                        </li>
+                        <li>
+                            <a href="/hakkimizda#kurumsalyonetim" class="ff-A">Kurumsal Yönetim</a>
+                        </li>
+                        <li>
+                            <a href="/bize-ulasin" class="ff-A">Bize Ulaşın</a>
+                        </li>
+                        <li>
+                            <!--<a href="javascript:Feux.Modal.show({css: 'rightSideModal employeeModal', hdr: '', bodyContentId: 'announcementModalContent'});" class="ff-A">Duyurular</a>-->
+                        	<a href="/duyurular" class="ff-A">Duyurular</a>
+			</li>
+                        <li>
+                            <a href="/blog" class="ff-A">Blog</a>
+                        </li>
+                        <li>
+                            <a href="/genel-bilgiler" class="ff-A">S.S.S.</a>
+                        </li>
+                        <li>
+                            <a href="javascript:Feux.Modal.show({css: 'rightSideModal employeeModal', hdr: '', bodyContentId: 'personalSecModalContent'});" id="kvkk" class="ff-A">Kişisel Verilerin Korunması</a>
+                        </li>
+                        <li>
+                            <a href="javascript:Feux.Modal.show({css: 'rightSideModal employeeModal', hdr: '', bodyContentId: 'consumerInformationFormModalContent'});" id="tuketici-bilgilendirme-formu" class="ff-A">Tüketici Bilgilendirme Formu</a>
+                        </li>
+                        <li>
+                          <a class="efl-edit ff-A" href="#">Çerez Ayarları</a>
+                        </li>
+                    </ul>
+                </nav>
+            </div>
+            <div class="c-container-02">
+                <nav>
+                    <ul class="c-level-01">
+                        <li>
+                            <a href="javascript:Feux.Modal.show({css: 'rightSideModal employeeModal', hdr: '', bodyContentId: 'borderModalContent'});" class="ff-A">Çerçeve Sözleşme</a>
+                        </li>
+                        <li>
+                            <a href="javascript:Feux.Modal.show({css: 'rightSideModal employeeModal', hdr: '', bodyContentId: 'cookieModalContent'});" class="ff-A">Çerez Politikası</a>
+                        </li>
+                        <li>
+                            
+                            <a href="/gizlilik-ve-guvenlik-politikasi/" id="gizlilik-ve-guvenlik-politikasi" class="ff-A">Gizlilik ve Güvenlik Politikası</a>
+                        </li>
+                    </ul>
+                </nav>
+            </div>
+            
+            <nav class="c-unit-01">
+                <ul class="c-level-02">
+                    <li>
+                        <h6 class="ff-B">Bizi Takip Et</h6>
+                        <ul>
+                           <li>
+
+                                        <a href="https://www.facebook.com/Pokus-102747404886516" class="socail-link" target="_blank"><svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32">
+    <g fill="none" fill-rule="evenodd">
+        <g fill="#fff" fill-rule="nonzero">
+            <g>
+                <g>
+                    <path d="M21 0H3C1.345 0 0 1.345 0 3v18c0 1.654 1.345 3 3 3h9v-8.25H9V12h3V9c0-2.486 2.014-4.5 4.5-4.5h3v3.75H18c-.828 0-1.5-.078-1.5.75v3h3.75l-1.5 3.75H16.5V24H21c1.654 0 3-1.346 3-3V3c0-1.655-1.346-3-3-3z" transform="translate(-552 -615) translate(552 615) translate(4 4)"/>
+                </g>
+            </g>
+        </g>
+    </g>
+</svg>
+</a>
+                                        <a href="https://www.instagram.com/pokustr/" class="socail-link" target="_blank"><svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32">
+    <g fill="none" fill-rule="evenodd">
+        <g fill="#FFF">
+            <g>
+                <g>
+                    <path d="M12.002 5.846c-3.404 0-6.151 2.748-6.151 6.154 0 3.406 2.747 6.154 6.151 6.154 3.406 0 6.153-2.748 6.153-6.154 0-3.406-2.748-6.154-6.153-6.154zm0 10.155c-2.2 0-4-1.794-4-4.001 0-2.207 1.795-4 4-4 2.206 0 4 1.793 4 4s-1.799 4-4 4zm7.839-10.406c0 .797-.642 1.436-1.434 1.436-.798 0-1.435-.644-1.435-1.436 0-.793.642-1.436 1.435-1.436.792 0 1.434.643 1.434 1.436zm4.075 1.456c-.09-1.922-.53-3.624-1.938-5.028C20.574.619 18.873.18 16.95.083c-1.98-.11-7.92-.11-9.9 0-1.917.092-3.62.531-5.028 1.934C.614 3.421.18 5.124.084 7.045c-.112 1.983-.112 7.921 0 9.904.09 1.922.53 3.624 1.938 5.028 1.409 1.404 3.105 1.842 5.028 1.94 1.98.11 7.92.11 9.9 0 1.923-.092 3.624-.531 5.028-1.94 1.403-1.404 1.841-3.106 1.938-5.028.112-1.983.112-7.915 0-9.898zm-2.56 12.024c-.417 1.05-1.226 1.858-2.28 2.28-1.58.628-5.328.483-7.074.483-1.744 0-5.498.139-7.073-.483-1.048-.417-1.857-1.225-2.28-2.28-.627-1.58-.482-5.329-.482-7.075 0-1.746-.14-5.5.481-7.074.418-1.05 1.227-1.859 2.281-2.281 1.58-.628 5.329-.483 7.073-.483 1.746 0 5.499-.139 7.073.483 1.05.417 1.86 1.225 2.282 2.28.626 1.58.482 5.329.482 7.075 0 1.746.144 5.5-.482 7.074v.001z" transform="translate(-503 -615) translate(503 615) translate(4 4)"/>
+                </g>
+            </g>
+        </g>
+    </g>
+</svg></a>
+                                        <a href="https://www.tiktok.com/@pokustr" class="socail-link" target="_blank"><svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32">     <g fill="none" fill-rule="evenodd">         <g>             <path fill="#2A1A5C" d="M0 0H1440V1302H0z" opacity=".058" transform="translate(-699 -615)"/>             <g fill="#fff" fill-rule="nonzero">                 <g>                     <path d="M19.77 5.65c-1.286 0-2.472-.427-3.424-1.145-1.093-.824-1.878-2.032-2.155-3.425-.069-.344-.106-.699-.11-1.063H10.41v10.036l-.004 5.497c0 1.47-.957 2.715-2.284 3.154-.385.127-.8.187-1.234.163-.552-.03-1.07-.197-1.52-.466-.958-.573-1.608-1.612-1.625-2.801-.028-1.858 1.474-3.373 3.331-3.373.367 0 .719.06 1.048.168V8.666c-.348-.051-.701-.078-1.059-.078-2.032 0-3.933.845-5.292 2.367C.743 12.105.127 13.572.032 15.11c-.124 2.021.615 3.943 2.05 5.36.21.209.432.402.663.58 1.23.946 2.733 1.46 4.317 1.46.358 0 .711-.027 1.06-.078 1.478-.22 2.843-.897 3.92-1.962 1.324-1.308 2.055-3.044 2.063-4.893l-.019-8.208c.632.487 1.322.89 2.063 1.203 1.152.486 2.374.732 3.632.732V5.648l-.01.001z" transform="translate(-699 -615) translate(699 615) translate(6 5)"/>                 </g>             </g>         </g>     </g> </svg></a>
+                                        <a href="https://twitter.com/pokustr" class="socail-link" target="_blank"><svg style="margin-top: 4px;" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 1200 1227" fill="none">
+<path d="M714.163 519.284L1160.89 0H1055.03L667.137 450.887L357.328 0H0L468.492 681.821L0 1226.37H105.866L515.491 750.218L842.672 1226.37H1200L714.137 519.284H714.163ZM569.165 687.828L521.697 619.934L144.011 79.6944H306.615L611.412 515.685L658.88 583.579L1055.08 1150.3H892.476L569.165 687.854V687.828Z" fill="white"/>
+</svg></a>
+                            </li>
+                            <li>
+
+                                        <a href="https://yaay.com.tr/pokustr" class="socail-link" target="_blank"><svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="32" height="32" viewBox="0 0 32 32">
+    <defs>
+        <path id="253za6rvva" d="M0 0.011L9.177 0.011 9.177 15.82 0 15.82z"/>
+        <path id="msmjscmq1c" d="M0.055 0.007L12.757 0.007 12.757 21.888 0.055 21.888z"/>
+    </defs>
+    <g fill="none" fill-rule="evenodd">
+        <g>
+            <path fill="#2A1A5C" d="M0 0H1440V1302H0z" opacity=".058" transform="translate(-748 -615)"/>
+            <g>
+                <g>
+                    <g transform="translate(-748 -615) translate(748 615) translate(2 5) translate(0 2.513)">
+                        <mask id="wqot0k4y0b" fill="#fff">
+                            <use xlink:href="#253za6rvva"/>
+                        </mask>
+                        <path fill="#FFF" d="M1.39.912l2.568-.3s.323-.015.308.233c-.015.248-.526 6.337-.526 6.337s-.052.728.654.735c.705.008.998-.36.998-.36L5.978.695s.03-.383.548-.443 2.372-.24 2.372-.24.293-.023.278.382c-.015.406-.766 9.25-.766 9.25s-.135 3.304-2.064 4.978C4.416 16.296 1 15.966.122 15.14c0 0-.24-.225-.046-.608.196-.383 1.21-2.155 1.21-2.155s.164-.345.555-.195c.39.15 1.389.54 2.2.187.81-.352 1.036-.93 1.073-1.479 0 0-1.72.815-3.25.053-1.605-.8-1.39-3.1-1.39-3.1l.496-6.36s-.008-.458.42-.57" mask="url(#wqot0k4y0b)"/>
+                    </g>
+                    <g transform="translate(-748 -615) translate(748 615) translate(2 5) translate(15.696 .065)">
+                        <mask id="p6ni2ppwqd" fill="#fff">
+                            <use xlink:href="#msmjscmq1c"/>
+                        </mask>
+                        <path fill="#FFF" d="M1.98 1.254L5.532.838s.447-.02.426.322c-.02.343-.727 8.771-.727 8.771s-.073 1.008.904 1.019c.977.01 1.382-.499 1.382-.499l.81-9.498s.042-.53.76-.613C9.804.256 12.37.007 12.37.007s.406-.031.385.53c-.02.561-1.06 12.803-1.06 12.803s-.187 4.572-2.858 6.89c-2.67 2.317-7.4 1.86-8.615.717 0 0-.332-.312-.062-.842s1.673-2.982 1.673-2.982.228-.478.769-.27c.54.207 1.922.748 3.045.26 1.122-.49 1.434-1.29 1.486-2.048 0 0-2.382 1.128-4.5.073C.414 14.03.711 10.846.711 10.846l.686-8.802s-.01-.634.582-.79" mask="url(#p6ni2ppwqd)"/>
+                    </g>
+                    <path fill="#FFF" d="M13.118 8.316s-.62.056-.926-.043c-.305-.098-.292-.471-.273-.592.028-.182.139-.465.641-.47.5-.006.671.038.671.038l-.113 1.067zm2.633-4.666c-.396-1.186-1.38-1.48-2.85-1.48-1.287 0-2.326.629-2.57.797-.166.114-.098.375-.098.375l.463 1.441s.048.203.218.19c.118-.01.712-.42 1.742-.4 1.03.019.764 1.019.764 1.019s-1.157-.186-2.343.108c-1.187.294-1.638 1.392-1.755 2.294-.118.903.333 2.07 1.45 2.373 1.119.304 3.158.04 3.913-.098.756-.137.785-.53.785-.53s.343-2.921.412-4.098c.068-1.177-.131-1.99-.131-1.99zM12.429 17.265s-.62.056-.926-.042c-.305-.099-.292-.472-.273-.593.028-.181.139-.465.641-.47.5-.006.67.038.67.038l-.112 1.067zm2.633-4.665c-.396-1.187-1.38-1.48-2.85-1.48-1.287 0-2.327.628-2.57.796-.167.114-.098.376-.098.376l.463 1.44s.048.204.218.19c.118-.009.712-.42 1.741-.4 1.03.02.765 1.02.765 1.02s-1.157-.187-2.343.107c-1.187.294-1.638 1.393-1.756 2.295-.117.902.334 2.069 1.452 2.373 1.118.304 3.157.04 3.912-.098.755-.137.785-.53.785-.53s.343-2.922.412-4.099c.068-1.176-.131-1.99-.131-1.99z" transform="translate(-748 -615) translate(748 615) translate(2 5)"/>
+                </g>
+            </g>
+        </g>
+    </g>
+</svg></a>
+                                        <a href="https://www.youtube.com/channel/UC6qrplUQVKxIBbsQOuB6LMg" class="socail-link" target="_blank"><svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32">
+    <g fill="none" fill-rule="evenodd">
+        <g fill="#fff" fill-rule="nonzero">
+            <g>
+                <g>
+                    <path d="M27.58 3.126C27.255 1.919 26.304.968 25.098.643 22.894.04 14.08.04 14.08.04S5.265.04 3.062.62C1.879.945.904 1.92.58 3.126 0 5.329 0 9.899 0 9.899s0 4.592.58 6.773c.325 1.206 1.276 2.157 2.482 2.482 2.227.603 11.018.603 11.018.603s8.814 0 11.018-.58c1.206-.325 2.157-1.276 2.482-2.482.58-2.204.58-6.773.58-6.773s.023-4.593-.58-6.796zM11.273 14.12V5.677l7.33 4.222-7.33 4.221z" transform="translate(-601 -615) translate(601 615) translate(2 7)"/>
+                </g>
+            </g>
+        </g>
+    </g>
+</svg>
+</a>
+                                <a href="https://discord.com/invite/pokustr?utm_source=Websitesi&utm_medium=logobanner&utm_campaign=DiscordLaunch" class="socail-link" target="_blank"><svg xmlns="http://www.w3.org/2000/svg" width="30" height="30" fill="#fff" class="bi bi-discord" viewBox="0 0 16 16">
+                                <path d="M13.545 2.907a13.227 13.227 0 0 0-3.257-1.011.05.05 0 0 0-.052.025c-.141.25-.297.577-.406.833a12.19 12.19 0 0 0-3.658 0 8.258 8.258 0 0 0-.412-.833.051.051 0 0 0-.052-.025c-1.125.194-2.22.534-3.257 1.011a.041.041 0 0 0-.021.018C.356 6.024-.213 9.047.066 12.032c.001.014.01.028.021.037a13.276 13.276 0 0 0 3.995 2.02.05.05 0 0 0 .056-.019c.308-.42.582-.863.818-1.329a.05.05 0 0 0-.01-.059.051.051 0 0 0-.018-.011 8.875 8.875 0 0 1-1.248-.595.05.05 0 0 1-.02-.066.051.051 0 0 1 .015-.019c.084-.063.168-.129.248-.195a.05.05 0 0 1 .051-.007c2.619 1.196 5.454 1.196 8.041 0a.052.052 0 0 1 .053.007c.08.066.164.132.248.195a.051.051 0 0 1-.004.085 8.254 8.254 0 0 1-1.249.594.05.05 0 0 0-.03.03.052.052 0 0 0 .003.041c.24.465.515.909.817 1.329a.05.05 0 0 0 .056.019 13.235 13.235 0 0 0 4.001-2.02.049.049 0 0 0 .021-.037c.334-3.451-.559-6.449-2.366-9.106a.034.034 0 0 0-.02-.019Zm-8.198 7.307c-.789 0-1.438-.724-1.438-1.612 0-.889.637-1.613 1.438-1.613.807 0 1.45.73 1.438 1.613 0 .888-.637 1.612-1.438 1.612Zm5.316 0c-.788 0-1.438-.724-1.438-1.612 0-.889.637-1.613 1.438-1.613.807 0 1.451.73 1.438 1.613 0 .888-.631 1.612-1.438 1.612Z"/> </svg>
+                                </a>
+                            </li>
+
+                        </ul>
+                    </li>
+                    <li>
+                        <h6 class="ff-B">M&#252;şteri Hizmetleri</h6>
+                        <ul>
+                            <li>
+                                <a href="tel:+90-216-444 72 79" class="ff-C">444 72 79</a>
+                            </li>
+
+                        </ul>
+                    </li>
+                    <li>
+                        <h6 class="ff-B">&#214;neri ve İstek Adresi</h6>
+                        <ul>
+                            <li>
+                                <a href="mailto:destek@pokus.com.tr" class="ff-C">destek@pokus.com.tr</a>
+                            </li>
+
+                        </ul>
+                    </li>
+                </ul>
+            </nav>
+            <div class="c-unit-02 ff-D"><p>Pokus E-para uygulaması 6493 sayılı Ödeme ve Menkul Kıymet Mutabakat Sistemleri, Ödeme ve Elektronik Para Kuruluşları Kanunu kapsamında faaliyet gösteren <a rel="noopener" href="https://www.turktelekomodemehizmetleri.com/" target="_blank">TT Ödeme ve Elektronik Para Hizmetleri A.Ş.</a>’nin bir hizmetidir.</p></div>
+        </div>
+    </div>
+</footer>
+
+<div id="cookieModalContent" class="f-modal-content">
+    <h3 class="citem01">Çerez Politikası</h3>
+<div class="citem04">
+<p>TT Ödeme ve Elektronik Para Hizmetleri A.Ş. olarak www.pokus.com.tr sayfasında çerezler kullanmaktayız. Türk Telekom Grup Şirketleri bu web siteleri üzerinde kullanılan çerezlere ilişkin olarak, 6698 sayılı Kişisel Verilerin Korunması Kanunu kapsamında her biri ayrı veri sorumlusu olarak hareket etmektedir. Web sayfalarımızı kullanarak aşağıda verilen açıklamalar ve seçimleriniz doğrultusunda bu çerezlerin kullanımına izin vermiş oluyorsunuz.</p>
+<p>Okumakta olduğunuz çerez politikamız çerezlerin ne olduğunu, onları nasıl kullandığımızı ve çerezlere ilişkin seçimlerinizi nasıl değiştirebileceğinizi açıklamaktadır.</p>
+<h4 class="citem03">Çerez nedir?</h4>
+<p>Çerezler ziyaret ettiğiniz internet sayfalarının internet tarayıcınız aracılığıyla size ilettiği küçük metin dosyalardır. Çerez dosyası web tarayıcınızda saklanır ve sizi tanıyarak bir sonraki ziyaretinizi bu yolla kolaylaştırmayı ve web servisini daha kullanışlı hale getirmeyi sağlar. Çerezler web oturumu süresince saklanabildiği gibi (oturum çerezleri) daha uzun ve fakat sınırlı süreli saklanan çerezler de (kalıcı çerezler) mevcuttur.</p>
+<h4 class="citem03">Türk Telekom Çerezleri Nasıl Kullanır?</h4>
+<p>Kişisel verileriniz; bu politikada belirtilen amaçlar kapsamında ilgili web sitelerimiz üzerinden çerezler vasıtasıyla temin edilerek tamamen otomatik yöntemlerle, açık rıza vermiş olmanız ve/veya temel hak ve özgürlüklerinize zarar vermemek kaydıyla Şirketimiz meşru menfaati için veri işlemenin zorunlu olması hukuki sebeplerine dayanılarak işlenebilmektedir.</p>
+<p>Web sitelerimizin temel işlevlerini yerine getirmesi amacıyla kullandığımız zorunlu çerezler yanında istatistiki ve reklam/pazarlama amaçlarıyla 3. taraf şirketlerin çerezlerini de izniniz doğrultusunda kullanabilmekteyiz. Bu çerezler ve çerezlere ilişkin açıklamalarımız aşağıda yer almaktadır:</p>
+<p>Zorunlu Çerezler: Sayfalar arasında dolaştığınızda önceki sayfalarda yaptığınız seçimlerin hatırlanmasını sağlayan ve web sayfasına kayıt bilgilerinizi tutan çerezlerdir. Bu çerezler olmadan web sayfamız sağlıklı bir şekilde çalışmamaktadır.</p>
+<p>İstatistiki Çerezler: Siteye giriş sayısı, menülerin tıklanma sayısı gibi istatistiki bilgileri anonim olarak kullanarak sitemizi geliştirmemize yardım eden çerezlerdir.</p>
+<p>Reklam ve Pazarlama Çerezleri: Hem sitelerimize girdiğinizde sizi kampanyalarımızdan haberdar etmek amacıyla kullanılan hem de sayfamızdaki hareketleriniz doğrultusunda size uygun reklamların sunulması amacıyla reklam verenlerle paylaşılan çerezlerdir.</p>
+<p> </p>
+<p><strong> </strong></p>
+<p>Web sayfamızda yer alan çerezler:</p>
+<table class="cerez-table" width="643">
+<tbody>
+<tr>
+<td colspan="4" width="643">
+<p><strong>Zorunlu Çerezler</strong></p>
+</td>
+</tr>
+<tr>
+<td width="133">
+<p><strong>Çerez Adı</strong></p>
+</td>
+<td width="197">
+<p><strong>Sağlayıcı</strong></p>
+</td>
+<td width="182">
+<p><strong>Kullanım Amacı</strong></p>
+</td>
+<td width="131">
+<p><strong>Kullanım Süresi</strong></p>
+</td>
+</tr>
+<tr>
+<td width="133">
+<p>rc::a</p>
+</td>
+<td width="197">
+<p><em>google.com</em></p>
+<p><em>(3. Taraf)</em></p>
+</td>
+<td width="182">
+<p>Kullanıcı ve botlar arasında ayrım yapmak için kullanılır. </p>
+</td>
+<td width="131">
+<p><em>Oturum</em></p>
+</td>
+</tr>
+<tr>
+<td width="133">
+<p>rc::c</p>
+</td>
+<td width="197">
+<p><em>google.com</em></p>
+<p><em>(3. Taraf)</em></p>
+</td>
+<td width="182">
+<p>Kullanıcı ve botlar arasında ayrım yapmak için kullanılır. </p>
+</td>
+<td width="131">
+<p><em>Oturum</em></p>
+</td>
+</tr>
+<tr>
+<td width="133">
+<p>TS#</p>
+</td>
+<td width="197">
+<p><em>pokus.com.tr</em></p>
+<p><em>(1.Taraf)</em></p>
+</td>
+<td width="182">
+<p>Web sitesi güvenliğini ve dolandırıcılık tespitini sağlamak için kullanılır.</p>
+</td>
+<td width="131">
+<p><em>Oturum</em></p>
+</td>
+</tr>
+</tbody>
+</table>
+<p> </p>
+<p> </p>
+<table class="cerez-table" width="643">
+<tbody>
+<tr>
+<td colspan="4" width="643">
+<p><strong>İstatistiki Çerezler</strong></p>
+</td>
+</tr>
+<tr>
+<td width="136">
+<p><strong>Çerez Adı</strong></p>
+</td>
+<td width="197">
+<p><strong>Sağlayıcı</strong></p>
+</td>
+<td width="198">
+<p><strong>Kullanım Amacı</strong></p>
+</td>
+<td width="112">
+<p><strong>Kullanım Süresi</strong></p>
+</td>
+</tr>
+<tr>
+<td width="136">
+<p>_ga                </p>
+</td>
+<td width="197">
+<p><em>pokus.com.tr</em></p>
+<p><em>(1. Taraf)</em></p>
+</td>
+<td width="198">
+<p>Ziyaretçinin web sitesini nasıl kullandığına ilişkin istatistiksel veriler oluşturmak için benzersiz bir ID atar.</p>
+</td>
+<td width="112">
+<p><em>399 gün</em></p>
+</td>
+</tr>
+<tr>
+<td width="136">
+<p>_ga_#</p>
+</td>
+<td width="197">
+<p><em>pokus.com.tr</em></p>
+<p><em>(1. Taraf)</em></p>
+</td>
+<td width="198">
+<p>Google Analitik tarafından bir kullanıcının web sitesini ziyaret etme sayısı ile ilk ve en son ziyaretin tarihlerini tutar.</p>
+</td>
+<td width="112">
+<p><em>399 gün</em></p>
+</td>
+</tr>
+<tr>
+<td width="136">
+<p>_gat</p>
+</td>
+<td width="197">
+<p><em>pokus.com.tr</em></p>
+<p><em>(1. Taraf)</em></p>
+</td>
+<td width="198">
+<p>Google Analitik tarafından istek oranını kısmak için kullanılır.</p>
+</td>
+<td width="112">
+<p><em>1 gün</em></p>
+</td>
+</tr>
+<tr>
+<td width="136">
+<p>_gid</p>
+</td>
+<td width="197">
+<p><em>pokus.com.tr</em></p>
+<p><em>(1. Taraf)</em></p>
+</td>
+<td width="198">
+<p>Ziyaretçinin web sitesini nasıl kullandığına ilişkin istatistiksel veriler oluşturmak için kullanılan benzersiz bir ID atar.</p>
+</td>
+<td width="112">
+<p><em>1 gün</em></p>
+</td>
+</tr>
+<tr>
+<td width="136">
+<p>tt_enable_cookie</p>
+</td>
+<td width="197">
+<p><em>pokus.com.tr </em></p>
+<p><em>(1. Taraf)</em></p>
+</td>
+<td width="198">
+<p>Hizmetlerin kullanımını takip etmek için sosyal ağ hizmeti TikTok tarafından geliştirilmiştir.</p>
+</td>
+<td width="112">
+<p><em>1 yıl</em></p>
+</td>
+</tr>
+</tbody>
+</table>
+<p> </p>
+<p> </p>
+<table class="cerez-table" width="643">
+<tbody>
+<tr>
+<td colspan="4" width="643">
+<p><strong>Reklam ve Pazarlama Çerezleri</strong></p>
+</td>
+</tr>
+<tr>
+<td width="221">
+<p><strong>Çerez Adı</strong></p>
+</td>
+<td width="157">
+<p><strong>Sağlayıcı</strong></p>
+</td>
+<td width="169">
+<p><strong>Kullanım Amacı</strong></p>
+</td>
+<td width="95">
+<p><strong>Kullanım Süresi</strong></p>
+</td>
+</tr>
+<tr>
+<td width="221">
+<p>_fbp</p>
+</td>
+<td width="157">
+<p><em>pokus.com.tr</em></p>
+<p><em>(1. Taraf)</em></p>
+</td>
+<td width="169">
+<p>Facebook tarafından reklam ürünü sunmak için kullanılır</p>
+</td>
+<td width="95">
+<p><em>3 ay</em></p>
+</td>
+</tr>
+<tr>
+<td width="221">
+<p>__ttp</p>
+</td>
+<td width="157">
+<p><em>pokus.com.tr</em></p>
+<p><em>(1. Taraf)</em></p>
+</td>
+<td width="169">
+<p>Sosyal ağ hizmeti TikTok tarafından gömülü hizmetlerin kullanımını izlemek için kullanılır.</p>
+</td>
+<td width="95">
+<p><em>84 gün</em></p>
+</td>
+</tr>
+<tr>
+<td width="221">
+<p>__ttp</p>
+</td>
+<td width="157">
+<p><em>tiktok.com</em></p>
+<p><em>(3. Taraf)</em></p>
+</td>
+<td width="169">
+<p>YouTube videolarının olduğu sayfalarda kullanıcıların yasaklanma sürelerini belirlemek için kullanılır.</p>
+</td>
+<td width="95">
+<p><em>179 gün</em></p>
+</td>
+</tr>
+<tr>
+<td width="221">
+<p>fr</p>
+</td>
+<td width="157">
+<p><em>facebook.com</em></p>
+<p><em>(3. Taraf)</em></p>
+</td>
+<td width="169">
+<p>Facebook tarafından üçüncü taraflardan gerçek zamanlı teklif verme gibi bir hedefli reklam ürünü sunmak için kullanılır.</p>
+</td>
+<td width="95">
+<p><em>Oturum</em></p>
+</td>
+</tr>
+<tr>
+<td width="221">
+<p>tt_appInfo</p>
+</td>
+<td width="157">
+<p><em>pokus.com.tr</em></p>
+<p><em>(1. Taraf)</em></p>
+</td>
+<td width="169">
+<p>Sosyal ağ hizmeti TikTok tarafından gömülü hizmetlerin kullanımını izlemek için kullanılır.</p>
+</td>
+<td width="95">
+<p><em>Oturum</em></p>
+</td>
+</tr>
+<tr>
+<td width="221">
+<p>tt_pixel_session_index</p>
+</td>
+<td width="157">
+<p><em>pokus.com.tr</em></p>
+<p><em>(1. Taraf)</em></p>
+</td>
+<td width="169">
+<p>Sosyal ağ hizmeti TikTok tarafından gömülü hizmetlerin kullanımını izlemek için kullanılır.</p>
+</td>
+<td width="95">
+<p><em>Oturum</em></p>
+</td>
+</tr>
+<tr>
+<td width="221">
+<p>tt-sessionld</p>
+</td>
+<td width="157">
+<p><em>pokus.com.tr</em></p>
+<p><em>(1.Taraf)</em></p>
+</td>
+<td width="169">
+<p>Sosyal ağ hizmeti TikTok tarafından gömülü hizmetlerin kullanımını takip etmek için kullanılır.</p>
+</td>
+<td width="95">
+<p><em>Oturum</em></p>
+</td>
+</tr>
+</tbody>
+</table>
+<p> </p>
+<!--<h4 class="citem03">Çerezlere ilişkin tercilerinizi nasıl değiştirebilirsiniz?</h4>
+<p>Çerezlere ilişkin tercihlerinizi değiştirme adına aşağıdaki butonları kullanabilirsiniz. Ancak bu çerezlerin kullanımına izin vermediğiniz takdirde sayfamızda sunduğumuz özellikleri tümüyle kullanamayabileceğinizi belirtmek isteriz. Çerezlerinin kullanımına izin vermeniz durumunda; kişisel verinizin yurtdışına aktarımı söz konusu olabilmektedir.</p>
+</div>--></div>
+</div>
+<div id="consumerInformationFormModalContent" class="f-modal-content">
+    <p><strong>Ödeme Hizmetleri ve Elektronik Para İhracı ile Ödeme Hizmeti Sağlayıcıları Hakkında Yönetmelik Madde 48 Uyarınca Tüketici Hakları Bilgilendirme Formu </strong></p>
+<p><strong>Önemli notlar:</strong></p>
+<ul>
+<li>Bu bilgilendirme formu (“Bilgilendirme Formu”) ile, TT Ödeme ve Elektronik Para Hizmetleri Anonim Şirketi (“Şirketimiz”) tarafından sunulan Kanun kapsamındaki işlemlere ilişkin haklarınıza, bu işlemleri yapmak için kullanılabilecek alternatif erişim kanalları ile yenilikçi ödeme yöntemlerine, bu işlemlerle ilgili güvenlik ve koruma önlemlerine, ücretlendirmenin adil ve şeffaf bir şekilde yapılması gerekliliğine ve şikâyet ve müracaat haklarınız ile ilgili alternatif yöntemlere ilişkin bilgilendirme amaçlanmıştır.</li>
+<li>Bilgilendirme Formu ile Çerçeve Sözleşme arasında bir çelişki olması halinde Çerçeve Sözleşme hükümleri uygulanacaktır.</li>
+<li>Bilgilendirme Formu’nda düzenlenmeyen konulara ilişkin Çerçeve Sözleşme hükümleri uygulanacaktır.</li>
+<li>Bilgilendirme Formu kapsamında yer verilen hak, süreç ve yükümlülüklere dair detaylı bilgi için Yönetmelik hükümlerini inceleyebilirsiniz.</li>
+</ul>
+<p> </p>
+<ul>
+<li><strong>Ödeme hizmetleri</strong></li>
+</ul>
+<p>Çerçeve Sözleşme hükümleri ve Türkiye Cumhuriyet Merkez Bankası mevzuatı saklı kalmak üzere, onay ve talebiniz olmayan ödeme hizmetleri kullanımınıza sunulmaz. Herhangi bir ödeme hizmetini kullanmaktan vazgeçmeniz halinde, talebiniz derhal yerine getirilir ve ilgili ödeme hizmetinin sunumu durdurulur ve onayınız veya talebiniz olmadan tekrar kullanımınıza sunulmaz.</p>
+<p>Elektronik haberleşme işletmecisi, mobil ödeme hizmetleri, ergin olmayan ön ödemeli veya faturalı kullanıcılara yasal temsilcileri tarafından ilgili işlemlerin yapılabilmesine ilişkin onay verilmiş olması şartıyla sunulabilir. Sözleşme tesisi sırasında veya daha sonra, hat kullanıcısının ergin olmadığını yazılı olarak veya çağrı merkezi aracılığıyla beyan edebilirsiniz ve bu beyanlarınızı yazılı olarak her zaman değiştirilebilirsiniz. Sözleşme tesisi sırasında veya daha sonra hattı kullanan kişinin değiştiğini ve bu kişinin ergin olmadığını beyan etmezseniz, hattı kullanan kişinin abone olduğu ve ergin olduğu kabul edilir.</p>
+<p>TT Ödeme’nin sunduğu Ödeme hizmeti ile ilgili fonu TT Ödeme’ye kredi kartı ile ödemeniz durumunda, fon geri çekildiğinde ilgili tutar aynı kredi kartı hesabına yatırılır. Fonun düzenlediğimiz faturaya yansıtılarak yatırıldığı durumlarda, ilgili fon ancak faturaya yansıtılarak çekilebilir. Geri ödeme yapılmadan önce kredi kartınızın veya hattınızın iptal edilmiş olduğu durumlarda, fon adınıza açılmış bir ödeme hesabına geri ödenebilir.</p>
+<ul>
+<li><strong>Elektronik paranın ihracı ve geri ödenmesine ilişkin süreçler</strong></li>
+</ul>
+<p>Ergin olmayan kişiler için elektronik para hesabı açılması ve ön ödemeli araçların ilk ihracı (anonim ön ödemeli araçlar hariç) sırasında ilgili kişilerin yasal temsilcisinin onayının alınması gerekir. Alınan onay kayıt altına alınacaktır. Ergin olmayan kişilere sağlanan ön ödemeli araçlar ile yapılan harcamalar, kişinin yasal temsilcisinin talebi olması halinde yasal temsilci tarafından takip edilebilir.</p>
+<p>Elektronik paranın bir kısmının veya tamamının geri ödenmesini talep edebilirsiniz. İlgili kanun hükümleri saklı kalmak kaydıyla, talebiniz üzerine, elektronik paranın karşılığı olan fonun geri ödenmesine ilişkin işlemler gecikmeksizin ve her halükârda en geç talebinizi aldığımız günden sonraki iş günü sonuna kadar gerçekleştirilecektir. Geri ödeme koşulları, son kullanma tarihi ve aldığınız hizmetlere ilişkin ödenecek ücretlere ilişkin detaylı bilgileri Çerçeve Sözleşme’de bulabilirsiniz.</p>
+<p>Çerçeve Sözleşme’de belirlenmiş ise, elektronik paranın geri ödenmesini talep etmeniz halinde geri ödeme talebi, (i) Çerçeve Sözleşme sona ermeden önce iletilirse, (ii) varsa son kullanma tarihinden önce iletilirse, (iii) son kullanma tarihinden itibaren bir yıldan uzun bir süre geçtikten sonra iletilirse, geri ödemenin maliyetiyle orantılı bir ücret talep edilebilecektir.</p>
+<p>Elektronik para karşılığı fon kredi kartı ile ödediğiniz durumda, elektronik paranın geri ödenmesi sadece aynı kredi kartı hesabına olacak şekilde yapılabilecektir. Elektronik para karşılığı bilişim veya elektronik haberleşme işletmecisinin düzenlediği faturaya yansıtılması suretiyle ödendiği durumlarda ise elektronik paranın ancak faturaya yansıtılarak geri ödenebilir. Geri ödemeden önce kredi kartının veya hattın iptal edilmiş olduğu durumlarda, elektronik paranın geri ödenmesi fon yatıranın adına açılmış bir ödeme hesabına da yapılabilir.</p>
+<ul>
+<li><strong>Tek seferlik ödeme işlemleri </strong></li>
+</ul>
+<p>Tek seferlik ödeme işlemlerinde Yönetmelik m.39 ve m.40 kapsamındaki bilgileri tarafınıza sağlarız. Tek seferlik ödeme işlemi yapmanız halinde onayınızı içeren metnin bir örneği, tercihinize bağlı olarak kâğıt üzerinde veya kalıcı veri saklayıcısı ile tarafınıza temin edilir.</p>
+<ul>
+<li><strong>Çerçeve Sözleşme, değişiklikler ve fesih</strong></li>
+</ul>
+<p>Akdedilen çerçeve sözleşmenin bir örneği talebiniz olması halinde, fiziksel olarak ya da kalıcı veri saklayıcısı ile size verilir veya sözleşme süresince erişiminize hazır bulundurulur. Talebiniz olmadığı sürece, çerçeve sözleşme uzaktan iletişim aracı ile akdedilmez.</p>
+<p>Çerçeve sözleşmedeki her türlü değişiklik, değişikliğin yürürlüğe girme tarihinden en az otuz gün önce tarafınıza bildirilir.</p>
+<p>Çerçeve sözleşmeyi bir ay önceden tarafımıza ya da temsilcilere bildirimde bulunarak feshedebilirsiniz. Aynı şekilde, Şirketimiz de bir ay önceden tarafınıza bildirimde bulunarak Çerçeve Sözleşmeyi feshedebilir. Bu durumda ödeme hizmeti ücreti peşin olarak alınmışsa, fazla kısmı tarafınıza iade edilir. Fesih talebiniz alındıktan sonra, sözleşmede yer alan yükümlülüklerinizi yerine getirmiş olmanız kaydıyla, mümkün olan en kısa süre içerisinde fesih işleminizin gereklilikleri yerine getirilir.</p>
+<p>Sözleşmede kararlaştırdığımız durumda, sözleşmenin feshine ilişkin maliyetlerimizi talep etme hakkımız saklıdır. Bir yıldan uzun süreli veya belirsiz süreli sözleşmelerde bir yıldan sonra gerçekleştirilecek fesih için ücret talep edilmez.</p>
+<ul>
+<li><strong>Çerçeve Sözleşme kapsamındaki tekil ödeme işlemlerinde bilgi verme yükümlülüğü </strong></li>
+</ul>
+<p>Tekil ödeme işlemleri bakımından Yönetmelik Madde 46 ile sayılan bilgiler, herhangi bir ücrete tabi olmaksızın belirlediğimiz yöntemler ile ayda en az bir defa olacak şekilde düzenli aralıklarla talebiniz üzerine bilginize sunulur. Yönetmelik Madde 46.4. kapsamında, ikinci ve üçüncü fıkra hükümleri saklı kalmak kaydıyla çerçeve sözleşmenin, gönderenin ve alıcının sırasıyla ikinci ve üçüncü fıkra kapsamındaki bilgilendirmelerin bilgilerin değiştirilmeden saklanmasına ve kullanılmasına imkan verecek şekilde, herhangi bir ücrete tabi olmaksızın, belirlenecek yöntemler ile ve ayda en az bir defa olacak şekilde kararlaştırılacak düzenli aralıklarla yapılmasını talep etme hakkınız olduğunu iletmek isteriz.</p>
+<p><strong>Bilgilendirme ücretleri</strong></p>
+<p>İlgili mevzuat gereği hakkınız olan bilgilendirilme talepleriniz için herhangi bir ek ücret talep edilmez. Mevzuatta belirlenenden daha sık veya farklı yöntemlerle bilgilendirilme talepleriniz ve ilgili diğer mevzuat gereği belirli bir şekilde yapılması zorunlu olan bildirim ve işlemler için ise işlemin maliyeti kadar bir ek ücret talep edilebilir.</p>
+<p><strong>Ücret, masraf, komisyon veya diğer ödemeler</strong></p>
+<p>Sunulan hizmetlere ilişkin ücretlendirmenin adil ve şeffaf bir şekilde yapılması esastır. Bu kapsamda tarafınıza, ödeme hizmetlerinden faydalanmanız için sunduğumuz tüm hizmet kalemlerine ilişkin toplam maliyet ve kullanım miktarını görebileceğiniz, tahakkuk ettirilen aylık ve yıllık ücretler, indirimler, kesintiler, işlem ücretleri, hesap işletim ücretleri, komisyonlar, sadakat puanları gibi kırılımları ayrı ayrı içeren bir ekstre, tercihinize göre basılı olarak veya kalıcı veri saklayıcısı ile ve her iki durumda da ücretsiz olarak sunulur.</p>
+<ul>
+<li><strong>İlave ücret ve indirimler hakkında bilgilendirme</strong></li>
+</ul>
+<p>Ödeme aracı kullanımı için herhangi bir ücret talep edilmesi halinde bu durum ödeme işleminden önce tarafınıza bildirilecektir. Gönderen olduğunuz durumlarda ancak tam olarak bilgilendirilmiş olmanız halinde ödeme yapmakla yükümlü olursunuz. Mobil ödeme hizmetlerinde, ön ödemeli veya faturalı hatların kullanımından dolayı, elektronik haberleşme işletmecisi bu fıkra kapsamında tarafınıza önceden yapılan bildirimde belirtilen haricinde ilave ücret talep edemez.</p>
+<ul>
+<li><strong>Ödeme aracıyla ilgili hak ve yükümlülükler</strong></li>
+</ul>
+<p>Ödeme aracının hileli ya da yetkisiz kullanımından şüphelendiğimiz hallerde ödeme aracı kullanıma kapatılır ve ilgili mevzuatta yer alan bilgi verilmesini engelleyici hükümler ile güvenliği tehdit edici objektif nedenlerin bulunması hali dışında ödeme aracının kapatılmasının gerekçesi konusunda sizi bilgilendiririz.</p>
+<p>Ödeme aracının kullanıma kapatılma sebebi ortadan kalktığında, onayınız alınmak kaydıyla ödeme aracı kullanıma açılır veya tarafınıza yeni bir ödeme aracı temin edilir.</p>
+<p>Ödeme aracının kaybolması, çalınması veya iradeniz dışında gerçekleşmiş herhangi bir işlemi öğrenmeniz halinde, durumu derhal tarafımıza bildirmeniz gerekir. Bu bildirim ücretsiz olarak yapılır. Ödeme aracını teslim aldığınız veya ödeme aracı üzerinde kullanım ve tasarruf imkanına sahip olduğunuz andan itibaren, gerekli güvenlik tedbirlerini almakla yükümlü olduğunuzu hatırlatmak isteriz. Bu kapsamda yaptığınız bir bildirim neticesinde ödeme aracının yenilenme ücreti tarafınıza yansıtılabilir. Yine, bu kapsamda bir bildirim yapmanız halinde, bildiriminizden sonra gerçekleşen yetkilendirmediğiniz işlemlere ilişkin bir sorumluluğunuz bulunmamaktadır. Bildirimden önceki 24 saat içerisinde gerçekleşen yetkilendirmediğiniz işlemlere ilişkin zararın ise 250 TL’lik kısmından sorumlu olursunuz. Bu tutar Yönetmelik ya da Çerçeve Sözleşme kapsamında değişebilir. Ödeme aracının kaybolması, çalınması veya iradeniz dışında gerçekleşen işlemlere ilişkin bildirimi kasten veya ağır ihmalinizle yerine getirmemeniz durumunda ise ödeme işleminden doğan zararın tamamından ilgili mevzuat gereği sorumlu olacağınızı hatırlatmak isteriz.</p>
+<p>Tarafımızca, hesap bilgisi hizmeti sağlayıcısı veya ödeme emri başlatma hizmeti sağlayıcısının ödeme hesabınıza hileli veya yetkisiz erişim sağladığı ya da hileli veya yetkisiz bir şekilde ödeme işlemi başlatmaya çalıştığı tespit edilirse ödeme hesabına erişimi engellenebilir. Bu durumda, ilgili diğer kanunlarda yer alan bilgi verilmesini engelleyici hükümler ile güvenliği tehdit edici objektif nedenlerin bulunması hali dışında, sizi erişimin engellendiği konusunda nedenleri ile birlikte mümkünse erişim engellenmeden önce, değilse erişim engellendikten hemen sonra bilgilendiririz. Ödeme hesabına erişimin engellenmesine neden olan durum ortadan kalktığında ödeme hesabı tekrar erişime açılır.</p>
+<ul>
+<li><strong>Yetkilendirilmemiş veya hatalı gerçekleştirilmiş işlemlerde bildirim ve düzeltme hak ve yükümlülükleri</strong></li>
+</ul>
+<p>Yetkilendirmediğiniz ya da hatalı olarak gerçekleştirilen bir ödeme işlemini öğrendiğiniz anda gecikmeksizin ve her halükarda en geç ödeme işleminin gerçekleştirilmesinden itibaren on üç ay içinde tarafımıza işlemin düzeltilmesi için talepte bulunabilirsiniz. Ödeme işlemine ilişkin Yönetmelik’te belirtilen tüm bilgilerin tarafınıza sağlanmamış olması halinde, bu süreyle bağlı olmaksızın her zaman düzeltme talep edebilirsiniz.</p>
+<ul>
+<li><strong>İşlem tutarının önceden bilinmediği kart tabanlı ödeme işlemleri</strong></li>
+</ul>
+<p>Onay verilen işleme ilişkin tutarın tam olarak bilinmediği durumların olması halinde,  ödeme hesabınızda bulunan fon, bloke edilecek tam tutara ilişkin onay vermeniz halinde bloke edilebilir. Ödeme işleminin tam tutarına ilişkin bilginin tarafımıza ulaşmasından hemen sonra gecikmeksizin ve en geç ödeme emri ulaşır ulaşmaz blokeli fon serbest bırakılır.</p>
+<ul>
+<li><strong>Alıcı tarafından veya alıcı aracılığıyla başlatılan ödeme işlemlerinde geri ödeme</strong></li>
+</ul>
+<p>Gönderen olarak hareket ettiğiniz ve alıcı tarafından yetkilendirilmiş veya alıcı aracılığıyla başlatılan ödeme işleminde yetkilendirme sırasında ödeme işlemine ilişkin tutarın tam olarak belirtilmemesi ve gerçekleşen ödeme işlemi tutarının, harcama geçmişi, sözleşme şartları ve ilgili diğer hususlar dikkate alınarak öngörülen tutarı aşması halinde gerçekleşen ödeme işlemi tutarının geri ödenmesini talep edebilirsiniz. Alınan malın tüketilmiş olması ve hizmetin alınmış olması halinde ise geri ödeme talep etme hakkınız bulunmamaktadır.</p>
+<p>Sizden talebinize ilişkin gerçeğe dayalı kanıtlar sunmanızı isteyebiliriz. Geri ödeme talebinizi, ödeme işleminin gerçekleştirildiği tarihten itibaren iki ay içinde yapmalısınız.</p>
+<p>Bu durumda geri ödeme talebin alındığı tarihten itibaren on iş günü içinde yapılır ya da gerekçeleri ile reddedilir.</p>
+<ul>
+<li><strong>Fonların kullanılabilirliği hakkında onay </strong></li>
+</ul>
+<p>Fonların kullanılabilirliğine ilişkin olarak tarafımızca teyit talebinde bulunulmuş olan ödeme hizmeti sağlayıcısının adı ve teyit talebine ilişkin sağlanan cevap konusunda bilgilendirilmeyi talep edebilirsiniz. Bu madde elektronik para yüklü bulunan kart tabanlı ödeme araçları ile başlatılan ödeme işlemleri için uygulanmaz.</p>
+<ul>
+<li><strong>Verilerin korunması</strong></li>
+</ul>
+<p>Ödeme hizmetinin gerçekleştirilmesi ile ilgili verilere Kişisel Verilerin Korunması Kanunu ve ilgili düzenlemeler saklı kalmak kaydıyla, yasalarca bize verilen yetki ve sorumluluklarımız kapsamında yalnızca sizi açıkça bilgilendirmek şartı ile erişebiliriz, bu verileri kullanabiliriz ve saklayabiliriz. Ödeme hizmetinin sunulmasıyla doğrudan ilgili olmayan sebeplerle bu verilere erişilmesi, verilerin kullanılması ve saklanması yalnızca onayınız ile mümkündür. Ödeme hizmetinin gerçekleştirilmesiyle doğrudan ilgili olmayan sebeplerle erişilen veriler içerisinde kişisel veriler olması durumunda açık rızanızın alınması gerekmektedir.</p>
+<ul>
+<li><strong>Ödeme emrine ilişkin süreçler</strong></li>
+</ul>
+<p>Sözleşmede düzenlenen şartların yerine getirilmesi halinde, mevzuatta aksi düzenlenmeyen durumlarda veya haklı bir neden olmadığı sürece ödeme emrini başlatmayı veya yerine getirmeyi reddedemeyiz. Reddetmemiz halinde, kanuni bir engel bulunmuyorsa veya güvenliği tehdit edici objektif nedenler yok ise, red gerekçemizi ve varsa redde sebep olan hataların ne şekilde düzeltilebileceğini en kısa zamanda ve en geç ödeme emrini aldığımız günü izleyen iş günü sonuna kadar size bildiririz.</p>
+<p>Aksi kararlaştırılmamış ise, gönderen olarak verdiğiniz ödeme emrini Şirketimiz tarafından alındıktan sonra geri alamazsınız.</p>
+<p>Ödeme işleminin alıcı tarafından, alıcı aracılığıyla veya ödeme emri başlatma hizmeti sağlayıcısı tarafından başlatıldığı durumlarda, ödeme emrini ilgili ödeme hizmeti sağlayıcısına ilettikten veya ödeme işleminin gerçekleştirilmesi için ilgili ödeme hizmeti sağlayıcısına daha önce belirlenmiş yönteme uygun olarak onay verdikten sonra ödeme emrini geri alamazsınız. Bu süre sonunda işlemi geri alabilmek için alıcı onayı gerekmektedir. Ayrıca bu işlem için Çerçeve Sözleşme’de kararlaştırmamız halinde katlandığımız maliyetle orantılı bir ücret talep edebiliriz.</p>
+<p>Gönderen olarak doğrudan borçlandırma yöntemiyle yaptığınız ödeme işleminde, olarak ödeme emrini en geç fonların hesaba borç kaydedilmesi için kararlaştırılan günden önceki iş günü sonuna kadar geri alabilirsiniz. Bu süre sonunda işlemi geri alabilmek için alıcı onayı gerekmektedir. Ayrıca bu işlem için Çerçeve Sözleşme’de kararlaştırmamız halinde katlandığımız maliyetle orantılı bir ücret talep edebiliriz.</p>
+<p>Yönetmelik’te düzenlenen diğer durumlar saklıdır.</p>
+<ul>
+<li><strong>Gönderilen ve alınan tutarlar</strong></li>
+</ul>
+<p>Gönderen olarak yaptığınız işlemlerde, aktardığımız tutar üzerinden herhangi bir kesinti yapmayız. Aktarılan tutar sonrası ödeme hesabınızda kalan bakiye, alınacak işlem ücretinden az ise işleminizi reddedebiliriz.</p>
+<p>Alıcı olduğunuz işlemlerde, tahsil edilecek ücretlerin ödeme işlemi tutarından düşülmesini kararlaştırabiliriz. Bu durumda, yapacağımız bildirimde ödeme işleminin tam tutarı ve ücretleri ayrı ayrı belirtiriz.</p>
+<ul>
+<li><strong>Ödeme hesabına yapılan ödemeler</strong></li>
+</ul>
+<p>Gönderen olarak ödeme emrinizi aldığımız tarihte derhal ve en geç izleyen iş günü sonuna kadar ödeme işleminin tutarını alıcının ödeme hizmeti sağlayıcısının hesabına göndeririz. Yazılı sözleşme ile başlatılan işlemlerde bu süre bir iş günü uzatılabilir. Ödemenin gerçekleştirilmesi için daha uzun bir süre kararlaştırabiliriz ancak bu süre ödeme emrinin alındığı tarihten itibaren dört iş gününü geçemez.</p>
+<p>Ödemenin gerçekleştirilmesi için ödeme emrinin verildiği tarihten sonraki bir tarihi kararlaştırdıysak, tutarı alıcının ödeme hizmeti sağlayıcısının hesabına bu tarihte göndeririz.</p>
+<p>Ödeme hesabına hesabın para birimi cinsinden nakit olarak yatırdığı paralar, Şirketimiz tarafından alındığı tarihte kullanıma hazır hale getirilir.</p>
+<ul>
+<li><strong>Sorunlu ödemelere ilişkin sorumluluklarımız</strong></li>
+</ul>
+<p><strong>Hatalı kimlik tanımlayıcıları: </strong>Gönderen olarak gerçekleştireceğiniz işlemlerde, ilettiğiniz kimlik tanımlayıcıya uygun şekilde yapılan ödeme işlemleri doğru gerçekleştirilmiş sayılacaktır.  Kimlik tanımlayıcıya ilave bilgiler sağlanmış olsa dahi, işlemin sadece kimlik tanımlayıcı ile gerçekleştirilmesinden sorumluyuz. Kimlik tanımlayıcının hatalı olması halinde, ödeme işleminin gerçekleştirilmemesinden veya hatalı gerçekleştirilmesinden sorumlu değiliz.</p>
+<p>Hatalı ödeme işlemlerinde, fonun geri alınması için gerekli işlemleri gerçekleştireceğiz, bununla birlikte bu işlemler karşılığında Çerçeve Sözleşmede belirlediğimiz ücretleri talep edebiliriz.</p>
+<p>Hatalı ödeme işlemine konu olan fonların geri alınamadığı durumda, yazılı talepte bulunmanız koşuluyla, hukuki yollara başvururken kullanabileceğiniz, elimizde bulunan konu ile ilgili tüm bilgi ve belgeleri size sağlarız.  </p>
+<p><strong>Şirketimiz açısından işlemin gerçekleştirilmemesi veya hatalı gerçekleştirilmesi durumunda yükümlülük: </strong>Gönderen olarak ödeme emri verdiğiniz işlemlerde, ödeme işleminin doğru gerçekleştirilmesinden Şirketimiz sorumludur. (Alıcının hizmet sağlayıcısının ödeme tutarını aldığının ispatı halinde alıcının ödeme hizmeti sağlayıcısı sorumlu olacaktır.) Bu hallerde, ödeme işleminin gerçekleşmemiş veya hatalı gerçekleşmiş kısmını gecikmeden size iade ederiz ve tutarın ödeme hesabından düşülmüş olması halinde ödeme hesabınızı eski durumuna getiririz.</p>
+<p>Gönderen olarak ödeme emri verdiğiniz gerçekleştirilmeyen veya hatalı gerçekleştirilen ödeme işlemlerinde, talebiniz halinde işlemin gerçekleştirilmemesinin veya hatalı gerçekleştirilmesinin nedenlerini tespit etmek için gerekli çalışmaları yaparız ve ulaştığımız sonuçları size ücretsiz olarak bildiririz.</p>
+<p>Alıcı olduğunuz işlemlerde sorumlu olduğumuz durumlarda, ödeme işlemi tutarını derhal hesabınıza aktararak kullanımınıza hazır hale getiririz.</p>
+<p>Ödeme emrinin alıcı tarafından veya alıcı aracılığıyla verildiği gerçekleştirilmeyen veya hatalı gerçekleştirilen ödeme işleminde, alıcı olmanız halinde ve talebiniz üzerine gerçekleştirilmeyen veya hatalı gerçekleştirilen ödeme işleminin nedenlerini tespit etmek için gerekli çalışmaları yaparız ve ulaştığımız sonuçları ücretsiz olarak size bildiririz.</p>
+<p>Ödeme emrinin alıcı tarafından veya alıcı aracılığıyla verildiği ödeme işlemlerinde, sorumluluğa ilişkin detaylı düzenlemeler için Yönetmelik’i (m.70) inceleyebilirsiniz.</p>
+<p>Ödeme işleminin Şirketimizin herhangi bir kusurundan veya sorumluluğunda bulunan altyapı ve hizmetlerdeki bir hatadan kaynaklanan nedenlerle gerçekleştirilmemesi veya hatalı gerçekleştirilmesi sonucunda ödemek durumunda kaldığınız faiz ve ücretlerin tazmininden size karşı sorumluyuz.</p>
+<ul>
+<li><strong>Şikâyet ve İtirazlar</strong></li>
+</ul>
+<p>Ödeme hizmetiyle ilgili olarak yapılan şikâyet ve itiraz başvurularınız, başvuru tarihinden itibaren yirmi gün içinde başvurunuzu gerçekleştirdiğiniz yöntem kullanılarak gerekçeli olarak cevaplandırılacaktır.  </p>
+<p>Bireysel müşteriler, Şirketimiz ile aralarındaki uyuşmazlıkların ihtilafların değerlendirilmesi ve çözümü amacıyla Tüketicinin Korunması Hakkında Kanun hükümleri ve diğer kanunlarla tanınmış müracaat hakları saklı kalmak kaydıyla, Türkiye Ödeme ve Elektronik Para Kuruluşları Birliği (“<strong>TÖDEB</strong>”) nezdinde oluşturulmuş hakem heyetlerine başvurabilecektir. Hakem heyetine başvurmadan önce Şirketimize uyuşmazlığa konu işlem veya eylemin gerçekleştiği tarihten itibaren en geç 2 yıl içerisinde yazılı olarak uyuşmazlık ile ilgili başvuru yapılması gerekmektedir. Başvuru tarihinden itibaren 20 (yirmi) gün içerisinde Şirketimizce başvuruya cevap verilmemesi durumunda cevap verilmesi gereken söz konusu sürenin (20 gün) bitiminden itibaren, verilen cevabı yeterli bulmamanız halinde ise cevabın verildiği tarihten itibaren 60 (altmış) gün içinde “<a href="https://todeb.org.tr/hakemheyetibasvuruformu/">https://todeb.org.tr/hakemheyetibasvuruformu/</a>” adresinde yer alan Başvuru Formunu doldurarak ve gerekli bilgi ve belgeleri sağlayarak hakem heyetine elektronik olarak başvuruda bulunulabilirsiniz. Hakem heyetine başvuru koşullarına ilişkin TÖDEB web sitesinden (<a href="https://todeb.org.tr/">https://todeb.org.tr/</a>) detaylı bilgiye ulaşabilirsiniz.</p>
+<ul>
+<li><strong>Mücbir sebep</strong></li>
+</ul>
+<p>Kuruluş, kendi ihmal ve kusurundan kaynaklanmayan olağanüstü hallerde, mücbir sebep durumunda veya diğer kanunların öngördüğü yükümlülükler gerektirdiğinde (i) ödeme işleminin onaylanması, (ii) ödeme emrinin alınması ve sorunlu ödemelere ilişkin yükümlülüklerinden sorumlu değildir. (Bahsedilen durumlar, Yönetmelik’in dördüncü kısmın dördüncü bölümü ile beşinci kısmın birinci ve ikinci bölümü altında belirtilmektedir.)</p>
+<p><strong> </strong></p>
+<ul>
+<li>Alternatif erişim kanalları ile yenilikçi ödeme yöntemleri</li>
+</ul>
+<p> </p>
+<ol>
+<li>TT Ödeme Çağrı Merkezi,</li>
+<li>TT Ödeme olarak ürün ve hizmetlerimizdeki yeniliklerle ilgili olarak, vermiş olduğunuz izinler çerçevesinde TT Ödeme’ye tanımladığınız elektronik posta adresiniz veya cep telefonu numaranız üzerinden ulaşırız.</li>
+<li>Pokus Uygulaması veya <a href="http://www.pokus.com.tr">pokus.com.tr</a> internet sitesinden ürün ve hizmetlerimize ilişkin yenilikçi yöntemlere ulaşabilirsiniz.</li>
+</ol>
+<p> </p>
+<ul>
+<li>Güvenlik ve koruma önlemleri</li>
+</ul>
+<p>6698 Sayılı Kanun kapsamındaki kişisel verilerinizin korunması hakkındaki önlemler ve haklarınız için www.pokus.com.tr ziyaret ediniz.</p>
+<p>.Pokus Hesabınıza ait bilgileriniz, şifreniz, kart numaranız, kartınızın son kullanma tarihi ve CVV numarası size özel bilgiler olup, güvenliğiniz için üçüncü kişilerle hiçbir şekilde paylaşmayınız. </p>
+<p>TT Ödeme ürünlerine ait şifrenizi veya tek kullanımlık doğrulama kodlarınızı güvenliğiniz ve gizliliğiniz için üçüncü kişilerle paylaşmayınız.  Şifrelerinizi, TT Ödeme ödeme araçlarınızı  ve/veya benzer hassas ödeme bilgilerinizi gizliliğiniz ve güvenliğiniz için hassasiyetle saklayınız.</p>
+<p>Ödeme aracının çalınması/kaybolması veya hassas verilerin güvenliğine ilişkin durumlarda TT Ödeme ve Elektronik Para Hizmetleri A.Ş.’nin 444 72 79 çağrı merkezi numarasından derhal bildirimde bulununuz.</p>
+<p>Pokus Kartınızın çalınması veya kaybolması durumunda Ödeme ve Elektronik Para Hizmetleri A.Ş.’nin 444 72 79 numaralı çağrı merkezi kartınızı iptal ettirebilir, mevcut bakiyenizin yeni edineceğiniz bir Pokus Kart’a aktarılmasını edebilirsiniz.</p>
+<p>TT Ödeme’nin ödeme ve elektronik para hizmetine ilişkin hizmetleri kullanırken ya da daha sonra  size ait olmadığını düşündüğünüz bir işlem tespit etmeniz halinde ve yahut başkaca  sahtekarlık ve dolandırıcılık şüphesi olan bir işlem fark etmeniz halinde; gecikmeksizin TT Ödeme ve Elektronik Para Hizmetleri A.Ş.’nin 444 72 79 çağrı merkezi numarasından bildirimde bulunmalısınız. Aksi halde üçüncü kişiler tarafından yapılan işlemler sebebiyle doğabilecek zarar ve kayıplardan TT Ödeme ve Elektronik Para Hizmetleri A.Ş. sorumlu değildir. Hak ve yükümlülüklerinize çerçeve sözleşmenizden ulaşabilirsiniz.</p>
+<p>TT Ödeme olarak tarafınızdan arama, SMS, e-mail ve yahut herhangi bir şekilde mail adresiniz,  kart numaranız, CVV numaranız gibi bilgileriniz ile belli bir hesaba para göndermeniz hiçbir şekilde talep edilmemektedir.  Bu nedenle TT Ödeme ve Elektronik Para Hizmetleri A.Ş. adına veya üçüncü kişiler adına benzeri taleplerle gelen hiçbir aramaya itibar etmeyiniz, verilerinizi paylaşmayınız.</p>
+<p>TT Ödeme ürün ve hizmetlerinden faydalanırken oluşturacağınız şifrelerinizi kolay tahmin veya tespit edilebilecek (örneğin, doğum tarihi, ardışık rakamlar, tekrar eden sayılar gibi)  şekilde oluşturmayınız.  Şifrelerinizi Pokus mobil cüzdan uygulaması üzerinden değiştirebilir ve kolaylıkla yeni şifre oluşturabilirsiniz.</p>
+<p>Şifrenizin bloke olması halinde, güvenliğiniz için TT Ödeme ve Elektronik Para Hizmetleri A.Ş.’nin 444 72 79 çağrı merkezini arayabilirsiniz veya uygulama üzerinde gerekli güvenlik adımlarını tamamlamanız ardından blokenizi kaldırabilirsiniz.</p>
+<p>Pokus uygulamasına ait şifrenizin bloke olması durumunda şifre yenile butonuna tıklayarak kayıtlı mail adresinize şifre yenileme maili gönderip, şifrenizi değiştirebilirsiniz. Kayıtlı mail adresinizin hatalı olması durumunda TT Ödeme ve Elektronik Para Hizmetleri A.Ş.’nin 444 72 79 çağrı merkezini arayarak, güvenlik adımlarını yerine getirerek elektronik posta adresinizin değişmesini sağlayabilirsiniz.</p>
+<p>Pokus uygulamasını aynı anda sadece bir cihazda açabilirsiniz. Farklı bir cihazda oturum açtığınız taktirde diğer cihazdaki oturumunuz otomatik olarak sonlandırılacaktır.</p>
+<p>Kötü niyetli yazılımlardan, sahtecilik ve dolandırıcılık vakalarından etkilenmemek için TT Ödeme ürün ve hizmetlerinizi kullandığınız mobil, elektronik cihazlarınızda güvenlik ve gizliliğinden emin olduğunuz kaynağı belli olan, lisanslı ve güvenli yazılımları kullandığınızdan emin olunuz.  </p>
+<p>TT Ödeme ürün ve hizmetlerinin sunulduğu uygulama, internet sitesi gibi mecralar güncellenebilmektedir. Güvenliğiniz ve gizliliğiniz için en güncel versiyonu kullandığınızdan  ve resmi uygulama mağazalarından (Google Play, Apple Store gibi) indirdiğinizden emin olunuz.</p>
+<p>Pokus Kartınızla gerçekleştirdiğiniz işlemlerinizi ve bakiye bilgilerinizi kontrol etmek için Pokus Uygulamasını kullanabilirsiniz.</p>
+<p>TT Ödeme ürün ve hizmetlerine ilişkin olarak TT Ödeme ve Elektronik Para Hizmetleri A.Ş.’nin 444 72 79 nolu çağrı merkezini arayarak ya da Pokus uygulaması üzerinde yer alan “Müşteri Hizmetleri” kısmından bize iletebilirsiniz.</p>
+<p>TT Ödeme tarafından tarafınıza  gönderilen elektronik postalar pokus.com.tr uzantılıdır. Şirketimizden gönderilmiş gibi görünen elektronik postalara itibar etmeden önce dolandırıcılık şüphesi olduğunu göz önüne alınız ve yalnızca resmi uzantılı elektronik postalara itibar ediniz.</p>
+<p>SMS ya da e-posta ile gelen linklere tıklayarak eriştiğiniz sayfalarda kişisel bilgilerinizi, uygulama şifrenizi, kart numaralarınızı ya da kart şifrelerinizi girmeyiniz.</p>
+<p>ATM’de işlem yaparken tarafınıza ait her türlü bilginizi (şifre, vb.) üçüncü kişilerin göremediğinden emin olunuz. İşlem yaparken ATM’nin başından ayrılmayın ve güvenliğiniz için üçüncü kişilerden  işlemleriniz için yardım almayın. ATM’den ayrılırken tarafınıza ait ekranın kapandığından ve kartınızı aldığınızdan emin olunuz.</p>
+<p><strong> </strong></p>
+<p><strong>Ek-1 Tanımlar</strong></p>
+<p><strong>İşbu Bilgilendirme Formu’ndaki kullanılan terimler aşağıdaki anlamlara gelmektedir:</strong></p>
+<p><strong>Alıcı: </strong>Ödeme işlemine konu fonun ulaşması istenen gerçek veya tüzel kişi.</p>
+<p><strong>Çerçeve Sözleşme:</strong> Ödeme hizmeti sağlayıcısı (Şirketimiz) ile siz müşterimiz arasında tekil veya süreklilik arz eden ödeme işlemlerinin yürütülmesine ve mümkün olan durumlarda ödeme hesabının açılmasına ilişkin usul ve esasları belirleyen Çerçeve Ödeme Hizmetleri Sözleşmesi’ni ifade eder.</p>
+<p><strong>Elektronik para:</strong> Elektronik para ihraç eden kuruluş tarafından kabul edilen fon karşılığı ihraç edilen, elektronik olarak saklanan, Kanunda tanımlanan ödeme işlemlerini gerçekleştirmek için kullanılan ve elektronik para ihraç eden kuruluş dışındaki gerçek ve tüzel kişiler tarafından da ödeme aracı olarak kabul edilen parasal değer.</p>
+<p><strong>Fon</strong>: Banknot, madeni para, kaydî para veya elektronik para.</p>
+<p><strong>Gönderen</strong>: Kendi ödeme hesabından veya ödeme hesabı bulunmaksızın ödeme emri veren gerçek veya tüzel kişi.</p>
+<p><strong>Kanun</strong>: 20/6/2013 tarihli ve 6493 sayılı Ödeme ve Menkul Kıymet Mutabakat Sistemleri, Ödeme Hizmetleri ve Elektronik Para Kuruluşları Hakkında Kanun.</p>
+<p><strong>Kimlik</strong> <strong>tanımlayıcı</strong>: Ödeme hizmeti sağlayıcısı tarafından kimliğinin belirlenmesi ve diğer kullanıcılardan ayırt edilmesi amacıyla müşteriye özgülenen sayı, harf veya sembollerden oluşan kombinasyon.</p>
+<p><strong>Kişisel veri</strong>: 6698 sayılı Kanunun 3. maddesinin birinci fıkrasının (d) bendinde tanımlanan kişisel veri.</p>
+<p><strong>Müşteri:</strong> Ödeme hizmeti kullanıcısı ile elektronik para kullanıcısı.</p>
+<p><strong>Mobil Ödeme:</strong> Gönderen tarafından ödeme işleminin yapılmasına ilişkin onayın bir bilişim veya elektronik haberleşme cihazı aracılığıyla verildiği ve ödemenin ödeme hizmeti kullanıcısı ile mal veya hizmet sağlayan arasında sadece aracı olarak faaliyet gösteren bir bilişim veya elektronik haberleşme işletmecisine yapıldığı ödeme işlemi.</p>
+<p><strong>Ödeme aracı</strong>: Ödeme hizmeti sağlayıcısı ile müşterisi arasında belirlenen ve müşteri tarafından ödeme emrini vermek için kullanılan kart, cep telefonu, şifre ve benzeri kişiye özel araç.</p>
+<p><strong>Ödeme emri:</strong> Müşteri tarafından ödeme işleminin gerçekleşmesi amacıyla ödeme hizmeti sağlayıcısına verilen talimat.</p>
+<p><strong>Ödeme işlemi</strong>: Gönderen veya alıcının talimatı üzerine gerçekleştirilen fon yatırma, aktarma veya çekme faaliyeti.</p>
+<p><strong>Temsilci</strong>: Kuruluş adına ve hesabına hareket eden gerçek veya tüzel kişi.</p>
+<p><strong>Tek seferlik ödeme işlemi:</strong> Bir defaya mahsus olmak üzere gerçekleştirilen ve çerçeve sözleşme kapsamında olmayan ödeme işlemi</p>
+<p><strong>Yönetmelik</strong>: Ödeme Hizmetleri ve Elektronik Para İhracı ile Ödeme Hizmeti Sağlayıcıları Hakkında Yönetmelik</p>
+</div>
+
+<div id="personalSecModalContent" class="f-modal-content">
+    <h3 class="citem01">6698 SAYILI KİŞİSEL VERİLERİN KORUNMASI KANUNU UYARINCA KİŞİSEL VERİLERİN KORUNMASINA YÖNELİK AYDINLATMA METNİ</h3>
+    <div class="citem04">
+<p>6698 sayılı Kişisel Verilerin Korunması Kanunu&rsquo;nun (&ldquo;Kanun&rdquo;) &ldquo;Veri Sorumlusunun Aydınlatma Y&uuml;k&uuml;ml&uuml;l&uuml;ğ&uuml;&rdquo; başlıklı 10 uncu maddesi ile &ldquo;Aydınlatma Y&uuml;k&uuml;ml&uuml;l&uuml;ğ&uuml;n&uuml;n Yerine Getirilmesinde Uyulacak Usul ve Esaslar Hakkında Tebliğ&rdquo; uyarınca işbu Aydınlatma Metni hazırlanmıştır. TT &Ouml;deme Hizmetleri AŞ. (&ldquo;TT &Ouml;deme&rdquo;) veri sorumlusu olarak Kanun ve ilgili mevzuat &ccedil;er&ccedil;evesinde kişisel verilerin g&uuml;venli şekilde muhafazasını ve hukuka uygun olarak işlenmesini sağlamak amacıyla teknolojik ve alt yapısal imk&acirc;nlarını kullanarak gerekli teknik ve idari tedbirleri almaktadır.</p>
+<p>Kişisel veriler, TT &Ouml;deme tarafından işbu Aydınlatma Metni kapsamında Kanun&rsquo;a ve ilgili mevzuata uygun olarak işlenmektedir. Kanun kapsamında kişisel verileri işlenen ger&ccedil;ek kişiler, aşağıdaki metni inceleyerek, TT &Ouml;deme tarafından işlenebilecek olan kişisel verileri, bu verilerin işlenme ama&ccedil;ları, aktarılabileceği alıcı grupları, toplanma y&ouml;ntemi ve veri işlemenin hukuki sebebi ile s&ouml;z konusu kişisel verilere ilişkin Kanun kapsamındaki hakları hakkında bilgi edinebilir.</p>
+<ol>
+<li><strong>1. İŞLENEN KİŞİSEL VERİLER</strong></li>
+</ol>
+<p>Kişisel veri, kimliği belirli veya belirlenebilir ger&ccedil;ek kişiye ilişkin her t&uuml;rl&uuml; bilgiyi ifade etmektedir. Aşağıda yer alan kişisel veriler, ilgili kişilerin talepleri ve/veya yararlandığı &uuml;r&uuml;n/hizmetler kapsamında kişiden kişiye farklılık g&ouml;sterebilecek olup TT &Ouml;deme tarafından işlenebilecek kişisel verilerinize aşağıda yer verilmektedir:</p>
+<p><strong>Kimlik Bilgileri:</strong>&nbsp;Ad, soyad, TC Kimlik Numarası, doğum yeri ve tarihi</p>
+<p><strong>İletişim Bilgileri:</strong>&nbsp;Telefon/faks numarası, e-posta adresi ve adres bilgisi</p>
+<p><strong>Abonelik Bilgileri:</strong>&nbsp;MSISDN (kullanıcı numarası) bilgisi</p>
+<p><strong>M&uuml;şteri İşlem Bilgileri:</strong>&nbsp;Sipariş bilgisi</p>
+<p><strong>Finansal Bilgiler ve Risk Bilgileri:</strong>&nbsp;Kredi kartı ve banka bilgileri, kredi kartı sahibinin ad ve soyadı</p>
+<p><strong>İşlem G&uuml;venliği Bilgileri:&nbsp;</strong>IP bilgisi</p>
+<p><strong>Pazarlama Bilgileri:&nbsp;</strong>&Ccedil;erez kayıtları ve alışveriş ge&ccedil;mişi bilgileri</p>
+<ol start="2">
+<li><strong>2. KİŞİSEL VERİLERİN İŞLENME AMA&Ccedil;LARI</strong></li>
+</ol>
+<p>Kişisel verileriniz; Kanun&rsquo;un 5&rsquo;inci ve 6&rsquo;ncı maddelerinde belirtilen işleme şartları ile ikincil d&uuml;zenlemelere uygun olarak aşağıdaki ama&ccedil;lar ile işlenebilecektir:</p>
+<ul class="citem07">
+<li>Şirketimiz hizmetlerinin tesisi, sunulması ve devamlılığının sağlanması,</li>
+<li>M&uuml;şteri hizmetlerinin sunulması, m&uuml;şteri şik&acirc;yet/taleplerinin karşılanması,</li>
+<li>M&uuml;şteri memnuniyetinin &ouml;l&ccedil;&uuml;mlenmesi, m&uuml;şteri eğilimlerinin araştırılması ile hizmet kalitesinin arttırılması odaklı anket/analiz/istatistik &ccedil;alışmalarının yapılması,</li>
+<li>M&uuml;şteri memnuniyetinin sağlanması odaklı &ouml;d&uuml;l/&ccedil;ekiliş/yarışma/hediye/ teşekk&uuml;r/kutlama/hatırlatma uygulamalarının sunulması,</li>
+<li>&Uuml;r&uuml;n ve hizmetlere ilişkin kampanya ve tekliflerin m&uuml;şterilerimizin kullanımına g&ouml;re hazırlanması, sunulması, tanıtımı, takibi, raporlanması ve kampanya i&ccedil;eriği hakkında bilgilendirme yapılması,</li>
+<li>M&uuml;şterilerimizin yeni &uuml;r&uuml;n/servisler, kampanya/tarifeler ve diğer yeniliklerden haberdar edilmesi, bilgilendirme ve m&uuml;şteri geri kazanımı faaliyetleri, satış fırsatlarının oluşturulması,</li>
+<li>Pokus kullanıcılarına &ouml;zg&uuml; rehberin oluşturulması,</li>
+<li>Pokus rehberi aracılığıyla &uuml;&ccedil;&uuml;nc&uuml; kişilerin uygulamaya davet edilmesi ve bu s&uuml;recin takibinin sağlanması,</li>
+<li>Database loglarının g&uuml;venliğinin sağlanması,</li>
+<li>Kampanya datalarının g&uuml;venliğinin sağlanması,</li>
+<li>Panel erişim datalarının g&uuml;venliğinin sağlanması,</li>
+<li>&Ouml;deme işlemlerinin y&uuml;r&uuml;t&uuml;lmesi,</li>
+<li>D&uuml;zenleyici ve denetleyici kurumlar, resmi merciler tarafından talep edilen bilgi/belgelerin paylaşılması, ilgili mevzuatta yer alan yasal y&uuml;k&uuml;ml&uuml;l&uuml;klerin yerine getirilmesi, denetim faaliyetleri, yasal takip ve hukuki s&uuml;re&ccedil;lerin y&uuml;r&uuml;t&uuml;lmesi</li>
+</ul>
+<ol start="3">
+<li><strong>3. KİŞİSEL VERİLERİN AKTARILMASI</strong></li>
+</ol>
+<p>Kişisel verileriniz, aşağıda yer verilen mevzuatlar ve ama&ccedil;lar kapsamında Kanun&rsquo;un kişisel verilerin yurt i&ccedil;i ve yurtdışına aktarılmasına ilişkin h&uuml;k&uuml;mleri uyarınca aşağıdaki 3 &uuml;nc&uuml; taraflara aktarılabilecektir:</p>
+<ul class="citem07">
+<li>A&ccedil;ık rıza vermeniz durumunda Grup Şirketlerimizin hizmetleri kapsamında size uygun teklifler sunulması amacıyla T&uuml;rk Telekom&uuml;nikasyon AŞ., TT Mobil İletişim Hizmetleri AŞ., TTNET AŞ., TT &Ouml;deme Hizmetleri AŞ., TTES Elektrik Tedarik Satış AŞ., TT Finansman AŞ. ve&nbsp;<a href="http://www.ttyatirimciiliskileri.com.tr/">ttyatirimciiliskileri.com.tr</a>web sitesinde yer alan diğer t&uuml;m grup şirketleri ile paylaşılabilmektedir.</li>
+<li>İşlemlerinizin y&uuml;r&uuml;t&uuml;lmesi amacıyla kişisel verileriniz, yetki vermiş olduğumuz, Şirketimiz nam ve hesabına faaliyette bulunan şirketler, temsilcilerimiz ve bayilerimiz ile paylaşılabilmektedir.</li>
+<li>D&uuml;zenleyici denetleyici kurum taleplerinin karşılanması amacıyla d&uuml;zenleyici ve denetleyici kurumlarla, acil &ccedil;ağrı halinde konumunuzu tespit edecek olan yetkili merciler, kişisel verilerinizi tabi olduğu kanunlarında a&ccedil;ık&ccedil;a talep etmeye yetkili olan kamu kurum veya kuruluşları ile paylaşılabilmektedir.</li>
+<li>Finansal işlemlerinizin ger&ccedil;ekleştirilmesi ve mobil finans işlemlerinizin g&uuml;venliğinin sağlanması amacıyla abonelik, finans ve cihaz bilgileriniz &ouml;deme ve e-para kuruluşları, bankalar, kredi risk ve finans kuruluşları ile paylaşılabilmektedir.</li>
+<li>Yasal ve kritik bilgilendirmelerin yapılabilmesi, sahtecilik ve dolandırıcılık gibi vakaların &ouml;nlenmesi ama&ccedil;larıyla Pokus rehberine kayıtlı olan telefon numaranız TC kimlik numaranıza sahip banka ve finans kuruluşları, varlık y&ouml;netim şirketleri, avukatlık b&uuml;roları, belediyeler, iş ortakları ve tedarik&ccedil;iler ile paylaşılabilmektedir.</li>
+<li>Hukuki işlemlerin y&uuml;r&uuml;t&uuml;lebilmesi amacıyla gereken kişisel verileriniz hukuk b&uuml;roları, mahkemeler, t&uuml;ketici hakem heyetleri ile paylaşılabilmektedir.</li>
+</ul>
+<ol start="4">
+<li><strong>4. KİŞİSEL VERİLERİN TOPLANMA Y&Ouml;NTEMLERİ VE HUKUKİ SEBEPLERİ</strong></li>
+</ol>
+<p>Kişisel verileriniz; hizmet, &uuml;r&uuml;n ve faaliyet niteliğine g&ouml;re değişkenlik g&ouml;stermekle birlikte yetki vermiş olduğumuz şirketimiz nam ve hesabına faaliyette bulunan şirketler, temsilcilerimiz, bayilerimiz, web sitemiz, &ccedil;ağrı merkezimiz ve mobil uygulamalar &uuml;zerinden temin edilerek işlenebilmektedir.</p>
+<p>Kişisel verileriniz, TT &Ouml;deme ile hukuki ilişkinizin kurulması esnasında ve s&ouml;z konusu ilişkinin devamı s&uuml;resince:</p>
+<ul class="citem07">
+<li>elektronik mecralardan</li>
+<li>yukarıda yer verilen ama&ccedil;lar ve</li>
+<li>Kanun&rsquo;un 5 inci, 6&rsquo;ncı ve 8 inci madde h&uuml;k&uuml;mlerinde &ouml;ng&ouml;r&uuml;len &ccedil;er&ccedil;evede tamamen/kısmen otomatik veya otomatik olmayan yollarla toplanmaktadır. Kişisel verileriniz aşağıdaki hukuki sebeplere dayanılarak işlenmektedir:</li>
+<li>A&ccedil;ık rızanızın bulunması,</li>
+<li>Başta 6493 Sayılı &Ouml;deme ve Menkul Kıymet Mutabakat Sistemleri, &Ouml;deme Hizmetleri ve Elektronik Para Kuruluşları Hakkında Kanun&rsquo;da a&ccedil;ık&ccedil;a &ouml;ng&ouml;r&uuml;lmesi</li>
+<li>6502 sayılı T&uuml;keticinin Korunması Hakkında Kanun</li>
+<li>213 sayılı Vergi Usul Kanunu</li>
+<li>6098 sayılı T&uuml;rk Bor&ccedil;lar Kanunu</li>
+<li>6102 sayılı T&uuml;rk Ticaret Kanunu</li>
+<li>5549 s. Su&ccedil; Gelirlerinin Aklanmasının &Ouml;nlenmesi Hakkında Kanun&rsquo;da a&ccedil;ık&ccedil;a &ouml;ng&ouml;r&uuml;lmesi,</li>
+<li>Su&ccedil; Gelirlerinin Aklanmasının ve Ter&ouml;r&uuml;n Finansmanın &Ouml;nlenmesine Dair Tedbirler Hakkında Y&ouml;netmelik&rsquo;te a&ccedil;ık&ccedil;a &ouml;ng&ouml;r&uuml;lmesi,</li>
+<li>Bir s&ouml;zleşmenin kurulması veya ifasıyla doğrudan doğruya ilgili olması kaydıyla, s&ouml;zleşmenin taraflarına ait kişisel verilerin işlenmesinin gerekli olması, talep edilen &uuml;r&uuml;n ve hizmetleri sunabilmek ve akdettiğiniz s&ouml;zleşmelerin gereğinin yerine getirilmesi,</li>
+<li>Hukuki y&uuml;k&uuml;ml&uuml;l&uuml;klerimizin yerine getirebilmesi i&ccedil;in zorunlu olması,</li>
+<li>İlgili kişinin kendisi tarafından alenileştirilmiş olması,</li>
+<li>Bir hakkın tesisi, kullanılması veya korunması i&ccedil;in veri işlemenin zorunlu olması,</li>
+<li>İlgili kişinin temel hak ve &ouml;zg&uuml;rl&uuml;klerine zarar vermemek kaydıyla, Grup Şirketlerimiz meşru menfaatleri i&ccedil;in veri işlenmesinin zorunlu olması,</li>
+<li>Fiili imk&acirc;nsızlık halleri ortaya &ccedil;ıkması durumunda, rızanızı a&ccedil;ıklayamayacak durumda bulunmanız veya rızasına hukuki ge&ccedil;erlilik tanınmayan kişinin kendisinin ya da bir başkasının hayatı veya beden b&uuml;t&uuml;nl&uuml;ğ&uuml;n&uuml;n korunması i&ccedil;in veri işlemenin zorunlu olması.</li>
+</ul>
+<p>&Ouml;zel nitelikli kişisel verileriniz ise aşağıdaki hukuka uygunluk sebeplerine dayanılarak toplanmakta, saklanmakta ve işlenmektedir:</p>
+<ul class="citem07">
+<li>İlgili kişinin a&ccedil;ık rızasının olması,</li>
+<li>Kanunlarda a&ccedil;ık&ccedil;a &ouml;ng&ouml;r&uuml;lmesi,</li>
+<li>Fiili imk&acirc;nsızlık nedeniyle rızasını a&ccedil;ıklayamayacak durumda bulunan veya rızasına hukuki ge&ccedil;erlilik tanınmayan kişinin, kendisinin ya da bir başkasının hayatı veya beden b&uuml;t&uuml;nl&uuml;ğ&uuml;n&uuml;n korunması i&ccedil;in zorunlu olması,</li>
+<li>Bir hakkın tesisi, kullanılması veya korunması i&ccedil;in zorunlu olması,</li>
+</ul>
+<ol start="5">
+<li><strong>5. KİŞİSEL VERİLERİNİZİN KORUNMASINA Y&Ouml;NELİK HAKLARINIZ</strong></li>
+</ol>
+<p>Kanun&rsquo;un ilgili kişinin haklarını d&uuml;zenleyen &ldquo;İlgili kişinin hakları&rdquo; başlıklı 11&rsquo;inci maddesi uyarınca:</p>
+<ul class="citem07">
+<li>Kişisel verilerinizin işlenip işlenmediğini &ouml;ğrenme,</li>
+<li>Kişisel verileriniz işlenmişse buna ilişkin bilgi edinme,</li>
+<li>Kişisel verilerinizin işlenme amacını ve bunların amacına uygun kullanılıp kullanılmadığını &ouml;ğrenme,</li>
+<li>Kişisel verilerinizin yurt i&ccedil;inde veya yurt dışında aktarıldığı &uuml;&ccedil;&uuml;nc&uuml; kişileri bilme,</li>
+<li>Kişisel verilerin eksik veya yanlış işlenmiş olması halinde bunların d&uuml;zeltilmesini isteme,</li>
+<li>Kanun&rsquo;un 7&rsquo;nci maddesinde &ouml;ng&ouml;r&uuml;len şartlar &ccedil;er&ccedil;evesinde kişisel verilerinizin silinmesini veya yok edilmesini isteme,</li>
+<li>Yukarıda belirtilen d&uuml;zeltme, silinme ve yok edilme şeklindeki haklarınız uyarınca yapılan işlemlerin, kişisel verilerinizin aktarıldığı &uuml;&ccedil;&uuml;nc&uuml; kişilere bildirilmesini isteme,</li>
+<li>İşlenen kişisel verilerinizin m&uuml;nhasıran otomatik sistemler ile analiz edilmesi sureti ile aleyhinize bir sonucun ortaya &ccedil;ıkması durumunda bu sonuca itiraz etme,</li>
+<li>Kişisel verilerinizin kanuna aykırı olarak işlenmesi sebebiyle zarara uğramanız h&acirc;linde zararınızın giderilmesini isteme haklarınız bulunmaktadır.</li>
+</ul>
+<p>Yukarıda yer verilen haklarınızı kullanmak isterseniz, bu kapsamdaki başvurunuzu, başvurunun size ait olup olmadığının belirlenmesi ve b&ouml;ylece haklarınızı koruyabilmemiz i&ccedil;in Veri Sorumlusuna Başvuru Usul ve Esasları Hakkında Tebliğ&rsquo;de (&ldquo;Tebliğ&rdquo;) belirtilen şartlara uygun şekilde:</p>
+<ul class="citem07">
+<li>Aşağıda yer verilen adreslerimize posta yoluyla (kimlik teyidi gerekecektir) ya da noter kanalıyla ulaştırabilir veya</li>
+<li>Sistemlerimizde kayıtlı doğrulanmış eposta adresinizi, kayıtlı elektronik posta (KEP) adresi, g&uuml;venli elektronik imza veya mobil imza kullanmak suretiyle aşağıda belirtilen eposta/KEP adreslerimize iletebilirsiniz.</li>
+</ul>
+<p>Bu kapsamda yapılacak olan başvurular tarafımızdan yapılacak kimlik doğrulamasını takiben kabul edilecek olup, talepleriniz, talebin niteliğine g&ouml;re en kısa s&uuml;rede ve en ge&ccedil; 30 g&uuml;n i&ccedil;inde sonu&ccedil;landırılacaktır.</p>
+<ol start="6">
+<li><strong>6. İLETİŞİM KANALIMIZ</strong></li>
+</ol>
+<p><strong>TT &Ouml;deme ve Elektronik Para Hizmetleri AŞ.</strong></p>
+<p><strong>Noter/Posta Kanalı:&nbsp;</strong>Gayrettepe Mah. Yıldız Posta Caddesi No:40 Kat:1 Oda:1 Beşiktaş/İstanbul</p>
+<p><strong>KEP:&nbsp;</strong><a href="mailto:ttodemehizmetleri@hs03.kep.tr"><strong>ttodemehizmetleri@hs03.kep.tr</strong></a></p>
+<p><strong>Mail:&nbsp;</strong><a href="mailto:odemehizmetleri@turktelekom.com.tr"><strong>odemehizmetleri@turktelekom.com.tr</strong></a></p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+</div>
+</div>
+<div id="announcementModalContent" class="f-modal-content"> 
+    
+    <div class="citem04">
+        <h3><strong>T&uuml;rkiye &Ouml;deme ve Elektronik Para Kuruluşları Birliği (&ldquo;T&Ouml;DEB&rdquo;) Bireysel M&uuml;şteri Hakem Heyetine Başvurular Hakkında<br /><br /></strong></h3>
+<p>Değerli bireysel m&uuml;şterimiz, sunduğumuz hizmetlerden kaynaklı olarak yaşadığınız (bireysel nitelik taşıyan, dolayısıyla ticari faaliyet kapsamına girmeyen) ihtilaf konusunda kuruluşumuza, uyuşmazlığa konu işlem veya eylemin ger&ccedil;ekleştiği tarihten itibaren en ge&ccedil;&nbsp;<strong>2 yıl</strong>&nbsp;i&ccedil;erisinde yazılı başvuru ger&ccedil;ekleştirmiş ve bu başvurunuz, başvuru tarihinizden itibaren&nbsp;<strong>20 g&uuml;n</strong>&nbsp;i&ccedil;erisinde; yanıtlanmamışsa yanıt verilmesi gereken 20 g&uuml;nl&uuml;k s&uuml;renin bitiminden itibaren, başvurunuz olumsuz yanıtlanmış veya verilen yanıtı yeterli bulmamanız halinde ise yanıt tarihinden itibaren&nbsp;<strong>60 g&uuml;n</strong>&nbsp;i&ccedil;erisinde&nbsp;<strong>T&uuml;rkiye &Ouml;deme ve Elektronik Para Kuruluşları Birliği (&ldquo;T&Ouml;DEB&rdquo;) Bireysel M&uuml;şteri Hakem Heyetine İlişkin Esas ve Usulleri Hakkında Y&ouml;netmelik&nbsp;</strong><strong>(Link)</strong>&nbsp;uyarınca konuyla ilgili T&Ouml;DEB Bireysel M&uuml;şteri Hakem Heyeti&rsquo;ne başvurma hakkınız bulunmaktadır.</p>
+    <p>T&Ouml;DEB Bireysel M&uuml;şteri Hakem Heyeti&rsquo;ne başvuru formuna aşağıdaki linkten veya&nbsp;<a href="http://www.todeb.org.tr/" target="_blank" rel="noopener noreferrer">www.todeb.org.tr</a>&nbsp;sitesinden ulaşabilirsiniz. Form ilgili bilgilerin doldurulması ve gerekli belgelerin y&uuml;klenmesi sonucu&nbsp;<a href="http://www.todeb.org.tr/" target="_blank" rel="noopener noreferrer">www.todeb.org.tr</a>&nbsp;adresi &uuml;zerinden elektronik olarak iletilebilir.</p>
+<p><a href="https://todeb.org.tr/hakemheyetibasvuruformu/" target="_blank" rel="noopener noreferrer">https://todeb.org.tr/hakemheyetibasvuruformu/</a></p>
+
+<p>T&Ouml;DEB Bireysel M&uuml;şteri Hakem Heyeti&rsquo;ne başvuru ile ilgili t&uuml;m detaylı bilgilere buraya tıklayarak (&nbsp;<a href="https://todeb.org.tr/sayfa/bireysel-musteri-hakem-heyeti/56/" target="_blank" rel="noopener noreferrer">https://todeb.org.tr/sayfa/bireysel-musteri-hakem-heyeti/56/</a>&nbsp;) ulaşabilirsiniz. Ayrıca,&nbsp;<a href="https://pokus.com.tr/assets/ek3-hakem-heyeti-brosur.pdf" target="_blank">Bilgilendirme Broş&uuml;r&uuml;n&uuml;</a> de inceleyebilirsiniz.</p>
+    <div style="height:1px; width: 100%; background-color:rgba(192,192,192,0.3);"></div>
+    <p></p>
+    <style>
+        
+        /* width */
+.citem04::-webkit-scrollbar {
+  width: 2px;
+}
+
+/* Track */
+.citem04::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  margin-top: 30px;
+}
+
+/* Handle */
+.citem04::-webkit-scrollbar-thumb {
+  background: #888;
+}
+
+/* Handle on hover */
+.citem04::-webkit-scrollbar-thumb:hover {
+  background: #555;
+}
+    </style>
+        <h3 class="citem01">Ödeme Hizmeti ve Elektronik Para İşlemlerinde Başkası Hesabına İşlem Yapıldığının Beyan Edilmesi Hakkında </h3>
+        <p>11.10.2006 tarihli Resmi Gazete&rsquo;de yayımlanarak y&uuml;r&uuml;rl&uuml;ğe giren 5549 sayılı Su&ccedil; Gelirlerinin Aklanmasının &Ouml;nlenmesi Hakkında Kanun&rsquo;un 15. maddesine g&ouml;re, y&uuml;k&uuml;ml&uuml;ler nezdinde veya aracılığıyla yapılacak kimlik tespitini gerektiren işlemlerde, kendi adına ve fakat başkası hesabına hareket eden kimse, bu işlemleri yapmadan &ouml;nce kimin hesabına hareket ettiğini y&uuml;k&uuml;ml&uuml;lere yazılı olarak bildirmediği takdirde, altı aydan bir yıla kadar hapis veya beş bin g&uuml;ne kadar adli para cezasıyla cezalandırılır.</p>
+<p>Bu kapsamda, TT &Ouml;deme ve Elektronik Para Hizmetleri A.Ş. nezdinde 5549 sayılı Kanun ve sair mevzuat uyarınca kimlik tespiti gerektiren işlem yaptıran ger&ccedil;ek ve t&uuml;zel kişilerin, kendi adına ve fakat başkası hesabına hareket etmeleri halinde, bu işlemi yapmadan evvel kimin hesabına hareket ettiklerini TT &Ouml;deme ve Elektronik Para Hizmetleri A.Ş.&rsquo;ye yazılı olarak bildirme zorunluluğu bulunmaktadır. Bu kapsamda,</p>
+<p>Kendi adına fakat başka bir ger&ccedil;ek kişi hesabına hareket eden ger&ccedil;ek kişiler,&nbsp; i) Hangi ger&ccedil;ek kişi hesabına ve hangi sebeplerle hareket ettiğini belirten yazılı beyan, ii) Kendine ait kimlik belgesi, iii) Hesabına hareket ettiği kişi/kişilere ait kimlik belgelerini, iv) Verilen yetkiye dair noter onaylı vekaletnameyi,</p>
+<p>Kendi adına fakat başka bir t&uuml;zel kişi hesabına hareket eden ger&ccedil;ek kişiler, i) Hangi t&uuml;zel kişi hesabına, hangi sebeplerle hareket ettiğini belirten yazılı beyan, ii)Kendine ait kimlik belgesini, iii) Hesabına hareket ettiği t&uuml;zel kişiliğin y&uuml;zde yirmibeşi aşan hissesine sahip ger&ccedil;ek kişi ortaklarının kimliğini, iv) İlgili t&uuml;zel kişilik tarafınca verilen yazılı talimat var ise, şirket imza sirk&uuml;leriyle birlikte yazılı talimatı, v) Vekalet verilmiş ise noter onaylı vekaletnameyi TT &Ouml;deme ve Elektronik Para Hizmetleri A.Ş.&rsquo;ye iletmekle y&uuml;k&uuml;ml&uuml;d&uuml;r.</p>
+<p>Bildirim &uuml;zerine, işlemin ger&ccedil;ekleştirilmesini talep edenin kimliği ve yetki durumu ile hesabına hareket edilen kişinin kimliği Su&ccedil; Gelirlerinin Aklanmasının ve Ter&ouml;r&uuml;n Finansmanın &Ouml;nlenmesine Dair Tedbirler Hakkında Y&ouml;netmelik&rsquo;in 6 ila 14 maddeleri ve T.C. Hazine ve Maliye Bakanlığı Mali Su&ccedil;ları Araştırma Kurulu&rsquo;nun ilgili mevzuatı &ccedil;er&ccedil;evesinde tespit edilir. Başkası adına işlem yapıldığının beyan edilmediği durumlarda, Şirketimizce kendi nam ve hesabınıza işlem yaptığınız kabul edilir.</p>
+<p>TT &Ouml;deme ve Elektronik Para Hizmetleri A.Ş.&rsquo;ye yazılı bildiriminizi yukarıdaki bilgi ve belgelerle birlikte <a href="mailto:pokusuyum.musterikabul@turktelekom.com.tr">pokusuyum.musterikabul@turktelekom.com.tr</a> adresine yapabilirsiniz.</p>
+    </div>
+</div>
+
+        <div id="borderModalContent" class="f-modal-content">
+            <h3 class="citem01">POKUS UYGULAMASINA İLİŞKİN ÇERÇEVE ÖDEME VE ELEKTRONİK PARA HİZMETLERİ SÖZLEŞMESİ</h3>
+            <div class="citem04">
+               <p>İşbu Pokus Uygulaması&rsquo;na İlişkin &Ccedil;er&ccedil;eve &Ouml;deme ve Elektronik Para Hizmetleri S&ouml;zleşmesi (&ldquo;S&ouml;zleşme&rdquo;) Gayrettepe Mahallesi, Vefa Bayırı Sokak No:2 34349 Beşiktaş / İstanbul adresinde faaliyet g&ouml;steren, İstanbul Ticaret Sicili M&uuml;d&uuml;rl&uuml;ğ&uuml; nezdinde 866024 sicil numarası ile kayıtlı TT &Ouml;deme ve Elektronik Para Hizmetleri A.Ş. ("TT &Ouml;deme") ile işbu S&ouml;zleşme kapsamında belirtilen &ouml;deme hizmetlerini temin etmek &uuml;zere işbu S&ouml;zleşme&rsquo;yi akdetmiş olan [.] T.C. Kimlik Numaralı, [.] GSM numaralı, [.] Referans numaralı, [.] adresinde ikamet eden [.] (&ldquo;G&ouml;nderen/Kullanıcı&rdquo;) arasında akdedilmiştir.<br /> <br /> TT &Ouml;deme ve G&ouml;nderen/Kullanıcı ayrı ayrı &ldquo;Taraf&rdquo; ve birlikte &ldquo;Taraflar&rdquo; olarak anılacaklardır.<br /> <br /> <strong>1. TANIMLAR</strong><br /> <br /> <strong>Pokus Uygulaması/Uygulama:</strong>&nbsp;T&uuml;m mobil cihazlarda &ccedil;alışan mobil uygulama yazılımı ve bu yazılım ile bağlantılı olarak oluşturulan &uuml;r&uuml;n ve hizmetlerin (Cep telefonu &uuml;zerinden kart bilgilerinin eklenmesi ile &ouml;deme, para transferi, para alabilme, -, fatura &ouml;deme gibi &ouml;deme işlemlerinin yapılabilmesini sağlayan hizmetler başta olmak &uuml;zere) sunulduğu t&uuml;m sanal ger&ccedil;eklik mecralarını,<br /> <br /> <strong>&Ouml;deme Hizmeti Sağlayıcısı:</strong>&nbsp;İlgili Mevzuat uyarınca gerekli izinlere sahip olup, bu izinler &ccedil;er&ccedil;evesinde &ouml;deme hizmetleri sunan kuruluşları,<br /> <br /> <strong>G&ouml;nderen/Kullanıcı:</strong>&nbsp;İşbu S&ouml;zleşme kapsamında &ouml;deme hizmetinden faydalanan ger&ccedil;ek veya t&uuml;zel kişiyi,<br /> <br /> <strong>Satıcı:</strong>&nbsp;&Ouml;deme İşlemine konu fonun ulaşması istenen ve G&ouml;nderenin mal veya hizmet temin etmek &uuml;zere TT &Ouml;deme hizmetlerini kullanarak &ouml;deme yaptığı ger&ccedil;ek veya t&uuml;zel kişiyi,<br /> <br /> <strong>Alıcı:</strong>&nbsp;&Ouml;deme Emri kapsamında &Ouml;deme ve/veya Elektronik Para işlemine konu Fon&rsquo;un ulaşması istenen ger&ccedil;ek veya t&uuml;zel kişiyi,<br /> <br /> <strong>&Ouml;deme Emri:</strong>&nbsp;Kullanıcı/G&ouml;nderen tarafından &ouml;deme işleminin ger&ccedil;ekleştirilmesi amacıyla TT &Ouml;deme&rsquo;ye ve/veya Temsilcilerine SMS g&ouml;nderilmesi, , yahut G&ouml;nderen&rsquo;e iletilen SMS&rsquo;i EVET yazarak cevaplaması, &ouml;deme emrinin başlatılmasından sonra TT &Ouml;deme veya Temsilci tarafından &ouml;deme emrinin tek kullanımlık şifre ile teyit edilerek &ouml;deme emrinin tamamlanması [OTP] internet linkinin tıklanması, interaktif sesli yanıt [IVR] şeklinde şeklinde onay verilmesi vb. y&ouml;ntemler dahil ancak bunlarla sınırlı olmamak &uuml;zere TT &Ouml;deme tarafından belirlenen mevzuatın izin verdiği y&ouml;ntemlerle verilen talimatı,<br /> <br /> <strong>Kanun:</strong>&nbsp;20/6/2013 tarihli ve 6493 sayılı &Ouml;deme ve Menkul Kıymet Mutabakat Sistemleri, &Ouml;deme Hizmetleri ve Elektronik Para Kuruluşları Hakkında Kanunu,<br /> <br /> <strong>Fraud:</strong>&nbsp;TT &Ouml;deme M&uuml;şterilerinin (M&uuml;şteri), Dış Hizmet Sağlayıcıların, Temsilcilerin ve Temsilcilerin satış kanalının su&ccedil; konusu teşkil etsin veya etmesin mevzuata ve/veya işbu S&ouml;zleşmeye aykırı ihmal ve/veya kasıt i&ccedil;eren t&uuml;m usuls&uuml;z eylem ve işlemleri nedeniyle TT &Ouml;deme&rsquo;nin ve/veya M&uuml;şterilerin ya da &uuml;&ccedil;&uuml;nc&uuml; kişilerin zarara uğramasına yol a&ccedil;abilecek t&uuml;m evrakta sahtecilik işlemleri, yetkisiz işlemler, M&uuml;şteri bilgilerini ele ge&ccedil;irme ve M&uuml;şterileri aldatma ama&ccedil;lı sahte e-posta, SMS g&ouml;nderimi veya sosyal medya i&ccedil;erikleri, web siteleri oluşturulması da dahil fakat bunlarla sınırlı olmaksızın yapılan t&uuml;m hileli işlem, davranış ve faaliyetleri,<br /> <br /> <strong>Hassas &Ouml;deme Verisi:</strong>&nbsp;&Ouml;deme Emrinin verilmesinde veya kimlik doğrulamasında kullanılan, ele ge&ccedil;irilmesi veya değiştirilmesi halinde dolandırıcılık ya da sahte işlem yapılmasına imk&acirc;n verebilecek şifre, g&uuml;venlik sorusu, sertifika, şifreleme anahtarı ile PIN, kart numarası, son kullanma tarihi, CVV2, CVC2 kodu gibi &Ouml;deme Aracına ilişkin kişisel g&uuml;venlik bilgilerini,<br /> <br /> <strong>İşlem Limiti:</strong>&nbsp;Tek seferde ger&ccedil;ekleştirilebilen azami işlem tutarını,<br /> <br /> <strong>&Ouml;deme Aracı:</strong>&nbsp;TT &Ouml;deme ile G&ouml;nderen arasında belirlenen ve G&ouml;nderen tarafından &Ouml;deme Emrini vermek i&ccedil;in kullanılan kart, cep telefonu, şifre, uygulama ve benzeri kişiye &ouml;zel aracı,<br /> <br /> <strong>&Ouml;deme Hesabı:</strong>&nbsp;&Ouml;deme nezdinde G&ouml;nderen adına a&ccedil;ılan &Ouml;deme İşleminin y&uuml;r&uuml;t&uuml;lmesinde kullanılan hesabı,<br /> <br /> <strong>&Ouml;deme Hizmeti:</strong>&nbsp;Kanun&rsquo;un 12. Maddesinin 1. Fıkrasının (d) bendinde yer alan, G&ouml;nderen tarafından &Ouml;deme İşleminin yapılmasına ilişkin onayın bir bilişim veya elektronik haberleşme cihazı aracılığıyla veya başka bir y&ouml;ntemle verildiği, Satıcıya veya Satıcının &Ouml;deme Hizmeti Sağlayıcısına aktarılmak &uuml;zere &ouml;demenin G&ouml;nderen ile Satıcı arasında sadece aracı olarak faaliyet g&ouml;steren Temsilciye yapıldığı &ouml;deme işlemi hizmeti (&ldquo;Mobil &Ouml;deme&rdquo;) ile Kanun&rsquo;un 12. Maddesinin 1.fıkrasının (e) bendinde yer alan, fatura &ouml;demelerine aracılık edilmesi hizmetini ve Kanun&rsquo;un 18.maddesi &ccedil;er&ccedil;evesinde Elektronik Para ihracı hizmetleri ile birlikte Kanun&rsquo;un 12. Maddesinin 1. Fıkrasının (a) beninde yer alan &ouml;deme hesabının işletilmesi ile Kanun&rsquo;un 12. Maddesinin 1. Fıkrasının (b) bendinde yer alan para transferi hizmetlerini,<br /> <br /> <strong>&Ouml;deme Onayının Verileceği Cihaz:</strong>&nbsp;SMS ve &ccedil;ağrı merkezi kanallarından verilecek onaylar i&ccedil;in geniş kapsama alanını kullanan, kablosuz telefon sistemiyle &ccedil;alışan asgari &ouml;zelliklere sahip, MOIM kanalıyla verilecek onay s&uuml;re&ccedil;leri i&ccedil;in en azından dokunmatik &ouml;zelliklere sahip bir akıllı telefonu,<br /> <br /> <strong>Yasal Temsilci Onayı:</strong>&nbsp;Y&ouml;netmelik&rsquo;in 5.maddesinin 6.fıkrası h&uuml;k&uuml;mlerine uygun şekilde Elektronik Para hizmeti kullanıcısının velisi, vasisi, kayyımı veya yasal temsilcisi tarafından Temsilci&rsquo;ye ait bir uygulama, TT &Ouml;deme veya Temsilcilerine ait internet sitesi, &ccedil;ağrı merkezi, TT &Ouml;deme ve Temsilcilerinin e-mail adresleri veya TT &Ouml;deme tarafından belirlenecek başkaca iletişim y&ouml;ntemiyle k&uuml;&ccedil;&uuml;ğ&uuml;n, kısıtlının, kayyım atanmış kişinin veya temsil olunanın Elektronik Para hizmetini kullandığına dair bilgi sahibi olunduğu ve izin verildiğine dair onayı,<br /> <br /> <strong>Doğrudan Bor&ccedil;landırma:</strong>&nbsp;&Ouml;deme emrinin veya &ouml;deme işlemine ilişkin &ouml;deme onayının G&ouml;nderenin kendi &ouml;deme hizmeti sağlayıcısına, alıcıya/Satıcıya veya alıcının/Satıcının &ouml;deme hizmeti sağlayıcısına verilmesi ve &ouml;deme işleminin alıcı tarafından başlatılması ve G&ouml;nderenin &Ouml;deme Hesabının bor&ccedil;landırılması işlemlerini,<br /> <br /> <strong>&Ouml;deme İşlemi:</strong>&nbsp;G&ouml;nderen/Kullanıcı veya Satıcının/Alıcının talimatı &uuml;zerine ger&ccedil;ekleştirilen fon yatırma, aktarma veya &ccedil;ekme faaliyetleri ile Doğrudan Bor&ccedil;landırma işlemlerini,<br /> <br /> <strong>Temsilci:</strong>&nbsp;&Ouml;deme Hizmetlerinin ger&ccedil;ekleştirilmesi amacı ile TT &Ouml;deme adına ve hesabına işlem yapma yetkisini haiz TT Mobil İletişim Hizmetleri A.Ş., T&uuml;rk Telekom&uuml;nikasyon A.Ş, TTNET A.Ş. ve <a href="http://www.turktelekomodemehizmetleri.com/">http://www.turktelekomodemehizmetleri.com/</a> adresinde harita &uuml;zerinde yer alan temsilcileri,<br /> <br /> <strong>MASAK:</strong>&nbsp;Mali Su&ccedil;ları Araştırma Kurulu,<br /> <br /> <strong>MASAK Mevzuatı:</strong>&nbsp;11/10/2006 tarihli ve 5549 sayılı Su&ccedil; Gelirlerinin Aklanmasının &Ouml;nlenmesi Hakkında Kanunu, 9/1/2008 tarihli ve 26751 sayılı Resm&icirc; Gazete&rsquo;de yayımlanan Su&ccedil; Gelirlerinin Aklanmasının ve Ter&ouml;r&uuml;n Finansmanının &Ouml;nlenmesine Dair Tedbirler Hakkında Y&ouml;netmelik ve 9/4/2008 tarihli ve 26842 sayılı Resm&icirc; Gazete&rsquo;de yayımlanan 5 Sıra No.lu Mali Su&ccedil;ları Araştırma Kurulu Genel Tebliği dahil konuyla ilgili t&uuml;m mevzuatları,<br /> <br /> <strong>MASAK İşlem Limitleri:</strong>&nbsp;9/4/2008 tarihli ve 26842 sayılı Resm&icirc; Gazete&rsquo;de yayımlanan 5 Sıra No.lu Mali Su&ccedil;ları Araştırma Kurulu Genel Tebliği&rsquo;nde elektronik para ve &ouml;deme kuruluşlarına ilişkin işlemlere ve &ouml;n &ouml;demeli kartlara ilişkin işlemlere ilişkin olarak belirlenen limitleri,<br /> <br /> <strong>BDDK:</strong>&nbsp;Bankacılık D&uuml;zenleme ve Denetleme Kurumu&rsquo;nu,<br /> <br /> <strong>BTK:</strong>&nbsp;Bilgi Teknolojileri ve İletişim Kurumu&rsquo;nu,<br /> <br /> <strong>TCMB:</strong>&nbsp;T&uuml;rkiye Cumhuriyeti Merkez Bankası Anonim Şirketi&rsquo;ni,<br /> <br /> <strong>İlgili Mevzuat:</strong>&nbsp;&Ouml;deme hizmetleri ve elektronik haberleşme sekt&ouml;rlerine &ouml;zg&uuml; olanlar başta olmak &uuml;zere, tarafların bu S&ouml;zleşme kapsamındaki faaliyetlerini y&uuml;r&uuml;t&uuml;rken uymakla y&uuml;k&uuml;ml&uuml; oldukları yasa, y&ouml;netmelik, tebliğ vb. t&uuml;m hukuksal d&uuml;zenlemeleri,<br /> <br /> <strong>Y&ouml;netmelik:</strong>&nbsp;01.12.2021 tarih, 31676 sayılı Resmi Gazete&rsquo;de yayımlanan &Ouml;deme Hizmetleri ve Elektronik Para İhracı ile &Ouml;deme Hizmeti Sağlayıcıları Hakkında Y&ouml;netmelik&rsquo;i,<br /> <br /> <strong>Yeni Y&ouml;netmelik:</strong>&nbsp;Y&ouml;netmelik: 01.12.2021 tarih, 31676 sayılı Resmi Gazete&rsquo;de yayımlanan &Ouml;deme Hizmetleri ve Elektronik Para İhracı ile &Ouml;deme Hizmeti Sağlayıcıları Hakkında Y&ouml;netmelik&rsquo;i,<br /> <br /> <strong>Uzaktan İletişim Aracı:</strong>&nbsp;Mektup, katalog, telefon, faks, radyo, televizyon, elektronik posta mesajı, internet, kısa mesaj hizmetleri gibi fiziksel olarak karşı karşıya gelinmeksizin s&ouml;zleşme kurulmasına imk&acirc;n veren her t&uuml;rl&uuml; ara&ccedil; veya ortamı,<br /> <br /> <strong>Fon:</strong>&nbsp;İlgili Mevzuat&rsquo;ta tanımlandığı şekli ile banknot, madeni para, kaydi para veya elektronik parayı,<br /> <br /> <strong>Elektronik Para:</strong>&nbsp;TT &Ouml;deme tarafından Y&ouml;netmelik kapsamındaki tarife g&ouml;re kabul edilen fon karşılığı ihra&ccedil; edilecek, elektronik olarak saklanacak, &ouml;deme işlemlerini ger&ccedil;ekleştirmek i&ccedil;in kullanılabilecek ve TT &Ouml;deme haricindeki ger&ccedil;ek ve t&uuml;zel kişiler tarafından da &ouml;deme aracı olarak kabul edilen parasal değeri, ifade eder.</p>
+<p><strong>TR Karekod:</strong> Tarama usul&uuml; ile &ouml;deme işlemlerinde kullanılmak &uuml;zere oluşturulan; alfa numerik verileri, karakterleri ve simgeleri depolayan, bakana g&ouml;re sol alt k&ouml;şede, sol &uuml;st k&ouml;şede ve sağ &uuml;st k&ouml;şede &uuml;&ccedil; kare desen işaretleyiciden oluşan ve kare siyah-beyaz noktalar ya da pikseller şeklinde siyah ve beyaz mod&uuml;llere sahip olan iki boyutlu kodu ifade eder.</p>
+<ol start="2">
+<li><br /> <br /> <strong> S&Ouml;ZLEŞMENİN KONUSU</strong><br /> <br /> İşbu S&ouml;zleşme&rsquo;nin konusu; &Ouml;deme Hizmeti almak isteyen t&uuml;keticilere TT &Ouml;deme ve Temsilcisi aracılığı ile &Ouml;deme Hizmeti verilmesi, Elektronik Para ihra&ccedil; etmesi ve bu kapsamda Tarafların hak ve y&uuml;k&uuml;ml&uuml;l&uuml;klerinin d&uuml;zenlenmesinden ibarettir. TT &Ouml;deme, BDDK ve TCMB nezdinde 6493 sayılı Kanun kapsamında M&uuml;şterilerine Temsilcileri aracılığıyla &Ouml;deme Hizmetleri sunmak ve ve Elektronik Para ihra&ccedil; etmek hususunda yetkilendirilmiş olup, t&uuml;m faaliyetleri BDDK, MASAK ve TCMB g&ouml;zetim ve denetimi altındadır.<br /> <br /> TT &Ouml;deme&rsquo;nin M&uuml;şteri Hizmetleri ve Temsilci bilgilerine aşağıda yer verilmiştir:<br /> <br /> TT &Ouml;deme M&uuml;şteri Hizmetleri: Kocayol Cad. Kerembey Sok. No:2 Bostancı/İstanbul <a href="http://www.turktelekomodemehizmetleri.com/">http://www.turktelekomodemehizmetleri.com/</a><br /> <br /> Elektronik Posta Adresi: <a href="mailto:odemehizmetleri@turktelekom.com.tr">odemehizmetleri@turktelekom.com.tr</a><br /> <br /> Temsilciler;<br /> <br /> &bull; TT Mobil İletişim Hizmetleri A.Ş. Gayrettepe Mah. Vefabayırı Sok. No:2 Gayrettepe / Beşiktaş - İstanbul,<br /> <br /> T&uuml;rk Telekom&uuml;nikasyon A.Ş. Turgut &Ouml;zal Bulvarı 06103 Aydınlıkevler Ankara,<br /> <br /> TTNET A.Ş. Gayrettepe Mah. Vefa Bayırı Sok. No:2 Beşiktaş İstanbul,<br /> <br /> ayrıntılı bilgi i&ccedil;in bkz. <a href="http://www.turktelekom.com.tr">www.turktelekom.com.tr</a><br /> <br /> Diğer temsilcilere ilişkin unvan, konum gibi detaylı bilgiler <a href="http://www.turktelekomodemehizmetleri.com/">http://www.turktelekomodemehizmetleri.com/</a> adresinde yer almaktadır.<br /> <br /> İşbu S&ouml;zleşme TT &Ouml;deme&rsquo;nin uygun g&ouml;rmesi halinde, G&ouml;nderenin erişimine Uzaktan İletişim Aracı ile sunulabilir ve G&ouml;nderenin Uzaktan İletişim Aracı ile onay vermesi suretiyle kurulur. G&ouml;nderen tarafından Uzaktan İletişim Aracı ile S&ouml;zleşmenin kurulmasına onay verilmesi, G&ouml;nderenin işbu S&ouml;zleşmenin h&uuml;k&uuml;mlerini kabul ettiği anlamına gelir.<br /> <br /> <strong>3. S&Ouml;ZLEŞMENİN S&Uuml;RESİ</strong><br /> <br /> İşbu S&ouml;zleşme G&ouml;nderen tarafından imzalandığı tarihte y&uuml;r&uuml;rl&uuml;ğe girecek olup, Taraflarca 7. madde uyarınca feshedilmediği takdirde y&uuml;r&uuml;rl&uuml;kte kalacaktır.<br /> <br /> <strong>4. G&Ouml;NDERENİN HAK VE Y&Uuml;K&Uuml;ML&Uuml;L&Uuml;KLERİ</strong><br /> <br /> <strong>4.1</strong>MASAK Mevzuatında belirlenen kimlik doğrulama işlemini ger&ccedil;ekleştirmeyen Kullanıcı/M&uuml;şteriler MASAK İşlem Limitleri ile sınırlı olarak işbu S&ouml;zleşme kapsamındaki &Ouml;deme Hizmetlerinden yararlanabilecektir. MASAK Mevzuatında belirlenen kimlik doğrulama işlemini ger&ccedil;ekleştiren Kullanıcı/G&ouml;nderen, TT &Ouml;deme tarafından belirlenecek ve <a href="https://pokus.com.tr/limitler-ve-ucretler">https://pokus.com.tr/limitler-ve-ucretler</a> linkinde yayınlanan işlem limitleri kapsamında işbu S&ouml;zleşme kapsamındaki &Ouml;deme Hizmetlerinden yararlanabilecektir.<br /> <br /> <strong>4.2</strong>G&ouml;nderen, &Ouml;deme Emrini iletmesi ile &Ouml;deme İşleminin yetkilendirilmiş sayılacağını, &Ouml;deme Emrinin, Temsilciye ulaştıktan sonra geri alınamayacağını kabul ve taahh&uuml;t eder. &Ouml;deme Emrinin alındığı an, &Ouml;deme Emrinin TT &Ouml;deme&rsquo;ye veya Temsilciye ulaştığı andır. &Ouml;deme emrinin TT &Ouml;deme&rsquo;ye iş g&uuml;n&uuml; dışında ulaşması durumunda, &ouml;deme emri izleyen ilk iş g&uuml;n&uuml; alınmış sayılır. &Ouml;deme Emri, bir iş g&uuml;n&uuml;nde en ge&ccedil; saat 16.00&rsquo;ya kadar alınabilir; bu saatten sonra alınan &Ouml;deme Emirleri ertesi iş g&uuml;n&uuml; alınmış addedilecektir. &Ouml;demenin belirli bir g&uuml;nde, belirli bir d&ouml;nemin sonunda veya g&ouml;nderenin &ouml;demeye ilişkin fonları TT &Ouml;deme&rsquo;nin tasarrufuna bıraktığı g&uuml;nde ger&ccedil;ekleştirilmesinin kararlaştırılması halinde, &ouml;deme i&ccedil;in kararlaştırılan g&uuml;n &Ouml;deme Emrinin alınma zamanı olarak kabul edilir. Bu hallerde G&ouml;nderen, &Ouml;deme Emrini en ge&ccedil; &ouml;deme işleminin ger&ccedil;ekleştirilmesi i&ccedil;in kararlaştırılan g&uuml;nden &ouml;nceki iş g&uuml;n&uuml;n&uuml;n sonuna kadar geri alabilir. &Ouml;deme işleminin Satıcı/Alıcı tarafından veya Satıcı/Alıcı aracılığıyla başlatıldığı durumlarda G&ouml;nderen, &Ouml;deme Emrini TT &Ouml;deme&rsquo;ye ilettikten veya &ouml;deme işleminin ger&ccedil;ekleştirilmesi i&ccedil;in onay verdikten sonra &Ouml;deme Emrini geri alamaz. Doğrudan bor&ccedil;landırma y&ouml;ntemiyle yapılan &ouml;deme işleminde, g&ouml;nderen &ouml;deme emrini en ge&ccedil; fonların hesaba bor&ccedil; kaydedilmesi i&ccedil;in kararlaştırılan g&uuml;nden &ouml;nceki iş g&uuml;n&uuml; sonuna kadar geri alabilir.<br /> <br /> <strong>4.3</strong>&nbsp;G&ouml;nderen, &Ouml;deme Hizmetinin sunulması nedeniyle tahsil edilecek, &Ouml;deme Emrinin alınmasından &ouml;nce Uzaktan İletişim Aracı ile kendisine bildirilecek &uuml;cret/ler ve/veya bedelleri &ouml;demeyi kabul ve taahh&uuml;t eder. &Ouml;deme Hizmetleri aracılığıyla Satıcı&rsquo;dan temin edilen mal veya hizmetlere ilişkin &uuml;cretler ve &uuml;cretlerin tahsilatına ilişkin koşullar Satıcı tarafından belirlenmekte olup, TT &Ouml;deme&rsquo;nin veya Temsilcilerinin bu konuda bir yetki veya sorumluluğu bulunmamaktadır.<br /> <br /> Yeni Y&ouml;netmelik 4.6. maddesi uyarınca, G&ouml;nderen tarafından elektronik haberleşme hizmeti i&ccedil;in &ouml;denen tutarların elektronik haberleşme hizmeti dışında mal veya hizmet alımı i&ccedil;in veya &ouml;deme hizmetlerinde kullanılması Mobil &Ouml;deme Hizmeti kapsamında sayılmaktadır. Kanun&rsquo;un 12. maddesinin (d) bendinde yer alan Mobil &Ouml;deme Hizmeti, TT &Ouml;deme&rsquo;nin sunduğu &Ouml;deme Hizmetlerinde, TT &Ouml;deme&rsquo;nin belirlediği şartlar ve &uuml;cretler karşılığında kullanılabilecektir. 6493 sayılı Kanunun 12. Maddesinin 1. Fıkrasının d bendine uygun olarak, elektronik para ihracına ilişkin olarak ger&ccedil;ekleştirilen &ouml;deme işlemlerinde, &ouml;deme işlemine konu &uuml;cret/ler ve/veya bedeller Temsilcinin d&uuml;zenleyeceği faturaya yansıtılacak, G&ouml;nderenin &ouml;n &ouml;demeli hat abonesi olması durumunda bakiyesinden d&uuml;ş&uuml;lecektir. &Ouml;deme İşleminin tamamlanma s&uuml;resine ilişkin bilgi Uzaktan İletişim Aracı ile G&ouml;nderene bildirilecektir.<br /> <br /> <strong>4.4</strong>&nbsp;. TT &Ouml;deme, G&ouml;nderen tarafından kendisine iletilen ve tahsil edilen bedellerin Satıcı/Alıcı veya Satıcının/Alıcının &Ouml;deme Hizmeti Sağlayıcısına Satıcının &Ouml;deme Hizmeti Sağlayıcısıyla akdetmiş olduğu s&ouml;zleşmede kararlaştırılan vadelere aykırı olmamak kaydıyla 4 (d&ouml;rt) iş g&uuml;n&uuml; i&ccedil;erisinde aktarılmasından sorumludur. TT &Ouml;deme, G&ouml;nderen tarafından kendisine iletilen ve tahsil edilen bedellerin TT &Ouml;deme&rsquo;nin sunduğu &Ouml;deme Hizmetleri&rsquo;nde kullanıldığı durumlarda 30 g&uuml;n i&ccedil;erisinde Alıcı&rsquo;nın hesabına aktarılmasından sorumludur. TT &Ouml;deme bu sorumluluğu yerine getiremediği takdirde, &Ouml;deme İşleminin ger&ccedil;ekleşmemiş veya hatalı ger&ccedil;ekleşmiş kısmını M&uuml;şteriye iade edecektir. TT &Ouml;deme&rsquo;nin &Ouml;deme İşleminin ger&ccedil;ekleştirilmesine ilişkin sorumluluğu &ouml;deme tutarının Satıcıya/Alıcıya veya Satıcının/Alıcının &Ouml;deme Hizmeti Sağlayıcısına aktarılması itibariyle sona erer. TT &Ouml;deme tarafından belirlenen İşlem Limitleri altındaki &Ouml;deme İşlemlerinde TT &Ouml;deme bu s&uuml;relere bağlı değildir.<br /> <br /> <strong>4.5</strong>&nbsp;G&ouml;nderen, TCMB&rsquo;nin, MASAK&rsquo;ın veya TT &Ouml;deme&rsquo;nin &Ouml;deme İşlemleri i&ccedil;in internet sitesinde duyurmak suretiyle tek taraflı olarak İşlem Limitleri belirleyebileceğini ve İşlem Limitleri &uuml;zerinde işlem ger&ccedil;ekleştiremeyeceğini bildiğini kabul, beyan ve taahh&uuml;t eder.<br /> <br /> <strong>4.6</strong>&nbsp;G&ouml;nderen, TT &Ouml;deme tarafından talep edilen bilgi ve onayları vererek &ouml;deme işlemlerini ger&ccedil;ekleştirebilir. G&ouml;nderen&rsquo;in &Ouml;deme Hizmetlerinden yararlanabilmesi i&ccedil;in TT &Ouml;deme nezdinde oluşturacağı kullanıcı hesabı aracılığı ile ve/veya TT &Ouml;deme&rsquo;nin ilgili s&uuml;re&ccedil;lerini tamamlayarak bir &ouml;deme aracı edinmesi gerekmektedir. M&uuml;şteri, TT Mobil İletişim Hizmetleri A.Ş. nezdindeki hattının mobil &ouml;deme hizmeti işlemlerine a&ccedil;ılabilmesi i&ccedil;in ayrıca onay vermesi gerektiğini bildiğini kabul, beyan ve taahh&uuml;t eder. M&uuml;şteri, hattının Mobil &Ouml;demeye a&ccedil;ılması ile ilgili kendisinden talep edilen adımları tamamlamakla ve S&ouml;zleşme&rsquo;nin y&uuml;r&uuml;rl&uuml;kte kaldığı s&uuml;re boyunca hattının ve Mobil &Ouml;deme Hizmeti&rsquo;nin a&ccedil;ık olmasını teminle y&uuml;k&uuml;ml&uuml; olup, bunu yapmadığı takdirde hattına bağlı olan &Ouml;deme Hizmetlerinden faydalanamayacağını bilmekte ve kabul etmektedir. Elektronik para hizmetleri kapsamındaki &ouml;deme işlemleri i&ccedil;in G&ouml;nderen&rsquo;in &Ouml;deme Aracı &uuml;zerinden ad, soyad, TCKN, doğum tarihi ve e-posta bilgileri ile TT &Ouml;deme tarafından talep edilebilecek sair bilgileri sağlaması gerekmektedir. G&ouml;nderen, &Ouml;deme Aracı kullanılarak yapılan işlemlerden doğan t&uuml;m sorumluluğun kendisine ait olduğunu, İlgili Mevzuat uyarınca &Ouml;deme Aracının kullanılması i&ccedil;in gerekli bilgileri g&uuml;venli bir şekilde koruyacağını, &Ouml;deme Aracına ve Hassas &Ouml;deme Verilerine &uuml;&ccedil;&uuml;nc&uuml; kişilerin erişmesine hi&ccedil;bir şekilde izin vermeyeceğini, bu bilgilerin başkaları tarafından kullanılmasına engel olacak &ouml;nlemleri almakla y&uuml;k&uuml;ml&uuml; olduğunu, bilgileri kendisine verilme amacı dışında kullanmayacağını, bunların kaybolması, &ccedil;alınması, herhangi bir şekilde zilyetliğinden &ccedil;ıkması veya iradesi dışında ger&ccedil;ekleşmiş veya hatalı herhangi bir işlemi &ouml;ğrenmesi durumunda bu hususu &ouml;ğrendiği andan itibaren Temsilciye veya TT &Ouml;deme&rsquo;ye derhal bildireceğini kabul, beyan ve taahh&uuml;t etmektedir. G&ouml;nderen, kayıp, &ccedil;alıntı veya usuls&uuml;z kullanım gibi durumları TT &Ouml;deme M&uuml;şteri Hizmetleri&rsquo;ne bildirecektir.<br /> <br /> <strong>4.7</strong>&nbsp;G&ouml;nderen, kendisine tahsis edilen &Ouml;deme Aracı ve TT &Ouml;deme veya Temsilcilere bildirdiği telefon numarası ile yapılan t&uuml;m işlemlerin kendi sorumluluğunda olduğunu ve kendi rızası ile yapıldığını kabul ve beyan eder. Bu işlemler nedeni ile yapılan işleme y&ouml;nelik ortaya &ccedil;ıkan bir itiraz ya da talep sonucunda, TT &Ouml;deme veya Temsilcilerin zarara uğraması durumunda, G&ouml;nderene r&uuml;cu etme hakkı saklıdır. G&ouml;nderen, yetkilendirmediği veya hatalı yahut iradesi dışında ger&ccedil;ekleştirilmiş &Ouml;deme İşlemini en ge&ccedil; 20 g&uuml;nl&uuml;k s&uuml;re i&ccedil;erisinde bildirmelidir. G&ouml;nderen yetkilendirmediği &ouml;deme işlemini TT &Ouml;deme&rsquo;ye bildirdiği takdirde, derhal ve her hal&uuml;k&acirc;rda &Ouml;deme İşleminin ger&ccedil;ekleştirilmesini takip eden 13 (on&uuml;&ccedil;) ay i&ccedil;erisinde d&uuml;zeltme talebinde bulunabilecektir. G&ouml;nderenin ger&ccedil;ekleşmiş bir &Ouml;deme İşlemini yetkilendirmediğini veya işlemin doğru bir şekilde ger&ccedil;ekleşmediğini iddia etmesi durumunda, işlemin G&ouml;nderen tarafından onaylandığının ve doğru bir şekilde kaydedildiğinin ispatı durumunda, TT &Ouml;deme&rsquo;nin G&ouml;nderene karşı herhangi bir sorumluluğu bulunmayacaktır.<br /> <br /> <strong>4.7.1</strong>&nbsp;&Ouml;deme İşleminin G&ouml;nderen tarafından yetkilendirilmeksizin ya da hatalı olarak ger&ccedil;ekleştiğinin ispatı durumunda, işlem bedeli Satıcı/Alıcı veya Satıcının/Alıcının &Ouml;deme Hizmeti Sağlayıcısına aktarılmayarak TT &Ouml;deme tarafından G&ouml;nderene Temsilcileri aracılığıyla iade edecektir. İşlem bedeli Satıcı/Alıcı veya Satıcının/Alıcının &Ouml;deme Hizmeti Sağlayıcısına aktarılmış ise, TT &Ouml;deme s&ouml;z konusu tutarı Satıcı/Alıcı veya Satıcının/Alıcının &Ouml;deme Hizmeti Sağlayıcısından iade talep ederek G&ouml;nderene aktarır. Bu işlemler sebebiyle TT &Ouml;deme&rsquo;nin zarara uğraması durumunda, TT &Ouml;deme&rsquo;nin zararını s&ouml;z konusu bedelden mahsup etme hakkı Y&ouml;netmelik H&uuml;k&uuml;mleri uyarınca saklıdır.<br /> <br /> <strong>4.7.2</strong>&nbsp;Kayıp veya &ccedil;alıntı bir &Ouml;deme Aracının kullanılması ya da kişisel g&uuml;venlik bilgilerinin gereği gibi muhafaza edilmemesi sonucu &Ouml;deme Aracının ve Hassas &Ouml;deme Verilerinin başkaları tarafından kullanılması durumunda, G&ouml;nderen, yetkilendirmediği &Ouml;deme İşleminden doğan zararın 250 T&uuml;rk Lirasına kadar olan b&ouml;l&uuml;m&uuml;nden sorumludur. G&ouml;nderen, 4.5&rsquo;inci madde uyarınca yaptığı bildirimden sonra ger&ccedil;ekleşen yetkilendirmediği &ouml;deme işlemlerinden sorumlu olmayacaktır. Ancak G&ouml;nderen, &Ouml;deme Aracını hileli kullanması veya madde 4.5&rsquo;teki bildirim y&uuml;k&uuml;ml&uuml;l&uuml;ğ&uuml;n&uuml; kasten ve ağır ihmal ile yerine getirmemesi durumunda yetkilendirilmemiş işlemden doğan zararın tamamından sorumlu olacaktır.<br /> <br /> <strong>4.8</strong>&nbsp;TT &Ouml;deme tarafından sağlanan &ouml;deme hizmetlerinin genel şart ve &ouml;zelliklerine ilişkin değişiklikler ve g&uuml;ncellemeler y&uuml;r&uuml;rl&uuml;ğe girme tarihinden en az 30 (otuz) g&uuml;n &ouml;nce <a href="http://www.turktelekomodemehizmetleri.com/">http://www.turktelekomodemehizmetleri.com/</a> ve/veya <a href="http://www.pokus.com.tr">www.pokus.com.tr</a> internet sitesinden ve/veya Uygulama &uuml;zerinden ilan edilecektir. İlan edilen değişikliklere y&uuml;r&uuml;rl&uuml;k tarihinden &ouml;nce G&ouml;nderen tarafından itiraz edilmediği takdirde, değişiklikler G&ouml;nderen tarafından kabul edilmiş sayılacaktır. G&ouml;nderenin y&uuml;r&uuml;rl&uuml;k tarihine kadar değişiklikler ile ilgili kabul etmediği hususlar olması halinde S&ouml;zleşmeyi feshetme hakkı olup, bu hakkın kullanılmadığı durumda S&ouml;zleşme değişen koşullar ile birlikte uygulanmaya devam edilecektir.<br /> <br /> <strong>4.9</strong>&nbsp;G&ouml;nderen, S&ouml;zleşme&rsquo;nin imzalanması sırasında Temsilcilere ve TT &Ouml;deme&rsquo;ye başta mobil telefon numarası (MSISDN) olmak &uuml;zere verdiği bilgilerin doğru olduğunu, zaman i&ccedil;inde meydana gelebilecek değişiklikleri derhal Temsilcilere veya TT &Ouml;deme&rsquo;ye bildireceğini, değişikliğe ilişkin TT &Ouml;deme veya Temsilciler tarafından talep edilecek usul&uuml;ne uygun olarak d&uuml;zenlenmiş belgeleri temin edeceğini kabul, beyan ve taahh&uuml;t eder. Bu bilgilere dayanılarak yapılacak her t&uuml;rl&uuml; işlem ve g&ouml;nderilecek tebligatlar ge&ccedil;erli sayılacaktır. TT &Ouml;deme veya Temsilciler, işbu S&ouml;zleşme ile G&ouml;nderen tarafından sağlanan bilgilerde eksiklik, yanlışlık veya sahtelik bulunduğu yahut bilgilerin g&uuml;ncel olmadığı konusunda makul ş&uuml;phe duyduğu durumlarda işbu S&ouml;zleşme kapsamındaki hizmetleri vermeme, durdurma hakkına sahiptir.<br /> <br /> <strong>4.10</strong>&nbsp;G&ouml;nderen, işbu S&ouml;zleşmede belirtmiş olduğu adresin kanuni ikametg&acirc;hı olduğunu, bu adrese yapılacak tebligatların şahsına yapılmış sayılacağını, adresinde meydana gelen değişiklikleri, değişiklik tarihinden itibaren on beş g&uuml;n i&ccedil;inde TT &Ouml;deme veya Temsilcilere bildirmekle y&uuml;k&uuml;ml&uuml; olduğunu, adres değişikliğini s&ouml;z konusu s&uuml;re zarfında TT &Ouml;deme&rsquo;ye veya Temsilcilere bildirmemesi halinde eski adresine yapılacak bildirimlerin ge&ccedil;erli olacağını kabul, beyan ve taahh&uuml;t eder.<br /> <br /> <strong>4.11</strong>&nbsp;G&ouml;nderen, mal veya hizmetin sağlayıcısı (Satıcı) veya Satıcı&rsquo;nın &Ouml;deme Hizmeti Sağlayıcısı ile arasında &ccedil;ıkabilecek her t&uuml;rl&uuml; ihtilafta TT &Ouml;deme&rsquo;nin taraf olmadığını; burada sayılanlarla sınırlı olmaksızın, işleme itiraz etmesi, mal veya hizmetin iadesini talep etmesi, ayıplı mal veya hizmet iddiasında bulunması dahil T&uuml;keticinin Korunması Hakkında Kanun, Bor&ccedil;lar Kanunu ve İlgili Mevzuata dayanan taleplerini doğrudan ilgili Satıcıya ileteceğini, bu kapsamda doğacak talep, şikayet ve benzeri hallerde TT &Ouml;deme&rsquo;nin herhangi bir sorumluluğunun bulunmadığını kabul eder.<br /> <br /> <strong>4.12</strong>&nbsp;G&ouml;nderenin, Satıcıya &ouml;demekle y&uuml;k&uuml;ml&uuml; olduğu tutarları kısmen veya tamamen zamanında &ouml;dememesi nedeniyle Satıcı tarafından İlgili mevzuata uygun şekilde tahakkuk ettirilecek gecikme faizi veya cezai şartın da işbu S&ouml;zleşme kapsamında TT &Ouml;deme aracılığıyla tahsil edilebileceğini, Satıcının bu y&ouml;ndeki talimatına istinaden G&ouml;nderenin &Ouml;deme Hesabının ilgili tutar kadar bor&ccedil;landırılabileceğini kabul eder. Faiz veya cezai şart hesaplaması Satıcı tarafından ger&ccedil;ekleştirilecek olup G&ouml;nderen bu kapsamda TT &Ouml;deme&rsquo;den herhangi bir talepte bulunamaz.<br /> <br /> <strong>4.13</strong>&nbsp;Kanun&rsquo;un 12. maddesinin (e) bendinde yer alan, fatura &ouml;demelerine aracılık edilmesi hizmeti a&ccedil;ısından fatura &ouml;demeleri, faturası &ouml;denmek istenen ve TT &Ouml;deme&rsquo;nin anlaşmalı olduğu kurumların sistemleri ile iletişim sağlanarak ger&ccedil;ekleştirilmekte olup bu işlem TT &Ouml;deme anlık olarak ger&ccedil;ekleştirilmeye &ccedil;alışılmaktadır. Ancak işlemin azami tamamlanma s&uuml;resi, faturası &ouml;denmek istenen kurumun sistemlerine ve uygulamalarına bağlı olarak değişebilmekte olup TT &Ouml;deme, fatura &ouml;denmek istenen kurumun sistemleri nedeniyle meydana gelebilecek gecikme, aksaklık ya da &ouml;demenin yapılamaması hallerinden sorumlu değildir.<br /> <br /> <strong>4.14</strong>&nbsp;Kanun&rsquo;un 12. maddesinin (e) bendinde yer alan, fatura &ouml;demelerine aracılık edilmesi hizmeti esnasında G&ouml;nderen&rsquo;in faturasını &ouml;demek istediği kurum uygulamalarına g&ouml;re abonelik numarası, tesisat numarası, s&ouml;zleşme numarası gibi bilgileri girmesi de gerekebilecek olup bu bilgilerin doğru girilmesinden m&uuml;nhasıran G&ouml;nderen sorumludur. G&ouml;nderen, bu bilgilerin doğru girilmemesinden kaynaklı olarak &ouml;deme işleminin ger&ccedil;ekleştirilememesi halinde TT &Ouml;deme&rsquo;nin herhangi bir sorumluluğu olmadığını kabul ve taahh&uuml;t eder.<br /> <br /> <strong>4.15</strong>&nbsp;İşbu S&ouml;zleşme&rsquo;nin 5.7. maddesi h&uuml;k&uuml;mleri saklı kalmak &uuml;zere G&ouml;nderen, faturası &ouml;denmek istenen kurumun fatura bedeline ek olarak bu &ouml;deme y&ouml;nteminin kullanılması ile ilgili ek bedeller isteyebileceğini kabul eder.<br /> <br /> <strong>4.16</strong>&nbsp;TT &Ouml;deme, anlaşmalı olduğu fatura &ouml;demesi yapılabilecek kurumlara yenilerini ekleyebilir ya da anlaşmalı olduğu kurumlarla anlaşmalarını sonlandırabilir. G&ouml;nderen, TT &Ouml;deme&rsquo;ye bu kapsamda herhangi bir iddia veya talep iletemez.<br /> <br /> <strong>4.17</strong>&nbsp;G&ouml;nderen, &Ouml;deme Onayının Verileceği Cihaz&rsquo;ın, tanımda belirtilen teknik &ouml;zelliklere sahip olduğunu, aksi halde &Ouml;deme İşlemi&rsquo;nin ger&ccedil;ekleşmemesinden veya hatalı ger&ccedil;ekleşmesinden TT &Ouml;deme&rsquo;nin herhangi bir sorumluluğunun doğmayacağını kabul, beyan ve taahh&uuml;t eder.<br /> <br /> <strong>4.18</strong>&nbsp;G&ouml;nderen, d&ouml;viz ile satışı yapılan mal veya hizmetlere ilişkin &Ouml;deme İşlemlerinde Referans D&ouml;viz Kuru&rsquo;nun kullanılacağı konusunda aydınlatılmış olduğunu kabul, beyan ve taahh&uuml;t eder. Her hal&uuml;karda Referans D&ouml;viz Kuru&rsquo;ndaki değişiklikler derhal ge&ccedil;erli olacaktır.<br /> <br /> <strong>4.19</strong>&nbsp;G&ouml;nderen, kısıtlı, k&uuml;&ccedil;&uuml;k, kayyım atanmış veya bir yasal temsilci ile temsil olunacak bir hukuki stat&uuml;ye sahipse, TT &Ouml;deme tarafından sağlanacak SMS, m&uuml;şteri hizmetleri &ccedil;ağrı merkezi, mobil uygulama veya internet sitesi platformlarından Yasal Temsilci Onayı prosed&uuml;r&uuml;n&uuml; tamamlayacağını kabul, beyan ve taahh&uuml;t eder. G&ouml;nderen, beyan edilen yasal stat&uuml;n&uuml;n doğruluğunun teyidi maksadıyla herhangi bir bilgi veya belge talebinde bulunulması halinde, TT &Ouml;deme veya ilgili merciye s&ouml;z konusu yasal stat&uuml;y&uuml; tevsik edici dok&uuml;manı tevdi etmekle y&uuml;k&uuml;ml&uuml;d&uuml;r.<br /> <br /> <strong>4.20</strong>&nbsp;G&ouml;nderen, &ouml;deme hizmetlerinde kullanacağı fonun Mobil &Ouml;deme Hizmeti yoluyla sağlanması durumunda, fonu geri &ccedil;ekmek istediğinde geri &ccedil;ekme işleminin ancak faturaya yansıtma yoluyla yapılabileceğini, bu durumda, G&ouml;nderen&rsquo;in, Temsilci&rsquo;nin abonelik &uuml;cretine ilişkin alacağının iade konusu fondan mahsup edilme yoluyla tahsil edileceğini kabul, beyan ve taahh&uuml;t eder.<br /> <br /> <strong>5. TT &Ouml;deme&rsquo;nin HAK VE Y&Uuml;K&Uuml;ML&Uuml;L&Uuml;KLERİ</strong><br /> <br /> <strong>5.1</strong>&nbsp;Satıcılar tarafından satışa sunulacak veya temin edilecek &uuml;r&uuml;n ve hizmetlerin G&ouml;nderen tarafından elektronik haberleşme cihazı veya başka bir y&ouml;ntem aracılığıyla &Ouml;deme Emri verilerek satın alınması veya TT &Ouml;deme&rsquo;nin sunduğu diğer &Ouml;deme Hizmetlerinden faydalanabilmesi i&ccedil;in G&ouml;nderene Temsilcileri aracılığıyla TT &Ouml;deme tarafından &Ouml;deme Hizmetleri sağlanacaktır. İşbu S&ouml;zleşme kapsamında G&ouml;nderene sağlanacak olan &Ouml;deme Hizmetleri, S&ouml;zleşme&rsquo;nin taraflarca imzalanmasından/onaylanmasından sonra sağlanmaya başlanacaktır.<br /> <br /> <strong>5.2</strong>&nbsp;Satıcılar tarafından satışa sunulacak veya temin edilecek &uuml;r&uuml;n ve hizmetlerin G&ouml;nderen tarafından elektronik haberleşme cihazı veya başka bir y&ouml;ntem aracılığıyla &Ouml;deme Emri verilerek satın alındığı durumlarda, G&ouml;nderenin Satıcı&rsquo;dan satın aldığı &uuml;r&uuml;n ve hizmetlerin bedelleri, TT &Ouml;deme&rsquo;nin Temsilcisi tarafından d&uuml;zenlenecek haberleşme faturalarının &ldquo;Tahsilatına Aracılık Edilen Bedeller&rdquo; &ldquo;Vergiye Tabi Olmayan &Uuml;cretler&rdquo; veya benzer isimli kısmında g&ouml;sterilmek suretiyle T&uuml;rk Lirası olarak tahsil edilecek olup, ilgili &uuml;r&uuml;n/hizmetlere ait faturaların d&uuml;zenlenmesi ve G&ouml;nderene iletilmesi sorumluluğu TT &Ouml;deme&rsquo;ye ait olmayıp, Satıcıya aittir. G&ouml;nderen&rsquo;in Mobil &Ouml;deme Hizmeti kapsamında, TT &Ouml;deme&rsquo;nin sunduğu elektronik para hizmetlerinden faydalanması halinde ise, TT &Ouml;deme, Elektronik Para ihra&ccedil; etmek &uuml;zere G&ouml;nderen&rsquo;den tahsil edeceği fonlara ilişkin alınan tutarı g&ouml;steren dekontu kağıt &uuml;zerinde veya elektronik ortamda G&ouml;nderen&rsquo;e sunacaktır.<br /> <br /> <strong>5.3</strong>&nbsp;TT &Ouml;deme, Satıcı/Alıcı veya Satıcının/Alıcının &Ouml;deme Hizmeti Sağlayıcısına yalnızca G&ouml;nderenden kendisine doğru bir şekilde ve Y&ouml;netmelik&rsquo;in 52 (1) maddesi uyarınca iletilen bedelleri ve işbu S&ouml;zleşme ve İlgili Mevzuat h&uuml;k&uuml;mleri doğrultusunda G&ouml;nderene iade edilmeyen tutarların aktarılmasından sorumludur. G&ouml;nderen, Satıcı veya Satıcının &Ouml;deme Hizmeti Sağlayıcısının kendisinden tahsil edilmeyen tutarlara ilişkin doğrudan kendisinden talepte bulunabileceğini ve bu kapsamda TT &Ouml;deme&rsquo;nin hi&ccedil;bir sorumluluğunun olmayacağını kabul eder. TT &Ouml;deme bu sorumluluğunu yerine getirmediği takdirde &ouml;deme işleminin ger&ccedil;ekleşmemiş veya hatalı ger&ccedil;ekleşmiş kısmını gecikmeden G&ouml;nderene&rsquo;e/Kullanıcı&rsquo;ya iade etmekle ve bu kapsamda G&ouml;nderen/Kullanıcı&rsquo;nın herhangi bir faiz veya &uuml;cret &ouml;demesinin s&ouml;z konusu olması halinde, ilgili tutarları &ouml;demekle sorumlu olacaktır.<br /> <br /> <strong>T&uuml;keticiler Hakkında:</strong>&nbsp;İşbu S&ouml;zleşme kapsamındaki hizmetlerin ayıplı sunulması halinde 6502 sayılı T&uuml;keticinin Korunması Hakkında Kanun&rsquo;un 15 (1) maddesi kapsamında, Kullanıcı &Ouml;deme Hizmeti&rsquo;nin yeniden g&ouml;r&uuml;lmesi, &Ouml;deme Hizmeti sonucu ortaya &ccedil;ıkan ayıbın giderilmesi, ayıp oranında indirim talep etme veya S&ouml;zleşme&rsquo;den d&ouml;nme haklarından birini kullanmakta serbesttir.<br /> <br /> <strong>5.4</strong>&nbsp;İşbu S&ouml;zleşme kapsamında Satıcı&rsquo;dan alınan mal veya hizmet i&ccedil;in ger&ccedil;ekleştirilen &ouml;deme işlemlerinde TT &Ouml;deme&rsquo;nin y&uuml;k&uuml;ml&uuml;l&uuml;ğ&uuml;, Kanun ve Y&ouml;netmelik &ccedil;er&ccedil;evesinde G&ouml;nderen tarafından kendisine iletilen &ouml;deme emri veya onaylarının yerine getirilmesi ve kendisine Temsilcileri &uuml;zerinden aktarılan meblağların ilgili Kanun ve Y&ouml;netmelik &ccedil;er&ccedil;evesinde Satıcıya veya Satıcının &Ouml;deme Hizmeti Sağlayıcısına aktarılmasından ibaret olup, ilgili &uuml;r&uuml;n ya da hizmetin satın alınmasına, teslim edilmesine, &uuml;r&uuml;n ve hizmetlerdeki muhtemel ayıplara, caymaya ve sair hususlara ilişkin TT &Ouml;deme&rsquo;nin ya da Temsilcilerinin herhangi bir y&uuml;k&uuml;ml&uuml;l&uuml;k ya da sorumlulukları bulunmamaktadır.<br /> <br /> <strong>5.5</strong>&nbsp;TT &Ouml;deme, &Ouml;deme Aracının hileli veya yetkisiz kullanımı ş&uuml;phesini doğuran durumlarda veya her t&uuml;rl&uuml; Fraud halinde &Ouml;deme Aracını kullanıma kapatabilir ve bu durumu G&ouml;nderene bildirir. S&ouml;zleşme, ayrıca G&ouml;nderen&rsquo;nin &Ouml;deme Aracı&rsquo;nın kullanıma kapatılması halinde askıya alınacaktır.TT &Ouml;deme&rsquo;nin bu durumda herhangi bir ihbar s&uuml;resi vermeksizin S&ouml;zleşmeyi derhal feshetme hakkı da saklıdır. &Ouml;deme Aracının kullanıma kapatılma sebebi ortadan kalktığında, TT &Ouml;deme, &Ouml;deme Aracını kullanıma a&ccedil;abilir veya G&ouml;nderene yeni bir &Ouml;deme Aracı temin edebilir.<br /> <br /> <strong>5.6</strong>&nbsp;TT &Ouml;deme, G&ouml;nderenin işbu S&ouml;zleşmede d&uuml;zenlenen y&uuml;k&uuml;ml&uuml;l&uuml;klerini yerine getirmemesi, &Ouml;deme İşleminin ger&ccedil;ekleştirilmesinin 5549 sayılı Su&ccedil; Gelirlerinin Aklanmasının &Ouml;nlenmesi Hakkında Kanun ve İlgili Mevzuata aykırılık oluşturması ve diğer haklı sebeplerin varlığı halinde &Ouml;deme Emrini reddetme hakkına sahip olup, ret gerek&ccedil;esini G&ouml;nderene bildirir. Reddin haklı sebebe dayanması halinde TT &Ouml;deme&rsquo;nin G&ouml;nderene yapacağı bildirim i&ccedil;in &uuml;cret talep etme hakkı saklıdır.<br /> <br /> <strong>5.7</strong>&nbsp;İşbu S&ouml;zleşme&rsquo;ye <a href="http://www.pokus.com.tr">www.pokus.com.tr</a> adresinden erişilebilecektir. İşbu S&ouml;zleşme kapsamında verilen hizmetler ile ilgili İlgili Mevzuat kapsamında TT &Ouml;deme veya Temsilciler tarafından yapılacak, &Ouml;deme İşlemine &ouml;zg&uuml; referans bilgisi, Satıcıya/Alıcıya ilişkin bilgi, G&ouml;nderenin/Kullanıcının &ouml;deme hesabının bor&ccedil;landırıldığı para birimi veya &Ouml;deme Emrinde belirtilen para birimi cinsinden &Ouml;deme İşlemi tutarı, &Ouml;deme İşlemi i&ccedil;in G&ouml;nderen/Kullanıcı tarafından &ouml;denecek toplam &uuml;cret ve &uuml;cretlerin d&ouml;k&uuml;m&uuml;, varsa &Ouml;deme İşleminde uygulanan d&ouml;viz kuru bilgisi ve bu d&ouml;viz kuru kullanılarak hesaplanan &Ouml;deme İşleminin tutarı, &Ouml;deme Emrinin alındığı veya G&ouml;nderenin/Kullanıcının hesabının bor&ccedil;landırıldığı tarihe ilişkin bilgi vesair t&uuml;m bildirimler SMS, Uygulama Ara y&uuml;zleri, USSD, WAP, IVR aracılığıyla veya G&ouml;nderenin faturasında paylaşılacaktır. G&ouml;nderenin/Kullanıcının ek bilgi, daha sık bilgilendirme veya bilgilerin işbu maddede &ouml;ng&ouml;r&uuml;lenden farklı y&ouml;ntemlerle iletilmesini talep etmesi halinde, TT &Ouml;deme&rsquo;nin G&ouml;nderenden/Kullanıcıdan ek &uuml;cret talep etme hakkı saklıdır.<br /> <br /> <strong>5.8</strong>&nbsp;TT &Ouml;deme tarafından sunulan &Ouml;deme Hizmetlerinin kullanılabileceği mecralar ve &Ouml;deme Hizmetleri kullanılarak temin edilebilecek mal, hizmet ve &Ouml;deme Hizmetlerini belirleme yetkisi m&uuml;nhasıran TT &Ouml;deme&rsquo;ye aittir. TT &Ouml;deme bu mecraları ve temin edilecek mal, hizmet veya &Ouml;deme Hizmetlerini dilediği zamanda herhangi bir bildirim y&uuml;k&uuml;ml&uuml;l&uuml;ğ&uuml; s&ouml;z konusu olmaksızın değiştirebilir.<br /> <br /> <strong>5.9</strong>&nbsp;G&ouml;nderen tarafından belirtilen kimlik tanımlayıcının ve/veya Hassas &Ouml;deme Verisinin hatalı olması halinde TT &Ouml;deme, &Ouml;deme İşleminin ger&ccedil;ekleştirilememesinden sorumlu tutulamaz. Hatalı &ouml;deme işlemine konu olan fonların geri alınması i&ccedil;in TT &Ouml;deme&rsquo;nin G&ouml;nderenden &uuml;cret talep etme hakkı saklıdır.<br /> <br /> <strong>5.10</strong>&nbsp;Satıcı/Alıcı tarafından yetkilendirilmiş veya Satıcı/Alıcı aracılığıyla başlatılan &Ouml;deme İşleminde yetkilendirme sırasında &Ouml;deme İşlemine ilişkin tutarın tam olarak belirtilmemesi ve ger&ccedil;ekleşen &Ouml;deme İşlemi tutarının, harcama ge&ccedil;mişi, s&ouml;zleşme şartları ve ilgili diğer hususlar dikkate alınarak &ouml;ng&ouml;r&uuml;len tutarı aşması halinde, G&ouml;nderen ger&ccedil;ekleşen &Ouml;deme İşlemi tutarı kadar geri &ouml;deme yapılmasını talep edebilir. Alınan malın t&uuml;ketilmesinden veya hizmetin alınmasından sonra geri &ouml;deme talep edilemez. TT &Ouml;deme G&ouml;nderenden talebine ilişkin ger&ccedil;eğe dayalı kanıtlar sunmasını isteyebilir. Geri &ouml;deme talebi, &Ouml;deme İşleminin ger&ccedil;ekleştirildiği tarihten itibaren 2 (iki) ay i&ccedil;inde yapılmalıdır.<br /> <br /> <strong>5.11</strong>&nbsp;&Ouml;deme İşlemine ilişkin onayın doğrudan TT &Ouml;deme&rsquo;ye verilmesi veya &ouml;demenin ger&ccedil;ekleştirilmesi gereken tarihten en az 1 (bir) ay &ouml;nce G&ouml;nderene bildirimde bulunulması hallerinde &Ouml;deme İşlemi i&ccedil;in G&ouml;nderenin herhangi bir geri &ouml;deme talep etme hakkı bulunmamaktadır.<br /> <br /> <strong>5.12</strong>&nbsp;TT &Ouml;deme, G&ouml;nderenin geri &ouml;deme talebini aldığı tarihten itibaren 10 (on) iş g&uuml;n&uuml; i&ccedil;inde kabul ederek geri &ouml;demeyi eksiksiz yapar ya da gerek&ccedil;eleri ile birlikte reddederek başvurabileceği hukuki yolları bildirir.<br /> <br /> <strong>5.13</strong>&nbsp;TT &Ouml;deme, Kullanıcı&rsquo;ya Elektronik Para ihra&ccedil; hizmeti sunabilir. Bu halde TT &Ouml;deme, kendisi ya da Temsilcileri aracılığı ile Kullanıcı&rsquo;dan aldığı fonları gecikmeksizin Elektronik Para&rsquo;ya &ccedil;evirir. TT &Ouml;deme, Elektronik Para ihra&ccedil; etmek &uuml;zere Kullanıcı&rsquo;dan fon aldığı veya veya Elektronik Para karşılığı fonun Mobil &Ouml;deme Hizmeti kapsamında &ouml;deneceği durumlarda , fonlara ilişkin alınan tutarı g&ouml;steren dekontu k&acirc;ğıt &uuml;zerinde veya elektronik ortamda G&ouml;nderen&rsquo;e sunacaktır.<br /> <br /> <strong>5.14</strong>&nbsp;Kullanıcı, TT &Ouml;deme&rsquo;nin yukarıda bahsi ge&ccedil;en elektronik para fonlarına ilgili Mevzuat gereği faiz işletemeyeceğini, bunlar &uuml;zerinde G&ouml;nderen lehine Elektronik Para&rsquo;nın tutulduğu s&uuml;reye veya fon tutarına bağlı olarak menfaat sağlayamayacağını ve TT &Ouml;deme&rsquo;den bu y&ouml;nde bir talepte bulunmayacağını kabul ve taahh&uuml;t eder.<br /> <br /> <strong>5.15</strong>&nbsp;Kullanıcı, TT &Ouml;deme&rsquo;nin belirlediği y&ouml;ntemlerle TT &Ouml;deme nezdinde sahip olduğu Elektronik Para&rsquo;nın kısmen veya tamamen Fon&rsquo;a &ccedil;evrilmesi talebinde bulunabilecektir. Ş&ouml;yle ki, Kullanıcı, Elektronik Para ihracı amacıyla sağladığı Fonu;<br /> <br /> (i) kendi banka hesabından ve/veya TT &Ouml;deme&rsquo;nin belirlediği nakit kabul edilen y&ouml;ntemler (ATM&rsquo;den ve Temsilciler vasıtasıyla nakit yatırma gibi) ile ve/veya diğer bir Pokus Kullanıcısı tarafından yapılan para transfer işlemi ile sağladığı takdirde, Uygulama i&ccedil;erisinde talepte bulunarak,<br /> <br /> (ii) Kredi Kart&rsquo;ından aktarmak suretiyle ve/veya iş bu madde de belirtilmemiş başka bir y&ouml;ntemle sağladığı takdirde &ccedil;ağrı merkezi vasıtasıyla talepte bulunarak,https://pokus.com.tr/limitler-ve-ucretler linkinde belirtilen &uuml;cretler dahilinde Elektronik Para&rsquo;nın kısmen veya tamamen Fon&rsquo;a &ccedil;evrilmesi talebinde bulunabilecektir.<br /> <br /> TT &Ouml;deme, Mevzuat&rsquo;ta aksi y&ouml;nde bir hak veya y&uuml;k&uuml;ml&uuml;l&uuml;ğ&uuml; bulunmadığı s&uuml;rece, Kullanıcı&rsquo;nın bu talebi &uuml;zerine IBAN numarası dahil t&uuml;m bilgilerin TT &Ouml;deme&rsquo;ye eksiksiz olarak iletilmesini ve gerekli olması durumda yasal y&uuml;k&uuml;ml&uuml;l&uuml;klerin yerine getirilmesini takiben 30 (otuz) g&uuml;n i&ccedil;erisinde Elektronik Para karşılığı kadar Fon&rsquo;un Kullanıcı tarafından iletilen IBAN numaralı hesaba aktarımına ilişkin işlemleri ger&ccedil;ekleştirecektir.<br /> <br /> Fona &ccedil;evirme işlemlerinde, iade yapılacak IBAN bilgisinin hesabı sahibine ait olması şartı aranacaktır ve ilgili kontroller TT &Ouml;deme tarafından m&uuml;nhasıran belirlenecek y&ouml;ntemler ile yapılabilecektir. Kullanıcı, bu durumda <a href="https://pokus.com.tr/limitler-ve-ucretler">https://pokus.com.tr/limitler-ve-ucretler</a> web sitesinde belirtilen tutarda bir Fon&rsquo;a &ccedil;evirme &uuml;cretinin kendisine iletilecek toplam bedelden mahsup edileceğini kabul eder. Kullanıcı tarafından iadesi talep edilen tutarın ve/veya aylık bakiye ve/veya kullanım tutarının y&uuml;r&uuml;rl&uuml;kteki mevzuat ile &ouml;ng&ouml;r&uuml;len limitlerin &uuml;zerinde olması halinde, kimlik tespiti yaptırması gerekeceğini, aksi halde bu tespit tamamlanana kadar kendisine bir iade yapılmasının s&ouml;z konusu olmayacağını kabul eder.<br /> <br /> G&ouml;nderen, Elektronik para karşılığı fonun Mobil &Ouml;deme Hizmeti kapsamında &ouml;dendiği durumlarda, Pokus Uygulamasında yer alan şartlar &ccedil;er&ccedil;evesinde olmak &uuml;zere, elektronik paranın yalnızca Satıcı&rsquo;dan mal veya hizmet temin etmek i&ccedil;in veya Pokus Uygulaması&rsquo;nda yer alan fatura &ouml;deme hizmetleri i&ccedil;in kullanılabileceğini bildiğini, kabul, beyan ve taahh&uuml;t eder. G&ouml;nderen, Elektronik para karşılığı fonun Mobil &Ouml;deme Hizmeti kapsamında &ouml;dendiği durumlarda, fonun geri &ouml;denmesinin ancak faturasına yansıtılarak yapılabileceğini bildiğini kabul eder. Geri &ouml;demeden &ouml;nce hattın iptal edilmiş olduğu durumlarda, elektronik paranın geri &ouml;denmesi fon yatıranın adına a&ccedil;ılmış bir &ouml;deme hesabına da yapılabilecektir. G&ouml;nderen&rsquo;in &ccedil;ağrı merkezi vasıtasıyla talepte bulunması gerekmektedir. Pokus Uygulaması&rsquo;nda yer alan şartlar &ccedil;er&ccedil;evesinde iade s&uuml;re&ccedil;leri y&uuml;r&uuml;t&uuml;lecektir.<br /> <br /> <strong>5.16</strong>&nbsp;TT &Ouml;deme tarafından ihra&ccedil; edilen Elektronik Para, en ge&ccedil; 1 (bir) yıl i&ccedil;erisinde kullanılmalıdır. S&ouml;zleşme sona ermeden veya Elektronik Para&rsquo;nın son kullanma tarihinden &ouml;nce ya da son kullanma tarihini 1 (bir) yıl ge&ccedil;tikten sonra fona &ccedil;evrilmesi talep edilen Elektronik Para i&ccedil;in TT &Ouml;deme&rsquo;nin &uuml;cret talep etme hakkı saklıdır.<br /> <br /> <strong>5.17</strong>&nbsp;TT &Ouml;deme, işbu S&ouml;zleşme kapsamında sağladığı &Ouml;deme Hizmetleri karşılığında bir &uuml;cret talep edebilir. Elektronik Para ihracı hizmetleri ile birlikte Kanun&rsquo;un 12. Maddesinin 1. Fıkrasının (a) bendinde yer alan &ouml;deme hesabının işletilmesi ile Kanun&rsquo;un 12. Maddesinin 1. Fıkrasının (b) bendinde yer alan para transferi hizmetleri kapsamında ger&ccedil;ekleştirilecek &Ouml;deme İşlemleri ile ilgili &uuml;cretlere ilişkin tutarlar <a href="https://pokus.com.tr/limitler-ve-ucretler">https://pokus.com.tr/limitler-ve-ucretler</a> linkinde sunulmuştur. Ayrıca, G&ouml;nderen&rsquo;in, mal ve hizmet bedelini, elektronik haberleşme faturasının son &ouml;deme tarihine kadar &ouml;dememesi halinde, TT &Ouml;deme elektronik haberleşme faturasının son &ouml;deme tarihinden itibaren gecikme s&uuml;resine ve gecikme tutarına g&ouml;re kademeli olarak G&ouml;nderen&rsquo;den Gecikmiş Tahsilat Bedeli talep edebilir. TT &Ouml;deme&rsquo;nin işbu S&ouml;zleşme kapsamında sağladığı &Ouml;deme Hizmetleri karşılığında tahsil edeceği &uuml;cret ile Gecikmiş Tahsilat Bedeli tutarları <a href="http://turktelekom.ly/mobilodeme">http://turktelekom.ly/mobilodeme</a> linkinde yer alan &ldquo;T&uuml;rk Telekom Mobil &Ouml;deme &Uuml;cretlendirme ve Limit Bilgileri&rdquo; başlığı altında belirtilmiştir.<br /> <br /> <strong>5.18</strong>&nbsp;TT &Ouml;deme, G&ouml;nderen tarafından &Ouml;deme Hizmetine konu tutarın TT &Ouml;deme&rsquo;nin Temsilcisine &ouml;dendiği tarihten itibaren azami 30 g&uuml;n i&ccedil;erisinde &Ouml;deme Hizmetini tamamlayacaktır.<br /> <br /> <strong>5.19</strong>&nbsp;TT &Ouml;deme, işbu S&ouml;zleşme tahtındaki &Ouml;deme Hizmetleri&rsquo;ni G&ouml;nderen&rsquo;e TT &Ouml;deme&rsquo;ye veya Temsilci&rsquo;ye [SMS] g&ouml;nderilmesi, &ouml;deme emrinin başlatılmasından sonra TT &Ouml;deme veya Temsilci tarafından &ouml;deme emrinin tek kullanımlık şifre ile teyit edilerek &ouml;deme emrinin tamamlanması [OTP], interaktif sesli yanıt [IVR] şeklinde onay verilmesi vb. y&ouml;ntemler dahil ancak bunlarla sınırlı olmamak &uuml;zere uygun g&ouml;receği kanal ve platformlarda sunabilir.<br /> <br /> <strong>5.20</strong>&nbsp;TT &Ouml;deme, &Ouml;deme Hizmeti&rsquo;ni Doğrudan Bor&ccedil;landırma yoluyla sunabilir.<br /> <br /> <strong>5.21</strong>&nbsp;TT &Ouml;deme, Doğrudan Bor&ccedil;landırma y&ouml;ntemiyle ger&ccedil;ekleştirilen &Ouml;deme İşlemlerinde G&ouml;nderen&rsquo;in &ouml;deme hesabının ne kadar bor&ccedil;landırıldığı, toplam &uuml;cret ve &uuml;cretlerin d&ouml;k&uuml;m&uuml;n&uuml;, &ouml;deme emrinin alındığı veya G&ouml;nderen&rsquo;in hesabının bor&ccedil;landırıldığı tarihe ilişkin bilgiyi G&ouml;nderen&rsquo;e uygun iletişim kanallarından sağlayacağını kabul ve taahh&uuml;t eder.</li>
+</ol>
+<p><strong>5.22</strong> TT &Ouml;deme;&nbsp; kullanıcıya ait Pokus Kart&rsquo;ın&nbsp; son kullanma tarihinin (SKT) dolması durumunda kartın yenilenmesi ve tahsil edilecek &uuml;cretler hakkında kullanıcıyı, kart s&uuml;resi dolmadan &ouml;nce kayıtlı iletişim kanalları &uuml;zerinden bilgilendirir.&nbsp; Kullanıcı, s&uuml;re dolumundan en az 30 g&uuml;n &ouml;nce yazılı olarak veya ilgili kanallar (Mobil Uygulama/&Ccedil;ağrı Merkezi) &uuml;zerinden aksi y&ouml;nde talebini bildirmedik&ccedil;e, TT &Ouml;deme kartı otomatik olarak yenileme hakkına sahiptir. TT &Ouml;deme, s&uuml;resi dolan Kartları yenileyip yenilememekte serbesttir, dilerse yenilemeyebilir. Kart yenilenmediği takdirde kullanıcıya herhangi bir bildirimde bulunmak zorunda değildir. Pokus Kart&rsquo;ın s&uuml;resinin dolması veya kullanıcının talebi &uuml;zerine, kullanıcıya dijital kanallar &uuml;zerinden &nbsp;kullanıma hazır &uuml;cretsiz sanal kart oluşturulacaktır. Kartın yenilenmesi hakkında g&uuml;ncel &uuml;cret tarifesine&nbsp;<a href="https://www.pokus.com.tr/">www.pokus.com.tr</a>&nbsp;adresinden veya 444 72 79 numaralı &Ccedil;ağrı Merkezinden erişilebilir.TT &Ouml;deme; kullanıcı adına tanımlanacak kartın &ouml;deme şemasını( Visa, Mastercard, Troy vb.) tamamen kendi iradesiyle belirleyebilir.</p>
+<p>&nbsp;</p>
+<ol start="6">
+<li><strong>TR KAREKOD İLE &Ouml;DEME İŞLEMLERİNİN FATURAYA YANSITMA SE&Ccedil;ENEĞİ İLE GER&Ccedil;EKLEŞTİRİLMESİ</strong></li>
+</ol>
+<p><strong>&nbsp;</strong></p>
+<p><strong>6.1.</strong>Kullanıcı, TR Karekod işlemlerini ger&ccedil;ekleştirirken faturaya yansıtma se&ccedil;eneğini se&ccedil;mesi halinde, yalnızca belirlenen TR Karekod ile &ouml;deme işlemleri i&ccedil;in Kullanıcı adına bir sanal kart oluşturulacağını bildiğini kabul ve beyan eder. &nbsp;Taraflar, iş bu sanal kartın, genel kullanıma a&ccedil;ık olmayıp yalnızca belirlenen &ouml;demelerde kullanılabileceği konusunda mutabık kalmışlardır. Faturaya yansıtma se&ccedil;eneği ile ger&ccedil;ekleştirilen TR Karekod ile &ouml;deme işlemlerinde işlem &uuml;creti faturaya yansıtılan bedelden d&uuml;ş&uuml;lerek ve &uuml;cret sonrası bakiye kalan bedel karta yansıtılarak tahsil edilir. Bu madde kapsamındaki işlemlerde <a href="https://pokus.com.tr/limitler-ve-ucretler">https://pokus.com.tr/limitler-ve-ucretler</a>&nbsp; linkinde&nbsp; belirtilen &uuml;cretler uygulanacaktır.</p>
+<p><strong>6.2.</strong> Kullanıcı, TR Karekod işlemlerini faturaya yansıtma se&ccedil;eneği ile ger&ccedil;ekleştirirken, mobil &ouml;deme yoluyla Pokus elektronik para hesabına işlem tutarı kadar anlık bakiye y&uuml;kleneceğini, y&uuml;klenen bakiyenin yalnızca TR Karekod ile &ouml;deme işleminin ger&ccedil;ekleştirilmesi i&ccedil;in kullanılabileceğini ve bu kapsamda işlem tutarının&nbsp;TT Mobil faturasına yansıtılacağını bildiğini kabul, beyan ve taahh&uuml;t eder.</p>
+<p><strong>6.3.</strong> TR Karekod ile ger&ccedil;ekleştirilen &ouml;deme işlemleri, kartlı &ouml;deme sistemleri &ccedil;er&ccedil;evesinde y&uuml;r&uuml;t&uuml;lecek olup, ilgili takas ve iade s&uuml;re&ccedil;leri kartlı &ouml;deme sistemlerine uygun bir şekilde TT &Ouml;deme tarafından işbu S&ouml;zleşme kapsamında y&uuml;r&uuml;t&uuml;lecektir.</p>
+<ol start="7">
+<li><br /> <br /> <strong> ORTAK H&Uuml;K&Uuml;MLER</strong><br /> <br /> <strong>7.1</strong>İşbu S&ouml;zleşme ve İlgili Mevzuat uyarınca Uzaktan İletişim Aracı ve sair y&ouml;ntemlerle G&ouml;nderene yapılacak t&uuml;m bildirimlerin ispatında TT &Ouml;deme ve Temsilcilerin işlem kayıtları esas alınacak, uyuşmazlık halinde delil olarak kabul edilecektir. Taraflar, Uzaktan İletişim Aracı ile kurulacak olan S&ouml;zleşmelerde, yaşanacak herhangi bir eksiklik veya aksaklık halinde S&ouml;zleşme&rsquo;nin G&ouml;nderen tarafından onaylanmasına ilişkin işlemin tamamlanması ve bu onayın kayıt altına alınması i&ccedil;in makul el&ccedil;ide elinden gelen &ccedil;abayı sarf edecektir.<br /> <br /> <strong>7.2</strong>İşbu S&ouml;zleşme&rsquo;nin Uzaktan İletişim Aracı kullanılarak kurulması halinde G&ouml;nderen tarafından sağlanan her t&uuml;rl&uuml; bilgi, belge, onay vs. hukuka uygun bir bi&ccedil;imde 10 yıl s&uuml;reyle saklanacaktır. G&ouml;nderen, &ouml;zellikle TCMB, BDDK, MASAK ve BTK başta olmak &uuml;zere herhangi bir kamu kurumu veya bağımsız idari otorite mevzuatı gereği G&ouml;nderen&rsquo;den alınması gereken bir bilgi ve belgenin g&uuml;ncellenmesi ihtiyacı doğduğu durumda, s&ouml;z konusu belgenin g&uuml;ncellenmesi i&ccedil;in makul kolaylığı sağlamayı kabul, beyan ve taahh&uuml;t eder.<br /> <br /> <strong>7.3</strong>&nbsp;&Ouml;deme İşleminin yabancı para birimi ile ger&ccedil;ekleştirilmesi durumunda TCMB efektif d&ouml;viz kuru referans d&ouml;viz kuru olarak kabul edilecek, referans d&ouml;viz kurundaki değişiklikler derhal ge&ccedil;erli olacaktır.<br /> <br /> <strong>7.4</strong>&nbsp;Tarafların kontrolleri dışında meydana gelen, &ouml;nlenmesi m&uuml;mk&uuml;n olmayan ve tarafların işbu S&ouml;zleşme ile y&uuml;k&uuml;mlendikleri edimlerini yerine getirmelerine doğrudan engel nitelikteki olayların (M&uuml;cbir Sebepler) meydana gelmesi halinde, işbu S&ouml;zleşme kapsamındaki &Ouml;deme İşlemlerinin ger&ccedil;ekleştirilmesine ilişkin TT &Ouml;deme ve Temsilcilerin hi&ccedil;bir sorumluluğu bulunmayacak, TT &Ouml;deme S&ouml;zleşmeyi tek taraflı ve tazminatsız olarak feshedebilecektir.<br /> <br /> <strong>7.5</strong>&nbsp;Taraflar, TCMB, MASAK, BDDK ve BTK başta olmak &uuml;zere ilgili diğer kamu kurum ve kuruluşlarının işbu S&ouml;zleşmeye m&uuml;dahalede bulunması veya işbu S&ouml;zleşmenin imzalanmasından sonra y&uuml;r&uuml;rl&uuml;ğe girecek d&uuml;zenlemeler nedeniyle S&ouml;zleşmedeki h&uuml;k&uuml;mlerin değişmesi veya kaldırılması zorunluluğunun doğması halinde, s&ouml;z konusu değişikliklere uymayı kabul ve taahh&uuml;t eder. S&ouml;z konusu d&uuml;zenlemeler nedeniyle S&ouml;zleşmenin ifasının kısmen veya tamamen imk&acirc;nsız hale gelmesi veya S&ouml;zleşmenin mali dengesinin orantısız bir şekilde değişmesi sonucunun ortaya &ccedil;ıkması halinde, bu durum M&uuml;cbir Sebep kabul edilecektir.<br /> <br /> <strong>7.6</strong>&nbsp;G&ouml;nderen, işbu S&ouml;zleşme kapsamında ger&ccedil;ekleştirdiği her t&uuml;rl&uuml; işleme ilişkin bilgi ve dok&uuml;mantasyonun S&ouml;zleşme kapsamındaki hizmetlerin ger&ccedil;ekleştirilmesi amacı ile TT &Ouml;deme tarafından Temsilciler ile paylaşılabileceğini kabul ve beyan eder. G&ouml;nderene ait bilgiler TT &Ouml;deme&rsquo;nin yasal y&uuml;k&uuml;ml&uuml;l&uuml;klerinin yerine getirilmesi amacıyla ilgili kurum ve kuruluşlarla paylaşılabilecek ve/veya anonim hale getirilerek kullanılabilecektir. G&ouml;nderen, TCMB, BDDK, BTK veya sair kurum ve kuruluşlar tarafından y&uuml;r&uuml;rl&uuml;kte bulunan d&uuml;zenlemeler kapsamında talep edilebilecek bilgi ve belgeleri derhal TT &Ouml;deme ve/veya ilgili kuruma teslim ve ibraz etmeyi kabul ve taahh&uuml;t eder.<br /> <br /> <strong>7.7</strong>&nbsp;TT &Ouml;deme, işbu S&ouml;zleşme kapsamındaki hizmetlerin sunulması i&ccedil;in bilgi paylaşımının zorunlu olduğu iş ortakları, grup şirketleri, ilgili mal veya hizmetlerin sağlayıcıları ve fon aktarımı yapılan sair taraflar ile G&ouml;nderene ait kişisel veri ve işlem bilgilerini paylaşabilecektir. G&ouml;nderen bu kişilerle belirtilen ama&ccedil;larla bilgilerinin paylaşılmasına ve bilgilerinin bu kişilerce işlenmesine peşinen muvafakat eder.<br /> <br /> <strong>8. KİŞİSEL VERİLERİN İŞLENMESİ</strong><br /> <br /> TT &Ouml;deme, 6698 sayılı Kişisel Verilerin Korunması Kanunu (&ldquo;KVKK&rdquo;) ve ikincil d&uuml;zenlemeler ile Kurul kararları ile rehberleri başta olmak &uuml;zere, Kişisel Verilerin korunması ile ilgili y&uuml;r&uuml;rl&uuml;kte bulunan t&uuml;m d&uuml;zenlemelere, usul ve esaslara uygun davranmakla y&uuml;k&uuml;ml&uuml; olduğunu kabul, beyan ve taahh&uuml;t eder.<br /> <br /> G&ouml;nderen&rsquo;e ait t&uuml;m kişisel veriler KVKK, ilgili y&ouml;netmelikler ve her halde TT &Ouml;deme&rsquo;nin internet sitesinde yer alan aydınlatma metnine ve uygulamada yer alan &ouml;n bilgilendirme formuna, mesafeli satış s&ouml;zleşmesine uygun olarak işlenecek, saklanacak ve aydınlatma metninde belirtilen ama&ccedil;lar d&acirc;hilinde kullanılacaktır.<br /> <br /> <strong>9. S&Ouml;ZLEŞMENİN FESHİ</strong><br /> <br /> <strong>9.1</strong>&nbsp;İşbu S&ouml;zleşme, &Ouml;deme Hizmetleri a&ccedil;ısından TT &Ouml;deme ile Temsilciler arasındaki temsilcilik ilişkisi devam ettiği s&uuml;rece y&uuml;r&uuml;rl&uuml;kte kalacak olup, TT &Ouml;deme ile Temsilciler arasındaki temsilcilik ilişkisi veya G&ouml;nderenin Temsilciler ile olan abonelik ilişkisi sona erdiği takdirde, G&ouml;nderene gerekli bildirim yapılmak suretiyle işbu S&ouml;zleşme kapsamında TT &Ouml;deme&rsquo;nin sunduğu &Ouml;deme Hizmetleri sona erecektir. Ancak diğer &ouml;deme hizmetleri a&ccedil;ısından y&uuml;r&uuml;rl&uuml;kte kalmaya devam edecektir.<br /> <br /> <strong>9.2</strong>&nbsp;G&ouml;nderenin işbu S&ouml;zleşme ve İlgili Mevzuattan doğan y&uuml;k&uuml;ml&uuml;l&uuml;klerini yerine getirmemesi halinde TT &Ouml;deme işbu S&ouml;zleşmeyi feshetme ve ihlal sebebiyle maruz kalabileceği her t&uuml;rl&uuml; zararın tazminini talep etme hakkına sahiptir.<br /> <br /> <strong>9.3</strong>&nbsp;G&ouml;nderen, S&ouml;zleşmeyi TT &Ouml;deme&rsquo;ye veya Temsilcilere 1 (bir) ay &ouml;nceden yapacağı yazılı ihbarla sona erdirebilir. Bu durumda G&ouml;nderen, S&ouml;zleşmeye bağlı olarak ileri vadeli &ouml;demeleri da dahil olmak &uuml;zere TT &Ouml;deme&rsquo;nin veya Temsilcilerin her t&uuml;rl&uuml; alacağını fer&rsquo;ileri birlikte nakden ve defaten &ouml;deyeceğini kabul ve taahh&uuml;t eder.<br /> <br /> <strong>9.4</strong>&nbsp;TT &Ouml;deme, 2 (iki) ay &ouml;ncesinden G&ouml;nderene yazılı olarak bildirmek kaydıyla, fesih tarihine kadar G&ouml;nderene karşı olan y&uuml;k&uuml;ml&uuml;l&uuml;klerini yerine getirmesi haricinde bir sorumluluk doğurmayacak şekilde, tazminatsız olarak işbu S&ouml;zleşmeyi feshedebilir. S&ouml;zleşmenin TT &Ouml;deme tarafından feshedilmesi halinde, G&ouml;nderenin TT &Ouml;deme veya Temsilcilere karşı doğmuş olan bor&ccedil;ları, TT &Ouml;deme veya Temsilcinin ilk talebinde nakden ve defaten &ouml;denir.<br /> <br /> <strong>9.5.</strong>&nbsp;İşbu S&ouml;zleşme, TT &Ouml;deme&rsquo;nin d&uuml;zenleyici otoriteler nezdinde sahip olduğu lisanslarının sona ermesi veya iptali halinde derhal, ilave bir bildirime gerek kalmaksızın ve TT &Ouml;deme tarafında herhangi bir tazminat y&uuml;k&uuml;ml&uuml;l&uuml;ğ&uuml;ne neden olmaksızın kendiliğinden feshedilmiş sayılır.<br /> <br /> <strong>10. UYUŞMAZLIKLARIN &Ccedil;&Ouml;Z&Uuml;M&Uuml;</strong><br /> <br /> G&ouml;nderen, &Ouml;deme Hizmetlerinden kaynaklı olarak ihtilaf oluşması durumunda TT &Ouml;deme&rsquo;ye, uyuşmazlığa konu işlem veya eylemin ger&ccedil;ekleştiği tarihten itibaren en ge&ccedil; 2 yıl i&ccedil;erisinde yazılı başvuru ger&ccedil;ekleştirmiş ve bu başvurusu, başvuru tarihinizden itibaren 20 g&uuml;n i&ccedil;erisinde yanıtlanmamışsa, 20 g&uuml;nl&uuml;k s&uuml;renin bitiminden itibaren, başvurunun olumsuz yanıtlanması veya verilen yanıtın yeterli olmaması halinde ise yanıt tarihinden itibaren 60 g&uuml;n i&ccedil;erisinde T&Ouml;DEB Bireysel M&uuml;şteri Hakem Heyetine İlişkin Esas ve Usulleri Hakkında Y&ouml;netmelik h&uuml;k&uuml;mleri uyarınca konuyla ilgili T&Ouml;DEB Bireysel M&uuml;şteri Hakem Heyeti&rsquo;ne başvurabilir.<br /> <br /> T&Ouml;DEB Bireysel M&uuml;şteri Hakem Heyeti&rsquo;ne başvuru formuna aşağıdaki linkten veya <a href="http://www.todeb.org.tr">www.todeb.org.tr</a> sitesinden ulaşılabilir. Form ilgili bilgilerin doldurulması ve gerekli belgelerin y&uuml;klenmesi sonucu <a href="http://www.todeb.org.tr">www.todeb.org.tr</a> adresi &uuml;zerinden elektronik olarak iletilebilir.<br /> <br /> <a href="https://todeb.org.tr/hakemheyetibasvuruformu/">https://todeb.org.tr/hakemheyetibasvuruformu/</a><br /> <br /> T&Ouml;DEB Bireysel M&uuml;şteri Hakem Heyeti&rsquo;ne başvuru ile ilgili t&uuml;m detaylı bilgilere takip eden linkten ulaşılabilir: ( <a href="https://todeb.org.tr/sayfa/bireysel-musteri-hakem-heyeti/56/">https://todeb.org.tr/sayfa/bireysel-musteri-hakem-heyeti/56/</a> )<br /> <br /> Bu S&ouml;zleşme T&uuml;rkiye Cumhuriyeti yasalarına tabi olacaktır. Taraflar, S&ouml;zleşmeden kaynaklanacak olan her t&uuml;rl&uuml; uyuşmazlığın &ccedil;&ouml;z&uuml;m&uuml;n&uuml;n mahkemeye intikali halinde İstanbul (&Ccedil;ağlayan) Mahkemelerinin ve İcra Dairelerinin m&uuml;nhasır yetkisini işbu S&ouml;zleşme ile kabul ederler.<br /> <br /> <strong>11. DİĞER H&Uuml;K&Uuml;MLER</strong><br /> <br /> <strong>11.1 B&Ouml;L&Uuml;NEBİLİRLİK:</strong>&nbsp;İş bu S&ouml;zleşme maddelerinden herhangi birinin Mahkeme kararıyla veya yasal başka bir nedenle ge&ccedil;ersiz veya uygulanamaz hale gelmesi durumunda, s&ouml;z konusu madde/maddelerin S&ouml;zleşmenin esaslı unsurlarından olmaması şartıyla, diğer maddeler ge&ccedil;erliliğini s&uuml;rd&uuml;r&uuml;r. B&ouml;yle bir durumda taraflar, ge&ccedil;ersiz/uygulanamaz hale gelen maddenin yerine, S&ouml;zleşmenin amacına en yakın bir başka madde h&uuml;km&uuml; d&uuml;zenleyeceklerdir.<br /> <br /> <strong>11.2 TARAFLAR ARASINDAKİ İLİŞKİ:</strong>&nbsp;İşbu S&ouml;zleşme taraflar arasındaki ilişkinin &ccedil;er&ccedil;evesini oluşturmakta olup, S&ouml;zleşmedeki hi&ccedil;bir h&uuml;k&uuml;m, taraflar arasında diğerinin eylemi veya eylemsizliği ile ilgili bir tarafa sorumluluk y&uuml;kleyecek herhangi bir ortaklık veya ortak girişim kurma veya hizmet alma borcu y&uuml;klememektedir.<br /> <br /> <strong>11.3 S&Ouml;ZLEŞMENİN B&Uuml;T&Uuml;NL&Uuml;Ğ&Uuml;:</strong>&nbsp;S&ouml;zleşme, taraflar arasında S&ouml;zleşme konusu hakkında varılan mutabakat ve S&ouml;zleşmenin tamamını kapsar ve bu konuda daha &ouml;nceki b&uuml;t&uuml;n s&ouml;zl&uuml; ve yazılı anlaşmaların yerini alır. Tarafların hi&ccedil;biri S&ouml;zleşmede a&ccedil;ık&ccedil;a belirtilmeyen herhangi bir anlaşma, d&uuml;zenleme veya mutabakata dayanarak işlem yapma hakkına sahip değildir.<br /> <br /> <strong>11.4 FERAGAT:</strong>&nbsp;İşbu S&ouml;zleşme h&uuml;k&uuml;mlerinden her iki tarafın usul&uuml;nce imzaladığı yazılı bir belge olmadan feragat edilemez. Taraflardan birinin işbu S&ouml;zleşmeden doğan herhangi bir hak, yetki ve imtiyazını kullanmaması veya kullanmakta gecikmesi, bu hak, yetki ve imtiyazdan feragat ettiği anlamına gelmez. Bir yetki veya imtiyazın taraflardan herhangi biri tarafından tek başına veya kısmen kullanılması daha sonra kullanılmasını engellemez.<br /> <br /> <strong>11.5 DEVİR YASAĞI:</strong>G&ouml;nderen işbu S&ouml;zleşme kapsamındaki hak ve alacakları ile y&uuml;k&uuml;ml&uuml;l&uuml;klerini diğer TT &Ouml;deme&rsquo;nin yazılı onayı olmaksızın tamamen veya kısmen &uuml;&ccedil;&uuml;nc&uuml; şahıslara devir veya temlik edemez.<br /> <br /> <br /> &Ccedil;ER&Ccedil;EVE &Ouml;DEME HİZMETLERİ S&Ouml;ZLEŞMESİNİN T&Uuml;M H&Uuml;K&Uuml;MLERİNİ OKUDUM VE ANLADIM. S&Ouml;ZLEŞMEDE YER ALAN T&Uuml;M HUSUSLARIN TARAFIMCA ONAYIM İLE BİRLİKTE KABUL EDİLMİŞ OLDUĞUNU VE ONAYLAMA TARİHİNDE Y&Uuml;R&Uuml;RL&Uuml;ĞE GİRDİĞİNİ BEYAN VE TAAHH&Uuml;T EDERİM.</li>
+</ol>
+<p>&nbsp;</p>
+<p>&Ouml;nceki S&ouml;zleşme Metnine Erişim: Kullanıcılar, işbu S&ouml;zleşme&rsquo;nin y&uuml;r&uuml;rl&uuml;ğe girmesinden &ouml;nce ge&ccedil;erli olan s&ouml;zleşme metnine, <a href="https://pokus.com.tr/cerceve-sozlesmesi/"><strong>https://pokus.com.tr/cerceve-sozlesmesi/</strong></a> adresi &uuml;zerinden erişebilir. TT &Ouml;deme, &ouml;nceki s&ouml;zleşme metinlerinin erişime a&ccedil;ık tutulacağı s&uuml;reyi belirleme ve s&ouml;z konusu erişimi sona erdirme hakkını saklı tutar.</p>
+               </div>
+        </div>
+<div id="privacyModalContent" class="f-modal-content">
+    <h3 class="citem01">Gizlilik ve Güvenlik Politikası</h3>
+    <div class="citem04">
+        <p>İşbu internet sitesinde (www.pokus.com.tr) yer alan metinler, resimler, çizimler, ses, animasyon, video dosyaları ile sitenin tasarımı, sitenin alan adı, içeriği, imgeleri, kodları, algoritmaları, bileşenleri, yazıları ve her türlü görselleri ve benzeri her türlü kısmı üzerindeki her türlü hak, mülkiyet ve menfaat TT Ödeme ve Elektronik Para Hizmetleri A.Ş’ye (“TTÖHAŞ”) aittir. Bu içerikler ticari amaçlı olsun veya olmasın, kısmen veya tamamen, kopyalanamaz, iletilemez, indirilemez, yüklenemez, gönderilemez, satılamaz, kiralanamaz, lisansı verilemez, devredilemez, ifşa edilemez, gösterilemez, düzenlenemez, tersine mühendislik yapılamaz, yeniden derlenemez, kaynak kodu oluşturulamaz veya başka herhangi bir şekilde kullanılamaz. TTÖHAŞ’ın burada açıkça belirtilmeyen diğer tüm hakları saklıdır.</p>
+        <p>Bu internet sitesindeki tüm ticari markalar ve logolar TTHÖAŞ veya üçüncü şahıslara aittir. Söz konusu ticari marka ve logolar, hak sahiplerinin yazılı izni olmadan hiçbir şekilde kullanılamaz.</p>
+        <p>TTÖHAŞ’ye ait işbu internet sitesi, kullanıcılarına kullanım kolaylığı sağlamak amacıyla başka internet sitelerine bağlantılar içerebilir. Üçüncü şahıslara ait söz konusu internet sitelerine erişildiğinde, o siteyi kullanmadan önce o sitenin kuralları ve veri koruma politikaları incelenmelidir.</p>
+        <p>www.pokus.com.tr İnternet sitesinin ziyaret edilmesi sırasında elde edilen veriler yürürlükte olan veri güvenliği kuralları doğrultusunda kaydedilmekte ve işlenmektedir. İnternet sitesinde yer alan üçüncü kişilere ait bağlantıların veri gizliliği uygulamalarından TTHÖAŞ sorumlu tutulamaz.</p>
+        <p>İnternet sitesi ziyaret edildiğinde; sunucular tarafından standart olarak, ziyaretçinin internet hizmet sunucusu tarafından verilen IP adresi, siteye ulaşmadan önce bulunan internet sitesi, site üzerinden ziyaret edilen sayfalar, ziyaretin tarihi ve süresi kayıt edilir. Kişisel veriler ise ancak ziyaretçi tarafından girildiği takdirde kayıt altına alınır.</p>
+        <p>İnternet sitesi üzerinden toplanan veriler, sunulan hizmetler ile bağlantılı olarak işlenmekte ve sitenin teknik açıdan idaresi,müşteri yönetimi, ürün anketleri, pazarlama, sitedeki değişiklikleri, yeni servisleri veya teklifleri duyurma gibi amaçlarla kullanılmaktadır.</p>
+        <p>www.pokus.com.tr internet sitesi içerisinde sizden şahsi bilgi girişi talep edildiği takdirde, vereceğiniz şahsi bilgileriniz (isim, soyisim, adres, T.C. Kimlik numarası, doğum tarihi, e-mail, telefon, .) sadece bilgilendirme iletileri göndermek amacıyla TTÖHAŞ tarafından kullanılacak ve hukuki zorunluluklar veya izniniz haricinde kesinlikle 3. şahıs ve kurumlarla paylaşılmayacaktır.</p>
+        <p>TTÖHAŞ, tarafından yönetilen verilerin, değişikliğe uğramamaları, kaybolmamaları, hasar görmemeleri veya yetkisi olmayan kişilerce kullanılmamaları için koruma amacı ile teknik ve organizasyonel açıdan güvenlik önlemleri uygulamakta ve kişisel verilerin korunması hususunda gereken özeni göstermektedir.</p>
+        <p>TTÖHAŞ, 6698 sayılı Kişisel Verilerin Korunması Kanunu (“KVKK”) kapsamında, ilgili kişinin kişisel verileri ile ilgili başvuru yapması durumunda, Aydınlatma Metninde yer alan “5. Hak veTalepleriniz İçin Bizimle İletişime Geçmek İsterseniz” başlıklı maddesi uyarınca talepleri yerine getirecektir. Aydınlatma metni için <a href="javascript:Feux.Modal.byPass();">tıklayınız.</a></p>
+        <p>TTÖHAŞ, tarafından yönetilen verilerin, değişikliğe uğramamaları, kaybolmamaları, hasar görmemeleri veya yetkisi olmayan kişilerce kullanılmamaları için koruma amacı ile teknik ve organizasyonel açıdan güvenlik önlemleri uygulamakta ve KVKKile getirilen yükümlülükler uyarınca gereken özeni göstermektedir.</p>
+        <p>TTÖHAŞ web sitemiz, her zaman ücretsiz olarak ziyaret edilebilir. TTÖHAŞ tarafından, ad ve soyad, posta adresi, telefon ve elektronik posta adresi Şirketimiz tarafından sunulan hizmetle ilgili ziyaret eden kişinin rızası ve bilgisi dahilinde temin edilir ve bilgilerini paylaşan kişinin açıkça rızası olmaksızın üçüncü kişilerle paylaşılmaz. TTÖHAŞ, hiçbir koşulda, içerikte olabilecek hata veya eksiklikler veya web sitesinde bulunan içeriğin kullanımından kaynaklanabilecek herhangi bir kayıp veya hasar dahil, fakat bunlarla sınırlı olmamak kaydıyla, içerikten ve ziyaretçi tarafından sunulan yanlış bilgiden sorumlu tutulamaz.</p>
+        <p>TTÖHAŞ tarafından kullanılacak ve hukuki zorunluluklar veya izniniz haricinde kesinlikle 3. şahıs ve kurumlarla paylaşılmayacaktır.</p>
+        <p>İşbu internet sitesinin kullanımı sırasında veya sonrasında oluşabilecek herhangi bir performans arızası, hata, eksiklik, kesinti, kusur, işletme ve/veya nakilde gecikme, bilgisayar virüsüve/veya hat ve/veya sistem arızası sonucu ortaya çıkan doğrudan ya da dolaylı ortaya çıkan zarar, ziyan ve masraflar dâhil ancak bunlarla sınırlı olmamak üzere hiçbir zarar ve ziyandan, TTÖHAŞ ve/veya çalışanları, bu tür bir zarar ve ziyan olasılığından haberdar edilmiş olsalar dahi, sorumlu olmazlar.</p>
+    </div>
+</div>
+
+
+
+        </div>
+
+
+
+        
+
+    <div id="campaingSuccessModal" class="f-modal-content">
+        <h3 class="citem01"></h3>
+        <div class="citem08">
+            <div id="campaingRespIcon"></div>
+            <p><strong id="campaingRespTitle"></strong></p>
+            <p id="campaingRespDescription"></p>
+        </div>
+    </div>
+
+
+    <div id="suggestModalContent" class="f-modal-content">
+        <form id="contactFormSection" data-submit-button="form-contactSubmit val-A">
+            <h5 class="c-item-01 hdr-L">Pokus’ta hangi kampanyaları görmek istersin?</h5>
+
+            <p class="c-item-02 pr-AA">Bir ya da birden fazla öneride bulunabilirsin.</p>
+            <div class="c-item-03">
+                <img src="/Content/Images/Pokus/Icons/checkbox-pokus.svg" alt="Pokus ikonları, Pokus Kart"/>
+                <input id="suggestInfo" name="suggestInfo" data-rule-required="true" data-rule-maxlength="300" type="text" class="c-item-03-A" />
+            </div>
+            <p class="c-item-02 pr-AA">Önerdiğin kampanyadan ilk seni haberdar etmemizi istiyorsan mail adresini ekle.</p>
+            <p class="c-item-04 pr-BB">E-Mail bilgileriniz sadece Pokus hizmetinin sunulması kamsapında sizinle iletişime geçilmek için kullanılacaktır.</p>
+            <div class="c-item-03">
+                <img src="/Content/Images/Pokus/Icons/checkbox-pokus.svg"  alt="Pokus ikonları, Pokus Kart"/>
+                <input id="email" name="email" type="text" data-rule-required="true" data-rule-maxlength="50" data-rule-email="true" class="c-item-03-A" />
+            </div>
+            <div class="chk-A">
+                <input id="chkAgreement01" name="chkAgreement01" type="checkbox" />
+                <label for="chkAgreement01">
+                    Kampanyalar ve yeni gelişmeler için Pokus’tan ticari elektronik ileti almayı kabul ediyorum.
+                </label>
+            </div>
+
+            <a id="form-contactSubmit" href="#" onclick="Feux.Contact.save(event, this);" class="lnk-btn-01">
+                ÖNER
+            </a>
+        </form>
+
+    </div>
+
+
+        <div id="modal-wrapper" onclick="Feux.Modal.hide(true);">
+            <div class="f-content">
+                <div class="f-header">
+                    <a href="javascript:void(0)" onclick="Feux.Modal.hide(false);" class="f-close"></a>
+                </div>
+                <div class="f-body"></div>
+                <div class="f-footer">
+                    <a href="javascript:void();" class="f-submit"></a>
+                </div>
+            </div>
+        </div>
+
+        <div id="overlay-wrapper" onclick="Feux.UX.overlayclick(this);"></div>
+
+        
+
+    </div>
+
+
+
+
+    
+<div id="mq-values">
+    <div id="mq-xs1"></div>
+    <div id="mq-xs2"></div>
+    <div id="mq-sm1"></div>
+    <div id="mq-sm2"></div>
+    <div id="mq-md"></div>
+    <div id="mq-lg"></div>
+</div>
+
+    <script src="/DependencyHandler.axd?s=L0NvbnRlbnQvU2NyaXB0cy9CYXNlL0ZldXguQ29tbW9uLkdsb2JhbC5qczsvQ29udGVudC9TY3JpcHRzL0Jhc2UvRmV1eC5Db21tb24uSGVscGVyLmpzOy9Db250ZW50L1NjcmlwdHMvQmFzZS9GZXV4LkNvbW1vbi5CYXNlLmpzOy9Db250ZW50L1BsdWdpbnMvSnF1ZXJ5LkxpYnJhcnkvanF1ZXJ5LTMuNi4wLm1pbi5qczsvQ29udGVudC9QbHVnaW5zL0pxdWVyeS5WYWxpZGF0aW9uL2pxdWVyeS52YWxpZGF0ZS5qczsvQ29udGVudC9QbHVnaW5zL3NlbGVjdDItNC4xLjAtcmMuMC9qcy9zZWxlY3QyLm1pbi5qczsvQ29udGVudC9QbHVnaW5zL0pxdWVyeS5NYXNrL2pxdWVyeS5tYXNrLmpzOy9Db250ZW50L1NjcmlwdHMvQmFzZS9GZXV4LkNvbW1vbi5qUXVlcnkuanM7L0NvbnRlbnQvU2NyaXB0cy9CYXNlL0ZldXguRm9ybS5QbHVnaW4uanM7L0NvbnRlbnQvU2NyaXB0cy9CYXNlL0ZldXguRm9ybS5WYWxpZGF0aW9uLmpzOy9Db250ZW50L1NjcmlwdHMvRmV1eC9Db21tb24uanM7L0NvbnRlbnQvU2NyaXB0cy9PTkUvQ3VzdG9taXplLmpzOy9zY3JpcHRzL29uZS5qczs&amp;t=Javascript&amp;cdv=1" type="text/javascript"></script>
+    
+
+    <script>
+        const initPagniation= function(dataSource)
+        {
+            Feux.Pagination.init({
+                    dataSource: dataSource,
+                    pagePerItem: 6,
+                    step: 3,
+                    showPrevious: true,
+                    showNext: true,
+                    containerId: pagination,
+                    paginatorId: paginator,
+                    templateId: pageComponent,
+                    nextButtonImg: '<svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 40 40">\
+                                    <g fill="none"fill-rule="evenodd" >\
+                                <g>\
+                                    <g transform="translate(-343 -610) translate(343 610)">\
+                                        <circle cx="20" cy="20" r="20" fill="#FFF" />\
+                                        <path stroke="#FF5C33" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 13L25 20 18 27" />\
+                                    </g>\
+                                </g>\
+                            </g>\
+                            </svg>',
+                    prevButtonImg: '<svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 40 40">\
+                                    <g fill="none"fill-rule="evenodd">\
+                                        <g>\
+                                            <g>\
+                                                <g transform="translate(-282 -610) translate(282 610) matrix(-1 0 0 1 40 0)">\
+                                                    <circle cx="20" cy="20" r="20" fill="#FFF" />\
+                                                    <path stroke="#FF5C33" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 13L25 20 18 27" />\
+                                                </g>\
+                                            </g>\
+                                        </g>\
+                                    </g>\
+                                </svg>',
+                    nextButtonImgDisabled: '<svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 40 40">\
+                                    <g fill="none"fill-rule="evenodd" >\
+                                <g>\
+                                    <g transform="translate(-343 -610) translate(343 610)">\
+                                        <circle cx="20" cy="20" r="20" fill="#FFF" />\
+                                        <path stroke="#d8d8d8" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 13L25 20 18 27" />\
+                                    </g>\
+                                </g>\
+                            </g>\
+                            </svg>',
+                    prevButtonImgDisabled: '<svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 40 40">\
+                                    <g fill="none"fill-rule="evenodd">\
+                                        <g>\
+                                            <g>\
+                                                <g transform="translate(-282 -610) translate(282 610) matrix(-1 0 0 1 40 0)">\
+                                                    <circle cx="20" cy="20" r="20" fill="#FFF" />\
+                                                    <path stroke="#d8d8d8" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 13L25 20 18 27" />\
+                                                </g>\
+                                            </g>\
+                                        </g>\
+                                    </g>\
+                                </svg>',
+
+                });
+        };
+
+        initPagniation([{"pageUrl":"d-rda-pokus-troy-sanal-karta-1000-tlye-varan-indirim","title":"D&R’da Pokus Troy Sanal Kart’a 1.000 TL’ye varan indirim!","discount":"Anında 200 TL indirim!","bgImage":"/media/tqrlnl3e/d-r_384x180_12-06_2026_mor.jpg","cokYakinda":false,"kampanyaKategorisi":"#Alışveriş"},{"pageUrl":"pokusla-tek-seferde-yapacagin-750-tl-ve-uzeri-restoran-harcamalarina-75-tl-hediye","title":"Pokus’la tek seferde yapacağın 750 TL ve üzeri restoran harcamalarına 75 TL hediye!","discount":"75 TL Hediye!","bgImage":"/media/dwjhm44b/restoran_384x180_12-06_2026_mor.jpg","cokYakinda":false,"kampanyaKategorisi":"#Yeme/İçme"},{"pageUrl":"pokus-troy-sanal-kartla-idefixte-her-1000-tllik-alisverise-200-tl-indirim","title":"Pokus Troy Sanal Kart’la idefix’te her 1.000 TL’lik alışverişe 200 TL indirim!","discount":"Anında 200 TL indirim!","bgImage":"/media/fdgcf2xa/idefix_384x180_10-06_2026_yes-ºil.jpg","cokYakinda":false,"kampanyaKategorisi":"#Alışveriş"},{"pageUrl":"lc-waikikide-pokus-troy-sanal-kartinla-3000-tlye-300-tl-indirim-firsati","title":"LC Waikiki’de POKUS TROY Sanal Kartı’nla 3.000 TL’ye 300 TL İndirim Fırsatı!","discount":"Anında 300 TL indirim!","bgImage":"/media/1gobnv12/lc-waikiki_384x180_05-06_2026_yes-ºil.jpg","cokYakinda":false,"kampanyaKategorisi":"#Alışveriş"},{"pageUrl":"ekspres-hesapin-avantajli-dunyasiyla-tanismanin-tam-zamani","title":"Ekspres Hesap’ın avantajlı dünyasıyla tanışmanın tam zamanı! ","discount":"2 GB Hediye!","bgImage":"/media/niqdl1ar/ekspres-hesap_384x180_05-05_2026_mor.jpg","cokYakinda":false,"kampanyaKategorisi":"#İnternet"},{"pageUrl":"cicek-gibi-indirim-ciceksepetinde","title":"Çiçek gibi indirim Çiçeksepeti’nde!","discount":"Anında %15 indirim!","bgImage":"/media/l01dz3yy/ciceksepeti-384x180-18-06-2025.png","cokYakinda":false,"kampanyaKategorisi":"#Alışveriş"},{"pageUrl":"mistikist-te-pokus-kart-in-ile-harca-aninda-15-indirim-kazan","title":"Mistikist’te Pokus Kart’ın ile harca, anında %15 indirim kazan!","discount":"1.050 TL’ye varan anında indirim!","bgImage":"/media/s5rbrzgz/mistikist-384x180-28-11-2024.png","cokYakinda":false,"kampanyaKategorisi":"#Eğlence"}]);
+
+        const btnSearch= document.querySelector("#search-button");
+
+        const searchFn = function(){
+            const query= document.querySelector("#search-box").value;
+            const rightContentEl= document.querySelector(".right-content");
+
+            if(!rightContentEl.classList.contains("active")) return false;
+            if(!query) return false;
+
+            let isActive = 1;
+            let jsonInput = JSON.stringify({ isActive: isActive, query: query});
+            let scrollYPos;
+            $.ajax({
+                type: 'POST',
+                url: '/umbraco/surface/CustomSearch/SearchCampaigns',
+                contentType: 'application/json',
+                data: jsonInput,
+                success: function (result) {
+                    const searchResults = JSON.parse(JSON.stringify(result.Result));
+
+                    if(!searchResults.length)
+                    {
+                        let template= `
+                            <div class="not-found">
+                                <div class="not-found-icon">
+                                    <div class="exclamation">
+                                    </div>
+                                </div>
+                            <div class="text">
+                                Aradağınız içerik bulunamamıştır.
+                            </div>
+                        </div>`;
+                        document.querySelector("#pagination").innerHTML=template;
+                        document.querySelector("#paginator").style.display="none";
+
+                        return false;
+                    }
+                    document.querySelector("#paginator").style.display = "flex";
+                    initPagniation(searchResults);
+                    if (searchResults.length > 6) document.querySelector("#paginator").style.opacity ="1";
+                    document.querySelector('.right-content').classList.remove('active');
+                    document.querySelector('#search-box').value = "";
+                    document.querySelector('.left-content').style.zIndex = "2";
+                },
+                error: function () {
+                    alert('Failed to receive the Data');
+                    console.log('Failed ');
+                }
+            })
+        }
+        window.addEventListener('keypress', function(e)
+        {
+            if(e.charCode ===13) searchFn();
+        });
+
+        btnSearch.addEventListener('click', searchFn);
+
+    </script>
+    <script src="/Content/Scripts/ONE/ONE.Base.js"></script>
+    <script src="/Content/Scripts/ONE/ONE.Base.Home.js"></script>
+
+
+    
+
+    <script>
+        var validationMessages = {
+            required: "Required",
+            remote: "Remote",
+            email: "Email",
+            url: "Url",
+            date: "Date",
+            dateISO: "DateISO",
+            number: "Number",
+            digits: "Digits",
+            creditcard: "Creditcard",
+            equalTo: "EqualTo",
+            accept: "Accept",
+            maxlength: jQuery.validator.format("Maxlength"),
+            minlength: jQuery.validator.format("Minlength"),
+            rangelength: jQuery.validator.format("Rangelength"),
+            range: jQuery.validator.format("Range"),
+            max: jQuery.validator.format("Max"),
+            min: jQuery.validator.format("Min"),
+            turkishDate: "TurkishDate"
+        }
+
+        $(function() {
+            currentPageArray = ['/', '/limitler-ve-ucretler', '/pokuz-kilavuzu', '/genel-bilgiler'];
+            currentPageArray.forEach(function(value) {
+                if(window.location.pathname == value) {
+                    sessionStorage.removeItem('currentPage');
+                }
+            });
+        });
+    </script>
+     
+</body>
+</html>
+
+

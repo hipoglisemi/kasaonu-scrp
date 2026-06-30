@@ -153,6 +153,7 @@ class Campaign(Base):
     is_approved: bool = Column(Boolean, default=False, nullable=False)
     date_extended: bool = Column(Boolean, default=False, nullable=False)  # type: ignore
     cards_audited_at: datetime | None = Column(DateTime, nullable=True, default=None)
+    last_seen_at: datetime | None = Column(DateTime, nullable=True, default=None)
 
     # Dates
     start_date: date | None = Column(Date, nullable=True)
