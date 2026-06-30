@@ -44,6 +44,8 @@ _TITLE_ONLY_KEYWORDS = {
     "restoran", "restaurant", "yemek", "kafe", "cafe", "lokanta", "bistro",
     # 🚨 TELEKOM & TRAVEL FOOTER GUARD: Sayfa altı metinlerinde geçtiğinde sektörü bozmasın diye sadece Başlıkta ara.
     "telekom", "telekomünikasyon", "vodafone", "turkcell", "türk telekom", "avea", "setur",
+    # 🚨 OTOPARK/ADRES GUARD (Istanbulkart vb): Metro durakları, cadde adları
+    "metro", "vatan", "bahçe", "bahce", "park", "meydan",
 }
 
 class PointBlankMatcher:
