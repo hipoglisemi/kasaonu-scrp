@@ -25,6 +25,7 @@ jobs:
           - ziraat_dinamik
           - turktelekom
           - vodafone
+          - istanbulkart
 
     name: "🤖 ${{ matrix.scraper }}"
 

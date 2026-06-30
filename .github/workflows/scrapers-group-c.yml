@@ -23,6 +23,7 @@ jobs:
           - qnb
           - ziraat_katilim
           - emlakkatilim
+          - rubikpara
 
     name: "🤖 ${{ matrix.scraper }}"
 

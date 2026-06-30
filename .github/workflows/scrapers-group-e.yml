@@ -24,6 +24,7 @@ jobs:
           - anadolubank
           - tkpay
           - nkolay
+          - pokus
 
     name: "🤖 ${{ matrix.scraper }}"
 

@@ -20,6 +20,7 @@ jobs:
           - alternatifbank
           - vodafonepay
           - pep
+          - hayhay
 
     name: "🤖 ${{ matrix.scraper }}"
 

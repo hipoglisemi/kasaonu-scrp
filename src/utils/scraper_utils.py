@@ -16,7 +16,7 @@ def is_url_blocked(db: Session, url: str) -> bool:
 def clean_url_for_matching(url: str) -> str:
     """
     Cleans a URL for robust comparison by decoding percent-encoded characters,
-    stripping query parameters, trailing slashes, protocols (http/https),
+    stripping UTM query parameters, trailing slashes, protocols (http/https),
     and subdomains (www).
     """
     if not url:
@@ -26,8 +26,17 @@ def clean_url_for_matching(url: str) -> str:
         url = urllib.parse.unquote(url)
     except Exception:
         pass
-    # Strip query parameters
-    url = url.split("?")[0]
+        
+    # Strip ONLY utm_ query parameters, preserve important ones like ?id=123
+    if "?" in url:
+        base, query_str = url.split("?", 1)
+        params = urllib.parse.parse_qsl(query_str)
+        kept_params = [(k, v) for k, v in params if not k.startswith("utm_")]
+        if kept_params:
+            url = base + "?" + urllib.parse.urlencode(kept_params)
+        else:
+            url = base
+
     # Strip trailing slashes
     url = url.rstrip("/")
     # Strip protocols and www
