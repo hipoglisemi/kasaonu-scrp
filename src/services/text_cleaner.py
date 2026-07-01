@@ -418,6 +418,15 @@ def clean_campaign_text(raw_text: str, og_title: Optional[str] = None, title: Op
         r"(?i)^\s*diğer kampanyalara göz atın\s*$",
         r"(?i)^\s*sizin için seçtiklerimiz\s*$",
         r"(?i)^\s*öne çıkan ayrıcalıklar\s*$",
+        # Loose/Inline cuts for flattened/SPA texts (run when anchors don't match)
+        r"(?i)\bilginizi\s+çekebilir\b",
+        r"(?i)\bilginizi\s+çekebilecek\b",
+        r"(?i)\bilgili\s+kampanyalar\b",
+        r"(?i)\bbenzer\s+kampanyalar\b",
+        r"(?i)\bbenzer\s+fırsatlar\b",
+        r"(?i)\bdiğer\s+kampanyalar\b",
+        r"(?i)\bgeçmiş\s+kampanyalar\b",
+        r"(?i)\bsizin\s+için\s+seçtiklerimiz\b",
         # ⚠️ Yasal hak saklı tutma uyarıları cümle ortasında geçebildiği için HARD_CUT_MARKERS'tan kaldırıldı.
         # Bunları temizlemeyi tamamen Gemini/Yapay zekaya bırakıyoruz.
         r"(?i)miles&smiles dünyası ayrıcalıklarınız",
