@@ -116,63 +116,63 @@ class Campaign(Base):
     """Campaign entity - stores credit card campaigns with all details"""
     __tablename__ = "test_campaigns" if os.environ.get("TEST_MODE") == "1" else "campaigns"
 
-    id: int = Column(Integer, primary_key=True, autoincrement=True)
-    card_id: int = Column(Integer, ForeignKey("cards.id", ondelete="CASCADE"), nullable=False)
-    sector_id: int | None = Column(Integer, ForeignKey("sectors.id"), nullable=True)
+    id: int = Column(Integer, primary_key=True, autoincrement=True) # type: ignore
+    card_id: int = Column(Integer, ForeignKey("cards.id", ondelete="CASCADE"), nullable=False) # type: ignore
+    sector_id: int | None = Column(Integer, ForeignKey("sectors.id"), nullable=True) # type: ignore
     
     # SEO slug
-    slug: str = Column(String, unique=True, nullable=False)
+    slug: str = Column(String, unique=True, nullable=False) # type: ignore
     
     # Core campaign data
-    title: str = Column(String, nullable=False)
-    reward_text: str | None = Column(String, nullable=True)
-    reward_value: Decimal | None = Column(Numeric(10, 2), nullable=True)
-    reward_type: str | None = Column(String, nullable=True)  # cashback, points, discount, installment
+    title: str = Column(String, nullable=False) # type: ignore
+    reward_text: str | None = Column(String, nullable=True) # type: ignore
+    reward_value: Decimal | None = Column(Numeric(10, 2), nullable=True) # type: ignore
+    reward_type: str | None = Column(String, nullable=True)  # cashback, points, discount, installment # type: ignore
     
     # Updated fields matching Prisma Schema
-    description: str | None = Column(Text, nullable=True)   # Was details_text
-    conditions: str | None = Column(Text, nullable=True)    # Was conditions_text
+    description: str | None = Column(Text, nullable=True)   # Was details_text # type: ignore
+    conditions: str | None = Column(Text, nullable=True)    # Was conditions_text # type: ignore
     
-    image_url: str | None = Column(String, nullable=True)
+    image_url: str | None = Column(String, nullable=True) # type: ignore
     
     # Custom Fields from Prisma
-    ai_marketing_text: str | None = Column(String, nullable=True)
-    participation: str | None = Column(String, nullable=True)
-    eligible_cards: str | None = Column(String, nullable=True)
-    category: str | None = Column(String, nullable=True)
-    badge_color: str | None = Column(String, nullable=True)
-    card_logo_url: str | None = Column(String, nullable=True)
-    clean_text: str | None = Column(Text, nullable=True)
+    ai_marketing_text: str | None = Column(String, nullable=True) # type: ignore
+    participation: str | None = Column(String, nullable=True) # type: ignore
+    eligible_cards: str | None = Column(String, nullable=True) # type: ignore
+    category: str | None = Column(String, nullable=True) # type: ignore
+    badge_color: str | None = Column(String, nullable=True) # type: ignore
+    card_logo_url: str | None = Column(String, nullable=True) # type: ignore
+    clean_text: str | None = Column(Text, nullable=True) # type: ignore
 
     # Quality Control
-    quality_score: int | None = Column(Integer, nullable=True)
-    auto_corrected: bool = Column(Boolean, default=False, nullable=False)
-    brand_search_attempts: int = Column(Integer, default=0, nullable=False)
-    no_brand_verified: bool = Column(Boolean, default=False, nullable=False)
-    repair_count: int = Column(Integer, default=0, nullable=False)
-    is_approved: bool = Column(Boolean, default=False, nullable=False)
-    date_extended: bool = Column(Boolean, default=False, nullable=False)  # type: ignore
-    cards_audited_at: datetime | None = Column(DateTime, nullable=True, default=None)
-    last_seen_at: datetime | None = Column(DateTime, nullable=True, default=None)
+    quality_score: int | None = Column(Integer, nullable=True) # type: ignore
+    auto_corrected: bool = Column(Boolean, default=False, nullable=False) # type: ignore
+    brand_search_attempts: int = Column(Integer, default=0, nullable=False) # type: ignore
+    no_brand_verified: bool = Column(Boolean, default=False, nullable=False) # type: ignore
+    repair_count: int = Column(Integer, default=0, nullable=False) # type: ignore
+    is_approved: bool = Column(Boolean, default=False, nullable=False) # type: ignore
+    date_extended: bool = Column(Boolean, default=False, nullable=False)  # type: ignore # type: ignore
+    cards_audited_at: datetime | None = Column(DateTime, nullable=True, default=None) # type: ignore
+    last_seen_at: datetime | None = Column(DateTime, nullable=True, default=None) # type: ignore
 
     # Dates
-    start_date: date | None = Column(Date, nullable=True)
-    end_date: date | None = Column(Date, nullable=True)
+    start_date: date | None = Column(Date, nullable=True) # type: ignore
+    end_date: date | None = Column(Date, nullable=True) # type: ignore
     
     # Status and tracking
-    is_active: bool = Column(Boolean, default=True, nullable=False)
-    tracking_url: str | None = Column(String, nullable=True)
-    affiliate_network: str | None = Column(String, nullable=True)
-    view_count: int = Column(Integer, default=0, nullable=False)
-    click_count: int = Column(Integer, default=0, nullable=False)
+    is_active: bool = Column(Boolean, default=True, nullable=False) # type: ignore
+    tracking_url: str | None = Column(String, nullable=True) # type: ignore
+    affiliate_network: str | None = Column(String, nullable=True) # type: ignore
+    view_count: int = Column(Integer, default=0, nullable=False) # type: ignore
+    click_count: int = Column(Integer, default=0, nullable=False) # type: ignore
     
     # AI embedding (vector for semantic search)
     # Note: Using String for now, Prisma uses vector(1536)
     # embedding = Column(String, nullable=True)  # Skip for now
     
     # Timestamps
-    created_at: datetime = Column(DateTime, default=func.now(), nullable=False)
-    updated_at: datetime = Column(DateTime, default=func.now(), onupdate=func.now(), nullable=False)
+    created_at: datetime = Column(DateTime, default=func.now(), nullable=False) # type: ignore
+    updated_at: datetime = Column(DateTime, default=func.now(), onupdate=func.now(), nullable=False) # type: ignore
 
     # Relationships
     card = relationship("Card", back_populates="campaigns")
@@ -305,15 +305,15 @@ class PointBlankRule(Base):
     """Point-Blank Matching Rules (Dictionary in DB)"""
     __tablename__ = "point_blank_rules"
 
-    id: int = Column(Integer, primary_key=True, autoincrement=True)
-    keyword: str = Column(String, unique=True, nullable=False)
-    brand_name: str | None = Column(String, nullable=True) # Explicitly nullable for sector-only matches
-    sector_slug: str | None = Column(String, nullable=True)
-    is_verified: bool = Column(Boolean, default=False, nullable=False)
-    match_count: int = Column(Integer, default=0, nullable=False)
-    sample_campaign_id: int | None = Column(Integer, ForeignKey("test_campaigns.id" if os.environ.get("TEST_MODE") == "1" else "campaigns.id"), nullable=True)
-    created_at: datetime = Column(DateTime, default=func.now(), nullable=False)
-    updated_at: datetime = Column(DateTime, default=func.now(), onupdate=func.now(), nullable=False)
+    id: int = Column(Integer, primary_key=True, autoincrement=True) # type: ignore
+    keyword: str = Column(String, unique=True, nullable=False) # type: ignore
+    brand_name: str | None = Column(String, nullable=True) # Explicitly nullable for sector-only matches # type: ignore
+    sector_slug: str | None = Column(String, nullable=True) # type: ignore
+    is_verified: bool = Column(Boolean, default=False, nullable=False) # type: ignore
+    match_count: int = Column(Integer, default=0, nullable=False) # type: ignore
+    sample_campaign_id: int | None = Column(Integer, ForeignKey("test_campaigns.id" if os.environ.get("TEST_MODE") == "1" else "campaigns.id"), nullable=True) # type: ignore
+    created_at: datetime = Column(DateTime, default=func.now(), nullable=False) # type: ignore
+    updated_at: datetime = Column(DateTime, default=func.now(), onupdate=func.now(), nullable=False) # type: ignore
 
     # Indexes
     __table_args__ = (

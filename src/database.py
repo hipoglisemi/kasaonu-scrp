@@ -28,8 +28,8 @@ if DATABASE_URL.startswith("postgres://"):
 engine = create_engine(
     DATABASE_URL,
     pool_pre_ping=True,  # Verify connections before using
-    pool_size=5,
-    max_overflow=10
+    pool_size=20,
+    max_overflow=30
 )
 
 # Create session factory

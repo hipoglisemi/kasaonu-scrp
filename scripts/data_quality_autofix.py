@@ -310,7 +310,7 @@ def fetch_html(url: str, title: str = "") -> str:
             if parent_section:
                 parent_section.decompose()
 
-        for tag in soup(["script", "style", "nav", "footer", "header", "noscript"]):
+        for tag in soup(["script", "style", "nav", "footer", "header", "noscript", "head", "title", "meta", "link"]):
             tag.extract()
 
         noise_selectors = [
@@ -320,7 +320,16 @@ def fetch_html(url: str, title: str = "") -> str:
             '.footer-cookie-policy', '.cookie-banner', '.cookie-modal',
             '#cookie-dialog-content', '.cookie-consent', '#cookie-all-apply',
             '.product-list__slider', '.product-list__grid', '.swiper', '.swiper-wrapper', '.swiper-slide',
-            '.breadcrumb', 'noindex', '.noindex', '.dropdown__menu'
+            '.breadcrumb', 'noindex', '.noindex', '.dropdown__menu',
+            # Bank-specific header/footer noise selectors
+            '#header', '#footer', '#headerUp', '#headerDown', '#headerMain', '#headerSrc', '#headerLoginPanelNew',
+            '#footerBant', '#footerQuickMenu', '#socialFooter', '#fDown', '#fDownLinks',
+            '.kutuArama', '.subMenuDiv', '.subMenuHolder', '.sizinIcinMenu', '.htMenu', '.firmaSec', '.fDownLinks',
+            '.Header-navigation-top', '.Header-navigation-main', '.Header-navigation-bottom', '.online-islemler', '.Header-navigation-mobil',
+            '.headerContent', '.logoBox', '.verisign', '.push', '.campaignOtherCampaigns', '.footer-banner', '.listing-box',
+            '.yk-header', '.yk-footer', '.world-mobil-box', '.home-modal',
+            '.header-v2', '.footer-v2', '.nav-v2', '.sidebar-v2',
+            '.hadi-footer', 'header.navbar', 'footer.footer', '.o-header', '.o-footer'
         ]
         for selector in noise_selectors:
             for element in soup.select(selector):
@@ -1461,6 +1470,8 @@ def run_autofix(limit: int = 250, campaign_id: Optional[int] = None, force_all: 
                         try:
                             checker = FactCheckerAgent(model=model or "models/gemini-3.1-flash-lite")
                             candidate = {
+                                "start_date": str(c.start_date) if c.start_date else None,
+                                "end_date": str(c.end_date) if c.end_date else None,
                                 "reward_text": c.reward_text,
                                 "reward_value": float(c.reward_value) if c.reward_value is not None else None,
                                 "reward_type": c.reward_type,
@@ -1481,35 +1492,77 @@ def run_autofix(limit: int = 250, campaign_id: Optional[int] = None, force_all: 
                                 
                                 cards_verification = verifications.get("eligible_cards", {})
                                 unsupported_cards = cards_verification.get("unsupported_cards", [])
+                                missed_cards = cards_verification.get("missed_cards", [])
                                 
                                 brands_verification = verifications.get("brands", {})
                                 unsupported_brands = brands_verification.get("unsupported_brands", [])
+                                missed_brands = brands_verification.get("missed_brands", [])
                                 
-                                if (unsupported_cards and cards_verification.get("status") in ["NO", "CONTRADICTION"]) or \
-                                   (unsupported_brands and brands_verification.get("status") in ["NO", "CONTRADICTION"]):
+                                sector_verification = verifications.get("sector", {})
+                                corrected_sector = sector_verification.get("corrected_sector", "")
+                                
+                                part_verification = verifications.get("participation", {})
+                                corrected_part = part_verification.get("corrected_participation", "")
+                                
+                                needs_reverify = False
+                                
+                                remaining_cards = candidate["cards"]
+                                if unsupported_cards or missed_cards:
+                                    print(f"   🩹 [Fact-Checker] Healing Cards! Removing: {unsupported_cards}, Adding: {missed_cards}")
+                                    current_cards = [card.strip() for card in c.eligible_cards.split(", ") if card.strip()]
+                                    remaining_cards = [card for card in current_cards if card not in unsupported_cards]
+                                    for mc in missed_cards:
+                                        if mc not in remaining_cards:
+                                            remaining_cards.append(mc)
+                                    c.eligible_cards = ", ".join(remaining_cards) if remaining_cards else "-"
+                                    updated = True
+                                    needs_reverify = True
                                     
-                                    remaining_cards = candidate["cards"]
-                                    if unsupported_cards:
-                                        print(f"   🩹 [Fact-Checker] Self-Healing Triggered! Removing unsupported cards: {unsupported_cards}")
-                                        current_cards = [card.strip() for card in c.eligible_cards.split(", ") if card.strip()]
-                                        remaining_cards = [card for card in current_cards if card not in unsupported_cards]
-                                        c.eligible_cards = ", ".join(remaining_cards) if remaining_cards else "-"
-                                        updated = True
-                                        
-                                    remaining_brands = candidate["brands"]
-                                    if unsupported_brands:
-                                        print(f"   🩹 [Fact-Checker] Self-Healing Triggered! Removing unsupported brands: {unsupported_brands}")
-                                        # Purge from campaign brands join table
-                                        for cb in db.query(CampaignBrand).filter(CampaignBrand.campaign_id == c.id).all():
-                                            b_obj = db.query(Brand).filter(Brand.id == cb.brand_id).first()
-                                            if b_obj and b_obj.name in unsupported_brands:
-                                                db.delete(cb)
+                                remaining_brands = candidate["brands"]
+                                if unsupported_brands or missed_brands:
+                                    print(f"   🩹 [Fact-Checker] Healing Brands! Removing: {unsupported_brands}, Adding: {missed_brands}")
+                                    # Purge unsupported from campaign brands join table
+                                    for cb in db.query(CampaignBrand).filter(CampaignBrand.campaign_id == c.id).all():
+                                        b_obj = db.query(Brand).filter(Brand.id == cb.brand_id).first()
+                                        if b_obj and b_obj.name in unsupported_brands:
+                                            db.delete(cb)
+                                    db.flush()
+                                    remaining_brands = [bname for bname in candidate["brands"] if bname not in unsupported_brands]
+                                    
+                                    # Add missed brands
+                                    if missed_brands:
+                                        pb = get_point_blank_matcher(db)
+                                        for mb in missed_brands:
+                                            b_match = pb.match_brand(mb)
+                                            if b_match and b_match.name not in remaining_brands:
+                                                if not db.query(CampaignBrand).filter(CampaignBrand.campaign_id == c.id, CampaignBrand.brand_id == b_match.id).first():
+                                                    db.add(CampaignBrand(campaign_id=c.id, brand_id=b_match.id))
+                                                    remaining_brands.append(b_match.name)
                                         db.flush()
-                                        remaining_brands = [bname for bname in candidate["brands"] if bname not in unsupported_brands]
-                                        updated = True
+                                    updated = True
+                                    needs_reverify = True
                                     
+                                if corrected_sector and corrected_sector != candidate["sector"]:
+                                    print(f"   🩹 [Fact-Checker] Healing Sector! Changing from '{candidate['sector']}' to '{corrected_sector}'")
+                                    slug = SECTOR_MAP.get(corrected_sector) or SECTOR_MAP.get(corrected_sector.replace("&", "ve"))
+                                    if slug:
+                                        sec_obj = db.query(Sector).filter(Sector.slug == slug).first()
+                                        if sec_obj:
+                                            c.sector_id = sec_obj.id # type: ignore
+                                            candidate["sector"] = sec_obj.name
+                                            updated = True
+                                            needs_reverify = True
+                                            
+                                if corrected_part and corrected_part != candidate["participation"]:
+                                    print(f"   🩹 [Fact-Checker] Healing Participation! Updating to '{corrected_part}'")
+                                    c.participation = corrected_part
+                                    candidate["participation"] = corrected_part
+                                    updated = True
+                                    needs_reverify = True
+
+                                if needs_reverify:
                                     # Re-verify with remaining items
-                                    print("   🔬 [Fact-Checker] Re-running NLI Verification after self-healing...")
+                                    print("   🔬 [Fact-Checker] Re-running NLI Verification after comprehensive self-healing...")
                                     candidate["cards"] = remaining_cards
                                     candidate["brands"] = remaining_brands
                                     re_verification = checker.verify_campaign(text_to_parse, candidate)
@@ -1522,7 +1575,7 @@ def run_autofix(limit: int = 250, campaign_id: Optional[int] = None, force_all: 
                                         print(f"   ❌ [Fact-Checker] Grounding Failed after Self-Healing. Score downgraded to: {c.quality_score}/100")
                                 else:
                                     c.quality_score = min(c.quality_score, 60) # Downgrade score
-                                    print(f"   ❌ [Fact-Checker] Hallucination/Grounding Error Detected! Score downgraded to: {c.quality_score}/100")
+                                    print(f"   ❌ [Fact-Checker] Hallucination/Grounding Error Detected (Not healable)! Score downgraded to: {c.quality_score}/100")
                                     if verification.get("reason"):
                                         print(f"      Reason: {verification.get('reason')}")
                         except Exception as fe:

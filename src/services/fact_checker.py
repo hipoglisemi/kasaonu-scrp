@@ -32,13 +32,15 @@ class FactCheckerAgent:
             "Kurallar:\n"
             "1. Asla onay sapmasına (confirmation bias) düşme. Birinci yapay zekanın çıkardığı her iddiayı şüpheyle incele.\n"
             "2. Çıktıyı her zaman belirtilen JSON formatında ver.\n"
-            "3. Sektör doğruluğunu teyit et: Kampanya başlığı ve detayları, atanan sektör (kategori) ile mantıksal olarak 100% örtüşmelidir.\n"
-            "4. Marka doğruluğunu teyit et: Kampanyaya atanan tüm markaların kampanya başlığında ya da açıklamasında açıkça geçtiğini ve kampanya ile doğrudan ilişkili olduğunu doğrula. Geçmeyen markaları 'unsupported_brands' içine yaz.\n"
-            "5. Katılım yöntemini teyit et: Metinde katılım için mobil uygulama, SMS, web vb. belirtilen yöntem ile adayın katılım yöntemi uyuşmalıdır.\n"
-            "6. Her alan için şu statülerden birini seç:\n"
-            "   - 'YES': Kaynak metin bu bilgiyi açıkça destekliyor, mantıksal olarak teyit ediyor ve çelişmiyor.\n"
+            "3. Sektör doğruluğunu teyit et: Kampanya başlığı ve detayları, atanan sektör (kategori) ile mantıksal olarak 100% örtüşmelidir. Eğer 'Diğer' seçilmişse ama aslında bu spesifik bir sektörse (örn: Akaryakıt, Market), bunu reddet.\n"
+            "4. Marka doğruluğunu teyit et: Kampanyaya atanan tüm markaların kampanya başlığında ya da açıklamasında açıkça geçtiğini ve kampanya ile doğrudan ilişkili olduğunu doğrula. Geçmeyen markaları 'unsupported_brands' içine yaz. Ayrıca metinde geçtiği halde adayın listesinde unutulmuş/eksik markaları 'missed_brands' içine yaz.\n"
+            "5. Geçerli kartları teyit et: Adayın yazdığı kartlar metinde desteklenmiyorsa 'unsupported_cards' içine yaz. Metinde geçtiği halde adayın eklemeyi unuttuğu kartlar varsa 'missed_cards' içine yaz.\n"
+            "6. Katılım yöntemini teyit et: Metinde katılım için mobil uygulama, SMS, web vb. belirtilen yöntem ile adayın katılım yöntemi uyuşmalıdır.\n"
+            "7. Tarihleri teyit et: Metinde açıkça belirtilen başlangıç ve bitiş tarihleri ile adayın tarihleri uyuşmalıdır. Eğer metinde tarih yoksa, adayın tahmini tarihini kabul edebilirsin.\n"
+            "8. Her alan için şu statülerden birini seç:\n"
+            "   - 'YES': Kaynak metin bu bilgiyi açıkça destekliyor (veya eksiği yok), mantıksal olarak teyit ediyor ve çelişmiyor.\n"
             "   - 'NO': Kaynak metinde bu bilgiyi destekleyecek hiçbir kanıt yok (uydurma/halüsinasyon).\n"
-            "   - 'CONTRADICTION': Kaynak metinde bu bilgiyle doğrudan çelişen bir ifade var (örn. kart dahil yazılmış ama metin hariç diyor, veya katılım SMS diyor ama adaya Mobil girilmiş).\n"
+            "   - 'CONTRADICTION': Kaynak metinde bu bilgiyle doğrudan çelişen bir ifade var VEYA metinde olduğu halde adayın unuttuğu eksik bilgiler var.\n"
         )
 
         prompt = f"""
@@ -59,26 +61,34 @@ Aday bilgileri kaynak metin ile karşılaştır. Çıktıyı kesinlikle aşağı
 {{
   "is_grounded": true, // Tüm kritik alanlar (reward, eligible_cards, participation, sector, brands) YES ise true, aksi halde false.
   "verifications": {{
+    "dates": {{
+      "status": "YES", // YES | NO | CONTRADICTION
+      "reason": "Tarih uyumunu açıklayan gerekçe."
+    }},
     "reward": {{
       "status": "YES", // YES | NO | CONTRADICTION
       "reason": "Bu karara varma nedenini açıklayan kısa Türkçe gerekçe."
     }},
     "eligible_cards": {{
-      "status": "YES", // YES | NO | CONTRADICTION
+      "status": "YES", // YES | NO | CONTRADICTION (Eğer missed_cards veya unsupported_cards varsa CONTRADICTION olmalıdır)
       "unsupported_cards": [], // Kaynak metinde desteklenmeyen kartların listesi (örn: ["Maximiles", "Paraf Ticari"])
+      "missed_cards": [], // Kaynak metinde geçtiği halde adayın listesinde EKSİK/UNUTULMUŞ geçerli kartların listesi (tam metinleriyle).
       "reason": "Açıklama."
     }},
     "participation": {{
       "status": "YES", // YES | NO | CONTRADICTION
+      "corrected_participation": "", // Eğer katılım hatalıysa, olması gereken doğru katılım cümlesi/metodu. Doğruysa boş bırak.
       "reason": "Açıklama."
     }},
     "sector": {{
-      "status": "YES", // YES | NO | CONTRADICTION
+      "status": "YES", // YES | NO | CONTRADICTION (Eğer daha uygun bir sektör varsa CONTRADICTION)
+      "corrected_sector": "", // Eğer adayın sektörü yanlış/eksikse, olması gereken en spesifik sektör adı (örn: 'Akaryakıt', 'Market & Gıda', 'E-Ticaret'). Doğruysa boş bırak.
       "reason": "Açıklama."
     }},
     "brands": {{
-      "status": "YES", // YES | NO | CONTRADICTION
-      "unsupported_brands": [], // Kaynak metinde adı/markası veya kampanyayla ilgisi kesinlikle geçmeyen veya uydurulan markaların listesi. (Örn: bankanın kendi adı veya ilgisiz bir marka)
+      "status": "YES", // YES | NO | CONTRADICTION (Eğer missed_brands veya unsupported_brands varsa CONTRADICTION olmalıdır)
+      "unsupported_brands": [], // Kaynak metinde adı/markası geçmeyen veya uydurulan markaların listesi.
+      "missed_brands": [], // Kaynak metinde açıkça geçtiği halde adayın listesinde EKSİK/UNUTULMUŞ markaların listesi. (bankanın adı hariç)
       "reason": "Açıklama."
     }}
   }}

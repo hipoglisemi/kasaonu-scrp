@@ -200,7 +200,7 @@ async def parse_with_gemini(raw_data, card_name, bank_name):
     from google import genai
     from google.genai import types
     
-    client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
+    client = genai.Client(api_key=os.getenv("GEMINI_API_KEY_1") or os.getenv("GEMINI_API_KEY_2"))
     
     content = "\n".join(raw_data.get("dom_data", []))[:3000]
     if not content:
