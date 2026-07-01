@@ -364,8 +364,10 @@ def upsert_campaign(db: Session, campaign: Campaign) -> Tuple[Campaign, str]:
             # 📅 YENİ: Metin içindeki tarihleri otomatik güncelle (Proactive mantığı)
             old_end_date_for_text = existing.end_date
             
-            existing.start_date = campaign.start_date
-            existing.end_date = campaign.end_date
+            if campaign.start_date is not None:
+                existing.start_date = campaign.start_date
+            if campaign.end_date is not None:
+                existing.end_date = campaign.end_date
             
             if old_end_date_for_text and campaign.end_date and old_end_date_for_text != campaign.end_date:
                 if existing.conditions:
@@ -393,8 +395,10 @@ def upsert_campaign(db: Session, campaign: Campaign) -> Tuple[Campaign, str]:
             # Update URLs and Slug ONLY when it's a completely new/modified campaign
             existing.tracking_url = campaign.tracking_url  
             existing.slug = campaign.slug                  
-            existing.start_date = campaign.start_date
-            existing.end_date = campaign.end_date
+            if campaign.start_date is not None:
+                existing.start_date = campaign.start_date
+            if campaign.end_date is not None:
+                existing.end_date = campaign.end_date
             
             def _update_if_better(field_name: str, new_val: Any):
                 old_val = getattr(existing, field_name)
