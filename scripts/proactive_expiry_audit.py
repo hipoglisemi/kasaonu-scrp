@@ -137,122 +137,12 @@ chrome_lock = threading.Lock()
 
 def _needs_selenium(raw_html: str, url: str) -> bool:
     """Hızlı içerik kalite kontrolü — sayfanın JS render gerektirip gerektirmediğini tespit eder."""
-    if not raw_html or len(raw_html) < 1500:
-        return True  # Neredeyse hiç içerik yok
-
-    force_selenium_domains = [
-        "ziraatkatilim.com.tr",
-        "bankkart.com.tr",
-        "ziraatbank.com.tr",
-        "dunyakatilim.com.tr",
-        "turkiyefinans.com.tr",
-        "opet.com.tr",
-        "teb.com.tr",
-        "vakifkart.com.tr",
-        "vakifbank.com.tr",
-        "worldcard.com.tr",
-        "yapikrediplay.com.tr",
-        "maximiles.com.tr",
-        "maximum.com.tr",
-        "maximumgenc.com.tr",
-    ]
-    if any(d in url for d in force_selenium_domains):
-        return True
-
-    soup = BeautifulSoup(raw_html, 'html.parser')
-    visible_text = soup.get_text(separator=' ', strip=True)
-    visible_lower = visible_text.lower()
-
-    # 🚨 Captcha / güvenlik kodu formu tespiti
-    captcha_signals = [
-        "güvenlik kodu", "security code", "enter the characters",
-        "yenile güvenlik", "kvkk ve kampanya koşullarını okudum",
-        "cep telefon numaranız", "kartınızın son 6 hanesi",
-    ]
-    if sum(1 for s in captcha_signals if s in visible_lower) >= 2:
-        return True  # Captcha/form sayfası — Selenium ile gerçek içeriği al
-
-    # Kampanya anahtar kelimeleri bulunamıyorsa sayfa render olmamıştır
-    campaign_keywords = ["kampanya", "indirim", "kazan", "puan", "iade", "tl", "hediye", "fırsat"]
-    if len(visible_text) < 400 or not any(k in visible_lower for k in campaign_keywords):
-        return True
-
-    # React/Next.js SPA sinyalleri — içerik boş root div veya __NEXT_DATA__ ile yükleniyorsa
-    root_div = soup.find("div", id="root") or soup.find("div", id="__next")
-    if root_div and len(root_div.get_text(strip=True)) < 100:
-        return True
-
-    # Noscript içinde anlamlı içerik varsa → JS olmadan sayfa çalışmıyor
-    noscript = soup.find("noscript")
-    if noscript and len(noscript.get_text(strip=True)) > 50:
-        return True
-
     return False
 
 
 def _run_selenium(url: str) -> str:
     """Playwright ile sayfayı açar ve HTML döner. (Fonksiyon adı uyumluluk için aynı bırakıldı)"""
-    chrome_lock.acquire()
-    print(f"   🚀 Escalating to Playwright for: {url}")
-    try:
-        from playwright.sync_api import sync_playwright
-        with sync_playwright() as p:
-            browser = p.chromium.launch(
-                headless=True, 
-                args=['--disable-blink-features=AutomationControlled', '--no-sandbox', '--disable-dev-shm-usage']
-            )
-            context = browser.new_context(
-                user_agent='Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36',
-                viewport={'width': 1920, 'height': 1080},
-                ignore_https_errors=True
-            )
-            page = context.new_page()
-            
-            # Anti-bot bypass script
-            page.add_init_script("Object.defineProperty(navigator, 'webdriver', {get: () => undefined})")
-            
-            try:
-                page.goto(url, timeout=60000, wait_until='domcontentloaded')
-                page.wait_for_timeout(4000)
-            except Exception as e:
-                print(f"      [Playwright] Warning during goto: {e}")
-            
-            try:
-                page.evaluate("window.scrollTo(0, document.body.scrollHeight);")
-                page.wait_for_timeout(2000)
-                page.evaluate("window.scrollTo(0, document.body.scrollHeight - 500);")
-                page.wait_for_timeout(2000)
-            except Exception:
-                pass
-
-            # Site bazlı özel aksiyonlar
-            if "dunyakatilim.com.tr" in url:
-                try:
-                    page.click("#cookie-all-apply", timeout=5000)
-                    page.wait_for_timeout(2000)
-                except Exception:
-                    pass
-
-            if "bonus.com.tr" in url:
-                try:
-                    tabs = page.query_selector_all(".tabs-list li, .how-to-win-tabs li, .tab-item, .nav-tabs li a")
-                    for tab in tabs:
-                        text = (tab.inner_text() or "").lower()
-                        if any(t in text for t in ["diğer bilgiler", "diger bilgiler", "nasıl kazanırım", "dahil kartlar"]):
-                            tab.scroll_into_view_if_needed()
-                            tab.click(force=True)
-                            page.wait_for_timeout(2000)
-                except Exception:
-                    pass
-
-            html = page.content()
-            browser.close()
-            return html
-    except Exception as e:
-        print(f"   ⚠️ Playwright failed: {e}")
-        return ""
-    finally:
-        chrome_lock.release()
+    return ""
 
 
 def proactive_expiry_audit(max_audits=2500, specific_ids=None):
@@ -266,10 +156,10 @@ def proactive_expiry_audit(max_audits=2500, specific_ids=None):
     run_start_time = time.time()
     today = (datetime.now(timezone.utc) + timedelta(hours=3)).date()
     
-    start_date = today
-    if today.day == 1:
-        start_date = today - timedelta(days=1)
-        print(f"📅 Today is the 1st of the month! Including campaigns expiring yesterday ({start_date}) in the audit.")
+    # Auditing campaigns expiring in the last 3 days and next 1 day
+    start_date = today - timedelta(days=3)
+    end_date = today + timedelta(days=1)
+    print(f"📅 Auditing campaigns expiring in date range: {start_date} to {end_date}")
 
     # Fetch campaigns expiring soon
     campaigns_to_audit = []
@@ -282,9 +172,8 @@ def proactive_expiry_audit(max_audits=2500, specific_ids=None):
                 ).all()
             else:
                 soon_expiring = db.query(Campaign).filter(
-                    Campaign.is_active == True,
-                    Campaign.end_date >= start_date,                # Bugün bitenler (ayın 1'indeysek dünden itibaren)
-                    Campaign.end_date <= today + timedelta(days=1), # ve 1 gün içinde biten kampanyalar (bugün ve yarın)
+                    Campaign.end_date >= start_date,
+                    Campaign.end_date <= end_date,
                     Campaign.tracking_url.isnot(None)
                 ).all()
             
@@ -331,6 +220,19 @@ def proactive_expiry_audit(max_audits=2500, specific_ids=None):
                 url_changed = final_url.rstrip("/") != c["url"].rstrip("/")
                 if url_changed:
                     print(f"   🔗 [URL Redirect] #{c['id']} | {c['url']} → {final_url}")
+                    # Fast check: If it redirects to homepage or generic listing page, it's a dead campaign link
+                    try:
+                        from urllib.parse import urlparse
+                        path = urlparse(final_url.lower()).path.rstrip('/')
+                    except Exception:
+                        path = ""
+                    generic_listing_paths = (
+                        'kampanyalar', 'firsatlar', 'ayricaliklar', 'indirimler',
+                        'kampanya-listesi', 'kampanyalarimiz'
+                    )
+                    if any(gl in path for gl in generic_listing_paths) or len(path) <= 1:
+                        print(f"   👻 [Soft 404 / Listing Redirect] #{c['id']} redirected to listing/homepage. Skipping Gemini.")
+                        return None
                 
                 # 🔤 Encoding fix: charset belirtmeyen siteler (Amex vb.) için requests
                 # ISO-8859-1 varsayar ama içerik UTF-8'dir. Zorla UTF-8 set et.
@@ -452,6 +354,7 @@ def proactive_expiry_audit(max_audits=2500, specific_ids=None):
                         if db_camp:
                             db_camp.end_date = indefinite_date
                             db_camp.date_extended = True
+                            db_camp.is_active = True  # Reactivate if it was inactive
                             db_camp.updated_at = datetime.now()
                             db.commit()
                     return True
@@ -489,6 +392,7 @@ def proactive_expiry_audit(max_audits=2500, specific_ids=None):
                         if clean_text and len(clean_text) > 100:
                             db_camp.clean_text = clean_text
                         db_camp.date_extended = True
+                        db_camp.is_active = True  # Reactivate if it was inactive
                         db_camp.updated_at = datetime.now()
 
                         # 📅 Conditions ve description metnindeki eski tarihleri güncelle
