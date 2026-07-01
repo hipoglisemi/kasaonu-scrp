@@ -143,6 +143,17 @@ def upsert_campaign(db: Session, campaign: Campaign) -> Tuple[Campaign, str]:
     """
     from sqlalchemy import func
     
+    if campaign.eligible_cards:
+        cards = [c.strip() for c in campaign.eligible_cards.split(",") if c.strip()]
+        regular, end = [], []
+        for c in cards:
+            if c.lower() in ["ek kartlar", "sanal kartlar"]:
+                end.append(c)
+            else:
+                regular.append(c)
+        end.sort()
+        campaign.eligible_cards = ", ".join(regular + end)
+        
     # 1. Match by EXACT tracking_url across ANY card ID to prevent duplication of the unique bank page
     existing = None
     if campaign.tracking_url:
@@ -414,6 +425,11 @@ def upsert_campaign(db: Session, campaign: Campaign) -> Tuple[Campaign, str]:
             _update_if_better("clean_text", campaign.clean_text)
             _update_if_better("ai_marketing_text", campaign.ai_marketing_text)
         
+        # YENİ: Başlangıç tarihi boşsa ve bitiş tarihi varsa bugünü ata (API isteği yapmadan kurtarma)
+        if existing.end_date and not existing.start_date:
+            existing.start_date = datetime.now(timezone.utc).date()
+            print(f"      📅 [Tarih Kurtarma] Başlangıç tarihi boştu, bugüne (API'siz) güncellendi: {existing.start_date}")
+
         return existing, status
     else:
         # New campaigns are strictly NOT approved by default
