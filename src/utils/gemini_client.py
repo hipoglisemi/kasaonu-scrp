@@ -175,17 +175,25 @@ def _generate_internal(
                         # Tüm anahtarlar sırayla denensin, sadece hepsi tükenince fallback'e geç.
                         # (Önceki "anında atla" kuralı kaldırıldı — 3 key varsa hepsini dene!)
                         
-                        # 503 High Demand requires longer wait
+                        is_quota_or_depleted = any(x in err_str for x in ["quota", "depleted", "limit", "429"])
                         is_503 = "503" in err_str or "high demand" in err_str
-                        current_delay = retry_delay * 2 if is_503 else retry_delay
-                        # Add jitter
-                        current_delay += random.uniform(0, 2)
+                        
+                        # Farklı bir API anahtarına geçtiğimiz için gereksiz yere beklemeyi engelliyoruz.
+                        if is_quota_or_depleted:
+                            current_delay = 0.0
+                        elif is_503:
+                            current_delay = 2.0 + random.uniform(0, 1)
+                        else:
+                            current_delay = 0.1
                         
                         msg = f"[KeyLoop] ⚠️  Key #{orig_idx} failed for {current_model} ({type(e).__name__})."
                         if idx + 1 < len(indexed_keys):
                             next_orig_idx = indexed_keys[idx + 1]["original_index"]
-                            print(f"{msg} {'(HIGH DEMAND)' if is_503 else ''} Trying next key... (Key #{next_orig_idx}) | Waiting {current_delay:.1f}s...")
-                            time.sleep(current_delay)
+                            if current_delay > 0:
+                                print(f"{msg} {'(HIGH DEMAND)' if is_503 else ''} Trying next key... (Key #{next_orig_idx}) | Waiting {current_delay:.1f}s...")
+                                time.sleep(current_delay)
+                            else:
+                                print(f"{msg} Trying next key immediately... (Key #{next_orig_idx})")
                         else:
                             print(f"{msg} All {len(indexed_keys)} keys exhausted for {current_model} in this loop.")
                         last_error = e
