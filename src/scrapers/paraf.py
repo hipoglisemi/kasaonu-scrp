@@ -278,6 +278,19 @@ class ParafScraper:
         if not target_cards:
             target_cards = [card_name]
         
+        # AI'ın "Paraf Premium", "Paraf Gold" gibi uydurma kart isimleri döndürmesini önlemek için
+        # eligible_cards listesini de normalize et (Paraf → Paraf, Parafly → Parafly, Troy → Paraf TROY)
+        def _normalize_card_name(name: str) -> str:
+            n = name.lower()
+            if "parafly" in n or "fly" in n:
+                return "Parafly"
+            elif "troy" in n:
+                return "Paraf TROY"
+            else:
+                return "Paraf"
+        
+        target_cards = list(dict.fromkeys(_normalize_card_name(c) for c in target_cards))  # normalize + deduplicate
+        
         # Bütün Parafly kampanyalarının Paraf'a kaymasını engellemek için AI'ın bulduğu ilk kart yerine, 
         # scraper'ın çalıştığı asıl kaynağın adını (Paraf veya Parafly) baz alıyoruz.
         primary_card = self._get_or_create_card(card_name)
