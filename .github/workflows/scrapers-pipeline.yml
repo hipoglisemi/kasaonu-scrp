@@ -2,8 +2,8 @@ name: "🔄 Scheduled Scrapers Pipeline"
 
 on:
   schedule:
-    # TSİ 00:23 (UTC 21:23) — Ayın 2-31'i her gün
-    - cron: '23 21 2-31 * *'
+    # TSİ 00:23 (UTC 21:23) — Ayın 2-31'i her gün (UTC+3 offset: UTC'de 1-30 görünür)
+    - cron: '23 21 1-30 * *'
     # TSİ 09:00 (UTC 06:00) — Her ayın 1'i
     - cron: '0 6 1 * *'
   workflow_dispatch:
