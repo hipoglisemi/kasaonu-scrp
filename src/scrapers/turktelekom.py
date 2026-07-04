@@ -446,6 +446,9 @@ class TurkTelekomScraper:
                     print(f"      🆙 Updating existing title: {existing.title} -> {predefined_title}")
                     existing.title = predefined_title
             
+            # IMPORTANT: Update last_seen_at even if we skip processing!
+            existing.last_seen_at = datetime.now()
+            
             self.db.commit()
             print(f"      ⏭️ Skipping (Already exists & active): {existing.title}")
             return "skipped"
@@ -461,6 +464,9 @@ class TurkTelekomScraper:
                 active_headers["Referer"] = "https://www.selfy.com.tr/"
 
             response = requests.get(url, headers=active_headers, timeout=30)
+            if response.status_code != 200:
+                print(f"      ❌ HTTP Error {response.status_code} for {url}")
+                return f"HTTP {response.status_code}"
             response.raise_for_status()
             
             soup = BeautifulSoup(response.text, 'html.parser')
@@ -644,7 +650,7 @@ class TurkTelekomScraper:
 
             if not ai_data or ai_data.get("_ai_failed"):
                 print(f"      ❌ AI parsing failed for {url}")
-                return "error"  # type: ignore # pyre-ignore[7]
+                return "AI Parsing returned None"  # type: ignore # pyre-ignore[7]
 
             # Override/Fixes
             if "selfy.com.tr" in url and title:
@@ -670,7 +676,7 @@ class TurkTelekomScraper:
 
         except Exception as e:
             print(f"      ❌ Detail error: {e}")
-            return "error"  # type: ignore # pyre-ignore[7]
+            return str(e)  # type: ignore # pyre-ignore[7]
 
     def _save_campaign(self, data: Dict[str, Any], url: str, image_url: Optional[str]):  # type: ignore # pyre-ignore[16,6]
         """Save parsed campaign to DB"""

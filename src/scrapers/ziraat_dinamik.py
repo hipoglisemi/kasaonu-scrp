@@ -119,6 +119,9 @@ class ZiraatDinamikScraper:
         try:
             existing = self.db.query(Campaign).filter(Campaign.tracking_url == url).first()
             if existing and existing.is_active and existing.is_approved:
+                # IMPORTANT: Update last_seen_at even if we skip processing!
+                existing.last_seen_at = datetime.now()
+                self.db.commit()
                 print(f"   ⏭️ Skipped (Already exists and active): {existing.title[:40]}")
                 return "skipped"
         except Exception as e:
@@ -128,6 +131,11 @@ class ZiraatDinamikScraper:
         
         try:
             response = self.session.get(url, timeout=30)
+            
+            if response.status_code != 200:
+                print(f"   ❌ HTTP Error {response.status_code} for {url}")
+                return f"HTTP {response.status_code}"
+                
             html = response.text
             soup = BeautifulSoup(html, 'html.parser')
 
@@ -150,6 +158,10 @@ class ZiraatDinamikScraper:
             
             body_el = soup.find("body")
             raw_html = str(body_el) if body_el else str(soup)
+            
+            if len(raw_html) < 200:
+                 print(f"   ❌ HTML too short, might be blocked. Length: {len(raw_html)}")
+                 return "HTML too short"
 
             detail_img = None
             for img in soup.select('img'):
@@ -172,8 +184,8 @@ class ZiraatDinamikScraper:
             )
             
             if not ai_data:
-                print("   ❌ AI Parsing failed.")
-                return "error"
+                print("   ❌ AI Parsing failed (returned None).")
+                return "AI Parsing returned None"
 
             title = ai_data.get("title", "Kampanya")
             desc = ai_data.get("description", "")

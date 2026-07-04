@@ -272,6 +272,12 @@ class TurkiyeFinansScraper:
                     {"url": url}
                 ).fetchone()
                 if existing and existing[1]:  # is_active
+                    # IMPORTANT: Update last_seen_at even if we skip processing!
+                    conn.execute(
+                        text("UPDATE campaigns SET last_seen_at = NOW() WHERE tracking_url = :url"),
+                        {"url": url}
+                    )
+                    conn.commit()
                     print(f"   ⏭️ Skipped (Already exists and active): {url}")
                     return "skipped"  # type: ignore # pyre-ignore[7]
                 
@@ -459,12 +465,12 @@ class TurkiyeFinansScraper:
             except Exception as e:
                 db.rollback()
                 print(f"   ❌ DB Error: {e}")
-                return "error"
+                return str(e)
             finally:
                 db.close()
         except Exception as e:
             print(f"   ❌ Scrape error for {url}: {e}")
-            return "error"
+            return str(e)
 
 
     def run(self, limit: int = 1000, target: str = "all"):

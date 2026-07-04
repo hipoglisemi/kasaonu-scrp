@@ -390,7 +390,10 @@ class AkbankBaseScraper:
                             # 🔄 MIGRATION FIX: If the URL prefix changed, update it in the DB silently!
                             if existing.tracking_url != url:
                                 existing.tracking_url = url
-                                db.commit()
+                                
+                            # IMPORTANT: Update last_seen_at even if we skip processing!
+                            existing.last_seen_at = datetime.now()
+                            db.commit()
                                 
                             print(f"⏭️  Skipped (Already exists & active under card {existing.card_id}): {existing.title}")
                             total_skipped += 1
