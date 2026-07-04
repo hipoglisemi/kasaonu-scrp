@@ -220,19 +220,51 @@ class IsbankMaximumScraper:
 
 
     def _fetch_campaign_urls(self, limit: Optional[int] = None) -> tuple[List[str], List[str]]:  # type: ignore # pyre-ignore[16,6]
-        print(f"📥 Fetching campaign list from {self.CAMPAIGNS_URL}...")
+        print(f"📥 Fetching campaign list from {self.CAMPAIGNS_URL} via Playwright...")
         
-        import requests  # type: ignore # pyre-ignore[21]
-        import urllib3  # type: ignore # pyre-ignore[21]
-        urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
-        
-        # We fetch the first page. Maximum usually loads a bunch of HTML blocks, and potentially has a load-more API.
-        # But for simplification and immediate WAF bypass, we fetch the main HTML.
         all_campaign_links = []
         try:
-            response = requests.get(self.CAMPAIGNS_URL, headers=self.headers, verify=False, timeout=20)
-            response.raise_for_status()
-            soup = BeautifulSoup(response.text, "html.parser")
+            if not getattr(self, 'page', None):
+                self._start_browser()
+                
+            self.page.goto(self.CAMPAIGNS_URL, wait_until="domcontentloaded", timeout=60000)
+            time.sleep(3)
+            
+            print("   📜 Scrolling and clicking 'Daha Fazla' to load all campaigns...")
+            prev_height = 0
+            scroll_attempts = 0
+            max_attempts = 30
+            
+            while scroll_attempts < max_attempts:
+                # Click 'Daha Fazla' if available
+                try:
+                    more_buttons = self.page.locator("text='Daha Fazla'").all()
+                    for btn in more_buttons:
+                        if btn.is_visible():
+                            btn.click()
+                            time.sleep(2)
+                except Exception:
+                    pass
+                    
+                self.page.evaluate("window.scrollTo(0, document.body.scrollHeight)")
+                time.sleep(2)
+                
+                new_height = self.page.evaluate("document.body.scrollHeight")
+                if new_height == prev_height:
+                    self.page.evaluate("window.scrollTo(0, document.body.scrollHeight - 300)")
+                    time.sleep(1)
+                    self.page.evaluate("window.scrollTo(0, document.body.scrollHeight)")
+                    time.sleep(2)
+                    final_height = self.page.evaluate("document.body.scrollHeight")
+                    if final_height == new_height:
+                        print(f"   ✅ Reached bottom after {scroll_attempts} scrolls.")
+                        break
+                        
+                prev_height = new_height
+                scroll_attempts += 1
+                
+            html = self.page.content()
+            soup = BeautifulSoup(html, "html.parser")
             
             # Extract links
             links = soup.find_all("a", href=True)
