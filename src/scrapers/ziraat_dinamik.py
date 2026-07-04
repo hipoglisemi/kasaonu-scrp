@@ -275,7 +275,7 @@ class ZiraatDinamikScraper:
             
         except Exception as e:
             print(f"   ❌ Error processing {url}: {e}")
-            if self.db: self.db.rollback()
+            if self.db is not None: self.db.rollback()
             traceback.print_exc()
             return "error"
 
@@ -352,5 +352,5 @@ if __name__ == "__main__":
         scraper = ZiraatDinamikScraper()
         scraper.run()
     finally:
-        if hasattr(scraper, 'db') and scraper.db:
+        if hasattr(scraper, 'db') and scraper.db is not None:
             scraper.db.close()
