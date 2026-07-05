@@ -39,6 +39,24 @@ class ZiraatDinamikScraper:
             
         self.db = get_db_session()
 
+        self.sector_cache: Dict[str, Sector] = {}
+        self._load_cache()
+        
+        self.bank = self.db.query(Bank).filter(Bank.slug == 'ziraat-dinamik').first()
+        if not self.bank:
+            self.bank = Bank(name='Ziraat Dinamik', slug='ziraat-dinamik', logo_url='/logos/ziraat-dinamik.png', is_active=True)
+            self.db.add(self.bank)
+            self.db.commit()
+            
+        self.card = self.db.query(Card).filter(Card.slug == 'dinamik-kart').first()
+        if not self.card:
+             self.card = Card(bank_id=self.bank.id, name='Dinamik Kart', slug='dinamik-kart', is_active=True)
+             self.db.add(self.card)
+             self.db.commit()
+        
+        self.card_id = self.card.id
+        self.db.commit()  # Release connection to the pool
+
     def _find_working_tr_proxy(self) -> Optional[str]:
         """
         Fetches public TR proxies from proxyscrape and tests them against the target URL.
@@ -77,23 +95,6 @@ class ZiraatDinamikScraper:
         
         print("   ❌ No working TR proxy found from the list.")
         return None
-        
-        self.sector_cache: Dict[str, Sector] = {}
-        self._load_cache()
-        
-        self.bank = self.db.query(Bank).filter(Bank.slug == 'ziraat-dinamik').first()
-        if not self.bank:
-            self.bank = Bank(name='Ziraat Dinamik', slug='ziraat-dinamik', logo_url='/logos/ziraat-dinamik.png', is_active=True)
-            self.db.add(self.bank)
-            self.db.commit()
-            
-        self.card = self.db.query(Card).filter(Card.slug == 'dinamik-kart').first()
-        if not self.card:
-             self.card = Card(bank_id=self.bank.id, name='Dinamik Kart', slug='dinamik-kart', is_active=True)
-             self.db.add(self.card)
-             self.db.commit()
-        
-        self.card_id = self.card.id
 
     def _fetch_campaign_list(self):
         print(f"📄 Fetching Ziraat Dinamik campaigns from HTML...")

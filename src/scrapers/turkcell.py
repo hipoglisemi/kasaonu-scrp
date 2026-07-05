@@ -79,7 +79,7 @@ class TurkcellScraper:
 
         try:
             async with async_playwright() as p:
-                browser = await p.firefox.launch(
+                browser = await p.chromium.launch(
                     headless=self.headless
                 )
                 context = await browser.new_context(

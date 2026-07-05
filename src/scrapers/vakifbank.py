@@ -65,6 +65,15 @@ class VakifbankScraper:
         self.session.headers.update({
             "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
         })
+        
+        # Geoblock bypass: Find a working TR proxy if direct connection fails
+        proxy_url = self._find_working_tr_proxy()
+        if proxy_url:
+            self.session.proxies.update({
+                "http": proxy_url,
+                "https": proxy_url
+            })
+            
         self.db = SessionLocal()
         
         # Initialize AI Parser
@@ -88,6 +97,42 @@ class VakifbankScraper:
              self.db.commit()  # type: ignore # pyre-ignore[16]
         
         self.card_id = self.card.id  # type: ignore # pyre-ignore[16]
+        self.db.commit()  # Release connection to the pool
+
+    def _find_working_tr_proxy(self) -> str:
+        print("   🔍 Testing direct connection to VakıfBank first...")
+        try:
+            resp = self.session.get("https://www.vakifkart.com.tr", timeout=10)
+            if resp.status_code == 200:
+                print("   ✅ Direct connection works! No proxy needed.")
+                return None
+        except Exception as e:
+            print(f"   ⚠️ Direct connection failed (might be geoblocked): {e}")
+
+        print("   🌐 Fetching TR proxy list from proxyscrape...")
+        proxy_list_url = "https://api.proxyscrape.com/v2/?request=displayproxies&protocol=http&timeout=10000&country=TR&ssl=all&anonymity=all"
+        try:
+            r = requests.get(proxy_list_url, timeout=10)
+            proxies = [p.strip() for p in r.text.strip().split("\n") if p.strip()]
+            print(f"   📋 Found {len(proxies)} TR proxies. Testing them...")
+        except Exception as pe:
+            print(f"   ❌ Failed to fetch proxy list: {pe}")
+            return None
+
+        for proxy in proxies[:15]:  # Test first 15 proxies
+            proxy_url = f"http://{proxy}"
+            proxies_dict = {"http": proxy_url, "https": proxy_url}
+            try:
+                print(f"      Testing proxy: {proxy} ...")
+                test_resp = requests.get("https://www.vakifkart.com.tr", headers=self.session.headers, proxies=proxies_dict, timeout=5)
+                if test_resp.status_code == 200:
+                    print(f"      ✅ Found working TR proxy: {proxy}")
+                    return proxy_url
+            except Exception:
+                pass
+        
+        print("   ❌ No working TR proxy found from the list.")
+        return None
 
     def _fetch_campaign_list(self, limit_pages=None):
         campaign_urls = []

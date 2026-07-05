@@ -164,6 +164,20 @@ class AkbankBaseScraper:
             # Note: Early DB check moved to run() method to handle sub-class overrides automatically.
             
             response = self.session.get(url, timeout=20)
+            
+            if response.status_code == 404:
+                print(f"   ⚠️ [404 Not Found] Campaign no longer exists. Deactivating.")
+                with get_db_session() as db:
+                    url_slug = url.strip('/').split('/')[-1]
+                    all_camps = db.query(Campaign).filter(
+                        Campaign.card_id == self.card_id,
+                        Campaign.tracking_url.like(f"%/{url_slug}%")
+                    ).all()
+                    for camp in all_camps:
+                        camp.is_active = False
+                    db.commit()
+                return "skipped"
+                
             response.raise_for_status()
             
             # Check for redirect to generic list/homepage

@@ -180,7 +180,7 @@ class DenizbankScraper:
                 pass
             self.display = None
 
-    def _fetch_html(self, url):
+    def _fetch_html(self, url, is_list_page=False):
         """Fetch HTML. Uses ZenRows if Key exists, otherwise Selenium Stealth."""
         
         # --- MODE 1: ZenRows Proxy (Reliable) ---
@@ -212,14 +212,14 @@ class DenizbankScraper:
             print(f"   🌐 Navigating (Stealth Mode): {url}")
             
             # ✅ İnsan Davranışı Simülasyonu
-            # Önce ana sayfaya git (referrer yaratmak için)
-            if url != self.CAMPAIGNS_URL:
+            # Önce ana sayfaya git (referrer yaratmak için) - Sadece liste sayfasında
+            if is_list_page and url != self.CAMPAIGNS_URL:
                 print("   👤 First visiting homepage for natural browsing...")
                 try:
                     self.driver.get(self.BASE_URL)
                 except Exception as e:
                     print(f"   ⚠️ Homepage load timed out or hit resource freeze: {e}. Proceeding...")
-                time.sleep(random.uniform(2.0, 4.0))
+                time.sleep(random.uniform(1.0, 2.0))
             
             # Hedef sayfaya git
             try:
@@ -228,56 +228,67 @@ class DenizbankScraper:
                 print(f"   ⚠️ Target page load timed out or hit resource freeze: {e}. Proceeding to extract DOM...")
             
             # ✅ Sayfa yüklenmesini bekle
-            time.sleep(random.uniform(4.0, 7.0))
+            if is_list_page:
+                time.sleep(random.uniform(4.0, 7.0))
+            else:
+                time.sleep(random.uniform(2.0, 3.0)) # Daha kısa bekleme süresi
             
-            # ✅ İnsan gibi scroll davranışı
             # ✅ İnsan gibi scroll davranışı ve Dinamik Yükleme
-            print("   📜 Scrolling to load all campaigns...")
-            
-            last_height = self.driver.execute_script("return document.body.scrollHeight")
-            scroll_attempts = 0
-            max_attempts = 15 # A reasonable limit to prevent true infinite loops
-            
-            while scroll_attempts < max_attempts:
-                # Scroll down to bottom
-                self.driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
+            if is_list_page:
+                print("   📜 Scrolling to load all campaigns...")
                 
-                # Wait for new elements to load
-                time.sleep(random.uniform(2.0, 3.5))
+                last_height = self.driver.execute_script("return document.body.scrollHeight")
+                scroll_attempts = 0
+                max_attempts = 15 # A reasonable limit to prevent true infinite loops
                 
-                # Calculate new scroll height and compare with last scroll height
-                new_height = self.driver.execute_script("return document.body.scrollHeight")
-                
-                if new_height == last_height:
-                    # Try one more time with a slightly different scroll to trigger lazy loading
-                    self.driver.execute_script("window.scrollTo(0, document.body.scrollHeight - 100);")
-                    time.sleep(1)
+                while scroll_attempts < max_attempts:
+                    # Scroll down to bottom
                     self.driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
-                    time.sleep(2)
                     
+                    # Wait for new elements to load
+                    time.sleep(random.uniform(2.0, 3.5))
+                    
+                    # Calculate new scroll height and compare with last scroll height
                     new_height = self.driver.execute_script("return document.body.scrollHeight")
+                    
                     if new_height == last_height:
-                        print(f"   ✅ Reached bottom after {scroll_attempts} scrolls.")
-                        break
+                        # Try one more time with a slightly different scroll to trigger lazy loading
+                        self.driver.execute_script("window.scrollTo(0, document.body.scrollHeight - 100);")
+                        time.sleep(1)
+                        self.driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
+                        time.sleep(2)
+                        
+                        new_height = self.driver.execute_script("return document.body.scrollHeight")
+                        if new_height == last_height:
+                            print(f"   ✅ Reached bottom after {scroll_attempts} scrolls.")
+                            break
+                    
+                    last_height = new_height
+                    scroll_attempts += 1  # type: ignore # pyre-ignore[58]
+                    print(f"   ⏬ Loaded more content (Scroll {scroll_attempts})...")
                 
-                last_height = new_height
-                scroll_attempts += 1  # type: ignore # pyre-ignore[58]
-                print(f"   ⏬ Loaded more content (Scroll {scroll_attempts})...")
-            
-            # Biraz yukarı scroll (insan gibi)
-            self.driver.execute_script("window.scrollTo(0, document.body.scrollHeight - 500);")
-            time.sleep(1)
-            
-            # ✅ Mouse hareket simülasyonu (opsiyonel ama etkili)
-            try:
-                from selenium.webdriver.common.action_chains import ActionChains  # type: ignore # pyre-ignore[21]
-                action = ActionChains(self.driver)
-                element = self.driver.find_element("tag name", "body")
-                action.move_to_element(element).perform()
-            except:
-                pass
-            
-            time.sleep(2)
+                # Biraz yukarı scroll (insan gibi)
+                self.driver.execute_script("window.scrollTo(0, document.body.scrollHeight - 500);")
+                time.sleep(1)
+                
+                # ✅ Mouse hareket simülasyonu (opsiyonel ama etkili)
+                try:
+                    from selenium.webdriver.common.action_chains import ActionChains  # type: ignore # pyre-ignore[21]
+                    action = ActionChains(self.driver)
+                    element = self.driver.find_element("tag name", "body")
+                    action.move_to_element(element).perform()
+                except:
+                    pass
+                
+                time.sleep(2)
+            else:
+                # Detail page doesn't need infinite scrolling, just a quick scroll to trigger lazy images
+                self.driver.execute_script("window.scrollTo(0, document.body.scrollHeight / 2);")
+                time.sleep(0.5)
+                self.driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
+                time.sleep(0.5)
+                self.driver.execute_script("window.scrollTo(0, 0);")
+
             return self.driver.page_source  # type: ignore # pyre-ignore[7]
             
         except Exception as e:
@@ -298,7 +309,7 @@ class DenizbankScraper:
         return slug.strip('-')  # type: ignore # pyre-ignore[7]
 
     def _fetch_campaign_list(self, limit=None):
-        html = self._fetch_html(self.CAMPAIGNS_URL)
+        html = self._fetch_html(self.CAMPAIGNS_URL, is_list_page=True)
         if not html:
             print("   ❌ Failed to fetch campaign list.")
             return []  # type: ignore # pyre-ignore[7]
@@ -362,7 +373,7 @@ class DenizbankScraper:
             print(f"   ⚠️ DB Pre-check error: {e}")
 
         print(f"\n📄 Processing: {url}")
-        html = self._fetch_html(url)
+        html = self._fetch_html(url, is_list_page=False)
         if not html:
             return "skipped"  # type: ignore # pyre-ignore[7]
 

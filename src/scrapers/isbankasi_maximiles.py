@@ -719,10 +719,9 @@ class IsbankMaximilesScraper:
         try:
             print("🚀 Starting İşbankası Maximiles Scraper (Playwright)...")
             
-            # Keep DB session open, it's safer for small runs
-            # if self.db:
-            #     self.db.commit() 
-            #     self.db.close()
+            # Release DB session connection to the pool before slow Playwright scraping
+            if self.db:
+                 self.db.commit() 
                 
             if urls:
                 print(f"🎯 Running specific URLs: {len(urls)}")

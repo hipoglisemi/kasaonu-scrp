@@ -67,6 +67,7 @@ class ParafScraper:
         try:
             self.db = get_db_session()
             self._load_cache()
+            self.db.commit() # Release connection to pool before looping
             
             for source in self.SOURCES:
                 print(f"\n🌍 Processing Source: {source['name']}")  # type: ignore # pyre-ignore[16,6]

@@ -71,6 +71,7 @@ class TurkTelekomScraper:
             print("🚀 Starting Türk Telekom Scraper (Hardened Final Run)...")
             self.db = get_db_session()
             self._load_cache()
+            self.db.commit() # Release connection to pool to prevent idle timeout during discovery
             
             discovery_items = []
             if self.manual_json_path and os.path.exists(self.manual_json_path):
