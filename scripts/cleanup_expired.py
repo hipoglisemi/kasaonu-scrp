@@ -242,6 +242,7 @@ def cleanup_campaigns():
         
     # --- STAGE 0.5: Concurrent HTTP Checks (Outside DB Session to prevent connection drops) ---
     dead_campaign_ids = []
+    alive_campaign_ids = []
     redirected_urls = {}
     if campaigns_to_check:
         print(f"🌐 Checking {len(campaigns_to_check)} URLs for 404/removal...")
@@ -255,6 +256,7 @@ def cleanup_campaigns():
                         print(f"   👻 Dead link detected: '{c['title']}' | URL: {c['url']}")
                         dead_campaign_ids.append(c["id"])
                     else:
+                        alive_campaign_ids.append(c["id"])
                         # Store the final resolved URL to check for duplicate redirects
                         from src.utils.scraper_utils import clean_url_for_matching
                         clean_orig = clean_url_for_matching(c["url"])
@@ -292,6 +294,16 @@ def cleanup_campaigns():
             print(f"✅ Successfully deactivated {len(dead_campaign_ids)} dead/removed campaigns.")
         else:
             print("✅ All active campaign links are healthy.")
+
+        if alive_campaign_ids:
+            print(f"♻️  Updating last_seen_at for {len(alive_campaign_ids)} alive campaigns...")
+            now_utc = datetime.now(timezone.utc).replace(tzinfo=None)
+            for alive_id in alive_campaign_ids:
+                camp = db.query(Campaign).filter(Campaign.id == alive_id).first()
+                if camp:
+                    camp.last_seen_at = now_utc
+            db.flush()
+            print(f"✅ Successfully updated last_seen_at for {len(alive_campaign_ids)} campaigns.")
             
         # --- STAGE 1: Deactivate (Soft-Delete) ---
         to_deactivate = db.query(Campaign).filter(
