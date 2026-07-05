@@ -78,15 +78,9 @@ class AkbankBaseScraper:
         
         if clean_final != clean_orig:
             # Check if final URL is a generic listing page or homepage
-            generic_listing_paths = [
-                'akbank.com/kampanyalar', 'axess.com.tr/kampanyalar', 'wingscard.com.tr/kampanyalar',
-                'akbank.com/tr-tr/kampanyalar', 'axess.com.tr/tr-tr/kampanyalar', 'wingscard.com.tr/tr-tr/kampanyalar'
-            ]
             is_generic_redirect = False
-            for p in generic_listing_paths:
-                if p in clean_final:
-                    is_generic_redirect = True
-                    break
+            if clean_final.endswith('/kampanyalar') or clean_final.endswith('/kampanyalar/') or '/kampanyalar?' in clean_final:
+                is_generic_redirect = True
                     
             if clean_final in [
                 'akbank.com', 'axess.com.tr', 'wingscard.com.tr', 
