@@ -7,6 +7,7 @@ if project_root not in sys.path:
     sys.path.insert(0, project_root)
 
 import re
+import time
 import psycopg2
 from bs4 import BeautifulSoup
 from dotenv import load_dotenv
@@ -100,6 +101,7 @@ KURALLAR:
                 # BeautifulSoup ile yeni metni enjekte et (Basit replace)
                 content_html = content_html.replace(old_text, new_text)
                 print(f"✅  Metin AI ile tazelendi.")
+                time.sleep(5) # Prevent Gemini 15 RPM Rate Limit (429 Resource Exhausted)
 
     conn.close()
     return content_html if needs_update else None

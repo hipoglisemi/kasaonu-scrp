@@ -197,6 +197,7 @@ class VakifbankScraper:
 
         print(f"🔍 Processing (Via AI Parser): {url}")
         try:
+            html = ""
             # Retry mechanism for campaign details
             max_retries = 3
             for attempt in range(max_retries):
