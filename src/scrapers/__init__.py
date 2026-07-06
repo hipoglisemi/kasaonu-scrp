@@ -84,6 +84,10 @@ try:
     from .alternatifbank import AlternatifBankScraper # type: ignore # pyre-ignore[21]
 except ImportError: AlternatifBankScraper = None
 
+try:
+    from .odeabank import OdeabankScraper # type: ignore # pyre-ignore[21]
+except ImportError: OdeabankScraper = None
+
 
 __all__ = [
     'GarantiBonusScraper',
@@ -106,5 +110,6 @@ __all__ = [
     'AnadolubankScraper',
     'TkpayScraper',
     'NkolayScraper',
-    'AlternatifBankScraper'
+    'AlternatifBankScraper',
+    'OdeabankScraper'
 ]
