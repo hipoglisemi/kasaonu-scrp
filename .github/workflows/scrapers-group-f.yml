@@ -18,6 +18,7 @@ jobs:
           - shell
           - totalenergies
           - alternatifbank
+          - odeabank
           - vodafonepay
           - pep
           - hayhay
