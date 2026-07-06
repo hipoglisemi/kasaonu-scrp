@@ -327,7 +327,15 @@ def upsert_campaign(db: Session, campaign: Campaign) -> Tuple[Campaign, str]:
                     if t_l in ["installment", "taksit"]: return "installment"
                     return t_l
                 
-                reward_type_match = (_norm_rt(existing.reward_type) == _norm_rt(campaign.reward_type))
+                rt1 = _norm_rt(existing.reward_type)
+                rt2 = _norm_rt(campaign.reward_type)
+                reward_type_match = (rt1 == rt2)
+                
+                # If reward is 0.00 (non-monetary privilege/service), AI often fluctuates between 'hizmet', 'indirim' and 'diger'.
+                if existing.reward_value in [0, 0.0, 0.00] and campaign.reward_value in [0, 0.0, 0.00]:
+                    non_monetary_types = ["hizmet", "discount", "diğer", "diger", "ayrıcalık", "kampanya", ""]
+                    if (rt1 in non_monetary_types or not rt1) and (rt2 in non_monetary_types or not rt2):
+                        reward_type_match = True
                 
                 if cd_similarity >= 0.50 and reward_val_match and reward_type_match:
                     if campaign.end_date != existing.end_date:

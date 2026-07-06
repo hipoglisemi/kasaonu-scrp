@@ -114,18 +114,21 @@ def find_existing_brand(db, name: str, brand_cache: dict) -> Optional[object]:
         brand_cache[existing.name.lower()] = existing
         return existing
 
-    # 6. Alias list match (DB query)
-    # Check if any brand has this name (or normalized name) in its aliases array
-    # Using SQLAlchemy 'any' for Postgres ARRAY column
-    existing_by_alias = db.query(Brand).filter(
-        Brand.aliases.any(normalized)
-    ).first()
+    # 6. Alias list match (DB query) - Case Insensitive Array Match
+    from sqlalchemy import text
+    query = text("SELECT id FROM brands WHERE lower(:val) = ANY(SELECT lower(x) FROM unnest(aliases) x)")
     
-    if not existing_by_alias:
-        # Also try with lowercase version of original name
-        existing_by_alias = db.query(Brand).filter(
-            Brand.aliases.any(name.strip().lower())
-        ).first()
+    # Try with normalized name
+    res = db.execute(query, {'val': normalized}).first()
+    
+    if not res:
+        # Try with original name
+        res = db.execute(query, {'val': name.strip()}).first()
+        
+    if res:
+        existing_by_alias = db.query(Brand).filter(Brand.id == res[0]).first()
+    else:
+        existing_by_alias = None
 
     if existing_by_alias:
         brand_cache[existing_by_alias.name.lower()] = existing_by_alias
