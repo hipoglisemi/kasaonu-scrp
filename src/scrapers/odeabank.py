@@ -310,7 +310,7 @@ class OdeabankScraper:
             
         except Exception as e:
             print(f"   ❌ Error processing {url}: {e}")
-            if self.db: self.db.rollback()
+            self.db.rollback()
             traceback.print_exc()
             return "error"
 
@@ -388,5 +388,5 @@ if __name__ == "__main__":
         scraper = OdeabankScraper()
         scraper.run()
     finally:
-        if scraper and hasattr(scraper, 'db') and scraper.db:
+        if scraper and hasattr(scraper, 'db') and scraper.db is not None:
             scraper.db.close()
