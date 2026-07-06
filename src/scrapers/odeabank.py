@@ -44,12 +44,12 @@ class OdeabankScraper:
             self.db.add(self.bank)
             self.db.commit()
             
-        self.card = self.db.query(Card).filter(Card.slug == 'odeabank-kredi-karti').first()
+        self.card = self.db.query(Card).filter(Card.slug == 'odea-kart').first()
         if not self.card:
              self.card = Card(
                   bank_id=self.bank.id, 
-                  name='Odeabank Kredi Kartı', 
-                  slug='odeabank-kredi-karti', 
+                  name='Odea Kart', 
+                  slug='odea-kart', 
                   logo_url='/logos/cards/odeabank.png',
                   is_active=True
              )
@@ -233,7 +233,7 @@ class OdeabankScraper:
                 db_session=self.db,
                 campaign_model=Campaign,
                 tracking_url=url,
-                card_name="Odeabank Kredi Kartı",
+                card_name="Odea Kart",
                 bank_name="Odeabank"
             )
 
