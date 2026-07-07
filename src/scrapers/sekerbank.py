@@ -164,11 +164,11 @@ class SekerbankScraper:
         bank = self.db.query(Bank).filter(Bank.slug == "sekerbank").first() # type: ignore # pyre-ignore[16]
         if not bank:
             bank = Bank(name="Şekerbank", slug="sekerbank", is_active=True)  # type: ignore
-            if self.db:
+            if self.db is not None:
                 self.db.add(bank)  # type: ignore
                 self.db.commit()  # type: ignore
         self.bank_cache = bank
-        if not self.db: return # type: ignore
+        if self.db is None: return # type: ignore
         for c in self.db.query(Card).filter(Card.bank_id == bank.id).all(): # type: ignore # pyre-ignore[16]
             self.card_cache[c.name.lower()] = c
             
@@ -469,9 +469,8 @@ class SekerbankScraper:
         og_title_el = soup.find("meta", property="og:title")
         og_title = og_title_el.get("content", "").strip() if og_title_el else title
 
-        # Full body HTML → parse_api_campaign centralised pipeline
-        body_el = soup.find("body")
-        raw_html = str(body_el) if body_el else driver.page_source
+        # Use content_el instead of full body to prevent header/footer noise and multiple brand tagging
+        raw_html = str(content_el) if content_el else driver.page_source
 
         ai_data = parse_api_campaign(
             title=title,
@@ -480,7 +479,8 @@ class SekerbankScraper:
             bank_name="sekerbank",
             scraper_sector=None,
             tracking_url=url,
-            og_title=og_title
+            og_title=og_title,
+            force=force
         )
 
         if not ai_data:
@@ -513,7 +513,7 @@ class SekerbankScraper:
         slug_base = re.sub(r'-+', '-', slug_base).strip('-')
         
         # Ensure slug_base is string (IDE fix)
-        slug_base_str = str(slug_base)
+        slug_base_str = slug_base
         url_hash_full = hashlib.md5(url.encode()).hexdigest()
         url_hash = str(url_hash_full)[0:8] # type: ignore
         final_slug = f"{slug_base_str}-{url_hash}"
@@ -568,19 +568,19 @@ class SekerbankScraper:
             for bid in brand_ids:
                 try:
                     cb = CampaignBrand(campaign_id=campaign.id, brand_id=bid) # type: ignore # pyre-ignore[16]
-                    if self.db:
+                    if self.db is not None:
                         link_check = self.db.query(CampaignBrand).filter_by(campaign_id=campaign.id, brand_id=bid).first()
                         if not link_check:
                             self.db.add(cb) # type: ignore # pyre-ignore[16]
                 except Exception:
-                    if self.db:
+                    if self.db is not None:
                         self.db.rollback() # type: ignore # pyre-ignore[16]
-            if self.db:
+            if self.db is not None:
                 self.db.commit() # type: ignore # pyre-ignore[16]
             return op_status
         except Exception as e:
             print(f"      ❌ Saving Error: {e}")
-            if self.db:
+            if self.db is not None:
                 self.db.rollback() # type: ignore # pyre-ignore[16]
             return "error"
 
@@ -590,7 +590,7 @@ class SekerbankScraper:
         if key in self.card_cache:
             return self.card_cache[key]
         
-        if not self.db or not self.bank_cache:
+        if self.db is None or not self.bank_cache:
              return Card(name=name, slug=name.lower())  # type: ignore
 
         bank_instance = self.bank_cache
@@ -608,7 +608,7 @@ class SekerbankScraper:
                 slug=name.lower().replace(" ", "-"),  # type: ignore
                 is_active=True  # type: ignore
             )
-            if self.db:
+            if self.db is not None:
                 self.db.add(card)  # type: ignore
                 self.db.flush()  # type: ignore
             

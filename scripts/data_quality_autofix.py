@@ -321,6 +321,7 @@ def fetch_html(url: str, title: str = "") -> str:
             '#cookie-dialog-content', '.cookie-consent', '#cookie-all-apply',
             '.product-list__slider', '.product-list__grid', '.swiper', '.swiper-wrapper', '.swiper-slide',
             '.breadcrumb', 'noindex', '.noindex', '.dropdown__menu',
+            '.modal', 'div.modal',
             # Bank-specific header/footer noise selectors
             '#header', '#footer', '#headerUp', '#headerDown', '#headerMain', '#headerSrc', '#headerLoginPanelNew',
             '#footerBant', '#footerQuickMenu', '#socialFooter', '#fDown', '#fDownLinks',
@@ -343,7 +344,7 @@ def fetch_html(url: str, title: str = "") -> str:
             '.how-to-win-content', '.tab-content', '.campaign-detail-content', '.campaign-detail-text',
             '.campaign-detail-capsule', '.container-right', '.campaign-dates',
             '.news-campaign-content', '.bt', '.richtext',
-            '.offer-detail', '.terms-conditions'
+            '.offer-detail', '.terms-conditions', '.content-box__detail'
         ]
 
         content_found = []

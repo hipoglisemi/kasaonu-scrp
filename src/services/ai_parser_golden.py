@@ -1304,6 +1304,7 @@ def parse_api_campaign(
         '.campaign-recommendations', 'section.news-carousel',
         '#related-campaigns', '.campaignDetail-others',
         '.related-campaigns', '.other-campaign-list',
+        '.modal', 'div.modal',
         '[class*="sidebar"]', '[class*="footer"]', '[class*="header"]',
         '[class*="navigation"]', '[id*="navigation"]',
     ]
@@ -1339,7 +1340,7 @@ def parse_api_campaign(
         "şekerbank":     ['#breadcrumb', '.footer', '.header', '.campaign-list'],
         "tom bank":      ['.header', '.footer', '.navigation', '.links-container', '[class*="Header"]', '[class*="Footer"]'],
     }
-    _bank_key = (bank_name or "").lower()
+    _bank_key = parser._resolve_bank_key(bank_name) or (bank_name or "").lower()
     for _key, _selectors in _bank_noise_map.items():
         if _key in _bank_key:
             _noise_selectors = _noise_selectors + _selectors
@@ -1392,6 +1393,7 @@ def parse_api_campaign(
         "vodafone":      ['.campaign-detail', '.offer-detail', '.terms-conditions'],
         "şekerbank":     ['#icerik-kutusu', '.aboutbox_about_box_container__AIbwl', '.campaign-detail'],
         "tom bank":      ['.campaign-detail', '.content', 'article'],
+        "odeabank":      ['.content-box__detail'],
     }
 
     # Genel fallback selector listesi (banka eşleşmezse veya boş çıkarsa)
@@ -1449,6 +1451,13 @@ def parse_api_campaign(
                     def normalize_text_for_comparison(text: str) -> str:
                         if not text:
                             return ""
+                        # Strip HTML tags if HTML-like content is detected
+                        if "<" in text and ">" in text:
+                            try:
+                                from bs4 import BeautifulSoup
+                                text = BeautifulSoup(text, "html.parser").get_text(separator=" ")
+                            except Exception:
+                                text = _re.sub(r'<[^>]*>', ' ', text)
                         # Turkish lowercasing and normalising character differences
                         t = text.replace("İ", "i").replace("I", "ı").lower()
                         # Remove all digits (dates/prices/numbers are ignored to capture date-only updates)

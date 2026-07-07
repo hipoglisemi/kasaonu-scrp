@@ -62,6 +62,15 @@ def normalize_text_for_comparison(text: str) -> str:
     if not text:
         return ""
     import re as _re
+    
+    # Strip HTML tags if HTML-like content is detected
+    if "<" in text and ">" in text:
+        try:
+            from bs4 import BeautifulSoup
+            text = BeautifulSoup(text, "html.parser").get_text(separator=" ")
+        except Exception:
+            text = _re.sub(r'<[^>]*>', ' ', text)
+            
     # Turkish lowercasing and normalising character differences
     t = text.replace("İ", "i").replace("I", "ı").lower()
     # Remove all digits
@@ -74,6 +83,7 @@ def normalize_text_for_comparison(text: str) -> str:
     # Remove punctuation and spaces
     t = _re.sub(r'[^a-zıişğüç]', '', t)
     return t
+
 
 def have_different_critical_numbers(title1: str, title2: str) -> bool:
     """
