@@ -38,10 +38,13 @@ class OdeabankScraper:
             self.bank = Bank(
                 name='Odeabank', 
                 slug='odeabank', 
-                logo_url='/logos/banks/odeabank.png', 
+                logo_url='/logos/banks/odeabank.webp', 
                 is_active=True
             )
             self.db.add(self.bank)
+            self.db.commit()
+        elif self.bank.logo_url.endswith('.png'):
+            self.bank.logo_url = '/logos/banks/odeabank.webp'
             self.db.commit()
             
         self.card = self.db.query(Card).filter(Card.slug == 'odea-kart').first()
@@ -50,10 +53,13 @@ class OdeabankScraper:
                   bank_id=self.bank.id, 
                   name='Odea Kart', 
                   slug='odea-kart', 
-                  logo_url='/logos/cards/odeabank.png',
+                  logo_url='/logos/cards/odeabank.webp',
                   is_active=True
              )
              self.db.add(self.card)
+             self.db.commit()
+        elif self.card.logo_url.endswith('.png'):
+             self.card.logo_url = '/logos/cards/odeabank.webp'
              self.db.commit()
         
         self.card_id = self.card.id
