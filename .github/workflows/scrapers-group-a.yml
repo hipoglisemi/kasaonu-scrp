@@ -24,6 +24,7 @@ jobs:
           - denizbank
           - ahlpay
           - hayatpay
+          - hayatfinans
 
     name: "🤖 ${{ matrix.scraper }}"
 

@@ -1397,7 +1397,7 @@ def parse_api_campaign(
         "tom bank":      ['.campaign-detail', '.content', 'article'],
         "odeabank":      ['.content-box__detail'],
         "hayatpay":      ['.content'],
-        "hayat finans":  ['.content'],
+        "hayat finans":  ['.content', 'main'],
     }
 
     # Genel fallback selector listesi (banka eşleşmezse veya boş çıkarsa)
