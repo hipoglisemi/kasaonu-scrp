@@ -229,13 +229,17 @@ def cleanup_campaigns():
     today = (datetime.now(timezone.utc) + timedelta(hours=3)).date()
     retention_cutoff = today - timedelta(days=RETENTION_DAYS)
     
-    # --- STAGE 0: Fetch URLs to Check (Short DB Session) ---
-    print("🔍 Stage 0: Fetching active campaigns for dead link detection...")
+    print("🔍 Stage 0: Fetching active campaigns for dead link detection (older than 2 days)...")
     campaigns_to_check = []
     with get_db_session() as db:
+        # Optimize: Only check campaigns that haven't been seen in the last 2 days.
+        # Active campaigns that are found by daily scrapers have their last_seen_at updated daily.
+        # We only need to check campaigns that the scrapers didn't find recently to see if their links are dead.
+        cutoff = datetime.now(timezone.utc).replace(tzinfo=None) - timedelta(days=2)
         active_campaigns = db.query(Campaign).filter(
             Campaign.is_active == True,
-            Campaign.tracking_url.isnot(None)
+            Campaign.tracking_url.isnot(None),
+            (Campaign.last_seen_at < cutoff) | (Campaign.last_seen_at.is_(None))
         ).all()
         # Copy to python list to release DB session
         campaigns_to_check = [{"id": c.id, "url": c.tracking_url, "title": c.title} for c in active_campaigns]
