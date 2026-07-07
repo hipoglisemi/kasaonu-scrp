@@ -23,6 +23,7 @@ jobs:
           - chippin
           - denizbank
           - ahlpay
+          - hayatpay
 
     name: "🤖 ${{ matrix.scraper }}"
 

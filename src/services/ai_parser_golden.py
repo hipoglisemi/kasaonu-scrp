@@ -60,6 +60,7 @@ BANK_CARD_KEYWORDS = {
     "dünya katılım": ["dünya katılım kartı", "dünya katılım banka kartı", "dünya katılım kredi kartı", "dkart", "dkart debit", "dünya katılım paraf", "dünya katılım troy"],
     "garanti": ["garanti bonus", "bonus", "bonus genç", "bonus flexi", "money bonus", "flexi", "american express", "miles&smiles", "shop&fly", "ticari kartlar", "ek kartlar", "sanal kartlar"],
     "american express": ["american express", "american express card", "american express gold card", "american express platinum card", "metal the platinum card", "centurion card", "ticari kartlar", "ek kartlar", "sanal kartlar", "miles&smiles", "shop&fly"],
+    "hayat finans": ["hayat pay", "hayat finans", "hayatpay", "biz kart"],
 }
 
 BANK_APP_NAMES = {
@@ -122,6 +123,7 @@ BANK_SELF_NAMES = {
     "petrol ofisi": ["petrol ofisi", "petrol ofisi kart", "positive card", "positive kart", "petrol ofisi müşterileri"],
     "nays": ["nays", "nays kart"],
     "dünya katılım": ["dünya katılım", "dunya katilim", "dunya katılım", "dünya katilim"],
+    "hayat finans": ["hayat finans", "hayat pay", "hayatpay", "biz kart"],
 }
 
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -1394,6 +1396,8 @@ def parse_api_campaign(
         "şekerbank":     ['#icerik-kutusu', '.aboutbox_about_box_container__AIbwl', '.campaign-detail'],
         "tom bank":      ['.campaign-detail', '.content', 'article'],
         "odeabank":      ['.content-box__detail'],
+        "hayatpay":      ['.content'],
+        "hayat finans":  ['.content'],
     }
 
     # Genel fallback selector listesi (banka eşleşmezse veya boş çıkarsa)
