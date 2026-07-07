@@ -42,7 +42,7 @@ def generate_seo_content(name, type="bank"):
        - **Popüler Uygulamalar/Ürünler**: Öne çıkan özellikler, yenilikler ve teknolojik detaylar.
        - **Kampanya Türleri**: Genellikle hangi alanlarda indirim/puan verilir, müşteriye nasıl avantaj sağlar?
        - **Kullanıcı İpuçları**: Tasarrufu maksimize etmek için uzman önerileri ve stratejiler.
-    5. Uzunluk: ÇOK ÖNEMLİ! Her bölüm en az 150-200 kelime uzunluğunda, son derece detaylı, ansiklopedik ve bilgi açısından çok doyurucu olmalıdır. Kısa ve yüzeysel geçiştirmeler yapma. (Toplam en az 800+ kelime olmalı).
+    5. Uzunluk: ÇOK ÖNEMLİ! Üretilen toplam metnin karakter sayısı (boşluklar dahil) kesinlikle 2000 ile 2400 karakter arasında olmalıdır. Kısa kesme, çok da uzatma. Bu aralığı (2000-2400 karakter) tam tutturmaya çalış.
     6. Format: Paragraflar arasında çift satır boşluk bırak. Başlıkları kalın yap.
     
     SADECE metni döndür. Başka hiçbir şey yazma.
