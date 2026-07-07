@@ -44,7 +44,7 @@ class OdeabankScraper:
             self.db.add(self.bank)
             self.db.commit()
         elif self.bank.logo_url.endswith('.png'):
-            self.bank.logo_url = '/logos/banks/odeabank.webp'
+            self.bank.logo_url = '/logos/banks/odeabank.webp'  # type: ignore
             self.db.commit()
             
         self.card = self.db.query(Card).filter(Card.slug == 'odea-kart').first()
@@ -59,7 +59,7 @@ class OdeabankScraper:
              self.db.add(self.card)
              self.db.commit()
         elif self.card.logo_url.endswith('.png'):
-             self.card.logo_url = '/logos/cards/odeabank.webp'
+             self.card.logo_url = '/logos/cards/odeabank.webp'  # type: ignore
              self.db.commit()
         
         self.card_id = self.card.id
@@ -205,8 +205,8 @@ class OdeabankScraper:
                 if og_img and og_img.get("content"):
                     detail_img = og_img.get("content")
 
-            # Prioritize list page image over detail page image
-            final_image = list_img_url or detail_img
+            # Prioritize detail page image over list page image
+            final_image = detail_img or list_img_url
             if final_image:
                 final_image = urljoin("https://www.odeabank.com.tr", final_image).strip()
                 if "data:image" in final_image: # Skip base64 placeholders
