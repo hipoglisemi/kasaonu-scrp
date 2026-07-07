@@ -17,47 +17,55 @@ jobs:
   cleanup:
     name: "🧹 Cleanup Campaigns"
     needs: proactive
+    if: ${{ !cancelled() }}
     uses: ./.github/workflows/cleanup-campaigns.yml
     secrets: inherit
 
   group-a:
     name: "🅰️ Scrapers – Grup A"
     needs: cleanup
+    if: ${{ !cancelled() }}
     uses: ./.github/workflows/scrapers-group-a.yml
     secrets: inherit
 
   group-b:
     name: "🅱️ Scrapers – Grup B"
     needs: group-a
+    if: ${{ !cancelled() }}
     uses: ./.github/workflows/scrapers-group-b.yml
     secrets: inherit
 
   group-c:
     name: "🆑 Scrapers – Grup C"
     needs: group-b
+    if: ${{ !cancelled() }}
     uses: ./.github/workflows/scrapers-group-c.yml
     secrets: inherit
 
   group-d:
     name: "🆗 Scrapers – Grup D"
     needs: group-c
+    if: ${{ !cancelled() }}
     uses: ./.github/workflows/scrapers-group-d.yml
     secrets: inherit
 
   group-e:
     name: "🍬 Scrapers – Grup E"
     needs: group-d
+    if: ${{ !cancelled() }}
     uses: ./.github/workflows/scrapers-group-e.yml
     secrets: inherit
 
   group-f:
     name: "⛽ Scrapers – Grup F"
     needs: group-e
+    if: ${{ !cancelled() }}
     uses: ./.github/workflows/scrapers-group-f.yml
     secrets: inherit
 
   autofix:
     name: "🛠️ Data Quality Auto-Fixer"
     needs: group-f
+    if: ${{ !cancelled() }}
     uses: ./.github/workflows/data-quality-autofix.yml
     secrets: inherit
