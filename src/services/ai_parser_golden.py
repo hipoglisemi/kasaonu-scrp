@@ -1115,7 +1115,7 @@ ANALİZ EDİLECEK METİN:
                         "sector": sector_name,
                         "brands": [],
                         "_cached": True,
-                        "_clean_text": existing.description or ""
+                        "_clean_text": existing.clean_text or existing.description or ""
                     }
             finally:
                 db.close()
