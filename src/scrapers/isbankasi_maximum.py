@@ -370,8 +370,15 @@ class IsbankMaximumScraper:
                 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
                 response = requests.get(url, headers=self.headers, verify=False, timeout=15)
                 if response.status_code == 200 and ("CampaignImage" in response.text or "CampaignDetail" in response.text):
-                    html_content = response.text
-                    print("      ⚡ Detail page fetched successfully via requests")
+                    # Check if actual campaign text is present in static HTML
+                    soup_check = BeautifulSoup(response.text, "html.parser")
+                    desc_check = soup_check.select_one(".campaign-detail, .campaignDetail, .content, .detail-content, .editor-content")
+                    check_text = desc_check.text.strip() if desc_check else ""
+                    if len(check_text) > 150:
+                        html_content = response.text
+                        print("      ⚡ Detail page fetched successfully via requests")
+                    else:
+                        print("      ⚠️ Requests fetched empty skeleton page, falling back to Playwright...")
             except Exception as req_err:
                 print(f"      ⚠️ Requests detail fetch failed: {req_err}. Falling back to Playwright...")
 

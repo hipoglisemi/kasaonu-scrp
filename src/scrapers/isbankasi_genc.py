@@ -300,8 +300,15 @@ class IsbankMaximumGencScraper:
                 }
                 response = requests.get(url, headers=headers, verify=False, timeout=15)
                 if response.status_code == 200 and ("detail" in response.text or "campaign" in response.text or "Opportunity" in response.text or "OpportunityDetail" in response.text or "opportunity" in response.text):
-                    html_content = response.text
-                    print("      ⚡ Detail page fetched successfully via requests")
+                    # Check if actual campaign text is present in static HTML
+                    soup_check = BeautifulSoup(response.text, "html.parser")
+                    desc_check = soup_check.select_one(".campaign-detail, .campaignDetail, .content, .detail-content, .editor-content")
+                    check_text = desc_check.text.strip() if desc_check else ""
+                    if len(check_text) > 150:
+                        html_content = response.text
+                        print("      ⚡ Detail page fetched successfully via requests")
+                    else:
+                        print("      ⚠️ Requests fetched empty skeleton page, falling back to Playwright...")
             except Exception as req_err:
                 print(f"      ⚠️ Requests detail fetch failed: {req_err}. Falling back to Playwright...")
 

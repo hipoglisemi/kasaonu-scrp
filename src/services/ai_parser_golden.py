@@ -1421,10 +1421,14 @@ def parse_api_campaign(
 
     _content_parts = []
     for _sel in _target_selectors:
-        for _el in _soup.select(_sel):
-            _t = _el.get_text(separator='\n', strip=True)
-            if _t and len(_t) > 80:  # küçük/boş container'ları atla
-                _content_parts.append(_t)
+        found_els = _soup.select(_sel)
+        if found_els:
+            for _el in found_els:
+                _t = _el.get_text(separator='\n', strip=True)
+                if _t and len(_t) > 80:  # küçük/boş container'ları atla
+                    _content_parts.append(_t)
+            if _content_parts:
+                break
 
     if _content_parts:
         clean_content = '\n\n'.join(_content_parts)
