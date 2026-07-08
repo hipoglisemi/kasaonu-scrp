@@ -167,15 +167,15 @@ class IsbankMaximumScraper:
                     
                     # Use existing context if available
                     br = self.browser
-                    if br and len(br.contexts) > 0:
+                    if br is not None and len(br.contexts) > 0:
                         context = br.contexts[0]
                     else:
-                        context = br.new_context() if br else None
+                        context = br.new_context() if br is not None else None
                         
-                    if context:
+                    if context is not None:
                         self.page = context.new_page()
                     pg = self.page
-                    if pg:
+                    if pg is not None:
                         pg.set_default_timeout(180000)
                     return
                 except Exception as e:
@@ -191,7 +191,7 @@ class IsbankMaximumScraper:
                           "--disable-extensions", "--disable-web-security"]
                 )
                 br = self.browser
-                if br:
+                if br is not None:
                     context = br.new_context(
                         viewport={"width": 1920, "height": 1080},
                         user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36",
@@ -202,13 +202,13 @@ class IsbankMaximumScraper:
                     context.add_init_script("Object.defineProperty(navigator, 'webdriver', {get: () => undefined})")
                     self.page = context.new_page()
                     pg = self.page
-                    if pg:
+                    if pg is not None:
                         pg.set_default_timeout(180000)
                     print("✅ Playwright browser started for Maximum Scraper.")
 
     def _stop_browser(self):
         try:
-            if self.browser:
+            if self.browser is not None:
                 self.browser.close()
             if self.playwright:
                 self.playwright.stop()
@@ -329,7 +329,7 @@ class IsbankMaximumScraper:
             if any(kw in href for kw in excluded_slug_keywords): continue
 
             
-            full_url = urljoin(self.BASE_URL, cast(str, href))
+            full_url = urljoin(self.BASE_URL, href)
             if full_url in seen: continue
             seen.add(full_url)
             
@@ -921,18 +921,18 @@ class IsbankMaximumScraper:
             print(f"\n🏁 Finished. {len(urls)} found, {success} saved, {total_revived} revived, {skipped} skipped, {failed} errors")
             
             status = "SUCCESS"
-            if int(failed or 0) > 0:  # type: ignore # pyre-ignore[58]
-                status = "PARTIAL" if (int(success or 0) > 0 or int(skipped or 0) > 0) else "FAILED"  # type: ignore # pyre-ignore[58]
+            if failed > 0:  # type: ignore # pyre-ignore[58]
+                status = "PARTIAL" if (success > 0 or skipped > 0) else "FAILED"  # type: ignore # pyre-ignore[58]
                 
             log_scraper_execution(
                 db=self.session,
                 scraper_name="isbankasi_maximum",
                 status=status,
                 total_found=len(urls),
-                total_saved=int(success or 0),
-                total_skipped=int(skipped or 0),
-                total_failed=int(failed or 0),
-                total_revived=int(total_revived or 0),
+                total_saved=success,
+                total_skipped=skipped,
+                total_failed=failed,
+                total_revived=total_revived,
                 error_details={"errors": error_details} if error_details else None
             )
             
