@@ -108,7 +108,17 @@ class QNBScraper:
 
             existing = db.query(Campaign).filter(Campaign.tracking_url == campaign_url).first()  # type: ignore # pyre-ignore[16]
             if existing and existing.is_active and existing.is_approved:
-                print(f"   ⏭️ Skipped (Already exists and active): {title}")
+                # Check if image has changed
+                new_image_url = None
+                if item.get("Id") and item.get("HasImage"):
+                    new_image_url = f"{self.BASE_URL}/medium/Campaign-DetailImage-{item.get('Id')}.vsf"
+                
+                if new_image_url and existing.image_url != new_image_url:
+                    print(f"   🔄 Updating Image URL for existing campaign: {title}")
+                    existing.image_url = new_image_url
+                    db.commit()
+                else:
+                    print(f"   ⏭️ Skipped (Already exists and active): {title}")
                 return "skipped"  # type: ignore # pyre-ignore[7]
 
         content_html = item.get("Content") or item.get("Description") or ""
