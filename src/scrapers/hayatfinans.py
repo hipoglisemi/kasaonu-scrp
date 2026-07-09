@@ -16,7 +16,7 @@ if project_root not in sys.path:
 
 from src.database import get_db_session
 from src.models import Bank, Card, Sector, Campaign, CampaignBrand
-from src.utils.scraper_utils import is_url_blocked, upsert_campaign
+from src.utils.scraper_utils import is_url_blocked, upsert_campaign, should_skip_campaign
 from src.services.brand_matcher import get_or_create_brands_list
 
 class HayatFinansScraper:
@@ -127,15 +127,11 @@ class HayatFinansScraper:
         card_name = self.card.name
 
         try:
-            existing = self.db.query(Campaign).filter(
-                Campaign.tracking_url == url,
-                Campaign.card_id == card_id
-            ).first()
-            if existing and existing.is_active and existing.is_approved:
-                print(f"   ⏭️ Skipped (Already exists and active): {existing.title[:40]}")
+            if should_skip_campaign(self.db, url):
+                print(f"   ⏭️ Skipped (Already exists and active/blocklisted): {url}")
                 return "skipped"
-        except Exception:
-            pass
+        except Exception as e:
+            print(f"   ⚠️ DB Pre-check error: {e}")
 
         print(f"🔍 Processing ({card_name}): {url}")
         

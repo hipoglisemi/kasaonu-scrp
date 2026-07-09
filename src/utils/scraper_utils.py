@@ -107,6 +107,10 @@ def have_different_critical_numbers(title1: str, title2: str) -> bool:
     nums1 = {n for n in nums1 if n not in years}
     nums2 = {n for n in nums2 if n not in years}
     
+    # If one title contains critical numbers and the other doesn't, they are different campaigns.
+    if bool(nums1) != bool(nums2):
+        return True
+
     if nums1 and nums2 and nums1 != nums2:
         return True
     return False
@@ -300,6 +304,16 @@ def upsert_campaign(db: Session, campaign: Campaign) -> Tuple[Campaign, str]:
         is_date_only_ext = False
         is_exact_match = False # Content is same, date is same
         
+        def is_zero_or_none(val):
+            if val is None:
+                return True
+            try:
+                if float(val) == 0.0:
+                    return True
+            except:
+                pass
+            return False
+
         if old_text and new_text:
             t1_norm = normalize_text_for_comparison(new_text)
             t2_norm = normalize_text_for_comparison(old_text)
@@ -307,46 +321,64 @@ def upsert_campaign(db: Session, campaign: Campaign) -> Tuple[Campaign, str]:
             if t1_norm and t2_norm:
                 similarity = difflib.SequenceMatcher(None, t1_norm, t2_norm).ratio()
             
-            if similarity >= 0.92:
+            # Check for matches in reward details
+            reward_val_match = False
+            if existing.reward_value == campaign.reward_value:
+                reward_val_match = True
+            elif is_zero_or_none(existing.reward_value) and is_zero_or_none(campaign.reward_value):
+                reward_val_match = True
+
+            # Normalize reward types for comparison
+            def _norm_rt(t):
+                if not t: return ""
+                t_l = t.lower()
+                if t_l in ["points", "puan"]: return "points"
+                if t_l in ["cashback", "nakit", "iade"]: return "cashback"
+                if t_l in ["discount", "indirim"]: return "discount"
+                if t_l in ["installment", "taksit"]: return "installment"
+                return t_l
+
+            rt1 = _norm_rt(existing.reward_type)
+            rt2 = _norm_rt(campaign.reward_type)
+            reward_type_match = (rt1 == rt2)
+
+            # If reward is 0.00 (non-monetary privilege/service), allow any non-monetary type to match
+            if is_zero_or_none(existing.reward_value) and is_zero_or_none(campaign.reward_value):
+                non_monetary_types = ["hizmet", "discount", "diğer", "diger", "ayrıcalık", "kampanya", "points", "puan", ""]
+                if (rt1 in non_monetary_types or not rt1) and (rt2 in non_monetary_types or not rt2):
+                    reward_type_match = True
+
+            # Content Stability Guard: Already approved campaigns require substantial content modification to drop approval
+            is_content_stable = False
+            cond_desc_old = (existing.conditions or "") + "\n" + (existing.description or "")
+            cond_desc_new = (campaign.conditions or "") + "\n" + (campaign.description or "")
+            cd_old_norm = normalize_text_for_comparison(cond_desc_old)
+            cd_new_norm = normalize_text_for_comparison(cond_desc_new)
+            cd_similarity = 0.0
+            if cd_old_norm and cd_new_norm:
+                cd_similarity = difflib.SequenceMatcher(None, cd_old_norm, cd_new_norm).ratio()
+
+            if was_approved_before:
+                title_old_norm = normalize_text_for_comparison(existing.title or "")
+                title_new_norm = normalize_text_for_comparison(campaign.title or "")
+                title_similarity = 0.0
+                if title_old_norm and title_new_norm:
+                    title_similarity = difflib.SequenceMatcher(None, title_old_norm, title_new_norm).ratio()
+                else:
+                    title_similarity = 1.0
+
+                if reward_val_match and reward_type_match and cd_similarity >= 0.60 and title_similarity >= 0.80:
+                    is_content_stable = True
+                    print(f"      🛡️ [Content Stability Guard] Approved campaign content is stable. Title sim: {title_similarity:.1%}, Text sim: {cd_similarity:.1%}. Protecting approval status.")
+
+            if similarity >= 0.92 or is_content_stable:
                 if campaign.end_date != existing.end_date:
                     is_date_only_ext = True
-                    print(f"      🎉 [Date-Only Extension] Similarity is {similarity:.1%}, date changed. Marking date_extended=True")
+                    print(f"      🎉 [Date-Only Extension] Similarity/Stability matched, date changed. Marking date_extended=True")
                 else:
                     is_exact_match = True
-                    print(f"      ✅ [Exact Match] Similarity is {similarity:.1%}, but date is exactly same. Not an extension.")
+                    print(f"      ✅ [Exact Match] Similarity/Stability matched, date is exactly same. Not an extension.")
             else:
-                # Fallback multi-layered check to prevent false positives from AI/Scraper variations
-                cond_desc_old = (existing.conditions or "") + "\n" + (existing.description or "")
-                cond_desc_new = (campaign.conditions or "") + "\n" + (campaign.description or "")
-                cd_old_norm = normalize_text_for_comparison(cond_desc_old)
-                cd_new_norm = normalize_text_for_comparison(cond_desc_new)
-                cd_similarity = 0.0
-                if cd_old_norm and cd_new_norm:
-                    cd_similarity = difflib.SequenceMatcher(None, cd_old_norm, cd_new_norm).ratio()
-                
-                # Check for matches in reward details
-                reward_val_match = (existing.reward_value == campaign.reward_value)
-                
-                # Normalize reward types for comparison (e.g. puan/points, indirim/discount)
-                def _norm_rt(t):
-                    if not t: return ""
-                    t_l = t.lower()
-                    if t_l in ["points", "puan"]: return "points"
-                    if t_l in ["cashback", "nakit", "iade"]: return "cashback"
-                    if t_l in ["discount", "indirim"]: return "discount"
-                    if t_l in ["installment", "taksit"]: return "installment"
-                    return t_l
-                
-                rt1 = _norm_rt(existing.reward_type)
-                rt2 = _norm_rt(campaign.reward_type)
-                reward_type_match = (rt1 == rt2)
-                
-                # If reward is 0.00 (non-monetary privilege/service), AI often fluctuates between 'hizmet', 'indirim' and 'diger'.
-                if existing.reward_value in [0, 0.0, 0.00] and campaign.reward_value in [0, 0.0, 0.00]:
-                    non_monetary_types = ["hizmet", "discount", "diğer", "diger", "ayrıcalık", "kampanya", ""]
-                    if (rt1 in non_monetary_types or not rt1) and (rt2 in non_monetary_types or not rt2):
-                        reward_type_match = True
-                
                 if cd_similarity >= 0.50 and reward_val_match and reward_type_match:
                     if campaign.end_date != existing.end_date:
                         is_date_only_ext = True
@@ -424,6 +456,11 @@ def upsert_campaign(db: Session, campaign: Campaign) -> Tuple[Campaign, str]:
                 old_str = str(old_val).strip() if old_val is not None else ""
                 new_str = str(new_val).strip() if new_val is not None else ""
                 
+                # 🛡️ PROTECT AI MARKETING TEXT: Never overwrite it if it's already set in the DB
+                if field_name == "ai_marketing_text" and old_str:
+                    print(f"         🛡️ [Kalkan] Rejection: 'ai_marketing_text' is protected. Shielding from override.")
+                    return
+
                 # If existing is populated, but new is empty/junk, reject the new value!
                 if old_str and not new_str:
                     print(f"         🛡️ [Kalkan] Rejection: '{field_name}' is already populated in DB. Shielding from empty override.")

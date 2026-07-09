@@ -20,7 +20,7 @@ project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(_
 if project_root not in sys.path:
     sys.path.insert(0, project_root)
 
-from src.utils.scraper_utils import is_url_blocked, upsert_campaign  # type: ignore
+from src.utils.scraper_utils import is_url_blocked, upsert_campaign, should_skip_campaign  # type: ignore
 from src.services.brand_matcher import get_or_create_brands_list  # type: ignore
 from bs4 import BeautifulSoup  # type: ignore # pyre-ignore[21]
 
@@ -141,15 +141,15 @@ class IsbankMaximilesScraper:
                     
                     # Use existing context if available
                     br = self.browser
-                    if br and len(br.contexts) > 0:
+                    if br is not None and len(br.contexts) > 0:
                         context = br.contexts[0]
                     else:
-                        context = br.new_context() if br else None
+                        context = br.new_context() if br is not None else None
                         
                     if context:
                         self.page = context.new_page()
                     pg = self.page
-                    if pg:
+                    if pg is not None:
                         pg.set_default_timeout(180000)
                     return
                 except Exception as e:
@@ -165,7 +165,7 @@ class IsbankMaximilesScraper:
                           "--disable-extensions", "--disable-web-security"]
                 )
                 br = self.browser
-                if br:
+                if br is not None:
                     context = br.new_context(
                         viewport={"width": 1920, "height": 1080},
                         user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
@@ -176,7 +176,7 @@ class IsbankMaximilesScraper:
                     context.add_init_script("Object.defineProperty(navigator, 'webdriver', {get: () => undefined})")
                     self.page = context.new_page()
                     pg = self.page
-                    if pg:
+                    if pg is not None:
                         pg.set_default_timeout(180000)
                     print("✅ Playwright browser started.")
 
@@ -346,11 +346,7 @@ class IsbankMaximilesScraper:
         unique_urls = list(dict.fromkeys(all_links))
         unique_expired = list(dict.fromkeys(expired_links))
         if limit is not None:
-            try:
-                limit_val = int(limit) if limit is not None else 0
-                unique_urls = [unique_urls[i] for i in range(min(len(unique_urls), limit_val))]  # type: ignore
-            except Exception:
-                pass
+            unique_urls = unique_urls[:limit]
             
         print(f"✅ Found {len(unique_urls)} active campaigns, and {len(unique_expired)} expired campaigns")
         return unique_urls, unique_expired  # type: ignore # pyre-ignore[7]
@@ -571,12 +567,8 @@ class IsbankMaximilesScraper:
         return slug  # type: ignore # pyre-ignore[7]
 
     def _process_campaign(self, url: str, force: bool = False) -> str:
-        existing = self.db.query(Campaign).filter(  # type: ignore # pyre-ignore[16]
-            Campaign.tracking_url == url, Campaign.card_id == self.card_id
-        ).first()
-        
-        if existing and existing.is_active and not force:
-            print(f"   ⏭️  Skipped (Already exists and active): {existing.title[:40]}")
+        if not force and should_skip_campaign(self.db, url):
+            print(f"   ⏭️ Skipped (Already exists and active/blocklisted): {url}")
             return "skipped"  # type: ignore # pyre-ignore[7]
         
         # Blocklist check
@@ -584,8 +576,13 @@ class IsbankMaximilesScraper:
             print(f"   🚫 Skipped (Blocklisted): {url}")
             return "skipped"  # type: ignore # pyre-ignore[7]
         
-        if existing and force:
-            print(f"   🔄 Updating existing campaign: {existing.title}")
+        existing = None
+        if force:
+            existing = self.db.query(Campaign).filter(
+                Campaign.tracking_url == url, Campaign.card_id == self.card_id
+            ).first()
+            if existing:
+                print(f"   🔄 Updating existing campaign: {existing.title}")
 
         print(f"🔍 Processing: {url}")
         data = self._extract_campaign_data(url)
@@ -727,7 +724,7 @@ class IsbankMaximilesScraper:
             print("🚀 Starting İşbankası Maximiles Scraper (Playwright)...")
             
             # Release DB session connection to the pool before slow Playwright scraping
-            if self.db:
+            if self.db is not None:
                  self.db.commit() 
                 
             if urls:
@@ -752,7 +749,7 @@ class IsbankMaximilesScraper:
                             self.db.delete(existing)
                             self.db.commit()  # type: ignore # pyre-ignore[16]
                     except Exception as e:
-                        if self.db:
+                        if self.db is not None:
                             self.db.rollback()  # type: ignore # pyre-ignore[16]
                         print(f"   ⚠️ Could not update expired campaign {e_url}: {e}")
                         

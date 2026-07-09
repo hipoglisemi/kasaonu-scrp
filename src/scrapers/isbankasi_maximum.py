@@ -18,7 +18,7 @@ project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(_
 if project_root not in sys.path:
     sys.path.insert(0, project_root)
 
-from src.utils.scraper_utils import is_url_blocked, upsert_campaign  # type: ignore
+from src.utils.scraper_utils import is_url_blocked, upsert_campaign, should_skip_campaign  # type: ignore
 from src.utils.logger_utils import log_scraper_execution  # type: ignore # pyre-ignore[21]
 
 # Load Env - same pattern as ziraat.py
@@ -827,46 +827,10 @@ class IsbankMaximumScraper:
                     skipped += 1  # type: ignore # pyre-ignore[58]
                     continue
 
-                # DB Cache query
-                existing = self.session.query(Campaign).filter(  # type: ignore # pyre-ignore[16]
-                    Campaign.tracking_url == url,
-                    Campaign.card_id == card_id
-                ).first()
-                if existing and existing.is_active and existing.is_approved and not force:
-                    existing_img = existing.image_url  # type: ignore # pyre-ignore[16]
-                    is_placeholder = (
-                        not existing_img
-                        or existing_img.strip() == ''
-                        or existing_img.startswith("/placeholders/")
-                        or "logo" in existing_img.lower()
-                        or "kartavantaj" in existing_img.lower()
-                    )
-                    
-                    # If it's not a placeholder, check if it's actually broken (404/401)
-                    if not is_placeholder:
-                        try:
-                            import requests
-                            img_resp = requests.head(existing_img, timeout=5, verify=False)
-                            if img_resp.status_code in [404, 401, 403]:
-                                print(f"   ⚠️ Image is broken ({img_resp.status_code}): {existing_img}")
-                                is_placeholder = True
-                        except Exception:
-                            pass
-
-                    if is_placeholder:
-                        # Görsel güncelleme: sadece detay sayfasından görsel çek
-                        print(f"   🔄 Görsel eksik, güncelleniyor: {existing.title[:40]}")  # type: ignore # pyre-ignore[16,6]
-                        res_data = self._extract_campaign_data(url)
-                        if res_data and res_data.get("image_url"):
-                            existing.image_url = res_data["image_url"]  # type: ignore # pyre-ignore[16]
-                            existing.updated_at = datetime.utcnow()  # type: ignore # pyre-ignore[16]
-                            self.session.commit()  # type: ignore # pyre-ignore[16]
-                            print(f"   ✅ Görsel güncellendi: {res_data['image_url'][:60]}")
-                        else:
-                            print(f"   ⚠️ Görsel bulunamadı, atlandı")
-                    else:
-                        print(f"   ⏭️ Skipped (Already exists): [{existing.id}] {existing.title[:40]}")  # type: ignore # pyre-ignore[16,6]
-                    skipped += 1  # type: ignore # pyre-ignore[58]
+                # DB Cache query using should_skip_campaign
+                if not force and should_skip_campaign(self.session, url):
+                    print(f"   ⏭️ Skipped (Already exists and active/blocklisted): {url}")
+                    skipped += 1
                     continue
                     
                 try:

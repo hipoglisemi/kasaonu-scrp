@@ -21,7 +21,7 @@ from urllib.parse import urljoin  # type: ignore # pyre-ignore[21]
 from sqlalchemy import create_engine, Column, Integer, String, Boolean, DateTime, Date, Numeric, Text, ForeignKey  # type: ignore # pyre-ignore[21]
 from sqlalchemy.orm import sessionmaker, relationship, declarative_base  # type: ignore # pyre-ignore[21]
 from sqlalchemy.dialects.postgresql import UUID  # type: ignore # pyre-ignore[21]
-from src.utils.scraper_utils import is_url_blocked, upsert_campaign  # type: ignore
+from src.utils.scraper_utils import is_url_blocked, upsert_campaign, should_skip_campaign  # type: ignore
 
 from src.services.brand_matcher import get_or_create_brands_list  # type: ignore
 from src.services.ai_parser import AIParser  # type: ignore
@@ -187,10 +187,8 @@ class VakifbankScraper:
     def _process_campaign(self, url):
         # Database Pre-check (Skip Logic)
         try:
-
-            existing = self.db.query(Campaign).filter(Campaign.tracking_url == url).first()  # type: ignore # pyre-ignore[16]
-            if existing and existing.is_active and existing.is_approved:
-                print(f"   ⏭️ Skipped (Already exists and active): {existing.title[:40]}")
+            if should_skip_campaign(self.db, url):
+                print(f"   ⏭️ Skipped (Already exists and active/blocklisted): {url}")
                 return "skipped"  # type: ignore # pyre-ignore[7]
         except Exception as e:
             print(f"   ⚠️ DB Pre-check error: {e}")
