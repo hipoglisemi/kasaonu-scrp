@@ -33,6 +33,7 @@ on:
           - garanti_bonus
           - garanti_milesandsmiles
           - garanti_shopandfly
+          - garanti
           - hayhay
           - hsbc
           - isbankasi_genc
@@ -76,6 +77,7 @@ on:
           - ziraat
           - ziraat_dinamik
           - ziraat_katilim
+          - isbankasi
       limit:
         description: 'Çekilecek max kampanya sayısı (Sadece İşbankası için desteklenir, boş bırakılırsa limitsiz)'
         required: false
@@ -90,7 +92,7 @@ jobs:
     steps:
       - id: set-matrix
         run: |
-          ALL='["ahlpay","hayatpay","hayatfinans","alternatifbank","odeabank","akbank_axess","akbank_business","akbank_free","akbank_wings","akbank_kart","albaraka","americanexpress","anadolubank","chippin","denizbank","dunyakatilim","emlakkatilim","enpara","garanti_bonus","garanti_milesandsmiles","garanti_shopandfly","hayhay","hsbc","isbankasi_genc","isbankasi_maximiles","isbankasi_maximum","istanbulkart","kuveytturk","masterpass","nays","nkolay","on_digital","opet","paraf","paraf_genc","param","paycell","pep","petrolofisi","pokus","qnb","rubikpara","sekerbank","shell","tami","teb","tkpay","tombank","totalenergies","turkcell","turkiyefinans","turktelekom","uption","vakif_katilim","vakifbank","vodafone","vodafonepay","yapikredi_adios","yapikredi_crystal","yapikredi_play","yapikredi_world","ziraat","ziraat_dinamik","ziraat_katilim"]'
+          ALL='["ahlpay","hayatpay","hayatfinans","alternatifbank","odeabank","akbank_axess","akbank_business","akbank_free","akbank_wings","akbank_kart","albaraka","americanexpress","anadolubank","chippin","denizbank","dunyakatilim","emlakkatilim","enpara","garanti_bonus","garanti_milesandsmiles","garanti_shopandfly","garanti","hayhay","hsbc","isbankasi_genc","isbankasi_maximiles","isbankasi_maximum","isbankasi","istanbulkart","kuveytturk","masterpass","nays","nkolay","on_digital","opet","paraf","paraf_genc","param","paycell","pep","petrolofisi","pokus","qnb","rubikpara","sekerbank","shell","tami","teb","tkpay","tombank","totalenergies","turkcell","turkiyefinans","turktelekom","uption","vakif_katilim","vakifbank","vodafone","vodafonepay","yapikredi_adios","yapikredi_crystal","yapikredi_play","yapikredi_world","ziraat","ziraat_dinamik","ziraat_katilim"]'
           INPUT="${{ github.event.inputs.scraper }}"
           if [ -z "$INPUT" ] || [ "$INPUT" = "all" ]; then
             echo "scrapers=$ALL" >> $GITHUB_OUTPUT
@@ -131,7 +133,7 @@ jobs:
 
     - name: Install Playwright Browsers
       run: |
-        playwright install chromium
+        playwright install chromium firefox
 
     - name: Run Scraper
       env:
