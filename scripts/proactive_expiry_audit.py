@@ -61,6 +61,7 @@ def extract_dates_via_ai(title: str, clean_text: str, key_index: int = 1, today_
         "4. Sadece kampanya aktifse ve bitiş tarihi varsa 'end_date' alanını YYYY-MM-DD formatında doldur, aksi halde null bırak.\n"
         "5. Çıktıyı her zaman belirtilen JSON formatında ver.\n"
         "6. Kart başvurusu, kampanyaya katılım (Juzdan/SMS katılım süresi) veya ana promosyonun (örn. indirim/chip-para kazanma) bitiş tarihi ile son harcama/ödül kullanım süresi farklı ise, her zaman KATILIM / BAŞVURU / ANA PROMOSYONUN son gününü kampanya bitiş tarihi (end_date) olarak seç. Harcama veya puan son kullanım tarihini bitiş tarihi olarak alma. Örn: '1-30 Haziran arasında başvuranlar 15 Temmuz'a kadar harcayabilir' veya '1-30 Haziran tarihleri arasında başvurulabilir' ifadesinde bitiş tarihi 2026-06-30 olmalıdır.\n"
+        "7. ÇOK ÖNEMLİ: Eğer sayfa metni, sana verilen KAMPANYA BAŞLIĞI ile tamamen ilgisizse (örneğin başlık 'Felix' ama metin tamamen 'Opet Pay Nakit İade' veya genel kredi kartı özelliklerini anlatıyorsa), bankanın sayfayı sildiğini ve seni alakasız bir sayfaya yönlendirdiğini anla ve KESİNLİKLE 'is_expired' alanını true yap.\n"
     )
     
     prompt = f"""
@@ -231,8 +232,8 @@ def proactive_expiry_audit(max_audits=2500, specific_ids=None):
                         'kampanya-listesi', 'kampanyalarimiz'
                     )
                     if any(gl in path for gl in generic_listing_paths) or len(path) <= 1:
-                        print(f"   👻 [Soft 404 / Listing Redirect] #{c['id']} redirected to listing/homepage. Skipping Gemini.")
-                        return None
+                        print(f"   👻 [Soft 404 / Listing Redirect] #{c['id']} redirected to listing/homepage. Marking as 404.")
+                        return {**c, "html": "", "final_url": final_url, "url_changed": url_changed, "is_404": True}
                 
                 # 🔤 Encoding fix: charset belirtmeyen siteler (Amex vb.) için requests
                 # ISO-8859-1 varsayar ama içerik UTF-8'dir. Zorla UTF-8 set et.
@@ -246,7 +247,10 @@ def proactive_expiry_audit(max_audits=2500, specific_ids=None):
                         html_content = rendered_html
                         print(f"   ✅ [Selenium Başarılı] #{c['id']} için {len(html_content)} karakter çekildi.")
                         
-                return {**c, "html": html_content, "final_url": final_url, "url_changed": url_changed}
+                return {**c, "html": html_content, "final_url": final_url, "url_changed": url_changed, "is_404": False}
+            elif resp.status_code == 404 or resp.status_code == 410:
+                print(f"   💀 [404 Not Found] #{c['id']} | {c['url']}")
+                return {**c, "html": "", "final_url": c["url"], "url_changed": False, "is_404": True}
         except Exception as e:
             print(f"   ⚠️ fetch_html error for #{c['id']}: {e}. Escalating to Playwright...")
             try:
@@ -290,14 +294,37 @@ def proactive_expiry_audit(max_audits=2500, specific_ids=None):
         key_index = (worker_idx % NUM_WORKERS) + 1
         current_end = c["end_date"]
         try:
+            if c.get("is_404"):
+                print(f"   💀 [404 Doğrudan Kapatma] #{c['id']} | Sayfa bulunamadı (404/Soft 404).")
+                with get_db_session() as db:
+                    camp = db.query(Campaign).filter(Campaign.id == c["id"]).first()
+                    if camp:
+                        camp.is_active = False
+                        db.commit()
+                return
+
             # ✅ Düzgün temizlenmiş metin: text_cleaner pipeline'ından geçir
             clean_text = clean_html_to_text(c["html"], title=c.get("title", ""))
             
-            # 🛡️ BOT/ENGEL KALKANI:
+            # 🛡️ BOT/ENGEL KALKANI & SOFT 404 TESPİTİ:
             # If the clean_text is suspiciously short or contains typical WAF/Bot block phrases,
             # we should SKIP rather than letting AI hallucinate or falsely mark as expired.
             lower_text = clean_text.lower()
             block_phrases = ["access denied", "cloudflare", "security check", "güvenlik kontrolü", "are you human", "robot olmadığınızı", "sayfa bulunamadı", "aradığınız sayfa"]
+            
+            # Soft 404 check: If the original title has specific words, and the page text doesn't contain ANY of them, it's a soft 404
+            orig_title = c.get("title", "").lower()
+            title_words = [w for w in re.split(r'\W+', orig_title) if len(w) > 4 and w not in ('kampanyası', 'fırsatı', 'taksit', 'indirimi')]
+            if title_words and len(lower_text) > 50:
+                match_count = sum(1 for w in title_words if w in lower_text)
+                if match_count == 0:
+                    print(f"   💀 [Soft 404 - Başlık Eşleşmiyor] #{c['id']} | Sayfada '{title_words[0]}' bile geçmiyor.")
+                    with get_db_session() as db:
+                        camp = db.query(Campaign).filter(Campaign.id == c["id"]).first()
+                        if camp:
+                            camp.is_active = False
+                            db.commit()
+                    return
             
             if len(clean_text) < 200 or any(bp in lower_text for bp in block_phrases):
                 print(f"   🛡️ [Bot Engeli/Eksik İçerik] #{c['id']} için içerik şüpheli veya bloke edilmiş. Pas geçiliyor.")
@@ -317,14 +344,14 @@ def proactive_expiry_audit(max_audits=2500, specific_ids=None):
             is_indefinite = ai_dates.get("is_indefinite", False)
 
             if is_expired:
-                # 🚫 Proactive pasife ALMAZ — bu cleanup'ın görevidir.
-                # Sebepler:
-                # 1. JS-render siteler (TEB, Şekerbank vb.) aynı URL'de yeni ay kampanyasını yayınlar.
-                #    AI sayfada eski tarihi görüp "expired" diyebilir ama kampanya hâlâ aktif olabilir.
-                # 2. Yanlış pozitif pasife almalar kullanıcıya görünür zararlar verir.
-                # 3. Cleanup, end_date + scraper eşleşmesiyle daha güvenilir bir şekilde pasife alır.
-                print(f"   ⏭️ [Expired Atlandı] AI 'bitti' dedi ama pasife ALMIYOR (cleanup yapacak) | ID: #{c['id']} | {c['title'][:50]}")
-                return False
+                # Kullanıcı talebi: Banka kampanyayı kaldırdıysa veya sayfa "süresi doldu" diyorsa anında pasife al.
+                print(f"   💀 [AI Expired] AI kampanya bitmiş/kaldırılmış dedi, pasife alınıyor | ID: #{c['id']} | {c['title'][:50]}")
+                with get_db_session() as db:
+                    camp = db.query(Campaign).filter(Campaign.id == c["id"]).first()
+                    if camp:
+                        camp.is_active = False
+                        db.commit()
+                return True
 
             if not ai_end_date_str:
                 if is_indefinite:
