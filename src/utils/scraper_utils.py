@@ -300,9 +300,15 @@ def upsert_campaign(db: Session, campaign: Campaign) -> Tuple[Campaign, str]:
                 existing.is_active = False
                 existing.is_approved = was_approved_before
             return existing, "skipped"
-            
+
         is_date_only_ext = False
         is_exact_match = False # Content is same, date is same
+        
+        # Default values — will be overwritten if old_text and new_text exist
+        similarity = 0.0
+        cd_similarity = 0.0
+        reward_val_match = True  # Default to True (benefit of doubt when no text to compare)
+        reward_type_match = True
         
         def is_zero_or_none(val):
             if val is None:
@@ -400,9 +406,29 @@ def upsert_campaign(db: Session, campaign: Campaign) -> Tuple[Campaign, str]:
             # Treat exact matches as date-only extensions for the locking logic (to prevent overwriting columns)
             is_date_only_ext = True 
         else:
-            # İçerik gerçekten değiştiyse (date_extended=False ve exact match değilse) → onaya düşür.
-            existing.is_approved = False
-            print(f"      🔒 [Onay Kilidi] İçerik değişti → onaya düşürüldü.")
+            # İçerik benzerlik eşiğinin altında kaldı (date_extended=False ve exact match değilse).
+            # KALICI ÇÖZÜM: Onaylı kampanyalarda AI parser kararsızlığından kaynaklanan farkları
+            # gerçek içerik değişikliğinden ayırt et.
+            if was_approved_before:
+                # 🔍 Gerçek bir değişiklik mi yoksa AI kararsızlığı mı kontrol et:
+                # Ödül değeri ve türü aynıysa → AI'ın metni farklı formatlama ihtimali yüksek, onay korunur.
+                # Ödül değeri VEYA türü değiştiyse → banka kampanyayı güncellemiş, onay düşürülmeli.
+                if not reward_val_match or not reward_type_match:
+                    # GERÇEK DEĞİŞİKLİK: Ödül değeri/türü değişmiş
+                    existing.is_approved = False
+                    drop_reason = f"Ödül değişti: {existing.reward_value} {existing.reward_type} → {campaign.reward_value} {campaign.reward_type} | Text sim: {similarity:.0%} | Cond sim: {cd_similarity:.0%}"
+                    existing.approval_dropped_at = datetime.now(timezone.utc).replace(tzinfo=None)
+                    existing.approval_drop_reason = drop_reason
+                    print(f"      🔒 [Onay Düşürüldü] {drop_reason}")
+                else:
+                    # AI KARARSIZLIĞI: Ödül aynı ama metin farklı çıkmış. Onay korunur!
+                    existing.is_approved = True
+                    print(f"      🛡️ [Onay Korundu] Ödül değeri/türü aynı, metin farkı AI parser kaynaklı. Text sim: {similarity:.0%}, Cond sim: {cd_similarity:.0%}. Onay bozulmadı.")
+            else:
+                existing.is_approved = False
+                existing.approval_dropped_at = datetime.now(timezone.utc).replace(tzinfo=None)
+                existing.approval_drop_reason = f"Yeni/onaysız kampanya güncellendi | Text sim: {similarity:.0%} | Cond sim: {cd_similarity:.0%}"
+                print(f"      🔒 [Onay Kilidi] İçerik değişti → onaya düşürüldü.")
 
         existing.updated_at = datetime.now(timezone.utc).replace(tzinfo=None)
         existing.last_seen_at = datetime.now(timezone.utc).replace(tzinfo=None)

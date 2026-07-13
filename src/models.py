@@ -154,6 +154,8 @@ class Campaign(Base):
     date_extended: bool = Column(Boolean, default=False, nullable=False)  # type: ignore # type: ignore
     cards_audited_at: datetime | None = Column(DateTime, nullable=True, default=None) # type: ignore
     last_seen_at: datetime | None = Column(DateTime, nullable=True, default=None) # type: ignore
+    approval_dropped_at: datetime | None = Column(DateTime, nullable=True, default=None) # type: ignore
+    approval_drop_reason: str | None = Column(Text, nullable=True) # type: ignore
 
     # Dates
     start_date: date | None = Column(Date, nullable=True) # type: ignore

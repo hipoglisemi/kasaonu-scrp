@@ -174,6 +174,11 @@ def is_link_dead(url: str, title: str = "") -> tuple:
                 
             # 4. IF IT REDIRECTS TO HOMEPAGE (e.g. max 1 slash in path)
             if len(path) <= 1:
+                # If it's a known WAF-prone Turkish bank redirecting to homepage on block, assume it's alive.
+                waf_prone_domains = ["maximum.com.tr", "maximiles.com.tr", "akbank.com", "axess.com.tr", "wingscard.com.tr", "garanti.com.tr", "garantibbva.com.tr", "bonus.com.tr"]
+                if any(d in url.lower() for d in waf_prone_domains):
+                    print(f"      🛡️ [WAF Redirect Bypass] Redirected to homepage on WAF-prone domain {url}. Assuming ALIVE.")
+                    return (False, final_url)
                 return (True, final_url)
 
             # 4. SOFT 404 TITLE HEURISTICS
