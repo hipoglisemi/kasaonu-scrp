@@ -56,13 +56,17 @@ def refresh_blog_content(blog_id, content_html):
         return None
 
     needs_update = False
-    conn = get_connection()
-    cur = conn.cursor()
     
     for link in links:
         slug = link['href'].split('/')[-1]
-        cur.execute("SELECT is_active, title, reward_text FROM campaigns WHERE slug = %s", (slug,))
-        row = cur.fetchone()
+        
+        conn = get_connection()
+        try:
+            cur = conn.cursor()
+            cur.execute("SELECT is_active, title, reward_text FROM campaigns WHERE slug = %s", (slug,))
+            row = cur.fetchone()
+        finally:
+            conn.close()
         
         # Eğer kampanya aktif değilse veya veritabanında yoksa güncelle
         if not row or not row[0]:
@@ -103,24 +107,29 @@ KURALLAR:
                 print(f"✅  Metin AI ile tazelendi.")
                 time.sleep(5) # Prevent Gemini 15 RPM Rate Limit (429 Resource Exhausted)
 
-    conn.close()
     return content_html if needs_update else None
 
 def main():
     conn = get_connection()
-    cur = conn.cursor()
-    cur.execute("SELECT id, title, content_html FROM blogs WHERE is_published = TRUE")
-    blogs = cur.fetchall()
+    try:
+        cur = conn.cursor()
+        cur.execute("SELECT id, title, content_html FROM blogs WHERE is_published = TRUE")
+        blogs = cur.fetchall()
+    finally:
+        conn.close()
     
     for blog_id, title, html in blogs:
         print(f"🔍 Denetleniyor: {title}")
         updated_html = refresh_blog_content(blog_id, html)
         if updated_html:
-            cur.execute("UPDATE blogs SET content_html = %s WHERE id = %s", (updated_html, blog_id))
-            conn.commit()
-            print(f"✨ BLOG GÜNCELLENDİ (LİNK VE METİN): {title}")
-
-    conn.close()
+            update_conn = get_connection()
+            try:
+                update_cur = update_conn.cursor()
+                update_cur.execute("UPDATE blogs SET content_html = %s WHERE id = %s", (updated_html, blog_id))
+                update_conn.commit()
+                print(f"✨ BLOG GÜNCELLENDİ (LİNK VE METİN): {title}")
+            finally:
+                update_conn.close()
 
 if __name__ == "__main__":
     main()
