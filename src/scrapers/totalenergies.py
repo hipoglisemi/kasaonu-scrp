@@ -358,9 +358,14 @@ class TotalEnergiesScraper:
                         names=brand_names,
                         brand_cache=self.brand_cache
                     )
-                    for b_id in brands_ids:
-                        cb = CampaignBrand(campaign_id=campaign.id, brand_id=b_id)
-                        self.db.add(cb)
+                    for b_id in set(brands_ids):
+                        link = self.db.query(CampaignBrand).filter(
+                            CampaignBrand.campaign_id == campaign.id,
+                            CampaignBrand.brand_id == b_id
+                        ).first()
+                        if not link:
+                            cb = CampaignBrand(campaign_id=campaign.id, brand_id=b_id)
+                            self.db.add(cb)
                     
                     self.db.commit()
                     processed_count += 1
