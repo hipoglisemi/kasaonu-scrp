@@ -165,9 +165,12 @@ class VodafonePayScraper:
 
             # Image: Prioritize list image as requested
             final_image = list_img_url
+            if final_image and not any(final_image.lower().split('?')[0].endswith(ext) for ext in ['.png', '.jpg', '.jpeg', '.webp', '.gif', '.svg']):
+                final_image = None
+
             if not final_image:
                 # Fallback to detail images
-                img_el = soup.select_one("img[alt*='Kazan!']") or soup.select_one("img[class*='w-full']")
+                img_el = soup.select_one("img[alt*='Kazan!']") or soup.select_one("img[class*='w-full']") or soup.select_one("img[src*='cms.vodafone']") or soup.find("img")
                 if img_el and img_el.get('src'):
                     final_image = img_el.get('src')
             
