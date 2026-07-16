@@ -157,9 +157,9 @@ def proactive_expiry_audit(max_audits=2500, specific_ids=None):
     run_start_time = time.time()
     today = (datetime.now(timezone.utc) + timedelta(hours=3)).date()
     
-    # Auditing campaigns expiring in the last 3 days and next 1 day
-    start_date = today - timedelta(days=3)
-    end_date = today + timedelta(days=1)
+    # Auditing campaigns expiring in the last 1 day and next 3 days
+    start_date = today - timedelta(days=1)
+    end_date = today + timedelta(days=3)
     print(f"📅 Auditing campaigns expiring in date range: {start_date} to {end_date}")
 
     # Fetch campaigns expiring soon
