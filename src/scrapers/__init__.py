@@ -104,6 +104,10 @@ try:
     from .fenerpara import FenerparaScraper # type: ignore # pyre-ignore[21]
 except ImportError: FenerparaScraper = None
 
+try:
+    from .zubizu import ZubizuScraper # type: ignore # pyre-ignore[21]
+except ImportError: ZubizuScraper = None
+
 
 __all__ = [
     'GarantiBonusScraper',
@@ -131,6 +135,7 @@ __all__ = [
     'HayatPayScraper',
     'HayatFinansScraper',
     'GSParaScraper',
-    'FenerparaScraper'
+    'FenerparaScraper',
+    'ZubizuScraper'
 ]
 
