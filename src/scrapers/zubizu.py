@@ -187,7 +187,9 @@ KISA AÇIKLAMA: {item.get('shortDescription') or title}
 UZUN AÇIKLAMA: {item.get('longDescription') or title}
 
 ÖNEMLİ ZUBİZU KAMPANYA REHBERİ:
-Bu kampanya Zubizu mobil platformuna aittir. Lütfen "conditions" alanına aşağıdaki standart Zubizu katılım koşullarını eksiksiz ve maddeler halinde ekleyin:
+Bu kampanya Zubizu mobil platformuna aittir. 
+1. KESİNLİKLE "Zubizu" veya "Zubizu App" kelimelerini "brands" (marka) listesine eklemeyin. Zubizu platform adıdır, mağaza/tüccar markası değildir (Örn: Shell, Nautica, Cacharel).
+2. Lütfen "conditions" alanına aşağıdaki standart Zubizu katılım koşullarını eksiksiz ve maddeler halinde ekleyin:
 - Kampanyanın geçerli olduğu kanallar (Mağazalar ve e-ticaret siteleri)
 - Minimum harcama tutarı ve sağlanan hediye/indirim avantajı
 - Kampanya kodunun alınması, e-ticaret sepetinde veya kasada ibraz edilmesi
@@ -215,6 +217,13 @@ Bu kampanya Zubizu mobil platformuna aittir. Lütfen "conditions" alanına aşa�
                 if is_url_blocked(db, url):
                     print(f"   🚫 Skipped (Safety: Blocklisted): {ai_data.get('title') or url}")
                     return "skipped"
+
+                # Filter out Zubizu platform name so it is NEVER linked as a merchant brand
+                if ai_data.get('brands'):
+                    ai_data['brands'] = [
+                        b for b in ai_data.get('brands', [])
+                        if str(b).strip().lower() not in ['zubizu', 'zubızu', 'zubizu app', 'zubizu üyeleri']
+                    ]
 
                 final_sector_slug = ai_data.get('sector')
 
