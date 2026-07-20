@@ -96,6 +96,14 @@ try:
     from .hayatfinans import HayatFinansScraper # type: ignore # pyre-ignore[21]
 except ImportError: HayatFinansScraper = None
 
+try:
+    from .gspara import GSParaScraper # type: ignore # pyre-ignore[21]
+except ImportError: GSParaScraper = None
+
+try:
+    from .fenerpara import FenerparaScraper # type: ignore # pyre-ignore[21]
+except ImportError: FenerparaScraper = None
+
 
 __all__ = [
     'GarantiBonusScraper',
@@ -121,5 +129,8 @@ __all__ = [
     'AlternatifBankScraper',
     'OdeabankScraper',
     'HayatPayScraper',
-    'HayatFinansScraper'
+    'HayatFinansScraper',
+    'GSParaScraper',
+    'FenerparaScraper'
 ]
+

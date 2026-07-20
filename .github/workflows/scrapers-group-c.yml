@@ -21,6 +21,8 @@ jobs:
           - paraf_genc
           - param
           - qnb
+          - gspara
+          - fenerpara
           - ziraat_katilim
           - emlakkatilim
           - rubikpara
