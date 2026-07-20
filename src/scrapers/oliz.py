@@ -94,7 +94,7 @@ class OlizScraper:
                 db.commit()
                 db.refresh(bank)
             else:
-                bank.logo_url = "/logos/banks/oliz.webp"
+                bank.logo_url = "/logos/banks/oliz.webp"  # type: ignore
                 db.commit()
             self.bank_id = bank.id
 
@@ -115,169 +115,41 @@ class OlizScraper:
                 db.commit()
                 db.refresh(card)
             else:
-                card.logo_url = "/logos/cards/oliz.webp"
-                card.image_url = "/logos/creditcard/oliz.webp"
-                card.credit_logo_url = "/logos/creditcard/oliz.webp"
+                card.logo_url = "/logos/cards/oliz.webp"  # type: ignore
+                card.image_url = "/logos/creditcard/oliz.webp"  # type: ignore
+                card.credit_logo_url = "/logos/creditcard/oliz.webp"  # type: ignore
                 db.commit()
             self.card_id = card.id
 
     def _fetch_campaigns(self, limit: Optional[int] = None) -> List[Dict[str, Any]]:
-        print(f"   🌐 Querying live Oliz REST API (https://prodapi.oliz.com.tr/api)...")
+        print(f"   🌐 Querying live Oliz REST API (https://prodapi.oliz.com.tr/api/member/promotions)...")
         headers = {
-            "User-Agent": "Oliz/5.12.1 (Android; Android 14; Mobile)",
-            "Content-Type": "application/json",
-            "Accept": "application/json"
+            "user-agent": "Dart/3.12 (dart:io)",
+            "guest-token": "ac4f475e-73a6-4598-a7c8-154833f74b3d",
+            "platform": "1",
+            "content-type": "application/json",
+            "authorization": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJodHRwOi8vc2NoZW1hcy54bWxzb2FwLm9yZy93cy8yMDA1LzA1L2lkZW50aXR5L2NsYWltcy9uYW1lIjoiMDAwMDAwMDAtMDAwMC0wMDAwLTA4ZGQtZTIzYWI5ZTIwZTFjIiwianRpIjoiNWQyZTliNjQtNGZjOS00MWNlLWJkZTAtNDEwNjI1MjU1ZWJhIiwiaHR0cDovL3NjaGVtYXMueG1sc29hcC5vcmcvd3MvMjAwNS8wNS9pZGVudGl0eS9jbGFpbXMvZW1haWxhZGRyZXNzIjoiNTU0MTgxODQwNEBhcmNlbGlrcGx1cy5jb20iLCJodHRwOi8vc2NoZW1hcy54bWxzb2FwLm9yZy93cy8yMDA1LzA1L2lkZW50aXR5L2NsYWltcy9tb2JpbGVwaG9uZSI6IjU1NDE4MTg0MDQiLCJodHRwOi8vc2NoZW1hcy54bWxzb2FwLm9yZy93cy8yMDA1LzA1L2lkZW50aXR5L2NsYWltcy9naXZlbm5hbWUiOiJPxJ91eiIsImh0dHA6Ly9zY2hlbWFzLnhtbHNvYXAub3JnL3dzLzIwMDUvMDUvaWRlbnRpdHkvY2xhaW1zL3N1cm5hbWUiOiJLQVJBRVZMxLAiLCJodHRwOi8vc2NoZW1hcy54bWxzb2FwLm9yZy93cy8yMDA1LzA1L2lkZW50aXR5L2NsYWltcy9hdXRoZW50aWNhdGlvbiI6IjIwMjUtMDgtMjNUMTE6NDY6NTYuMDM0MjYyNSIsImh0dHA6Ly9zY2hlbWFzLm1pY3Jvc29mdC5jb20vd3MvMjAwOC8wNi9pZGVudGl0eS9jbGFpbXMvcm9sZSI6Ik1lbWJlciBSb2xlIiwiZXhwIjoxNzg0NTg4NjIwLCJpc3MiOiJodHRwOi8vYXV0aGVudGljYXRpb24iLCJhdWQiOiJodHRwOi8vYXV0aGVudGljYXRpb24ifQ.TdS8Jw_6QF-0F7MK792K0R_6BYKEJfSAos79RbsjlIg"
         }
+        self.api_headers = headers
 
-        api_brands = {}
         try:
-            r = requests.post("https://prodapi.oliz.com.tr/api/brands", headers=headers, json={}, timeout=8, verify=False)
+            r = requests.post("https://prodapi.oliz.com.tr/api/member/promotions", headers=headers, json={"keyword":"","brandIds":[],"categoryIds":[]}, timeout=15, verify=False)
             if r.status_code == 200:
                 data = r.json()
-                brands_list = data.get("payload", {}).get("brands", [])
-                print(f"   ✅ Successfully fetched {len(brands_list)} live partner brands from prodapi.oliz.com.tr")
-                for b in brands_list:
-                    if isinstance(b, dict) and b.get("name"):
-                        api_brands[b["name"].lower().strip()] = b
+                campaigns = data.get("payload", {}).get("campaigns", [])
+                print(f"   ✅ Successfully fetched {len(campaigns)} live campaigns from Oliz API.")
+                if limit:
+                    return campaigns[:limit]
+                return campaigns
+            else:
+                print(f"   ❌ Failed to fetch campaigns. Status: {r.status_code}. Response: {r.text[:200]}")
+                return []
         except Exception as e:
-            print(f"   ⚠️ Could not reach prodapi.oliz.com.tr directly: {e}")
-
-        # Active Oliz partner campaigns across Koç brands & merchant ecosystem with live API integration
-        curated_campaigns = [
-            {
-                "id": "oliz-superstep-750",
-                "title": "Oliz'e Özel SuperStep'de 750 TL İndirim!",
-                "brand": "SuperStep",
-                "brand_id": 675,
-                "description": "Dünya devlerinin en hit sneaker modelleri ve sokak modasının nabzını tutan koleksiyonlar Superstep'te! Web sitesi, mobil uygulama ve mağazalarda geçerli 6.000 TL ve üzeri alışverişlerde 750 TL indirim fırsatı seni bekliyor.",
-                "end_date": "2026-07-31",
-                "reward_text": "750 TL İndirim",
-                "reward_value": 750,
-                "reward_type": "discount",
-                "conditions": [
-                    "SuperStep bir Eren Perakende markasıdır.",
-                    "Kampanya, 1 Temmuz - 31 Temmuz 2026 arasında www.superstep.com.tr, SuperStep mobil uygulama ve mağazalarda geçerlidir.",
-                    "Kampanya On Running markası ürünlerinde geçerli değildir.",
-                    "Oliz'e özel kodla yapılacak 6.000 TL ve üzeri alışverişlerde 750 TL indirim sağlar.",
-                    "Kampanya indirimsiz ürünlerde geçerlidir: https://www.superstep.com.tr/yeni-sezon-urunler/",
-                    "Başka indirim kampanyaları ve indirim kodlarıyla birleştirilemez.",
-                    "Eren Perakende (SuperStep) ve Oliz dilediğinde kampanya şartlarını değiştirebilir, kampanyayı dondurabilir, durdurabilir veya kampanyanın süresini uzatabilir.",
-                    "Kampanya kapsamında yaşanabilecek olumsuzluklardan Oliz sorumlu değildir.",
-                    "Kampanya kapsamında dağıtılan kodların son kullanım tarihi kampanya bitiş tarihiyle aynıdır."
-                ],
-                "participation": "Nasıl Kullanırım?\n\nWeb Sitesinde:\n1. 'Kampanya Kodu Al' butonuna tıkla.\n2. Kodunu kopyala.\n3. 'Web Sitesine Git' butonuna tıkla.\n4. Üye girişi yap.\n5. 'Sepetim' sayfasında yer alan 'Kupon Kodu Ekle' kutucuğuna, Oliz'den aldığın kodu yapıştır.\n6. 'Sepeti Onayla' butonuna bas ve sepeti onayla.\n\nMağazalarda:\n1. 'Kampanya Kodu Al' butonuna tıkla.\n2. Seçili indirimsiz ürünlerle kasaya git.\n3. Üyelik kaydı oluştur.\n4. Kodunu paylaş.\n5. İndirimli ödemeni tamamla.",
-                "image_url": api_brands.get("superstep", {}).get("imageUrl") or api_brands.get("superstep", {}).get("logoImageUrl") or "https://cdnolz.oliz.com.tr/promotion/brand/image-removebg-preview_76de0f6b-dd66-4630-a0b4-fd5259ae1051..png"
-            },
-            {
-                "id": "oliz-arcelik-beko",
-                "title": "ARÇELİK VE BEKO'DA OLİZ'E ÖZEL SEÇİLİ BEYAZ EŞYA VE ELEKTRONİKTE İNDİRİM",
-                "brand": "Arçelik",
-                "brand_id": 1,
-                "description": "Oliz kullanıcılarına özel Arçelik ve Beko mağazaları ile internet sitelerinde geçerli indirim kodları sizi bekliyor.",
-                "conditions": [
-                    "Kampanya Arçelik ve Beko mağazalarında ve online sitelerinde geçerlidir.",
-                    "İndirimden yararlanmak için Oliz uygulaması üzerinden kampanya kodu alınmalıdır.",
-                    "Kampanya kodu kasada veya online ödeme adımında ibraz edilmelidir.",
-                    "Farklı kampanyalar veya kupon kodları ile birleştirilemez.",
-                    "Oliz ve Arçelik/Beko kampanya koşullarını değiştirme hakkını saklı tutar."
-                ],
-                "image_url": api_brands.get("arçelik", {}).get("imageUrl") or api_brands.get("arçelik", {}).get("logoImageUrl") or "https://cdnolz.oliz.com.tr/mobile/arcelik_white_logo.png"
-            },
-            {
-                "id": "oliz-opet-akaryakit",
-                "title": "OPET'TE OLİZ'E ÖZEL YAKIT VE PUAN FIRSATLARI",
-                "brand": "Opet",
-                "brand_id": 641,
-                "description": "Oliz üyeleri Opet istasyonlarında yapacakları akaryakıt alımlarında özel indirim ve puan fırsatlarından yararlanıyor.",
-                "conditions": [
-                    "Kampanya anlaşmalı Opet istasyonlarında geçerlidir.",
-                    "Oliz uygulamasında kayıtlı plaka ile yapılan yakıt alımlarında geçerlidir.",
-                    "Kazanılan puanlar Opet istasyonlarında yakıt alımında kullanılabilir.",
-                    "Diğer puan ve indirim kampanyaları ile birleştirilemez."
-                ],
-                "image_url": api_brands.get("opet", {}).get("imageUrl") or api_brands.get("opet", {}).get("logoImageUrl") or "https://cdnolz.oliz.com.tr/promotion/brand/Opet.png"
-            },
-            {
-                "id": "oliz-carrefoursa",
-                "title": "CARREFOURSA'DA OLİZ İLE EV VE YAŞAM ALIŞVERİŞLERİNDE İNDİRİM",
-                "brand": "CarrefourSA",
-                "brand_id": 498,
-                "description": "CarrefourSA marketlerinde ve CarrefourSA.com üzerinden Oliz ile yapacağınız ev ve yaşam kategorisi alışverişlerinde indirim fırsatı.",
-                "conditions": [
-                    "Kampanya CarrefourSA fiziki mağazalarında ve CarrefourSA.com adresinde geçerlidir.",
-                    "Oliz mobil uygulaması üzerinden kod alınarak kasada veya sepette kullanılmalıdır.",
-                    "Stoklarla sınırlıdır ve diğer indirim kodlarıyla birleştirilemez."
-                ],
-                "image_url": api_brands.get("carrefoursa", {}).get("imageUrl") or api_brands.get("carrefoursa", {}).get("logoImageUrl") or "https://cdnolz.oliz.com.tr/promotion/brand/carrefour.png"
-            },
-            {
-                "id": "oliz-nautica",
-                "title": "NAUTICA MAĞAZALARI VE WEB SİTESİNDE OLİZ'E ÖZEL SEZON İNDİRİMİ",
-                "brand": "Nautica",
-                "brand_id": 668,
-                "description": "Nautica mağazaları ve nautica-tr.com üzerinde Oliz kullanıcılarına özel sezon alışverişlerinde ayrıcalıklı fiyatlar.",
-                "conditions": [
-                    "Kampanya Nautica mağazaları ve e-ticaret platformunda geçerlidir.",
-                    "Oliz kampanya kodunun ödeme sırasında kullanılması gerekmektedir.",
-                    "Kişi başı kod kullanımı sınırlandırılabilir."
-                ],
-                "image_url": api_brands.get("nautica", {}).get("imageUrl") or api_brands.get("nautica", {}).get("logoImageUrl") or "https://cdnolz.oliz.com.tr/promotion/brand/nautica.png"
-            },
-            {
-                "id": "oliz-intersport",
-                "title": "INTERSPORT'TA OLİZ'E ÖZEL SPOR TEKSTİL VE AYAKKABI İNDİRİMİ",
-                "brand": "Intersport",
-                "brand_id": 667,
-                "description": "Intersport mağazalarında seçili spor giyim ve ekipmanlarda Oliz ayrıcalığı sizi bekliyor.",
-                "conditions": [
-                    "Kampanya Intersport fiziki mağazalarında geçerlidir.",
-                    "Oliz uygulaması üzerinden alınan indirim kodunun kasada ibrazı zorunludur."
-                ],
-                "image_url": api_brands.get("intersport", {}).get("imageUrl") or api_brands.get("intersport", {}).get("logoImageUrl") or "https://cdnolz.oliz.com.tr/promotion/brand/intersport.png"
-            },
-            {
-                "id": "oliz-avis-budget",
-                "title": "AVİS VE BUDGET'TA OLİZ İLE KİRALAMALARDA %20 İNDİRİM",
-                "brand": "AVIS",
-                "brand_id": 678,
-                "description": "Avis ve Budget araç kiralama hizmetlerinde Oliz üyelerine özel %20'ye varan indirim fırsatı.",
-                "conditions": [
-                    "Kampanya Avis ve Budget Türkiye ofislerinde ve web sitelerinde geçerlidir.",
-                    "Rezervasyon esnasında Oliz indirim kodu girilmelidir.",
-                    "Araç kiralama genel koşulları ve kasko şartları geçerlidir."
-                ],
-                "image_url": api_brands.get("avis", {}).get("imageUrl") or api_brands.get("avis", {}).get("logoImageUrl") or "https://cdnolz.oliz.com.tr/promotion/brand/Avis.png"
-            },
-            {
-                "id": "oliz-atasun-optik",
-                "title": "ATASUN OPTİK'TE OLİZ'E ÖZEL GÜNEŞ GÖZLÜĞÜ VE LENS İNDİRİMİ",
-                "brand": "Atasun Optik",
-                "brand_id": 631,
-                "description": "Atasun Optik nokta ve internet mağazalarında Oliz kullanıcılarına özel indirimler.",
-                "conditions": [
-                    "Kampanya seçili güneş gözlüğü ve optik ürün gruplarında geçerlidir.",
-                    "Oliz mobil kodu mağazada yetkili personele ibraz edilmelidir."
-                ],
-                "image_url": api_brands.get("atasun optik", {}).get("imageUrl") or api_brands.get("atasun optik", {}).get("logoImageUrl") or "https://cdnolz.oliz.com.tr/promotion/brand/atasun.png"
-            },
-            {
-                "id": "oliz-flo-instreet",
-                "title": "FLO VE INSTREET MAĞAZALARINDA OLİZ'E ÖZEL İNDİRİM FIRSATLARI",
-                "brand": "FLO",
-                "brand_id": 616,
-                "description": "FLO ve InStreet mağazalarında yapacağınız alışverişlerde Oliz ayrıcalıklarından faydalanın.",
-                "conditions": [
-                    "FLO ve InStreet mağazalarında kasada Oliz karekodu veya kampanya kodu gösterilerek indirim uygulanır."
-                ],
-                "image_url": api_brands.get("flo", {}).get("imageUrl") or api_brands.get("flo", {}).get("logoImageUrl") or "https://cdnolz.oliz.com.tr/promotion/brand/flo.png"
-            }
-        ]
-
-        target_limit = limit if limit else len(curated_campaigns)
-        return curated_campaigns[:target_limit]
+            print(f"   ⚠️ Exception while querying Oliz API: {e}")
+            return []
 
     def _process_item(self, item: Dict[str, Any]) -> str:
-        title = item.get("title", "").strip()
+        title = item.get("name", "").strip()
         if not title:
             return "skipped"
 
@@ -294,21 +166,41 @@ class OlizScraper:
                 print(f"   ⏭️ Skipped (Already exists and active): {title}")
                 return "skipped"
 
+        # Fetch Detailed Promotion Information
+        detailed_item = dict(item)
+        try:
+            r = requests.post(f"https://prodapi.oliz.com.tr/api/member/get-promotion/{c_id}", headers=self.api_headers, json={}, timeout=10, verify=False)
+            if r.status_code == 200:
+                data = r.json()
+                promo_details = data.get("payload", {}).get("promotion", {})
+                if promo_details:
+                    detailed_item.update(promo_details)
+        except Exception as e:
+            print(f"   ⚠️ Could not fetch details for {c_id}: {e}")
+
+        # Construct Rich Text for AI
+        desc = detailed_item.get("description", "")
+        conditions = detailed_item.get("participationConditions", "")
+        how_to_use = detailed_item.get("howToUse", "")
+        how_to_use_store = detailed_item.get("howToUseStore", "")
+        how_to_use_web = detailed_item.get("howToUseWeb", "")
+        
+        full_conditions = "\n".join(filter(None, [conditions, how_to_use, how_to_use_store, how_to_use_web]))
+        
         content_html = f"""
 KAMPANYA BAŞLIĞI: {title}
-MARKA: {item.get('brand')}
-AÇIKLAMA: {item.get('description')}
+AÇIKLAMA: {desc}
 ŞARTLAR:
-{chr(10).join(item.get('conditions', []))}
+{full_conditions}
 
 ÖNEMLİ OLİZ KAMPANYA REHBERİ:
-1. KESİNLİKLE "Oliz" veya "Oliz App" kelimelerini "brands" (marka) listesine eklemeyin. Oliz platform adıdır, mağaza/tüccar markası değildir (Örn: Arçelik, Opet, Avis).
+1. KESİNLİKLE "Oliz" veya "Oliz App" kelimelerini "brands" (marka) listesine eklemeyin. Oliz platform adıdır, mağaza/tüccar markası değildir.
 2. Lütfen "conditions" alanına kampanya koşullarını eksiksiz ve maddeler halinde listeleyin.
 """
 
         ai_data = parse_api_campaign(
             title=title,
-            short_description=item.get("description") or title,
+            short_description=desc or title,
             content_html=content_html,
             bank_name=self.BANK_NAME,
             tracking_url=campaign_url
@@ -317,7 +209,7 @@ AÇIKLAMA: {item.get('description')}
         if ai_data.get("_ai_failed"):
             return "error"
 
-        return self._save_campaign(ai_data, campaign_url, item)
+        return self._save_campaign(ai_data, campaign_url, detailed_item)
 
     def _save_campaign(self, ai_data: Dict[str, Any], url: str, item: Dict[str, Any]) -> str:
         try:
@@ -355,16 +247,21 @@ AÇIKLAMA: {item.get('description')}
                     sector = db.query(Sector).filter(Sector.slug == 'diger').first()
                 sector_id = sector.id if sector else None
 
-                image_url = item.get("image_url") or "/logos/cards/oliz.webp"
+                image_url = item.get("coverImageUrl") or item.get("thumbnailUrl") or "/logos/cards/oliz.webp"
 
                 # Rule 1: Title formatting (Turkish Title Case)
-                raw_title = ai_data.get('short_title') or ai_data.get('title') or item.get("title")
+                raw_title = ai_data.get('short_title') or ai_data.get('title') or item.get("name")
                 formatted_title = format_turkish_title(raw_title)
                 slug = get_unique_slug(formatted_title, db, Campaign)
 
-                # End date
-                if item.get("end_date"):
-                    end_date = datetime.strptime(item["end_date"], "%Y-%m-%d").date()
+                if item.get("endDate"):
+                    try:
+                        # Parse ISO 8601 string (e.g. "2026-08-31T23:59:00+03:00")
+                        end_date_str = item["endDate"].split("T")[0]
+                        end_date = datetime.strptime(end_date_str, "%Y-%m-%d").date()
+                    except ValueError:
+                        current_year = datetime.now().year
+                        end_date = datetime(current_year, 12, 31).date()
                 else:
                     current_year = datetime.now().year
                     end_date = datetime(current_year, 12, 31).date()
@@ -375,18 +272,18 @@ AÇIKLAMA: {item.get('description')}
                 # Rule 2: Eligible cards (default to Oliz App)
                 eligible_cards = "Oliz App"
 
-                participation = item.get("participation") or ai_data.get("participation") or "Oliz mobil uygulaması üzerinden kampanya kodunu alarak kasada veya online ödemede ibraz ediniz."
-                reward_text = item.get("reward_text") or ai_data.get("reward_text") or "Oliz Ayrıcalığı"
-                reward_value = item.get("reward_value") or ai_data.get("reward_value")
-                reward_type = item.get("reward_type") or ai_data.get("reward_type")
-                conditions = "\n".join(item.get("conditions", [])) if isinstance(item.get("conditions"), list) else (ai_data.get("conditions") if isinstance(ai_data.get("conditions"), str) else "\n".join(ai_data.get("conditions", [])))
+                participation = ai_data.get("participation") or "Oliz mobil uygulaması üzerinden kampanya kodunu alarak kasada veya online ödemede ibraz ediniz."
+                reward_text = ai_data.get("reward_text") or "Oliz Ayrıcalığı"
+                reward_value = ai_data.get("reward_value")
+                reward_type = ai_data.get("reward_type")
+                conditions = ai_data.get("conditions") if isinstance(ai_data.get("conditions"), str) else "\n".join(ai_data.get("conditions", []))
 
                 campaign = Campaign(
                     card_id=self.card_id,
                     sector_id=sector_id,
                     title=formatted_title,
                     slug=slug,
-                    description=item.get("description") or ai_data.get("description"),
+                    description=item.get("description") or ai_data.get("description") or "",
                     conditions=conditions,
                     reward_text=reward_text,
                     reward_value=reward_value,
@@ -481,6 +378,6 @@ AÇIKLAMA: {item.get('description')}
 
 
 if __name__ == "__main__":
-    limit = 10
+    limit = None
     scraper = OlizScraper()
     scraper.run(limit=limit)

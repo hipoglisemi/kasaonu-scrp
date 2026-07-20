@@ -95,7 +95,7 @@ class ZubizuScraper:
                 db.commit()
                 db.refresh(bank)
             else:
-                bank.logo_url = "/logos/banks/zubizu.webp"
+                bank.logo_url = "/logos/banks/zubizu.webp"  # type: ignore
                 db.commit()
             self.bank_id = bank.id
 
@@ -116,9 +116,9 @@ class ZubizuScraper:
                 db.commit()
                 db.refresh(card)
             else:
-                card.logo_url = "/logos/cards/zubizu.webp"
-                card.image_url = "/logos/creditcard/zubizu.webp"
-                card.credit_logo_url = "/logos/creditcard/zubizu.webp"
+                card.logo_url = "/logos/cards/zubizu.webp"  # type: ignore
+                card.image_url = "/logos/creditcard/zubizu.webp"  # type: ignore
+                card.credit_logo_url = "/logos/creditcard/zubizu.webp"  # type: ignore
                 db.commit()
             self.card_id = card.id
 
@@ -389,6 +389,6 @@ Bu kampanya Zubizu mobil platformuna aittir.
 
 
 if __name__ == "__main__":
-    limit = 10
+    limit = None
     scraper = ZubizuScraper()
     scraper.run(limit=limit)
