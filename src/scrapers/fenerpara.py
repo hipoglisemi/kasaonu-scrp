@@ -48,10 +48,24 @@ class FenerparaScraper:
             card = db.query(Card).filter(Card.bank_id == bank.id, Card.slug == self.CARD_SLUG).first()
             if not card:
                 print(f"   💳 Creating Card: {self.CARD_NAME}")
-                card = Card(bank_id=bank.id, name=self.CARD_NAME, slug=self.CARD_SLUG, card_type="credit", is_active=True)
+                card = Card(
+                    bank_id=bank.id,
+                    name=self.CARD_NAME,
+                    slug=self.CARD_SLUG,
+                    card_type="credit",
+                    logo_url=f"/logos/cards/{self.CARD_SLUG}.webp",
+                    image_url=f"/logos/creditcard/{self.CARD_SLUG}.webp",
+                    credit_logo_url=f"/logos/creditcard/{self.CARD_SLUG}.webp",
+                    is_active=True
+                )
                 db.add(card)
                 db.commit()
                 db.refresh(card)
+            else:
+                card.logo_url = f"/logos/cards/{self.CARD_SLUG}.webp"
+                card.image_url = f"/logos/creditcard/{self.CARD_SLUG}.webp"
+                card.credit_logo_url = f"/logos/creditcard/{self.CARD_SLUG}.webp"
+                db.commit()
             self.card_id = card.id
 
     def _fetch_campaigns(self, limit: Optional[int] = None) -> List[Dict[str, Any]]:
