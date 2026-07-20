@@ -123,12 +123,20 @@ class OlizScraper:
 
     def _fetch_campaigns(self, limit: Optional[int] = None) -> List[Dict[str, Any]]:
         print(f"   🌐 Querying live Oliz REST API (https://prodapi.oliz.com.tr/api/member/promotions)...")
+        
+        jwt_token = os.getenv("OLIZ_JWT_TOKEN")
+        guest_token = os.getenv("OLIZ_GUEST_TOKEN")
+        
+        if not jwt_token or not guest_token:
+            print("   ⚠️ OLIZ_JWT_TOKEN or OLIZ_GUEST_TOKEN is missing in environment variables!")
+            return []
+
         headers = {
             "user-agent": "Dart/3.12 (dart:io)",
-            "guest-token": "ac4f475e-73a6-4598-a7c8-154833f74b3d",
+            "guest-token": guest_token,
             "platform": "1",
             "content-type": "application/json",
-            "authorization": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJodHRwOi8vc2NoZW1hcy54bWxzb2FwLm9yZy93cy8yMDA1LzA1L2lkZW50aXR5L2NsYWltcy9uYW1lIjoiMDAwMDAwMDAtMDAwMC0wMDAwLTA4ZGQtZTIzYWI5ZTIwZTFjIiwianRpIjoiNWQyZTliNjQtNGZjOS00MWNlLWJkZTAtNDEwNjI1MjU1ZWJhIiwiaHR0cDovL3NjaGVtYXMueG1sc29hcC5vcmcvd3MvMjAwNS8wNS9pZGVudGl0eS9jbGFpbXMvZW1haWxhZGRyZXNzIjoiNTU0MTgxODQwNEBhcmNlbGlrcGx1cy5jb20iLCJodHRwOi8vc2NoZW1hcy54bWxzb2FwLm9yZy93cy8yMDA1LzA1L2lkZW50aXR5L2NsYWltcy9tb2JpbGVwaG9uZSI6IjU1NDE4MTg0MDQiLCJodHRwOi8vc2NoZW1hcy54bWxzb2FwLm9yZy93cy8yMDA1LzA1L2lkZW50aXR5L2NsYWltcy9naXZlbm5hbWUiOiJPxJ91eiIsImh0dHA6Ly9zY2hlbWFzLnhtbHNvYXAub3JnL3dzLzIwMDUvMDUvaWRlbnRpdHkvY2xhaW1zL3N1cm5hbWUiOiJLQVJBRVZMxLAiLCJodHRwOi8vc2NoZW1hcy54bWxzb2FwLm9yZy93cy8yMDA1LzA1L2lkZW50aXR5L2NsYWltcy9hdXRoZW50aWNhdGlvbiI6IjIwMjUtMDgtMjNUMTE6NDY6NTYuMDM0MjYyNSIsImh0dHA6Ly9zY2hlbWFzLm1pY3Jvc29mdC5jb20vd3MvMjAwOC8wNi9pZGVudGl0eS9jbGFpbXMvcm9sZSI6Ik1lbWJlciBSb2xlIiwiZXhwIjoxNzg0NTg4NjIwLCJpc3MiOiJodHRwOi8vYXV0aGVudGljYXRpb24iLCJhdWQiOiJodHRwOi8vYXV0aGVudGljYXRpb24ifQ.TdS8Jw_6QF-0F7MK792K0R_6BYKEJfSAos79RbsjlIg"
+            "authorization": f"Bearer {jwt_token}"
         }
         self.api_headers = headers
 
