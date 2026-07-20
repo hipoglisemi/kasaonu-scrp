@@ -20,6 +20,57 @@ from src.utils.slug_generator import get_unique_slug
 from src.utils.cache_manager import clear_cache
 from src.utils.scraper_utils import is_url_blocked, upsert_campaign
 
+
+def format_turkish_title(title: str) -> str:
+    """Format title to Turkish Title Case while respecting conjunctions and acronyms."""
+    if not title:
+        return title
+
+    conjunctions = {"ve", "veya", "de", "da", "ile", "ki", "mi", "mı", "mu", "mü", "ama", "fakat"}
+
+    def cap_word(word: str) -> str:
+        if not word:
+            return word
+
+        parts = word.split("'")
+        if len(parts) > 1:
+            base = parts[0]
+            suffix = "'".join(parts[1:])
+            if base.upper() in ["TL", "PPF", "SUV", "QR", "SMS", "GSM", "AW", "CMS", "U.S.", "US"]:
+                return base.upper() + "'" + suffix.lower()
+
+        if word.upper() in ["TL", "PPF", "SUV", "QR", "SMS", "GSM", "AW", "CMS", "U.S.", "US"]:
+            return word.upper()
+
+        char0 = word[0]
+        if char0 == "i":
+            c0 = "İ"
+        elif char0 == "ı":
+            c0 = "I"
+        else:
+            c0 = char0.upper()
+
+        rest = ""
+        for ch in word[1:]:
+            if ch == "İ":
+                rest += "i"
+            elif ch == "I":
+                rest += "ı"
+            else:
+                rest += ch.lower()
+        return c0 + rest
+
+    words = title.strip().split()
+    res = []
+    for i, w in enumerate(words):
+        w_clean = w.replace("İ", "i").replace("I", "ı").lower()
+        if i > 0 and w_clean in conjunctions:
+            res.append(w_clean)
+        else:
+            res.append(cap_word(w))
+    return " ".join(res)
+
+
 class ZubizuScraper:
     """
     Scraper for Zubizu campaigns using their public REST API endpoint.
@@ -186,27 +237,53 @@ Bu kampanya Zubizu mobil platformuna aittir. Lütfen "conditions" alanına aşa�
 
                 image_url = item.get("listViewMedia", {}).get("url") if item.get("listViewMedia") else None
 
-                slug = get_unique_slug(ai_data.get('short_title') or ai_data.get('title'), db, Campaign)
+                # Rule 1: Title formatting (Turkish Title Case with lowercase conjunctions)
+                raw_title = ai_data.get('short_title') or ai_data.get('title') or item.get("title")
+                formatted_title = format_turkish_title(raw_title)
+                slug = get_unique_slug(formatted_title, db, Campaign)
 
+                # Rule 4: End date (if missing or past 2030, set to Dec 31 of current year)
+                current_year = datetime.now().year
                 end_date = None
                 if item.get("publishEndDate"):
                     try:
                         clean_end = item["publishEndDate"].split("T")[0]
-                        end_date = datetime.strptime(clean_end, "%Y-%m-%d").date()
+                        parsed_end = datetime.strptime(clean_end, "%Y-%m-%d").date()
+                        if parsed_end.year > current_year + 4:
+                            end_date = datetime(current_year, 12, 31).date()
+                        else:
+                            end_date = parsed_end
                     except Exception:
-                        pass
+                        end_date = datetime(current_year, 12, 31).date()
+                else:
+                    end_date = datetime(current_year, 12, 31).date()
 
-                start_date = None
+                # Rule 3: Start date (default to today if missing)
+                start_date = datetime.now().date()
                 if ai_data.get("start_date"):
                     try:
                         start_date = datetime.strptime(ai_data["start_date"], "%Y-%m-%d").date()
                     except Exception:
-                        pass
+                        start_date = datetime.now().date()
+
+                # Rule 2: Eligible cards (if no specific card like Mastercard/Visa is mentioned, set to Zubizu App)
+                cards_list = ai_data.get("cards", [])
+                specific_cards = []
+                if isinstance(cards_list, list):
+                    for card_item in cards_list:
+                        clean_card_name = str(card_item).strip()
+                        if clean_card_name and clean_card_name.lower() not in ["zubizu", "zubizu üyeleri", "zubizu app", "tüm kartlar"]:
+                            specific_cards.append(clean_card_name)
+
+                if specific_cards:
+                    eligible_cards = ", ".join(specific_cards)
+                else:
+                    eligible_cards = "Zubizu App"
 
                 campaign = Campaign(
                     card_id=self.card_id,
                     sector_id=sector_id,
-                    title=ai_data.get("short_title") or ai_data.get("title"),
+                    title=formatted_title,
                     slug=slug,
                     description=ai_data.get("description") or item.get("longDescription"),
                     conditions="\n".join(ai_data.get("conditions", [])) if isinstance(ai_data.get("conditions"), list) else (ai_data.get("conditions") or item.get("longDescription")),
@@ -221,7 +298,7 @@ Bu kampanya Zubizu mobil platformuna aittir. Lütfen "conditions" alanına aşa�
                     ai_marketing_text=ai_data.get("ai_marketing_text"),
                     clean_text=ai_data.get("_clean_text"),
                     participation=ai_data.get("participation"),
-                    eligible_cards=", ".join(ai_data.get("cards", [])) if isinstance(ai_data.get("cards"), list) and ai_data.get("cards") else self.CARD_NAME
+                    eligible_cards=eligible_cards
                 )
 
                 campaign, op_status = upsert_campaign(db, campaign)
@@ -300,6 +377,7 @@ Bu kampanya Zubizu mobil platformuna aittir. Lütfen "conditions" alanına aşa�
             )
 
         clear_cache('campaigns:*')
+
 
 if __name__ == "__main__":
     limit = 10
