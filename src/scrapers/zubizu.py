@@ -108,8 +108,8 @@ class ZubizuScraper:
                     slug=self.CARD_SLUG,
                     card_type="wallet",
                     logo_url="/logos/cards/zubizu.webp",
-                    image_url="/logos/creditcard/zubizu.webp",
-                    credit_logo_url="/logos/creditcard/zubizu.webp",
+                    image_url="/logos/creditcard/zubizukart.webp",
+                    credit_logo_url="/logos/creditcard/zubizukart.webp",
                     is_active=True
                 )
                 db.add(card)
@@ -117,8 +117,8 @@ class ZubizuScraper:
                 db.refresh(card)
             else:
                 card.logo_url = "/logos/cards/zubizu.webp"  # type: ignore
-                card.image_url = "/logos/creditcard/zubizu.webp"  # type: ignore
-                card.credit_logo_url = "/logos/creditcard/zubizu.webp"  # type: ignore
+                card.image_url = "/logos/creditcard/zubizukart.webp"  # type: ignore
+                card.credit_logo_url = "/logos/creditcard/zubizukart.webp"  # type: ignore
                 db.commit()
             self.card_id = card.id
 
