@@ -22,7 +22,6 @@ jobs:
           - vodafonepay
           - pep
           - hayhay
-          - sipay
 
     name: "🤖 ${{ matrix.scraper }}"
 
