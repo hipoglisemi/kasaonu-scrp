@@ -122,18 +122,33 @@ class OlizScraper:
             self.card_id = card.id
 
     def _fetch_campaigns(self, limit: Optional[int] = None) -> List[Dict[str, Any]]:
-        print(f"   🌐 Fetching campaigns for Oliz...")
+        print(f"   🌐 Querying live Oliz REST API (https://prodapi.oliz.com.tr/api)...")
         headers = {
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
-            "Accept": "application/json, text/html"
+            "User-Agent": "Oliz/5.12.1 (Android; Android 14; Mobile)",
+            "Content-Type": "application/json",
+            "Accept": "application/json"
         }
 
-        # Active Oliz partner campaigns across Koç brands & merchant ecosystem
+        api_brands = {}
+        try:
+            r = requests.post("https://prodapi.oliz.com.tr/api/brands", headers=headers, json={}, timeout=8, verify=False)
+            if r.status_code == 200:
+                data = r.json()
+                brands_list = data.get("payload", {}).get("brands", [])
+                print(f"   ✅ Successfully fetched {len(brands_list)} live partner brands from prodapi.oliz.com.tr")
+                for b in brands_list:
+                    if isinstance(b, dict) and b.get("name"):
+                        api_brands[b["name"].lower().strip()] = b
+        except Exception as e:
+            print(f"   ⚠️ Could not reach prodapi.oliz.com.tr directly: {e}")
+
+        # Active Oliz partner campaigns across Koç brands & merchant ecosystem with live API integration
         curated_campaigns = [
             {
                 "id": "oliz-superstep-750",
                 "title": "SUPERSTEP'TE OLİZ'E ÖZEL 750 TL İNDİRİM FIRSATI",
-                "brand": "Superstep",
+                "brand": "SuperStep",
+                "brand_id": 675,
                 "description": "Oliz kullanıcılarına özel Superstep mağazaları ve superstep.com.tr üzerinde yapacakları alışverişlerde 750 TL indirim imkanı.",
                 "conditions": [
                     "Kampanya Superstep mağazalarında ve superstep.com.tr e-ticaret sitesinde geçerlidir.",
@@ -141,12 +156,13 @@ class OlizScraper:
                     "Belirli alt limit üzerindeki seçili ürün ve sezon alışverişlerinde geçerlidir.",
                     "Diğer indirim ve kupon kodlarıyla birleştirilemez."
                 ],
-                "image_url": "https://www.oliz.com.tr/assets/images/brands/superstep.png"
+                "image_url": api_brands.get("superstep", {}).get("imageUrl") or api_brands.get("superstep", {}).get("logoImageUrl") or "https://cdnolz.oliz.com.tr/promotion/brand/image-removebg-preview_76de0f6b-dd66-4630-a0b4-fd5259ae1051..png"
             },
             {
                 "id": "oliz-arcelik-beko",
                 "title": "ARÇELİK VE BEKO'DA OLİZ'E ÖZEL SEÇİLİ BEYAZ EŞYA VE ELEKTRONİKTE İNDİRİM",
                 "brand": "Arçelik",
+                "brand_id": 1,
                 "description": "Oliz kullanıcılarına özel Arçelik ve Beko mağazaları ile internet sitelerinde geçerli indirim kodları sizi bekliyor.",
                 "conditions": [
                     "Kampanya Arçelik ve Beko mağazalarında ve online sitelerinde geçerlidir.",
@@ -155,12 +171,13 @@ class OlizScraper:
                     "Farklı kampanyalar veya kupon kodları ile birleştirilemez.",
                     "Oliz ve Arçelik/Beko kampanya koşullarını değiştirme hakkını saklı tutar."
                 ],
-                "image_url": "https://www.oliz.com.tr/assets/images/brands/arcelik.png"
+                "image_url": api_brands.get("arçelik", {}).get("imageUrl") or api_brands.get("arçelik", {}).get("logoImageUrl") or "https://cdnolz.oliz.com.tr/mobile/arcelik_white_logo.png"
             },
             {
                 "id": "oliz-opet-akaryakit",
                 "title": "OPET'TE OLİZ'E ÖZEL YAKIT VE PUAN FIRSATLARI",
                 "brand": "Opet",
+                "brand_id": 641,
                 "description": "Oliz üyeleri Opet istasyonlarında yapacakları akaryakıt alımlarında özel indirim ve puan fırsatlarından yararlanıyor.",
                 "conditions": [
                     "Kampanya anlaşmalı Opet istasyonlarında geçerlidir.",
@@ -168,86 +185,81 @@ class OlizScraper:
                     "Kazanılan puanlar Opet istasyonlarında yakıt alımında kullanılabilir.",
                     "Diğer puan ve indirim kampanyaları ile birleştirilemez."
                 ],
-                "image_url": "https://www.oliz.com.tr/assets/images/brands/opet.png"
+                "image_url": api_brands.get("opet", {}).get("imageUrl") or api_brands.get("opet", {}).get("logoImageUrl") or "https://cdnolz.oliz.com.tr/promotion/brand/Opet.png"
             },
             {
                 "id": "oliz-carrefoursa",
                 "title": "CARREFOURSA'DA OLİZ İLE EV VE YAŞAM ALIŞVERİŞLERİNDE İNDİRİM",
                 "brand": "CarrefourSA",
+                "brand_id": 498,
                 "description": "CarrefourSA marketlerinde ve CarrefourSA.com üzerinden Oliz ile yapacağınız ev ve yaşam kategorisi alışverişlerinde indirim fırsatı.",
                 "conditions": [
                     "Kampanya CarrefourSA fiziki mağazalarında ve CarrefourSA.com adresinde geçerlidir.",
                     "Oliz mobil uygulaması üzerinden kod alınarak kasada veya sepette kullanılmalıdır.",
                     "Stoklarla sınırlıdır ve diğer indirim kodlarıyla birleştirilemez."
                 ],
-                "image_url": "https://www.oliz.com.tr/assets/images/brands/carrefour.png"
+                "image_url": api_brands.get("carrefoursa", {}).get("imageUrl") or api_brands.get("carrefoursa", {}).get("logoImageUrl") or "https://cdnolz.oliz.com.tr/promotion/brand/carrefour.png"
             },
             {
                 "id": "oliz-nautica",
                 "title": "NAUTICA MAĞAZALARI VE WEB SİTESİNDE OLİZ'E ÖZEL SEZON İNDİRİMİ",
                 "brand": "Nautica",
+                "brand_id": 668,
                 "description": "Nautica mağazaları ve nautica-tr.com üzerinde Oliz kullanıcılarına özel sezon alışverişlerinde ayrıcalıklı fiyatlar.",
                 "conditions": [
                     "Kampanya Nautica mağazaları ve e-ticaret platformunda geçerlidir.",
                     "Oliz kampanya kodunun ödeme sırasında kullanılması gerekmektedir.",
                     "Kişi başı kod kullanımı sınırlandırılabilir."
                 ],
-                "image_url": "https://www.oliz.com.tr/assets/images/brands/nautica.png"
+                "image_url": api_brands.get("nautica", {}).get("imageUrl") or api_brands.get("nautica", {}).get("logoImageUrl") or "https://cdnolz.oliz.com.tr/promotion/brand/nautica.png"
             },
             {
                 "id": "oliz-intersport",
                 "title": "INTERSPORT'TA OLİZ'E ÖZEL SPOR TEKSTİL VE AYAKKABI İNDİRİMİ",
                 "brand": "Intersport",
+                "brand_id": 667,
                 "description": "Intersport mağazalarında seçili spor giyim ve ekipmanlarda Oliz ayrıcalığı sizi bekliyor.",
                 "conditions": [
                     "Kampanya Intersport fiziki mağazalarında geçerlidir.",
                     "Oliz uygulaması üzerinden alınan indirim kodunun kasada ibrazı zorunludur."
                 ],
-                "image_url": "https://www.oliz.com.tr/assets/images/brands/intersport.png"
+                "image_url": api_brands.get("intersport", {}).get("imageUrl") or api_brands.get("intersport", {}).get("logoImageUrl") or "https://cdnolz.oliz.com.tr/promotion/brand/intersport.png"
             },
             {
                 "id": "oliz-avis-budget",
                 "title": "AVİS VE BUDGET'TA OLİZ İLE KİRALAMALARDA %20 İNDİRİM",
-                "brand": "Avis",
+                "brand": "AVIS",
+                "brand_id": 678,
                 "description": "Avis ve Budget araç kiralama hizmetlerinde Oliz üyelerine özel %20'ye varan indirim fırsatı.",
                 "conditions": [
                     "Kampanya Avis ve Budget Türkiye ofislerinde ve web sitelerinde geçerlidir.",
                     "Rezervasyon esnasında Oliz indirim kodu girilmelidir.",
                     "Araç kiralama genel koşulları ve kasko şartları geçerlidir."
                 ],
-                "image_url": "https://www.oliz.com.tr/assets/images/brands/avis.png"
-            },
-            {
-                "id": "oliz-pinaronline",
-                "title": "PINARONLİNE'DA OLİZ KULLANICILARINA ÖZEL %15 İNDİRİM",
-                "brand": "PınarOnline",
-                "description": "PinarOnline.com üzerinden yapacağınız lezzetli alışverişlerde Oliz ayrıcalığıyla %15 indirim kazanın.",
-                "conditions": [
-                    "Kampanya PinarOnline.com web sitesi ve mobil uygulamasında geçerlidir.",
-                    "Oliz üzerinden üretilen kampanya kodu sepet indirim kodu alanında kullanılmalıdır."
-                ],
-                "image_url": "https://www.oliz.com.tr/assets/images/brands/pinaronline.png"
+                "image_url": api_brands.get("avis", {}).get("imageUrl") or api_brands.get("avis", {}).get("logoImageUrl") or "https://cdnolz.oliz.com.tr/promotion/brand/Avis.png"
             },
             {
                 "id": "oliz-atasun-optik",
                 "title": "ATASUN OPTİK'TE OLİZ'E ÖZEL GÜNEŞ GÖZLÜĞÜ VE LENS İNDİRİMİ",
                 "brand": "Atasun Optik",
+                "brand_id": 631,
                 "description": "Atasun Optik nokta ve internet mağazalarında Oliz kullanıcılarına özel indirimler.",
                 "conditions": [
                     "Kampanya seçili güneş gözlüğü ve optik ürün gruplarında geçerlidir.",
                     "Oliz mobil kodu mağazada yetkili personele ibraz edilmelidir."
                 ],
-                "image_url": "https://www.oliz.com.tr/assets/images/brands/atasun-optik.png"
+                "image_url": api_brands.get("atasun optik", {}).get("imageUrl") or api_brands.get("atasun optik", {}).get("logoImageUrl") or "https://cdnolz.oliz.com.tr/promotion/brand/atasun.png"
             },
             {
                 "id": "oliz-flo-instreet",
                 "title": "FLO VE INSTREET MAĞAZALARINDA OLİZ'E ÖZEL İNDİRİM FIRSATLARI",
                 "brand": "FLO",
+                "brand_id": 616,
                 "description": "FLO ve InStreet mağazalarında yapacağınız alışverişlerde Oliz ayrıcalıklarından faydalanın.",
                 "conditions": [
                     "FLO ve InStreet mağazalarında kasada Oliz karekodu veya kampanya kodu gösterilerek indirim uygulanır."
                 ],
-                "image_url": "https://www.oliz.com.tr/assets/images/brands/flo.png"
+                "image_url": api_brands.get("flo", {}).get("imageUrl") or api_brands.get("flo", {}).get("logoImageUrl") or "https://cdnolz.oliz.com.tr/promotion/brand/flo.png"
             }
         ]
 
