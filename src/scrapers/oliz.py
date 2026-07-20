@@ -146,16 +146,26 @@ class OlizScraper:
         curated_campaigns = [
             {
                 "id": "oliz-superstep-750",
-                "title": "SUPERSTEP'TE OLİZ'E ÖZEL 750 TL İNDİRİM FIRSATI",
+                "title": "Oliz'e Özel SuperStep'de 750 TL İndirim!",
                 "brand": "SuperStep",
                 "brand_id": 675,
-                "description": "Oliz kullanıcılarına özel Superstep mağazaları ve superstep.com.tr üzerinde yapacakları alışverişlerde 750 TL indirim imkanı.",
+                "description": "Dünya devlerinin en hit sneaker modelleri ve sokak modasının nabzını tutan koleksiyonlar Superstep'te! Web sitesi, mobil uygulama ve mağazalarda geçerli 6.000 TL ve üzeri alışverişlerde 750 TL indirim fırsatı seni bekliyor.",
+                "end_date": "2026-07-31",
+                "reward_text": "750 TL İndirim",
+                "reward_value": 750,
+                "reward_type": "discount",
                 "conditions": [
-                    "Kampanya Superstep mağazalarında ve superstep.com.tr e-ticaret sitesinde geçerlidir.",
-                    "Oliz mobil uygulaması üzerinden kampanya kodu alınarak ödeme aşamasında girilmelidir.",
-                    "Belirli alt limit üzerindeki seçili ürün ve sezon alışverişlerinde geçerlidir.",
-                    "Diğer indirim ve kupon kodlarıyla birleştirilemez."
+                    "SuperStep bir Eren Perakende markasıdır.",
+                    "Kampanya, 1 Temmuz - 31 Temmuz 2026 arasında www.superstep.com.tr, SuperStep mobil uygulama ve mağazalarda geçerlidir.",
+                    "Kampanya On Running markası ürünlerinde geçerli değildir.",
+                    "Oliz'e özel kodla yapılacak 6.000 TL ve üzeri alışverişlerde 750 TL indirim sağlar.",
+                    "Kampanya indirimsiz ürünlerde geçerlidir: https://www.superstep.com.tr/yeni-sezon-urunler/",
+                    "Başka indirim kampanyaları ve indirim kodlarıyla birleştirilemez.",
+                    "Eren Perakende (SuperStep) ve Oliz dilediğinde kampanya şartlarını değiştirebilir, kampanyayı dondurabilir, durdurabilir veya kampanyanın süresini uzatabilir.",
+                    "Kampanya kapsamında yaşanabilecek olumsuzluklardan Oliz sorumlu değildir.",
+                    "Kampanya kapsamında dağıtılan kodların son kullanım tarihi kampanya bitiş tarihiyle aynıdır."
                 ],
+                "participation": "Nasıl Kullanırım?\n\nWeb Sitesinde:\n1. 'Kampanya Kodu Al' butonuna tıkla.\n2. Kodunu kopyala.\n3. 'Web Sitesine Git' butonuna tıkla.\n4. Üye girişi yap.\n5. 'Sepetim' sayfasında yer alan 'Kupon Kodu Ekle' kutucuğuna, Oliz'den aldığın kodu yapıştır.\n6. 'Sepeti Onayla' butonuna bas ve sepeti onayla.\n\nMağazalarda:\n1. 'Kampanya Kodu Al' butonuna tıkla.\n2. Seçili indirimsiz ürünlerle kasaya git.\n3. Üyelik kaydı oluştur.\n4. Kodunu paylaş.\n5. İndirimli ödemeni tamamla.",
                 "image_url": api_brands.get("superstep", {}).get("imageUrl") or api_brands.get("superstep", {}).get("logoImageUrl") or "https://cdnolz.oliz.com.tr/promotion/brand/image-removebg-preview_76de0f6b-dd66-4630-a0b4-fd5259ae1051..png"
             },
             {
@@ -352,9 +362,12 @@ AÇIKLAMA: {item.get('description')}
                 formatted_title = format_turkish_title(raw_title)
                 slug = get_unique_slug(formatted_title, db, Campaign)
 
-                # Rule 4: End date (Dec 31 of current year for ongoing privileges)
-                current_year = datetime.now().year
-                end_date = datetime(current_year, 12, 31).date()
+                # End date
+                if item.get("end_date"):
+                    end_date = datetime.strptime(item["end_date"], "%Y-%m-%d").date()
+                else:
+                    current_year = datetime.now().year
+                    end_date = datetime(current_year, 12, 31).date()
 
                 # Rule 3: Start date (today)
                 start_date = datetime.now().date()
@@ -362,16 +375,22 @@ AÇIKLAMA: {item.get('description')}
                 # Rule 2: Eligible cards (default to Oliz App)
                 eligible_cards = "Oliz App"
 
+                participation = item.get("participation") or ai_data.get("participation") or "Oliz mobil uygulaması üzerinden kampanya kodunu alarak kasada veya online ödemede ibraz ediniz."
+                reward_text = item.get("reward_text") or ai_data.get("reward_text") or "Oliz Ayrıcalığı"
+                reward_value = item.get("reward_value") or ai_data.get("reward_value")
+                reward_type = item.get("reward_type") or ai_data.get("reward_type")
+                conditions = "\n".join(item.get("conditions", [])) if isinstance(item.get("conditions"), list) else (ai_data.get("conditions") if isinstance(ai_data.get("conditions"), str) else "\n".join(ai_data.get("conditions", [])))
+
                 campaign = Campaign(
                     card_id=self.card_id,
                     sector_id=sector_id,
                     title=formatted_title,
                     slug=slug,
-                    description=ai_data.get("description") or item.get("description"),
-                    conditions="\n".join(ai_data.get("conditions", [])) if isinstance(ai_data.get("conditions"), list) else (ai_data.get("conditions") or item.get("description")),
-                    reward_text=ai_data.get("reward_text", "Oliz Ayrıcalığı"),
-                    reward_value=ai_data.get("reward_value"),
-                    reward_type=ai_data.get("reward_type"),
+                    description=item.get("description") or ai_data.get("description"),
+                    conditions=conditions,
+                    reward_text=reward_text,
+                    reward_value=reward_value,
+                    reward_type=reward_type,
                     start_date=start_date,
                     end_date=end_date,
                     image_url=image_url,
@@ -379,7 +398,7 @@ AÇIKLAMA: {item.get('description')}
                     is_active=True,
                     ai_marketing_text=ai_data.get("ai_marketing_text"),
                     clean_text=ai_data.get("_clean_text"),
-                    participation=ai_data.get("participation") or "Oliz mobil uygulaması üzerinden kampanya kodunu alarak kasada veya online ödemede ibraz ediniz.",
+                    participation=participation,
                     eligible_cards=eligible_cards
                 )
 
