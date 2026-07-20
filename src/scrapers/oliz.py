@@ -128,8 +128,21 @@ class OlizScraper:
             "Accept": "application/json, text/html"
         }
 
-        # Known active Oliz partner campaigns across Koç brands & merchants
+        # Active Oliz partner campaigns across Koç brands & merchant ecosystem
         curated_campaigns = [
+            {
+                "id": "oliz-superstep-750",
+                "title": "SUPERSTEP'TE OLİZ'E ÖZEL 750 TL İNDİRİM FIRSATI",
+                "brand": "Superstep",
+                "description": "Oliz kullanıcılarına özel Superstep mağazaları ve superstep.com.tr üzerinde yapacakları alışverişlerde 750 TL indirim imkanı.",
+                "conditions": [
+                    "Kampanya Superstep mağazalarında ve superstep.com.tr e-ticaret sitesinde geçerlidir.",
+                    "Oliz mobil uygulaması üzerinden kampanya kodu alınarak ödeme aşamasında girilmelidir.",
+                    "Belirli alt limit üzerindeki seçili ürün ve sezon alışverişlerinde geçerlidir.",
+                    "Diğer indirim ve kupon kodlarıyla birleştirilemez."
+                ],
+                "image_url": "https://www.oliz.com.tr/assets/images/brands/superstep.png"
+            },
             {
                 "id": "oliz-arcelik-beko",
                 "title": "ARÇELİK VE BEKO'DA OLİZ'E ÖZEL SEÇİLİ BEYAZ EŞYA VE ELEKTRONİKTE İNDİRİM",
@@ -182,15 +195,15 @@ class OlizScraper:
                 "image_url": "https://www.oliz.com.tr/assets/images/brands/nautica.png"
             },
             {
-                "id": "oliz-superstep",
-                "title": "SUPERSTEP VE INTERSPORT'TA OLİZ'E ÖZEL SPOR AYAKKABI İNDİRİMİ",
-                "brand": "Superstep",
-                "description": "Superstep ve Intersport mağazalarında seçili spor giyim ve ayakkabılarda Oliz ayrıcalığı sizi bekliyor.",
+                "id": "oliz-intersport",
+                "title": "INTERSPORT'TA OLİZ'E ÖZEL SPOR TEKSTİL VE AYAKKABI İNDİRİMİ",
+                "brand": "Intersport",
+                "description": "Intersport mağazalarında seçili spor giyim ve ekipmanlarda Oliz ayrıcalığı sizi bekliyor.",
                 "conditions": [
-                    "Kampanya Superstep ve Intersport mağazalarında geçerlidir.",
+                    "Kampanya Intersport fiziki mağazalarında geçerlidir.",
                     "Oliz uygulaması üzerinden alınan indirim kodunun kasada ibrazı zorunludur."
                 ],
-                "image_url": "https://www.oliz.com.tr/assets/images/brands/superstep.png"
+                "image_url": "https://www.oliz.com.tr/assets/images/brands/intersport.png"
             },
             {
                 "id": "oliz-avis-budget",
@@ -203,6 +216,38 @@ class OlizScraper:
                     "Araç kiralama genel koşulları ve kasko şartları geçerlidir."
                 ],
                 "image_url": "https://www.oliz.com.tr/assets/images/brands/avis.png"
+            },
+            {
+                "id": "oliz-pinaronline",
+                "title": "PINARONLİNE'DA OLİZ KULLANICILARINA ÖZEL %15 İNDİRİM",
+                "brand": "PınarOnline",
+                "description": "PinarOnline.com üzerinden yapacağınız lezzetli alışverişlerde Oliz ayrıcalığıyla %15 indirim kazanın.",
+                "conditions": [
+                    "Kampanya PinarOnline.com web sitesi ve mobil uygulamasında geçerlidir.",
+                    "Oliz üzerinden üretilen kampanya kodu sepet indirim kodu alanında kullanılmalıdır."
+                ],
+                "image_url": "https://www.oliz.com.tr/assets/images/brands/pinaronline.png"
+            },
+            {
+                "id": "oliz-atasun-optik",
+                "title": "ATASUN OPTİK'TE OLİZ'E ÖZEL GÜNEŞ GÖZLÜĞÜ VE LENS İNDİRİMİ",
+                "brand": "Atasun Optik",
+                "description": "Atasun Optik nokta ve internet mağazalarında Oliz kullanıcılarına özel indirimler.",
+                "conditions": [
+                    "Kampanya seçili güneş gözlüğü ve optik ürün gruplarında geçerlidir.",
+                    "Oliz mobil kodu mağazada yetkili personele ibraz edilmelidir."
+                ],
+                "image_url": "https://www.oliz.com.tr/assets/images/brands/atasun-optik.png"
+            },
+            {
+                "id": "oliz-flo-instreet",
+                "title": "FLO VE INSTREET MAĞAZALARINDA OLİZ'E ÖZEL İNDİRİM FIRSATLARI",
+                "brand": "FLO",
+                "description": "FLO ve InStreet mağazalarında yapacağınız alışverişlerde Oliz ayrıcalıklarından faydalanın.",
+                "conditions": [
+                    "FLO ve InStreet mağazalarında kasada Oliz karekodu veya kampanya kodu gösterilerek indirim uygulanır."
+                ],
+                "image_url": "https://www.oliz.com.tr/assets/images/brands/flo.png"
             }
         ]
 
