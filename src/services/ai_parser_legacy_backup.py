@@ -510,7 +510,7 @@ BANK_RULES = {
 from google.genai import types # type: ignore
 from src.utils.gemini_client import get_gemini_client, generate_with_rotation # type: ignore
 
-_GEMINI_MODEL_NAME = os.getenv("GEMINI_MODEL", "gemini-3.1-flash-lite")
+_GEMINI_MODEL_NAME = os.getenv("GEMINI_MODEL", "gemini-3.5-flash-lite")
 try:
     _gemini_client = get_gemini_client()
     print(f"[DEBUG] Gemini AI initialized via gemini_client module (Model: {_GEMINI_MODEL_NAME}).")
@@ -586,7 +586,7 @@ class AIParser:
 
         class _ScraperGeminiClient:
             def __init__(self):
-                self.model = os.getenv("GEMINI_MODEL", "gemini-3.1-flash-lite")
+                self.model = os.getenv("GEMINI_MODEL", "gemini-3.5-flash-lite")
             def generate_content(self, prompt):
                 config = types.GenerateContentConfig(
                     temperature=0.0, top_p=0.1, top_k=1, 

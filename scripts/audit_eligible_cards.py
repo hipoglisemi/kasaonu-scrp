@@ -42,7 +42,7 @@ Lütfen kampanyaya dahil olan kartları şu JSON formatında geri döndür:
 - Sadece geçerli JSON çıktısı ver. Markdown formatı (```json) kullanabilirsin.
 """
     try:
-        response_text = generate_with_rotation(prompt, model="gemini-3.1-flash-lite")
+        response_text = generate_with_rotation(prompt, model="gemini-3.5-flash-lite")
         # Clean potential markdown fences
         if "```json" in response_text:
             response_text = response_text.split("```json")[1].split("```")[0].strip()

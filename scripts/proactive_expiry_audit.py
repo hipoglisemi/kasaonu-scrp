@@ -99,7 +99,7 @@ GÖREV: Sayfa metnini ve kampanya başlığını inceleyerek kampanyanın başla
     try:
         result_str, usage = generate_with_rotation_tracked(
             prompt=prompt,
-            model="gemini-3.1-flash-lite",
+            model="gemini-3.5-flash-lite",
             fallback_model="models/gemma-4-31b-it",
             config=config,
             key_indices=key_indices
