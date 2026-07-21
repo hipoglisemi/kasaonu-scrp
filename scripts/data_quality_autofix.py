@@ -51,7 +51,7 @@ class _AutofixGeminiClient:
         # Arka plan cron için: Gemma-31B primer (1500 RPD), flash-lite yedek.
         # UI butonları her zaman model=... explicit geçer, bu default sadece cron için geçerli.
         self.model = model or os.getenv("FALLBACK_MODEL", "models/gemma-4-31b-it")
-        self.fallback_model = fallback_model or os.getenv("GEMINI_FAST_MODEL", "gemini-3.6-flash-lite")
+        self.fallback_model = fallback_model or os.getenv("GEMINI_FAST_MODEL", "gemini-3.5-flash-lite")
 
         
     def generate_content(self, prompt):
@@ -1529,7 +1529,7 @@ def run_autofix(limit: int = 250, campaign_id: Optional[int] = None, force_all: 
                     if score >= 70 and text_to_parse and not ui_mode:
                         print("   🔬 [Fact-Checker] Initiating Peer-Review NLI Verification...")
                         try:
-                            checker = FactCheckerAgent(model=model or "models/gemini-3.6-flash-lite")
+                            checker = FactCheckerAgent(model=model or "models/gemini-3.5-flash-lite")
                             candidate = {
                                 "start_date": str(c.start_date) if c.start_date else None,
                                 "end_date": str(c.end_date) if c.end_date else None,
