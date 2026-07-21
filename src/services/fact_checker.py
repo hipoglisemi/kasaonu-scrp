@@ -13,7 +13,7 @@ from src.utils.gemini_client import generate_with_rotation  # type: ignore
 logger = logging.getLogger(__name__)
 
 class FactCheckerAgent:
-    def __init__(self, model: str = "models/gemini-3.5-flash-lite"):
+    def __init__(self, model: str = "models/gemini-3.6-flash-lite"):
         self.model = model
 
     def verify_campaign(self, source_text: str, candidate_data: Dict[str, Any]) -> Dict[str, Any]:

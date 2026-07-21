@@ -92,13 +92,13 @@ def _generate_internal(
     if not HAS_GENAI:
         raise ImportError("google-genai kütüphanesi yüklü değil.")
 
-    primary_model_name = model or os.getenv("GEMINI_MODEL", "gemini-3.5-flash-lite")
+    primary_model_name = model or os.getenv("GEMINI_MODEL", "gemini-3.6-flash-lite")
     fallback_model_name = fallback_model or os.getenv("FALLBACK_MODEL")
     
-    # 🎯 AUTOMATIC GEMINI-3.5-FLASH-LITE -> GEMMA-4-31B-IT FALLBACK RULE
-    if "gemini-3.5-flash-lite" in primary_model_name.lower() and not fallback_model_name:
+    # 🎯 AUTOMATIC GEMINI-3.6-FLASH-LITE -> GEMMA-4-31B-IT FALLBACK RULE
+    if "gemini-3.6-flash-lite" in primary_model_name.lower() and not fallback_model_name:
         fallback_model_name = "models/gemma-4-31b-it"
-        print(f"[KeyLoop] 🛡️ Automatic Fallback Armed: gemini-3.5-flash-lite -> {fallback_model_name}")
+        print(f"[KeyLoop] 🛡️ Automatic Fallback Armed: gemini-3.6-flash-lite -> {fallback_model_name}")
     
     models_to_try = [(primary_model_name, "Primary")]
     if fallback_model_name:
