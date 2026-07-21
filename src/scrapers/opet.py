@@ -308,6 +308,12 @@ class OpetScraper:
 
                     # Visit Detail Page
                     print(f"   [{(processed_count+1)}] Processing: {detail_url}")
+                    
+                    if not detail_url.startswith(("http://", "https://")):
+                        print(f"      🚫 Skipped (Unsupported protocol): {detail_url}")
+                        stats["total_skipped"] += 1
+                        continue
+
                     self.driver.get(detail_url)
                     time.sleep(6) # Increased to allow React SPA to fully render campaign conditions
                     

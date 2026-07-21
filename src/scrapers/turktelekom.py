@@ -291,7 +291,9 @@ class TurkTelekomScraper:
                 soup = BeautifulSoup(html, 'html.parser')
                 page_count = 0
                 for a in soup.find_all('a', href=True):
-                    link = urljoin(self.BASE_URL, a['href'])
+                    href = a['href'].strip()
+                    if not href or href.startswith(('javascript:', '#', 'mailto:', 'tel:')): continue
+                    link = urljoin(self.BASE_URL, href)
                     clean_link = link.split('?')[0].rstrip('/')
                     if any(x['url'].rstrip('/') == clean_link for x in items): continue
                     
@@ -344,7 +346,9 @@ class TurkTelekomScraper:
                 soup = BeautifulSoup(html, 'html.parser')
                 page_count = 0
                 for a in soup.find_all('a', href=True):
-                    link = urljoin(self.BASE_URL, a['href'])
+                    href = a['href'].strip()
+                    if not href or href.startswith(('javascript:', '#', 'mailto:', 'tel:')): continue
+                    link = urljoin(self.BASE_URL, href)
                     clean_link = link.split('?')[0].rstrip('/')
                     if any(x['url'].rstrip('/') == clean_link for x in items): continue
                     
@@ -379,8 +383,8 @@ class TurkTelekomScraper:
                 context = browser.new_context(user_agent=self.headers["User-Agent"])
                 page = context.new_page()
                 try:
-                    page.goto("https://www.selfy.com.tr/kampanyalar", timeout=60000, wait_until="networkidle")
-                    page.wait_for_timeout(3000)
+                    page.goto("https://www.selfy.com.tr/kampanyalar", timeout=60000, wait_until="domcontentloaded")
+                    page.wait_for_timeout(4000)
                     
                     for i in range(6): # Extra scrolls
                         page.evaluate("window.scrollTo(0, document.body.scrollHeight)")
@@ -390,7 +394,8 @@ class TurkTelekomScraper:
                     content = page.content()
                     soup = BeautifulSoup(content, 'html.parser')
                     for a in soup.find_all('a', href=True):
-                        href = a['href']
+                        href = a['href'].strip()
+                        if not href or href.startswith(('javascript:', '#', 'mailto:', 'tel:')): continue
                         if "/kampanyalar/" in href and not href.endswith("/kampanyalar"):
                             url = urljoin("https://www.selfy.com.tr", href)
                             clean_url = url.split('?')[0].rstrip('/')

@@ -188,7 +188,7 @@ UZUN AÇIKLAMA: {item.get('longDescription') or title}
 
 ÖNEMLİ ZUBİZU KAMPANYA REHBERİ:
 Bu kampanya Zubizu mobil platformuna aittir. 
-1. KESİNLİKLE "Zubizu" veya "Zubizu App" kelimelerini "brands" (marka) listesine eklemeyin. Zubizu platform adıdır, mağaza/tüccar markası değildir (Örn: Shell, Nautica, Cacharel).
+1. KESİNLİKLE "Zubizu" veya "Zubizu App" kelimelerini "brands" (marka) listesine eklemeyin. Zubizu platform adıdır, mağaza markası değildir. Kampanya metninde asıl hangi mağaza veya firmadan bahsediliyorsa sadece o firmayı marka olarak ekleyin.
 2. Lütfen "conditions" alanına aşağıdaki standart Zubizu katılım koşullarını eksiksiz ve maddeler halinde ekleyin:
 - Kampanyanın geçerli olduğu kanallar (Mağazalar ve e-ticaret siteleri)
 - Minimum harcama tutarı ve sağlanan hediye/indirim avantajı
@@ -196,6 +196,7 @@ Bu kampanya Zubizu mobil platformuna aittir.
 - Kullanıcı başına kod alımı / kullanımı sınırlaması
 - Mağaza/personel indirimleri veya başka kupon kodlarıyla birleştirilememe şartı
 - İptal, iade prosedürü ve firmanın/Zubizu'nun şartları değiştirme/durdurma hakkı
+3. Sektör seçimini rastgele E-Ticaret YAPMAYIN. Eğer kampanya giyim markasıysa Giyim & Aksesuar, marketse Market & Gıda seçin.
 """
 
         ai_data = parse_api_campaign(
@@ -222,7 +223,7 @@ Bu kampanya Zubizu mobil platformuna aittir.
                 if ai_data.get('brands'):
                     ai_data['brands'] = [
                         b for b in ai_data.get('brands', [])
-                        if str(b).strip().lower() not in ['zubizu', 'zubızu', 'zubizu app', 'zubizu üyeleri']
+                        if str(b).strip().replace('İ', 'i').replace('I', 'ı').lower() not in ['zubizu', 'zubızu', 'zubizu app', 'zubizu üyeleri']
                     ]
 
                 final_sector_slug = ai_data.get('sector')
