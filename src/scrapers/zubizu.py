@@ -228,6 +228,7 @@ Bu kampanya Zubizu mobil platformuna aittir.
 
                 final_sector_slug = ai_data.get('sector')
 
+                # 1. PBE Override (Point Blank Engine)
                 if ai_data.get('brands'):
                     from src.models import PointBlankRule
                     pbe_rules = db.query(PointBlankRule).filter(
@@ -239,6 +240,29 @@ Bu kampanya Zubizu mobil platformuna aittir.
                             final_sector_slug = rule.sector_slug
                             print(f"      [PBE Override] Forced sector to '{final_sector_slug}' due to brand '{rule.brand_name}'")
                             break
+
+                # 2. Heuristic Sector Fallback if PBE didn't match and sector is e-ticaret/diger
+                if not final_sector_slug or final_sector_slug in ['e-ticaret', 'diger']:
+                    t_low = (ai_data.get('title') or title or '').lower()
+                    b_low = " ".join([b.lower() for b in ai_data.get('brands', [])])
+                    comb = f"{t_low} {b_low}"
+
+                    if any(k in comb for k in ['konser', 'bilet', 'tiyatro', 'festival', 'oktoberfest', 'sinema', 'paten', 'buz adası', 'semicenk', 'sıla', 'seksendört', 'pink martini', 'lp konser']):
+                        final_sector_slug = 'kultur-sanat-spor'
+                    elif any(k in comb for k in ['sushico', 'azur', 'the guru', 'safran', 'em sherif', 'adile sultan', 'cantinery', 'arka bahçe', 'mezzaluna', 'günaydın', 'zuma', 'roka', 'restoran', 'kafe', 'yemek', 'steakhouse', 'bistro']):
+                        final_sector_slug = 'restoran-kafe'
+                    elif any(k in comb for k in ['nezih']):
+                        final_sector_slug = 'kitap-kirtasiye-ofis'
+                    elif any(k in comb for k in ['tiny love']):
+                        final_sector_slug = 'anne-bebek-oyuncak'
+                    elif any(k in comb for k in ['bonaliva', 'bioderma', 'avene', 'mustela', 'missha']):
+                        final_sector_slug = 'kozmetik-saglik'
+                    elif any(k in comb for k in ['agakulche', 'altın', 'bilezik', 'gümüş takı', 'ipli kolye', 'saat&saat']):
+                        final_sector_slug = 'mucevherat-optik-saat'
+                    elif any(k in comb for k in ['hotel', 'otel', 'resort', 'turizm', 'prontotour', 'konaklama']):
+                        final_sector_slug = 'turizm-konaklama'
+                    elif any(k in comb for k in ['car wash', 'oto yıkama', 'otopark', 'araç kiralama', 'rent a car']):
+                        final_sector_slug = 'otomotiv'
 
                 sector = db.query(Sector).filter((Sector.slug == final_sector_slug) | (Sector.name.ilike(final_sector_slug))).first() if final_sector_slug else None
                 if not sector:

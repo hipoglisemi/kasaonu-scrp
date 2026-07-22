@@ -516,5 +516,26 @@ ANADOLUBANK SPECIFIC RULES:
 - CUSTOMER TARGET (MÜŞTERİ KİTLESİ): 
     - Metinde geçen "Anadolubank müşterileri" ifadesi aslında hedef kitleyi belirler, bunu hem eligible_cards hem de açıklama içerisinde kullanabilirsin.
     - "Özel Bankacılık Müşterileri", "Perakende Müşteriler" veya "KOBİ" gibi daha dar bir kitleye hitap eden kampanyalarda bu segmentleri açıklamalarda ve koşullarda kesinlikle vurgula.
+""",
+    'zubizu': """
+ZUBİZU SPECIFIC RULES:
+- PLATFORM EXCLUSION (CRITICAL): 
+    - Zubizu bir mobil uygulamadır ve kampanya platformudur. 
+    - KESİNLİKLE "Zubizu", "Zubizu App", "Zubizu Üyeleri" gibi ifadeleri "brands" (markalar) dizisine EKLEMEYİN.
+    - Metinde kampanyanın geçerli olduğu asıl ticari mağaza, marka veya firma hangisi ise (Örn: "Shake Shack", "Superstep", "Converse", "Sıla Konseri", "Swissotel") sadece o firmayı 'brands' olarak ekleyin.
+- SECTOR SELECTION (CRITICAL):
+    - Zubizu indirim kodları sunduğu için kampanyaları varsayılan olarak "E-Ticaret" YAPMAYIN! Metindeki asıl hizmet/ürün sektörünü belirleyin:
+      1. Konser, bilet, tiyatro, festival, sinema, gösteri, etkinlik -> **kultur-sanat-spor**
+      2. Restoran, kafe, yemek, sushi, burger, steakhouse, yeme-içme, mekan -> **restoran-kafe**
+      3. Otel, konaklama, tatil, tur, geziler -> **turizm-konaklama**
+      4. Züccaciye, porselen, mutfak eşyası, yatak, dekorasyon, mobilya -> **mobilya-dekorasyon**
+      5. Saat, gözlük, takı, mücevher, optik -> **mucevherat-optik-saat**
+      6. Oto yıkama, araç kiralama, otopark, vale, araç bakımı -> **otomotiv**
+      7. Tekstil, giyim, ayakkabı, çanta, giyim mağazaları -> **giyim-aksesuar**
+- ELIGIBLE CARDS (cards):
+    - Metinde spesifik bir banka/kart adı (Örn: "Mastercard", "Visa", "Yapı Kredi") geçmiyorsa `cards` alanına doğrudan **["Zubizu App"]** yazın.
+- PARTICIPATION (katilim_sekli):
+    - Zubizu mobil uygulamasından kampanya kodu / kupon alma talimatı veriliyorsa: "Zubizu mobil uygulamasından kampanya kodunu alarak kasada veya e-ticaret sepetinde ibraz edebilirsiniz." şeklinde yazın.
 """
 }
+
