@@ -197,6 +197,7 @@ Bu kampanya Zubizu mobil platformuna aittir.
 - Mağaza/personel indirimleri veya başka kupon kodlarıyla birleştirilememe şartı
 - İptal, iade prosedürü ve firmanın/Zubizu'nun şartları değiştirme/durdurma hakkı
 3. Sektör seçimini rastgele E-Ticaret YAPMAYIN. Eğer kampanya giyim markasıysa Giyim & Aksesuar, marketse Market & Gıda seçin.
+4. "conditions" listesinin EN SON SATIRINA (son maddesine) KESİNLİKLE şu cümleyi ekleyin: "Güncel kampanya detayları ve katılım şartları için Zubizu uygulamasını kontrol ediniz."
 """
 
         ai_data = parse_api_campaign(
@@ -314,13 +315,27 @@ Bu kampanya Zubizu mobil platformuna aittir.
                 else:
                     eligible_cards = "Zubizu App"
 
+                mandatory_clause = "Güncel kampanya detayları ve katılım şartları için Zubizu uygulamasını kontrol ediniz."
+                conds_raw = ai_data.get("conditions")
+                if isinstance(conds_raw, list):
+                    conds_list = [str(c).strip() for c in conds_raw if c and str(c).strip()]
+                    if not any("güncel kampanya detayları" in c.lower() or "zubizu uygulamasını kontrol" in c.lower() for c in conds_list):
+                        conds_list.append(mandatory_clause)
+                    formatted_conditions = "\n".join(conds_list)
+                else:
+                    conds_str = (conds_raw or item.get("longDescription") or "").strip()
+                    if not any("güncel kampanya detayları" in conds_str.lower() or "zubizu uygulamasını kontrol" in conds_str.lower()):
+                        formatted_conditions = f"{conds_str}\n{mandatory_clause}" if conds_str else mandatory_clause
+                    else:
+                        formatted_conditions = conds_str
+
                 campaign = Campaign(
                     card_id=self.card_id,
                     sector_id=sector_id,
                     title=formatted_title,
                     slug=slug,
                     description=ai_data.get("description") or item.get("longDescription"),
-                    conditions="\n".join(ai_data.get("conditions", [])) if isinstance(ai_data.get("conditions"), list) else (ai_data.get("conditions") or item.get("longDescription")),
+                    conditions=formatted_conditions,
                     reward_text=ai_data.get("reward_text", "Fırsatı Kaçırmayın"),
                     reward_value=ai_data.get("reward_value"),
                     reward_type=ai_data.get("reward_type"),

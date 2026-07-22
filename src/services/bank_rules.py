@@ -536,6 +536,9 @@ ZUBİZU SPECIFIC RULES:
     - Metinde spesifik bir banka/kart adı (Örn: "Mastercard", "Visa", "Yapı Kredi") geçmiyorsa `cards` alanına doğrudan **["Zubizu App"]** yazın.
 - PARTICIPATION (katilim_sekli):
     - Zubizu mobil uygulamasından kampanya kodu / kupon alma talimatı veriliyorsa: "Zubizu mobil uygulamasından kampanya kodunu alarak kasada veya e-ticaret sepetinde ibraz edebilirsiniz." şeklinde yazın.
+- CONDITIONS (CRITICAL LAST LINE):
+    - 'conditions' (koşullar) listesinin EN SON SATIRINA (son maddesine) KESİNLİKLE ve EKSİKSİZ olarak şu cümleyi ekleyin:
+      "Güncel kampanya detayları ve katılım şartları için Zubizu uygulamasını kontrol ediniz."
 """
 }
 
