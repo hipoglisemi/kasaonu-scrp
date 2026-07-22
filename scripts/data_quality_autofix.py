@@ -1167,6 +1167,8 @@ def run_autofix(limit: int = 250, campaign_id: Optional[int] = None, force_all: 
                             if any(kw in ai_title.lower() for kw in ["çerez", "cookie", "aydınlatma metni"]):
                                 print(f"   🛡️ AI returned a cookie-related title: '{ai_title}'. Ignoring.")
                             else:
+                                from src.scrapers.zubizu import format_turkish_title
+                                ai_title = format_turkish_title(ai_data["title"])
                                 print(f"   ✨ Repaired Title: {c.title} -> {ai_title}")
                                 c.title = ai_title
                                 updated = True
@@ -1214,7 +1216,8 @@ def run_autofix(limit: int = 250, campaign_id: Optional[int] = None, force_all: 
                     if is_cards_empty or is_cards_corrupted or is_cards_incomplete or is_cards_wrong or force_campaign:
                         if ai_data.get("cards") is not None:
                             ai_cards = ai_data.get("cards") or []
-                            cards_str = ", ".join(ai_cards) if len(ai_cards) > 0 else "-"
+                            default_card = "Zubizu App" if "zubizu" in (bank_name or "").lower() or (c.card_id and "zubizu" in str(c.card_id).lower()) else "-"
+                            cards_str = ", ".join(ai_cards) if len(ai_cards) > 0 else default_card
 
                             if is_cards_incomplete:
                                 print(f"   ✨ Upgraded Incomplete Cards: {c.eligible_cards} → {cards_str}")
@@ -1575,7 +1578,8 @@ def run_autofix(limit: int = 250, campaign_id: Optional[int] = None, force_all: 
                                     for mc in missed_cards:
                                         if mc not in remaining_cards:
                                             remaining_cards.append(mc)
-                                    c.eligible_cards = ", ".join(remaining_cards) if remaining_cards else "-"
+                                    default_card = "Zubizu App" if "zubizu" in (bank_name or "").lower() else "-"
+                                    c.eligible_cards = ", ".join(remaining_cards) if remaining_cards else default_card
                                     updated = True
                                     needs_reverify = True
                                     
