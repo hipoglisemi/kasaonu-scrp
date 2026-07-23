@@ -222,14 +222,18 @@ def generate_pillar_content(keyword: str) -> str:
     
     Anahtar Kelime / Konu: "{keyword}"
     
-    KURALLAR:
-    1. En az 1000-1500 kelime uzunluğunda olmalı. Kısa tutma — bu bir destansı rehberdir.
-    2. Google'ın E-E-A-T (Deneyim, Uzmanlık, Otorite, Güven) standartlarına tam uygun ama doğal bir dil kullan.
-    3. Tamamen HTML formatında yaz: <h2>, <h3>, <p>, <ul>, <li>, <strong>, <em> etiketlerini kullan. 
-       ASLA Markdown veya <h1> kullanma.
-    4. İçeriğin içinde doğal bir şekilde "kredi kartı kampanyaları", "kredi kartı", "kampanyalar" kelimelerini geç.
-    5. Sonuç paragrafında kullanıcıyı aksiyon almaya yönlendir ("En güncel kampanyaları keşfetmek için tıklayın" gibi).
-    6. Yanıt olarak SADECE HTML kodunu ver. Başka hiçbir şey ekleme.
+225:     KURALLAR:
+226:     1. En az 1000-1500 kelime uzunluğunda olmalı. Kısa tutma — bu bir destansı rehberdir.
+227:     2. GEO & Cevap-Odaklı Yapı (ÖNEMLİ):
+228:        - En başa 2-3 cümlelik net yanıt içeren Hızlı Özet (TL;DR) kutusu ekle: <div className="seo-tldr"><strong>📌 Hızlı Özet (TL;DR):</strong> [Doğrudan yanıt]</div>
+229:        - H2 ve H3 başlıklarını tam kullanıcı soruları şeklinde yaz (Örn: "En çok mil kazandıran kart hangisidir?").
+230:        - İçerikte mutlaka karşılaştırmalı bir HTML <table> tablosu yer alsın.
+231:     3. Google'ın E-E-A-T (Deneyim, Uzmanlık, Otorite, Güven) standartlarına tam uygun ama doğal bir dil kullan.
+232:     4. Tamamen HTML formatında yaz: <h2>, <h3>, <p>, <ul>, <li>, <strong>, <em>, <table>, <thead>, <tbody>, <tr>, <th>, <td> etiketlerini kullan. 
+233:        ASLA Markdown veya <h1> kullanma.
+234:     5. İçeriğin içinde doğal bir şekilde "kredi kartı kampanyaları", "kredi kartı", "kampanyalar" kelimelerini geç.
+235:     6. Sonuç paragrafında kullanıcıyı aksiyon almaya yönlendir ("En güncel kampanyaları keşfetmek için tıklayın" gibi).
+236:     7. Yanıt olarak SADECE HTML kodunu ver. Başka hiçbir şey ekleme.
     """
     config = types.GenerateContentConfig(
         temperature=0.0,
