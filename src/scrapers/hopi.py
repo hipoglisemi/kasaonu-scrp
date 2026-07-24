@@ -294,6 +294,17 @@ class HopiScraper:
                         conditions = detail["content"]
 
                     participation = parsed_data.get("participation") or ""
+                    if participation:
+                        import re
+                        sentences = re.split(r'(?<=[.!?])\s+', participation)
+                        cleaned_sentences = []
+                        for s in sentences:
+                            s_lower = s.lower()
+                            if any(x in s_lower for x in ['buton', 'tıklayarak', 'tıklayın', 'tıklanmalıdır', 'basarak', 'faydalan butonu']):
+                                continue
+                            cleaned_sentences.append(s)
+                        participation = " ".join(cleaned_sentences).strip()
+
                     eligible_cards = parsed_data.get("eligible_cards") or "Hopi App"
 
                     if conditions and participation:
