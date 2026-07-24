@@ -112,6 +112,10 @@ try:
     from .oliz import OlizScraper # type: ignore # pyre-ignore[21]
 except ImportError: OlizScraper = None
 
+try:
+    from .hopi import HopiScraper # type: ignore # pyre-ignore[21]
+except ImportError: HopiScraper = None
+
 
 __all__ = [
     'GarantiBonusScraper',
@@ -141,7 +145,9 @@ __all__ = [
     'GSParaScraper',
     'FenerparaScraper',
     'ZubizuScraper',
-    'OlizScraper'
+    'OlizScraper',
+    'HopiScraper'
 ]
+
 
 
