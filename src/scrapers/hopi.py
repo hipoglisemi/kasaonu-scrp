@@ -207,15 +207,7 @@ class HopiScraper:
             container = soup.select_one('.campaign-detail')
             text_content = container.text.strip() if container else soup.body.text.strip()
             
-            action_btn = "Kampanyadan Faydalan"
-            btns = soup.select('a, button')
-            for b in btns:
-                t = b.text.strip().upper()
-                if t in ["HOPİ'Nİ KULLAN", "TEKLİF KODUNU AL", "KAMPANYADAN FAYDALAN"]:
-                    action_btn = b.text.strip()
-                    break
-
-            full_text = f"[Hopi Aksiyon Butonu: {action_btn}]\n\n{text_content}"
+            full_text = text_content
             if not full_text.strip():
                 full_text = title
 
@@ -301,7 +293,7 @@ class HopiScraper:
                     elif not conditions:
                         conditions = detail["content"]
 
-                    participation = parsed_data.get("participation") or "Hopi uygulaması üzerinden QR kodunu tanıtarak veya kampanya kodunu ibraz ederek yararlanabilirsiniz."
+                    participation = parsed_data.get("participation") or ""
                     eligible_cards = parsed_data.get("eligible_cards") or "Hopi App"
 
                     if conditions and participation:
