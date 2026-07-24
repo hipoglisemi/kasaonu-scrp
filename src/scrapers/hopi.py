@@ -112,8 +112,8 @@ class HopiScraper:
                     slug=self.CARD_SLUG,
                     card_type="wallet",
                     logo_url="/logos/cards/hopii.webp",
-                    image_url="/logos/creditcard/hopikart.webp",
-                    credit_logo_url="/logos/creditcard/hopikart.webp",
+                    image_url="/logos/creditcard/hopii.webp",
+                    credit_logo_url="/logos/creditcard/hopii.webp",
                     is_active=True
                 )
                 db.add(card)
@@ -121,8 +121,8 @@ class HopiScraper:
                 db.refresh(card)
             else:
                 card.logo_url = "/logos/cards/hopii.webp"  # type: ignore
-                card.image_url = "/logos/creditcard/hopikart.webp"  # type: ignore
-                card.credit_logo_url = "/logos/creditcard/hopikart.webp"  # type: ignore
+                card.image_url = "/logos/creditcard/hopii.webp"  # type: ignore
+                card.credit_logo_url = "/logos/creditcard/hopii.webp"  # type: ignore
                 db.commit()
             self.card_id = card.id
 
