@@ -94,12 +94,12 @@ class HopiScraper:
             bank = db.query(Bank).filter((Bank.slug == "hopi") | (Bank.name.ilike("%hopi%"))).first()
             if not bank:
                 print(f"   🏦 Creating Bank: {self.BANK_NAME}")
-                bank = Bank(name=self.BANK_NAME, slug="hopi", logo_url="/logos/banks/hopi.webp", is_active=True)
+                bank = Bank(name=self.BANK_NAME, slug="hopi", logo_url="/logos/banks/hopii.webp", is_active=True)
                 db.add(bank)
                 db.commit()
                 db.refresh(bank)
             else:
-                bank.logo_url = "/logos/banks/hopi.webp"  # type: ignore
+                bank.logo_url = "/logos/banks/hopii.webp"  # type: ignore
                 db.commit()
             self.bank_id = bank.id
 
@@ -111,7 +111,7 @@ class HopiScraper:
                     name=self.CARD_NAME,
                     slug=self.CARD_SLUG,
                     card_type="wallet",
-                    logo_url="/logos/cards/hopi.webp",
+                    logo_url="/logos/cards/hopii.webp",
                     image_url="/logos/creditcard/hopikart.webp",
                     credit_logo_url="/logos/creditcard/hopikart.webp",
                     is_active=True
@@ -120,7 +120,7 @@ class HopiScraper:
                 db.commit()
                 db.refresh(card)
             else:
-                card.logo_url = "/logos/cards/hopi.webp"  # type: ignore
+                card.logo_url = "/logos/cards/hopii.webp"  # type: ignore
                 card.image_url = "/logos/creditcard/hopikart.webp"  # type: ignore
                 card.credit_logo_url = "/logos/creditcard/hopikart.webp"  # type: ignore
                 db.commit()
@@ -333,7 +333,7 @@ class HopiScraper:
 
                         formatted_title = format_turkish_title(parsed_data.get("title") or detail["title"])
                         slug = get_unique_slug(formatted_title, db, Campaign)
-                        image_url = detail.get("image_url") or parsed_data.get("image_url") or "/logos/cards/hopi.webp"
+                        image_url = detail.get("image_url") or parsed_data.get("image_url") or "/logos/cards/hopii.webp"
 
                         end_date = parsed_data.get("end_date")
                         if not end_date:
