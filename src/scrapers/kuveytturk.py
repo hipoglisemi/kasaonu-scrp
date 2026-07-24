@@ -17,7 +17,7 @@ from bs4 import BeautifulSoup  # type: ignore # pyre-ignore[21]
 from sqlalchemy.orm import Session  # type: ignore # pyre-ignore[21]
 
 # Path setup to ensure imports work correctly
-project_root = "/Users/hipoglisemi/Desktop/kartavantaj-scraper"
+project_root = "/Users/hipoglisemi/Desktop/kasaonu-scrp"
 if project_root not in sys.path:
     sys.path.insert(0, project_root)
 

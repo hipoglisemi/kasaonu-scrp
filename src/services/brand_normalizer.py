@@ -1,7 +1,7 @@
 def normalize_brand_name(name: str) -> str:
     """
     Standardizes brand names (Sync with frontend metadataService)
-    Ported from kartavantaj-scraper/src/services/geminiParser.ts
+    Ported from kasaonu-scrp/src/services/geminiParser.ts
     """
     if not name:
         return ""

@@ -1,7 +1,7 @@
 import sys
 import os
 # Path setup
-project_root = "/Users/hipoglisemi/Desktop/kartavantaj-scraper"
+project_root = "/Users/hipoglisemi/Desktop/kasaonu-scrp"
 if project_root not in sys.path:
     sys.path.insert(0, project_root)
 

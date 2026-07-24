@@ -54,7 +54,7 @@ load_dotenv(os.path.join(_root, ".env"), override=True)
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# Bank Specific Rules (Ported from kartavantaj-scraper)
+# Bank Specific Rules (Ported from kasaonu-scrp)
 BANK_RULES = {
     'akbank': """
 🚨 AKBANK SPECIFIC RULES:
