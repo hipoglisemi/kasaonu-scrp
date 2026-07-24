@@ -147,9 +147,25 @@ class HopiScraper:
                     full_url = href.split("?")[0]
                     text = a.text.strip()
                     
+                    img_tag = a.find("img")
+                    img_url = None
+                    if img_tag:
+                        src = img_tag.get('src', '')
+                        if src.startswith('/_next/image?url='):
+                            import urllib.parse
+                            parsed = urllib.parse.parse_qs(urllib.parse.urlparse(src).query)
+                            if 'url' in parsed:
+                                src = parsed['url'][0]
+                        if 'img-hopi.mncdn.com' in src and 'web-assets' not in src:
+                            img_url = src
+                    
                     if full_url not in seen_urls:
                         seen_urls.add(full_url)
-                        campaigns.append({"url": full_url, "raw_title": text})
+                        campaigns.append({
+                            "url": full_url, 
+                            "raw_title": text,
+                            "list_image_url": img_url
+                        })
                         page_new += 1
 
                 print(f"   ✅ Page {page_num}: {page_new} new campaigns (total: {len(campaigns)})")
@@ -176,33 +192,34 @@ class HopiScraper:
             if not title:
                 return None
 
-            image_url = None
-            slider_wrapper = soup.select_one('.campaign-slider-wrapper')
-            if slider_wrapper:
-                images = slider_wrapper.select('img')
-                for img in images:
-                    is_logo = False
-                    parent = img.parent
-                    while parent and parent.name != '[document]':
-                        classes = parent.get('class', [])
-                        if classes and 'company-media' in classes:
-                            is_logo = True
-                            break
-                        parent = parent.parent
-                    
-                    if is_logo:
-                        continue
+            image_url = item.get("list_image_url")
+            if not image_url:
+                slider_wrapper = soup.select_one('.campaign-slider-wrapper')
+                if slider_wrapper:
+                    images = slider_wrapper.select('img')
+                    for img in images:
+                        is_logo = False
+                        parent = img.parent
+                        while parent and parent.name != '[document]':
+                            classes = parent.get('class', [])
+                            if classes and 'company-media' in classes:
+                                is_logo = True
+                                break
+                            parent = parent.parent
                         
-                    src = img.get('src', '')
-                    if src.startswith('/_next/image?url='):
-                        import urllib.parse
-                        parsed = urllib.parse.parse_qs(urllib.parse.urlparse(src).query)
-                        if 'url' in parsed:
-                            src = parsed['url'][0]
+                        if is_logo:
+                            continue
                             
-                    if 'img-hopi.mncdn.com' in src and 'web-assets' not in src:
-                        image_url = src
-                        break
+                        src = img.get('src', '')
+                        if src.startswith('/_next/image?url='):
+                            import urllib.parse
+                            parsed = urllib.parse.parse_qs(urllib.parse.urlparse(src).query)
+                            if 'url' in parsed:
+                                src = parsed['url'][0]
+                                
+                        if 'img-hopi.mncdn.com' in src and 'web-assets' not in src:
+                            image_url = src
+                            break
             
             if not image_url:
                 images = soup.select("img")
