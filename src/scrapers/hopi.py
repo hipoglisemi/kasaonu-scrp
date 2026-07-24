@@ -177,30 +177,47 @@ class HopiScraper:
                 return None
 
             image_url = None
-            def is_ugly_guide(alt):
-                alt = alt.lower() if alt else ''
-                bad_keywords = [
-                    'çerez', 'aksi durumda', 'tıkla', 'yönlendikten',
-                    'logosu', 'pasif', 'trend alarm', 'kendine bak', 'tadin', 'gez',
-                    'dekorasyon', 'teknoloji', 'gamer', 'spor', 'yaşam'
-                ]
-                if any(x in alt for x in bad_keywords):
-                    return True
-                if len(alt) < 15:
-                    return True
-                return False
-
-            images = soup.select("img")
-            for img in images:
-                src = img.get('src', '')
-                if src.startswith('/_next/image?url='):
-                    import urllib.parse
-                    parsed = urllib.parse.parse_qs(urllib.parse.urlparse(src).query)
-                    if 'url' in parsed:
-                        src = parsed['url'][0]
-                
-                if 'img-hopi.mncdn.com' in src and 'web-assets' not in src and 'hopi-logo' not in src:
-                    if not is_ugly_guide(img.get('alt', '')):
+            slider_wrapper = soup.select_one('.campaign-slider-wrapper')
+            if slider_wrapper:
+                images = slider_wrapper.select('img')
+                for img in images:
+                    is_logo = False
+                    parent = img.parent
+                    while parent and parent.name != '[document]':
+                        classes = parent.get('class', [])
+                        if classes and 'company-media' in classes:
+                            is_logo = True
+                            break
+                        parent = parent.parent
+                    
+                    if is_logo:
+                        continue
+                        
+                    src = img.get('src', '')
+                    if src.startswith('/_next/image?url='):
+                        import urllib.parse
+                        parsed = urllib.parse.parse_qs(urllib.parse.urlparse(src).query)
+                        if 'url' in parsed:
+                            src = parsed['url'][0]
+                            
+                    if 'img-hopi.mncdn.com' in src and 'web-assets' not in src:
+                        image_url = src
+                        break
+            
+            if not image_url:
+                images = soup.select("img")
+                for img in images:
+                    src = img.get('src', '')
+                    if src.startswith('/_next/image?url='):
+                        import urllib.parse
+                        parsed = urllib.parse.parse_qs(urllib.parse.urlparse(src).query)
+                        if 'url' in parsed:
+                            src = parsed['url'][0]
+                    
+                    if 'img-hopi.mncdn.com' in src and 'web-assets' not in src and 'hopi-logo' not in src:
+                        alt = img.get('alt', '').lower()
+                        if len(alt) < 20 or any(x in alt for x in ['pasif', 'logosu', 'avatar', 'profil']):
+                            continue
                         image_url = src
                         break
 
