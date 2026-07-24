@@ -24,7 +24,7 @@ def generate_seo_content(name, type="bank"):
     print(f"✍️  {name} ({type}) için SEO içeriği üretiliyor...")
     
     prompt = f"""
-    Sen KartAvantaj'ın kıdemli SEO ve finans editörüsün. 
+    Sen Kasaonu'ın kıdemli SEO ve finans editörüsün. 
     Görevin: "{name}" adlı {type} için Google'da üst sıralara çıkacak, 
     kullanıcılara değer katan, profesyonel bir rehber yazmak.
     

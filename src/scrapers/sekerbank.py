@@ -401,7 +401,7 @@ class SekerbankScraper:
                     or existing_img.strip() == ''
                     or existing_img.startswith("/placeholders/")
                     or "logo" in existing_img.lower()
-                    or "kartavantaj" in existing_img.lower()
+                    or "kasaonu" in existing_img.lower()
                 )
                 if not is_placeholder:
                     if existing.is_active and existing.is_approved:

@@ -26,7 +26,7 @@ class FactCheckerAgent:
             return {"is_grounded": False, "reason": "Kaynak metin boş veya çok kısa."}
 
         system_instruction = (
-            "Sen KartAvantaj projesinde çalışan kıdemli bir 'Veri Doğrulama ve Gerçeklik Analizi (NLI - Natural Language Inference)' uzmanısın.\n"
+            "Sen Kasaonu projesinde çalışan kıdemli bir 'Veri Doğrulama ve Gerçeklik Analizi (NLI - Natural Language Inference)' uzmanısın.\n"
             "Görevin, birinci yapay zekanın taranan web sayfasından çıkardığı bilgilerin (aday veriler), "
             "sayfanın orijinal ham metninde (kaynak metin) açıkça desteklenip desteklenmediğini nesnel bir şekilde doğrulamaktır.\n\n"
             "Kurallar:\n"

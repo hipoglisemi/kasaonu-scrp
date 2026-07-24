@@ -9,7 +9,7 @@ load_dotenv(env_path)
 DB_URL = os.getenv("DATABASE_URL")
 if not DB_URL:
     # Try parent directory
-    load_dotenv(os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), 'kartavantaj', '.env.local'))
+    load_dotenv(os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), 'kasaonu', '.env.local'))
     DB_URL = os.getenv("DATABASE_URL")
 
 def build_llms_files():
@@ -42,13 +42,13 @@ def build_llms_files():
 
     conn.close()
 
-    base_url = "https://kartavantaj.com"
+    base_url = "https://@@KASAONU_DOMAIN@@"
 
     # 1. Standard llms.txt (Complete organized structure)
     llms_lines = [
-        "# KartAvantaj",
+        "# Kasaonu",
         "",
-        "> KartAvantaj, Türkiye'deki bankaların ve kuruluşların tüm kredi kartı kampanyalarını (chip-para, puan, mil, indirim ve taksit avantajları) anlık ve günlük doğrulamayla karşılaştıran bağımsız platformdur.",
+        "> Kasaonu, Türkiye'deki bankaların ve kuruluşların tüm kredi kartı kampanyalarını (chip-para, puan, mil, indirim ve taksit avantajları) anlık ve günlük doğrulamayla karşılaştıran bağımsız platformdur.",
         "",
         "## Ana Dizin ve Özellikler",
         f"- [Tüm Kampanyalar]({base_url}/kampanyalar): En güncel kredi kartı kampanya listesi.",
@@ -95,7 +95,7 @@ def build_llms_files():
 
     # Write to target paths
     target_paths = [
-        "/Users/hipoglisemi/Desktop/kartavantaj/public/llms.txt",
+        "/Users/hipoglisemi/Desktop/kasaonu/public/llms.txt",
         "/Users/hipoglisemi/Desktop/files/llms.txt"
     ]
 
@@ -128,7 +128,7 @@ def build_llms_files():
     content_full = "\n".join(llms_full_lines)
 
     full_target_paths = [
-        "/Users/hipoglisemi/Desktop/kartavantaj/public/llms-full.txt",
+        "/Users/hipoglisemi/Desktop/kasaonu/public/llms-full.txt",
         "/Users/hipoglisemi/Desktop/files/llms-full.txt"
     ]
 

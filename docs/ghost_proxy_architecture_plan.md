@@ -1,6 +1,6 @@
 # Ghost Proxy Architecture (Future Implementation Plan)
 
-This plan was designed to completely isolate the Kartavantaj scraping infrastructure from the Google Cloud / Gemini AI processing limits by utilizing a "Bridge Database" approach. It allows scaling the free tier of Gemini across multiple accounts without risking the main Hetzner database.
+This plan was designed to completely isolate the Kasaonu scraping infrastructure from the Google Cloud / Gemini AI processing limits by utilizing a "Bridge Database" approach. It allows scaling the free tier of Gemini across multiple accounts without risking the main Hetzner database.
 
 **Decision (Mar 12, 2026):** Deferred to observe the stability of the current 2-3 `GEMINI_API_KEY` rotation system. If rate limits or ban risks become an issue, this architecture will be implemented.
 
@@ -38,7 +38,7 @@ graph TD
 ### Phase 2: Decoupling Workers
 1. **Modify Scraper Worker:** Strip all AI / Vertex code. Make it dump `raw_text` into the Bridge DB with `status='PENDING_AI'`.
 2. **Create AI Cleaner Worker:** Create a new Private Repo running on a separate 3-hour cron. It reads `PENDING_AI` rows, processes them with Gemini 3.1 Flash Lite using the rotated keys, and updates rows to `status='PARSED'` with the `ai_json_result`.
-3. **Create Hetzner Syncer:** A fast script on the main Kartavantaj server/repo that pulls `PARSED` rows, inserts them into the live Hetzner PostgreSQL DB, and deletes the row from the Bridge DB.
+3. **Create Hetzner Syncer:** A fast script on the main Kasaonu server/repo that pulls `PARSED` rows, inserts them into the live Hetzner PostgreSQL DB, and deletes the row from the Bridge DB.
 
 ### Security Highlights
 - Google only sees the "AI Cleaner Worker" (Repo 2) communicating with its API. It has no knowledge of Hetzner (Repo 3) or the original Scraper (Repo 1).

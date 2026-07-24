@@ -287,7 +287,7 @@ def build_campaign_context(bank: Optional[Any], sector: Optional[Any]) -> str:
         # campaigns explicitly typed or checked
         c_title, c_reward, c_end_date, c_bank_name, c_sector_name, c_slug = c
         end_str = c_end_date.strftime("%d.%m.%Y") if c_end_date else "Süresiz"
-        url = f"https://kartavantaj.com/kampanya/{c_slug}" if c_slug else ""
+        url = f"https://@@KASAONU_DOMAIN@@/kampanya/{c_slug}" if c_slug else ""
         lines.append(f"• {c_bank_name or ''} — {c_title}: {c_reward or ''} (Son: {end_str}) | Link: {url}")
     return "\n".join(lines)
 
@@ -298,7 +298,7 @@ def generate_article(topic_title, bank, sector):
     campaign_context = build_campaign_context(bank, sector)
 
     prompt = f"""
-Sen KartAvantaj'ın kıdemli finans editörüsün. 
+Sen Kasaonu'ın kıdemli finans editörüsün. 
 Görevin: Aşağıdaki konu için Google'da üst sıralara çıkacak, 
 gerçek kullanıcıya değer katan, özgün ve derinlemesine bir blog makalesi yazmak.
 
@@ -319,10 +319,10 @@ KONU: "{topic_title}"
 319:    <h1> KULLANMA. Markdown KULLANMA.
 320: 6. SEO ve Linkleme: Konu başlığındaki anahtar kelimeleri doğal biçimde ilk paragrafta,
 321:    h2 başlıklarında ve sonuç bölümünde kullan.
-322:    ÖNEMLİ VE KRİTİK KURAL: Listelenen "GERÇEK KAMPANYALAR" için, eğer o kampanya satırında "Link: https://kartavantaj.com/kampanya/..." şeklinde bir öge verilmişse, metin içinde o kampanyadan bahsederken YALNIZCA o URL'yi <a href="..."> etiketiyle eklemelisin.
-323:    EĞER bir kampanya için Link verilmemişse veya kendi kendine örnek bir kampanyadan bahsediyorsan, KESİNLİKLE hiçbir link / URL / 'a href' ETİKETİ EKLEMEYECEKSİN. Tüm uydurma linkler (örneğin 'https://yapikredi.com.tr/kampanyalar' gibi dış banka linkleri dahil) KESİNLİKLE YASAKTIR. SADECE sana yukarıdaki metin bloğunda açıkça verilen 'https://kartavantaj.com/kampanya/...' bağlantılarını kullanma yetkin var.
+322:    ÖNEMLİ VE KRİTİK KURAL: Listelenen "GERÇEK KAMPANYALAR" için, eğer o kampanya satırında "Link: https://@@KASAONU_DOMAIN@@/kampanya/..." şeklinde bir öge verilmişse, metin içinde o kampanyadan bahsederken YALNIZCA o URL'yi <a href="..."> etiketiyle eklemelisin.
+323:    EĞER bir kampanya için Link verilmemişse veya kendi kendine örnek bir kampanyadan bahsediyorsan, KESİNLİKLE hiçbir link / URL / 'a href' ETİKETİ EKLEMEYECEKSİN. Tüm uydurma linkler (örneğin 'https://yapikredi.com.tr/kampanyalar' gibi dış banka linkleri dahil) KESİNLİKLE YASAKTIR. SADECE sana yukarıdaki metin bloğunda açıkça verilen 'https://@@KASAONU_DOMAIN@@/kampanya/...' bağlantılarını kullanma yetkin var.
 324: 7. Değer: Soyut bilgi verme. Somut rakamlar, gerçek kampanya örnekleri, pratik ipuçları içersin.
-325: 8. CTA: Son paragrafta "KartAvantaj'da tüm kampanyaları karşılaştır" mesajını doğal bir cümleyle ver.
+325: 8. CTA: Son paragrafta "Kasaonu'da tüm kampanyaları karşılaştır" mesajını doğal bir cümleyle ver.
 326: 
 327: SADECE makale HTML'ini döndür. Başka hiçbir şey yazma.
 """
@@ -354,7 +354,7 @@ Kurallar:
 - Maksimum 155 karakter
 - Türkçe, tıklamaya teşvik eden
 - Konu başlığındaki anahtar kelimeleri içersin
-- Sona "KartAvantaj'da incele" gibi kısa bir CTA ekle
+- Sona "Kasaonu'da incele" gibi kısa bir CTA ekle
 - SADECE meta description metnini döndür, başka hiçbir şey yazma
 
 Konu: {topic_title}
@@ -377,7 +377,7 @@ def generate_excerpt(meta_description):
 def main():
     import random
 
-    print("🚀  KartAvantaj SEO Blog Üreticisi başlatıldı")
+    print("🚀  Kasaonu SEO Blog Üreticisi başlatıldı")
 
     existing_titles, existing_slugs, existing_urls = get_existing_data()
     banks, sectors = get_banks_and_sectors()

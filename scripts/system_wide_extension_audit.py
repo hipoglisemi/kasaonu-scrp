@@ -81,7 +81,7 @@ def send_telegram_alert(anomalies):
         print("⚠️ Telegram credentials not found in environment. Skipping alert.")
         return
         
-    message = "🚨 *KARTAVANTAJ - ŞÜPHELİ UZATILAN KAMPANYALAR* 🚨\n"
+    message = "🚨 *KASAONU - ŞÜPHELİ UZATILAN KAMPANYALAR* 🚨\n"
     message += f"Toplam Hatalı Kampanya: *{len(anomalies)}*\n"
     message += "==================================\n\n"
     
@@ -239,12 +239,12 @@ def run_system_audit():
         print("-" * 74)
  
     # Write Markdown file
-    md_path = "/Users/hipoglisemi/Desktop/kartavantaj/anomalies_report.md"
+    md_path = "/Users/hipoglisemi/Desktop/kasaonu/anomalies_report.md"
     if not os.path.exists(os.path.dirname(md_path)):
         md_path = "anomalies_report.md"  # fallback to current directory
         
     with open(md_path, "w", encoding="utf-8") as f:
-        f.write("# 🚨 KartAvantaj - Şüpheli Uzatılan Kampanyalar Raporu\n\n")
+        f.write("# 🚨 Kasaonu - Şüpheli Uzatılan Kampanyalar Raporu\n\n")
         f.write(f"Bu rapor otomatik oluşturulmuştur. Toplam şüpheli kampanya sayısı: **{len(anomalies_log)}**\n\n")
         f.write("Aşağıdaki listeden hatalı kampanyaları inceleyebilir ve düzelttikçe işaretleyebilirsiniz:\n\n")
         

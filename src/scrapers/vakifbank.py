@@ -28,7 +28,7 @@ from src.services.ai_parser import AIParser  # type: ignore
 
 # Load Env (for DB and API Key)
 try:
-    # Try loading from local kartavantaj .env first (if running from there)
+    # Try loading from local kasaonu .env first (if running from there)
     with open('.env', 'r') as f:
         for line in f:
             if line.strip() and not line.startswith('#'):
@@ -375,7 +375,7 @@ class VakifbankScraper:
             return "error"  # type: ignore # pyre-ignore[7]
 
     def run(self, limit: int = 1000):
-        print("🚀 Starting VakıfBank Scraper (Powered by Kartavantaj AI Parser)...")
+        print("🚀 Starting VakıfBank Scraper (Powered by Kasaonu AI Parser)...")
         # limit here means limit_pages for simplicity in this scraper's architecture
         urls = self._fetch_campaign_list(limit_pages=max(1, limit // 8))
         

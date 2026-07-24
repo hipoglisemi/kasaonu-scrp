@@ -1,5 +1,5 @@
 ---
-description: Kartavantaj SEO - Otomatik Banka/Kart Özeti Üretici (Haftalık)
+description: Kasaonu SEO - Otomatik Banka/Kart Özeti Üretici (Haftalık)
 ---
 
 Bu workflow, sistemdeki SEO özeti eksik olan tüm banka ve kartları tespit eder ve Gemini 3.1 Flash-Lite kullanarak 4 bölümlü zengin SEO içerikleri üretir.

@@ -52,7 +52,7 @@ def extract_dates_via_ai(title: str, clean_text: str, key_index: int = 1, today_
         today_date = (datetime.now(timezone.utc) + timedelta(hours=3)).date()
         
     system_instruction = (
-        "Sen KartAvantaj projesinde kampanya tarihlerini ve durumunu tespit eden uzman bir veri analistisin.\n"
+        "Sen Kasaonu projesinde kampanya tarihlerini ve durumunu tespit eden uzman bir veri analistisin.\n"
         "Gönderilen metni analiz ederek kampanyanın durumunu ve başlangıç/bitiş tarihlerini bulmalısın.\n\n"
         "ÇOK ÖNEMLİ KURALLAR:\n"
         "1. Eğer metinde kampanyanın bittiğine, süresinin dolduğuna veya yayından kaldırıldığına dair bir ibare varsa ('Kampanya sona ermiştir', 'Süresi doldu', 'Sayfa bulunamadı', '404' vb.) veya tarihler geçmişte kalmışsa 'is_expired' alanını true yap.\n"

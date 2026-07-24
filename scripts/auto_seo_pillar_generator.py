@@ -215,7 +215,7 @@ def generate_pillar_content(keyword: str) -> str:
     """Seçilen anahtar kelime üzerine kapsamlı bir Pillar Page HTML içeriği üretir."""
     print(f"[AI] '{keyword}' için Pillar Page içeriği üretiliyor...")
     prompt = f"""
-    Sen "Kartavantaj" isimli Türkiye'nin lider kredi kartı ve banka kampanyaları platformunun Baş Editörüsün.
+    Sen "Kasaonu" isimli Türkiye'nin lider kredi kartı ve banka kampanyaları platformunun Baş Editörüsün.
     
     Görev: Aşağıdaki anahtar kelime üzerine Google'ın arama sonuçlarında üst sıraya taşıyacak, 
     çok kapsamlı, "Destansı Rehber (Pillar Page)" niteliğinde bir sayfa yaz.
@@ -319,7 +319,7 @@ def save_pillar_page(title: str, slug: str, html: str, meta: str, image_url: str
 def main():
     import random
     print("=" * 60)
-    print("🤖 Kartavantaj — Otonom SEO Pillar Page Üretici")
+    print("🤖 Kasaonu — Otonom SEO Pillar Page Üretici")
     print("=" * 60)
 
     # 1. Trend anahtar kelimeleri al

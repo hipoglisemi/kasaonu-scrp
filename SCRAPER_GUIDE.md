@@ -1,6 +1,6 @@
-# Kartavantaj Scraper Development Guide
+# Kasaonu Scraper Development Guide
 
-Bu kılavuz, sisteme yeni bir banka veya marka scraper'ı (kazıyıcı) eklerken dikkat edilmesi gereken kodlama standartlarını, kural belirlemelerini ve merkezi servis kullanımını açıklar. Kartavantaj sisteminin hızla ölçeklenebilmesi ve veri kirliliğinin (`duplicate` veriler, hatalı kategoriler vb.) önüne geçilebilmesi için tüm yeni scraper'ların bu kılavuzdaki adımlara **kesinlikle uyması** gerekmektedir.
+Bu kılavuz, sisteme yeni bir banka veya marka scraper'ı (kazıyıcı) eklerken dikkat edilmesi gereken kodlama standartlarını, kural belirlemelerini ve merkezi servis kullanımını açıklar. Kasaonu sisteminin hızla ölçeklenebilmesi ve veri kirliliğinin (`duplicate` veriler, hatalı kategoriler vb.) önüne geçilebilmesi için tüm yeni scraper'ların bu kılavuzdaki adımlara **kesinlikle uyması** gerekmektedir.
 
 ## 1. Temel Mimarisi ve Setup
 

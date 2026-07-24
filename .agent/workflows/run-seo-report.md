@@ -1,18 +1,18 @@
 ---
-description: Kartavantaj SEO Performans Raporu Oluşturma (Google Search Console)
+description: Kasaonu SEO Performans Raporu Oluşturma (Google Search Console)
 ---
 
-Bu workflow, Google Search Console verilerini kullanarak KartAvantaj'ın güncel SEO performans raporunu manuel olarak oluşturmanızı sağlar.
+Bu workflow, Google Search Console verilerini kullanarak Kasaonu'ın güncel SEO performans raporunu manuel olarak oluşturmanızı sağlar.
 
 ### Ön Hazırlık
 1. `.env` dosyasında `SEARCH_CONSOLE_KEY` değişkeninin tanımlı olduğundan emin olun.
-2. `sc-domain:kartavantaj.com` mülküne ilgili service account e-postasının (kartavantaj-indexing@...) erişimi olduğunu kontrol edin.
+2. `sc-domain:@@KASAONU_DOMAIN@@` mülküne ilgili service account e-postasının (@@KASAONU_INDEXING@@@...) erişimi olduğunu kontrol edin.
 
 ### Adımlar
 
 1. **Terminali açın ve scraper klasörüne gidin:**
    ```bash
-   cd /Users/hipoglisemi/Desktop/kartavantaj-scraper
+   cd /Users/hipoglisemi/Desktop/kasaonu-scraper
    ```
 
 2. **Python sanal ortamını aktif edin:**

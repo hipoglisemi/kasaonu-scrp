@@ -88,7 +88,7 @@ jobs:
           username: ${{ secrets.GMAIL_USER }}
           password: ${{ secrets.GMAIL_APP_PASSWORD }}
           to: ${{ secrets.GMAIL_USER }}
-          from: KartAvantaj CI <${{ secrets.GMAIL_USER }}>
+          from: Kasaonu CI <${{ secrets.GMAIL_USER }}>
           subject: "❌ Grup E — Hata Var!"
           body: |
             🍬 Scrapers – Grup E çalışmasında hata(lar) oluştu.

@@ -12,7 +12,7 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 's
 from database import get_db_session
 from models import Brand
 
-PUBLIC_BRANDS_DIR = "/Users/hipoglisemi/Desktop/kartavantaj/public/logos/brands"
+PUBLIC_BRANDS_DIR = "/Users/hipoglisemi/Desktop/kasaonu/public/logos/brands"
 
 def is_valid_match(brand_name, app_title):
     b_name = brand_name.lower().strip()

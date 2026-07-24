@@ -33,7 +33,7 @@ except ImportError as e:
     # We can't even start FastAPI if this fails
     raise
 
-app = FastAPI(title="KartAvantaj Repair API", version="1.0.1")
+app = FastAPI(title="Kasaonu Repair API", version="1.0.1")
 
 # Simple token-based auth
 REPAIR_API_SECRET = os.getenv("REPAIR_API_SECRET", "")

@@ -50,7 +50,7 @@ def get_active_campaigns_for_context(bank_name=None, sector_name=None, limit=5):
 def refresh_blog_content(blog_id, content_html):
     """Blog içeriğindeki ölü linkleri bulur ve AI ile içeriği tazeler."""
     soup = BeautifulSoup(content_html, 'html.parser')
-    links = soup.find_all('a', href=re.compile(r'kartavantaj\.com/kampanya/'))
+    links = soup.find_all('a', href=re.compile(r'kasaonu\.com/kampanya/'))
     
     if not links:
         return None
@@ -79,14 +79,14 @@ def refresh_blog_content(blog_id, content_html):
             # Yeni alternatifleri al (rastgele bir sektör/banka varsayımı veya blog başlığına göre)
             # Şimdilik genel en iyi aktifleri alalım (ileride geliştirilebilir)
             new_campaigns = get_active_campaigns_for_context(limit=2)
-            new_info = "\n".join([f"- {c[3]} {c[0]}: {c[1]} (Link: https://kartavantaj.com/kampanya/{c[2]})" for c in new_campaigns])
+            new_info = "\n".join([f"- {c[3]} {c[0]}: {c[1]} (Link: https://@@KASAONU_DOMAIN@@/kampanya/{c[2]})" for c in new_campaigns])
             
             # Paragrafı bul ve AI'ya ver
             parent_p = link.find_parent(['p', 'li', 'h2', 'h3'])
             if parent_p:
                 old_text = str(parent_p)
                 prompt = f"""
-Sen KartAvantaj editörüsün. Aşağıdaki HTML bloğunda geçen kampanya süresi dolduğu için artık geçersizdir.
+Sen Kasaonu editörüsün. Aşağıdaki HTML bloğunda geçen kampanya süresi dolduğu için artık geçersizdir.
 GÖREV: Bu HTML bloğunu, makalenin genel akışını bozmadan, YENİ kampanya bilgileriyle güncelle.
 
 ESKİ KAMPANYA: {old_info}
@@ -97,7 +97,7 @@ GÜNCELLENECEK HTML BLOĞU:
 {old_text}
 
 KURALLAR:
-1. Sadece sana verilen YENİ kampanya linklerini kullan. (https://kartavantaj.com/kampanya/...)
+1. Sadece sana verilen YENİ kampanya linklerini kullan. (https://@@KASAONU_DOMAIN@@/kampanya/...)
 2. Metin doğal olsun, "X bitti yerine Y geldi" deme. Sanki her zaman Y'den bahsediyormuşsun gibi yaz.
 3. SADECE güncellenmiş HTML kodunu döndür.
 """
