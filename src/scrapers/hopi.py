@@ -179,7 +179,16 @@ class HopiScraper:
             image_url = None
             def is_ugly_guide(alt):
                 alt = alt.lower() if alt else ''
-                return any(x in alt for x in ['çerez', 'aksi durumda', 'tıkla kazan butonuyla', 'yönlendikten sonra'])
+                bad_keywords = [
+                    'çerez', 'aksi durumda', 'tıkla', 'yönlendikten',
+                    'logosu', 'pasif', 'trend alarm', 'kendine bak', 'tadin', 'gez',
+                    'dekorasyon', 'teknoloji', 'gamer', 'spor', 'yaşam'
+                ]
+                if any(x in alt for x in bad_keywords):
+                    return True
+                if len(alt) < 15:
+                    return True
+                return False
 
             images = soup.select("img")
             for img in images:
