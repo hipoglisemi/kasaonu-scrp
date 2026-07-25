@@ -1216,7 +1216,12 @@ def run_autofix(limit: int = 250, campaign_id: Optional[int] = None, force_all: 
                     if is_cards_empty or is_cards_corrupted or is_cards_incomplete or is_cards_wrong or force_campaign:
                         if ai_data.get("cards") is not None:
                             ai_cards = ai_data.get("cards") or []
-                            default_card = "Zubizu App" if "zubizu" in (bank_name or "").lower() or (c.card_id and "zubizu" in str(c.card_id).lower()) else "-"
+                            if "zubizu" in (bank_name or "").lower() or (c.card_id and "zubizu" in str(c.card_id).lower()):
+                                default_card = "Zubizu App"
+                            elif "hopi" in (bank_name or "").lower() or (c.card_id and "hopi" in str(c.card_id).lower()):
+                                default_card = "Hopi App"
+                            else:
+                                default_card = "-"
                             cards_str = ", ".join(ai_cards) if len(ai_cards) > 0 else default_card
 
                             if is_cards_incomplete:
@@ -1578,7 +1583,12 @@ def run_autofix(limit: int = 250, campaign_id: Optional[int] = None, force_all: 
                                     for mc in missed_cards:
                                         if mc not in remaining_cards:
                                             remaining_cards.append(mc)
-                                    default_card = "Zubizu App" if "zubizu" in (bank_name or "").lower() else "-"
+                                    if "zubizu" in (bank_name or "").lower():
+                                        default_card = "Zubizu App"
+                                    elif "hopi" in (bank_name or "").lower():
+                                        default_card = "Hopi App"
+                                    else:
+                                        default_card = "-"
                                     c.eligible_cards = ", ".join(remaining_cards) if remaining_cards else default_card
                                     updated = True
                                     needs_reverify = True

@@ -328,6 +328,11 @@ class HopiScraper:
                         conditions = detail["content"]
 
                     participation = parsed_data.get("participation") or ""
+                    if isinstance(participation, list):
+                        participation = " ".join(participation)
+                    elif not isinstance(participation, str):
+                        participation = str(participation)
+
                     if participation:
                         import re
                         sentences = re.split(r'(?<=[.!?])\s+', participation)
