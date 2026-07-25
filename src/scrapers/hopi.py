@@ -431,5 +431,15 @@ if __name__ == "__main__":
     import sys
     limit = int(sys.argv[1]) if len(sys.argv) > 1 else 0
     scraper = HopiScraper()
-    scraper.scrape(limit=limit)
+    try:
+        scraper.scrape(limit=limit)
+    finally:
+        try:
+            from src.database import engine
+            print("🧹 Disposing database connection pool...")
+            engine.dispose()
+            print("✅ Database pool disposed successfully.")
+        except Exception as e:
+            print(f"⚠️ Error disposing database pool: {e}")
+
 
