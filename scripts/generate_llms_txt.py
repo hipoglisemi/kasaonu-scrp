@@ -42,7 +42,8 @@ def build_llms_files():
 
     conn.close()
 
-    base_url = "https://@@KASAONU_DOMAIN@@"
+    domain = os.getenv("SITE_DOMAIN") or os.getenv("NEXT_PUBLIC_SITE_URL", "https://kartavantaj.com").replace("https://", "").replace("http://", "").rstrip("/")
+    base_url = f"https://{domain}"
 
     # 1. Standard llms.txt (Complete organized structure)
     llms_lines = [

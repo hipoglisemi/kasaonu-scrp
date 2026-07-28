@@ -274,8 +274,9 @@ def generate_topics(banks: List[Any], sectors: List[Any], existing_titles: Set[s
 
 # ── Gemini çağrıları ─────────────────────────────────────────────────────────
 
-def build_campaign_context(bank: Optional[Any], sector: Optional[Any]) -> str:
-    """Kampanya verilerini prompt'a eklenecek metin bloğuna dönüştür."""
+def build_campaign_context(bank: str = None, sector: str = None) -> str:
+    """Aktif kampanyalardan AI'ya bağlam oluştur."""
+    site_domain = os.getenv("SITE_DOMAIN") or os.getenv("NEXT_PUBLIC_SITE_URL", "https://kartavantaj.com").replace("https://", "").replace("http://", "").rstrip("/")
     campaigns = get_top_campaigns(
         bank_id=bank[0] if bank else None,
         sector_id=sector[0] if sector else None,
@@ -287,7 +288,7 @@ def build_campaign_context(bank: Optional[Any], sector: Optional[Any]) -> str:
         # campaigns explicitly typed or checked
         c_title, c_reward, c_end_date, c_bank_name, c_sector_name, c_slug = c
         end_str = c_end_date.strftime("%d.%m.%Y") if c_end_date else "Süresiz"
-        url = f"https://@@KASAONU_DOMAIN@@/kampanya/{c_slug}" if c_slug else ""
+        url = f"https://{site_domain}/kampanya/{c_slug}" if c_slug else ""
         lines.append(f"• {c_bank_name or ''} — {c_title}: {c_reward or ''} (Son: {end_str}) | Link: {url}")
     return "\n".join(lines)
 
@@ -296,6 +297,7 @@ def generate_article(topic_title, bank, sector):
     """Gemini 2.5 Flash ile SEO makalesi üret."""
     print(f"✍️   Makale üretiliyor: {topic_title}")
     campaign_context = build_campaign_context(bank, sector)
+    site_domain = os.getenv("SITE_DOMAIN") or os.getenv("NEXT_PUBLIC_SITE_URL", "https://kartavantaj.com").replace("https://", "").replace("http://", "").rstrip("/")
 
     prompt = f"""
 Sen Kasaonu'ın kıdemli finans editörüsün. 
@@ -306,25 +308,25 @@ KONU: "{topic_title}"
 
 {campaign_context}
 
-309: YAZIM KURALLARI:
-310: 1. Uzunluk: 1000-1300 kelime. Ne fazla ne az.
-311: 2. Dil: Kusursuz Türkçe. Samimi ama profesyonel ton. Okuyucuya "siz" diye hitap et.
-312: 3. GEO & Cevap-Odaklı Yapı (ÖNEMLİ):
-313:    - Makalenin en üstüne 2-3 cümlelik net doğrudan yanıt içeren bir Hızlı Özet ekle. Format:
-314:      <div className="seo-tldr"><strong>📌 Hızlı Özet (TL;DR):</strong> [Doğrudan net yanıt]</div>
-315:    - H2 ve H3 başlıklarını tam kullanıcı soruları şeklinde yaz (Örn: "Akbank Axess ile bu ay kaç TL chip-para kazanılabilir?").
-316:    - Makale içerisinde banka/kart kazanç oranlarını, şartlarını gösteren temiz bir HTML <table> karşılaştırma tablosu mutlaka yer alsın.
-317: 4. Yapı: Hızlı Özet → Giriş → 3-4 ana soru başlığı (h2) → Alt sorular (h3) → Karşılaştırma Tablosu → Sonuç ve CTA
-318: 5. Format: Sadece HTML. <p>, <h2>, <h3>, <ul>, <li>, <strong>, <em>, <a>, <table>, <thead>, <tbody>, <tr>, <th>, <td> kullan.
-319:    <h1> KULLANMA. Markdown KULLANMA.
-320: 6. SEO ve Linkleme: Konu başlığındaki anahtar kelimeleri doğal biçimde ilk paragrafta,
-321:    h2 başlıklarında ve sonuç bölümünde kullan.
-322:    ÖNEMLİ VE KRİTİK KURAL: Listelenen "GERÇEK KAMPANYALAR" için, eğer o kampanya satırında "Link: https://@@KASAONU_DOMAIN@@/kampanya/..." şeklinde bir öge verilmişse, metin içinde o kampanyadan bahsederken YALNIZCA o URL'yi <a href="..."> etiketiyle eklemelisin.
-323:    EĞER bir kampanya için Link verilmemişse veya kendi kendine örnek bir kampanyadan bahsediyorsan, KESİNLİKLE hiçbir link / URL / 'a href' ETİKETİ EKLEMEYECEKSİN. Tüm uydurma linkler (örneğin 'https://yapikredi.com.tr/kampanyalar' gibi dış banka linkleri dahil) KESİNLİKLE YASAKTIR. SADECE sana yukarıdaki metin bloğunda açıkça verilen 'https://@@KASAONU_DOMAIN@@/kampanya/...' bağlantılarını kullanma yetkin var.
-324: 7. Değer: Soyut bilgi verme. Somut rakamlar, gerçek kampanya örnekleri, pratik ipuçları içersin.
-325: 8. CTA: Son paragrafta "Kasaonu'da tüm kampanyaları karşılaştır" mesajını doğal bir cümleyle ver.
-326: 
-327: SADECE makale HTML'ini döndür. Başka hiçbir şey yazma.
+YAZIM KURALLARI:
+1. Uzunluk: 1000-1300 kelime. Ne fazla ne az.
+2. Dil: Kusursuz Türkçe. Samimi ama profesyonel ton. Okuyucuya "siz" diye hitap et.
+3. GEO & Cevap-Odaklı Yapı (ÖNEMLİ):
+   - Makalenin en üstüne 2-3 cümlelik net doğrudan yanıt içeren bir Hızlı Özet ekle. Format:
+     <div className="seo-tldr"><strong>📌 Hızlı Özet (TL;DR):</strong> [Doğrudan net yanıt]</div>
+   - H2 ve H3 başlıklarını tam kullanıcı soruları şeklinde yaz (Örn: "Akbank Axess ile bu ay kaç TL chip-para kazanılabilir?").
+   - Makale içerisinde banka/kart kazanç oranlarını, şartlarını gösteren temiz bir HTML <table> karşılaştırma tablosu mutlaka yer alsın.
+4. Yapı: Hızlı Özet → Giriş → 3-4 ana soru başlığı (h2) → Alt sorular (h3) → Karşılaştırma Tablosu → Sonuç ve CTA
+5. Format: Sadece HTML. <p>, <h2>, <h3>, <ul>, <li>, <strong>, <em>, <a>, <table>, <thead>, <tbody>, <tr>, <th>, <td> kullan.
+   <h1> KULLANMA. Markdown KULLANMA.
+6. SEO ve Linkleme: Konu başlığındaki anahtar kelimeleri doğal biçimde ilk paragrafta,
+   h2 başlıklarında ve sonuç bölümünde kullan.
+   ÖNEMLİ VE KRİTİK KURAL: Listelenen "GERÇEK KAMPANYALAR" için, eğer o kampanya satırında "Link: https://{site_domain}/kampanya/..." şeklinde bir öge verilmişse, metin içinde o kampanyadan bahsederken YALNIZCA o URL'yi <a href="..."> etiketiyle eklemelisin.
+   EĞER bir kampanya için Link verilmemişse veya kendi kendine örnek bir kampanyadan bahsediyorsan, KESİNLİKLE hiçbir link / URL / 'a href' ETİKETİ EKLEMEYECEKSİN. Tüm uydurma linkler (örneğin 'https://yapikredi.com.tr/kampanyalar' gibi dış banka linkleri dahil) KESİNLİKLE YASAKTIR. SADECE sana yukarıdaki metin bloğunda açıkça verilen 'https://{site_domain}/kampanya/...' bağlantılarını kullanma yetkin var.
+7. Değer: Soyut bilgi verme. Somut rakamlar, gerçek kampanya örnekleri, pratik ipuçları içersin.
+8. CTA: Son paragrafta "Kasaonu'da tüm kampanyaları karşılaştır" mesajını doğal bir cümleyle ver.
+
+SADECE makale HTML'ini döndür. Başka hiçbir şey yazma.
 """
 
     html = generate_with_rotation(

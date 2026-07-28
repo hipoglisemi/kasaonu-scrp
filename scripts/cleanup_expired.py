@@ -38,8 +38,9 @@ def notify_google_deleted(slugs: list[str]):
         )
         from googleapiclient.discovery import build
         service = build("indexing", "v3", credentials=credentials)
+        domain = os.getenv("SITE_DOMAIN") or os.getenv("NEXT_PUBLIC_SITE_URL", "https://kartavantaj.com").replace("https://", "").replace("http://", "").rstrip("/")
         for slug in slugs:
-            url = f"https://@@KASAONU_DOMAIN@@/kampanya/{slug}"
+            url = f"https://{domain}/kampanya/{slug}"
             try:
                 service.urlNotifications().publish(
                     body={"url": url, "type": "URL_DELETED"}

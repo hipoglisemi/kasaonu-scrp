@@ -79,7 +79,8 @@ def refresh_blog_content(blog_id, content_html):
             # Yeni alternatifleri al (rastgele bir sektör/banka varsayımı veya blog başlığına göre)
             # Şimdilik genel en iyi aktifleri alalım (ileride geliştirilebilir)
             new_campaigns = get_active_campaigns_for_context(limit=2)
-            new_info = "\n".join([f"- {c[3]} {c[0]}: {c[1]} (Link: https://@@KASAONU_DOMAIN@@/kampanya/{c[2]})" for c in new_campaigns])
+            site_domain = os.getenv("SITE_DOMAIN") or os.getenv("NEXT_PUBLIC_SITE_URL", "https://kartavantaj.com").replace("https://", "").replace("http://", "").rstrip("/")
+            new_info = "\n".join([f"- {c[3]} {c[0]}: {c[1]} (Link: https://{site_domain}/kampanya/{c[2]})" for c in new_campaigns])
             
             # Paragrafı bul ve AI'ya ver
             parent_p = link.find_parent(['p', 'li', 'h2', 'h3'])
@@ -97,7 +98,7 @@ GÜNCELLENECEK HTML BLOĞU:
 {old_text}
 
 KURALLAR:
-1. Sadece sana verilen YENİ kampanya linklerini kullan. (https://@@KASAONU_DOMAIN@@/kampanya/...)
+1. Sadece sana verilen YENİ kampanya linklerini kullan. (https://{site_domain}/kampanya/...)
 2. Metin doğal olsun, "X bitti yerine Y geldi" deme. Sanki her zaman Y'den bahsediyormuşsun gibi yaz.
 3. SADECE güncellenmiş HTML kodunu döndür.
 """
