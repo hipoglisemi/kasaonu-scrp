@@ -92,9 +92,8 @@ GÖREV: Sayfa metnini ve kampanya başlığını inceleyerek kampanyanın başla
         system_instruction=system_instruction
     )
     
-    # Paid tier: tek key yeterli, rotation sadece fallback için
-    NUM_WORKERS = 8
-    key_indices = [1]  # Paid tier: sadece KEY_1 kullan, 429 alırsa rotation devreye girer
+    # Key rotasyonu: Her worker kendi assigned key_index'ini kullansın
+    key_indices = [key_index]
 
     try:
         result_str, usage = generate_with_rotation_tracked(
@@ -228,11 +227,12 @@ def proactive_expiry_audit(max_audits=2500, specific_ids=None):
                     except Exception:
                         path = ""
                     generic_listing_paths = (
-                        'kampanyalar', 'firsatlar', 'ayricaliklar', 'indirimler',
-                        'kampanya-listesi', 'kampanyalarimiz'
+                        '/kampanyalar', '/firsatlar', '/ayricaliklar', '/indirimler',
+                        '/kampanya-listesi', '/kampanyalarimiz', '/tr/kampanyalar'
                     )
-                    if any(gl in path for gl in generic_listing_paths) or len(path) <= 1:
-                        print(f"   👻 [Soft 404 / Listing Redirect] #{c['id']} redirected to listing/homepage. Marking as 404.")
+                    clean_path = path.rstrip('/')
+                    if clean_path in generic_listing_paths or clean_path == "":
+                        print(f"   👻 [Soft 404 / Listing Redirect] #{c['id']} redirected to listing/homepage ({final_url}). Marking as 404.")
                         return {**c, "html": "", "final_url": final_url, "url_changed": url_changed, "is_404": True}
                 
                 # 🔤 Encoding fix: charset belirtmeyen siteler (Amex vb.) için requests
@@ -306,16 +306,20 @@ def proactive_expiry_audit(max_audits=2500, specific_ids=None):
             # ✅ Düzgün temizlenmiş metin: text_cleaner pipeline'ından geçir
             clean_text = clean_html_to_text(c["html"], title=c.get("title", ""))
             
-            # 🛡️ BOT/ENGEL KALKANI & SOFT 404 TESPİTİ:
-            # If the clean_text is suspiciously short or contains typical WAF/Bot block phrases,
-            # we should SKIP rather than letting AI hallucinate or falsely mark as expired.
+            # 🛡️ BOT/ENGEL KALKANI & KISA İÇERİK KONTROLÜ (ÖNCE ÇALIŞMALI):
+            # If clean_text is suspiciously short or contains typical WAF/Bot block phrases,
+            # SKIP rather than letting AI hallucinate or falsely deactivating active campaigns.
             lower_text = clean_text.lower()
-            block_phrases = ["access denied", "cloudflare", "security check", "güvenlik kontrolü", "are you human", "robot olmadığınızı", "sayfa bulunamadı", "aradığınız sayfa"]
+            block_phrases = ["access denied", "cloudflare", "security check", "güvenlik kontrolü", "are you human", "robot olmadığınızı", "sayfa bulunamadı", "aradığınız sayfa", "request rejected"]
             
-            # Soft 404 check: If the original title has specific words, and the page text doesn't contain ANY of them, it's a soft 404
+            if len(clean_text) < 200 or any(bp in lower_text for bp in block_phrases):
+                print(f"   🛡️ [Bot Engeli/Eksik İçerik] #{c['id']} için içerik şüpheli veya bloke edilmiş. Pas geçiliyor.")
+                return False
+
+            # Soft 404 check: If original title has specific words and page text has none of them, it's a soft 404
             orig_title = c.get("title", "").lower()
-            title_words = [w for w in re.split(r'\W+', orig_title) if len(w) > 4 and w not in ('kampanyası', 'fırsatı', 'taksit', 'indirimi')]
-            if title_words and len(lower_text) > 50:
+            title_words = [w for w in re.split(r'\W+', orig_title) if len(w) > 4 and w not in ('kampanyası', 'fırsatı', 'taksit', 'indirimi', 'dünyası', 'katılım')]
+            if title_words and len(lower_text) > 300:
                 match_count = sum(1 for w in title_words if w in lower_text)
                 if match_count == 0:
                     print(f"   💀 [Soft 404 - Başlık Eşleşmiyor] #{c['id']} | Sayfada '{title_words[0]}' bile geçmiyor.")
@@ -325,10 +329,6 @@ def proactive_expiry_audit(max_audits=2500, specific_ids=None):
                             camp.is_active = False
                             db.commit()
                     return
-            
-            if len(clean_text) < 200 or any(bp in lower_text for bp in block_phrases):
-                print(f"   🛡️ [Bot Engeli/Eksik İçerik] #{c['id']} için içerik şüpheli veya bloke edilmiş. Pas geçiliyor.")
-                return False
 
             ai_dates = extract_dates_via_ai(c["title"], clean_text, key_index=key_index, today_date=today)
             
