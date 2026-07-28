@@ -23,6 +23,7 @@ jobs:
           - pep
           - hayhay
           - hopi
+          - trendyol_plus
 
     name: "🤖 ${{ matrix.scraper }}"
 

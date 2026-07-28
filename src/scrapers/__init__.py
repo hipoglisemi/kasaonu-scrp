@@ -116,6 +116,10 @@ try:
     from .hopi import HopiScraper # type: ignore # pyre-ignore[21]
 except ImportError: HopiScraper = None
 
+try:
+    from .trendyol_plus import TrendyolPlusScraper # type: ignore # pyre-ignore[21]
+except ImportError: TrendyolPlusScraper = None
+
 
 __all__ = [
     'GarantiBonusScraper',
@@ -146,7 +150,8 @@ __all__ = [
     'FenerparaScraper',
     'ZubizuScraper',
     'OlizScraper',
-    'HopiScraper'
+    'HopiScraper',
+    'TrendyolPlusScraper'
 ]
 
 
