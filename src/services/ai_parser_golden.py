@@ -1104,6 +1104,7 @@ ANALİZ EDİLECEK METİN:
                     return {
                         "title": existing.title,
                         "description": existing.description,
+                        "ai_marketing_text": existing.ai_marketing_text,
                         "reward_text": existing.reward_text,
                         "reward_value": float(existing.reward_value) if existing.reward_value else None,
                         "reward_type": existing.reward_type,

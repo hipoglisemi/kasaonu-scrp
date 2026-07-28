@@ -437,6 +437,25 @@ def upsert_campaign(db: Session, campaign: Campaign) -> Tuple[Campaign, str]:
             # 🔒 MEASURE A (Tarih Kilidi): If only the date has changed, STRICTLY update only date-related fields!
             print(f"      🔒 [Tarih Kilidi] Campaign '{existing.title[:30]}' is a date-only extension. Content fields and URL are STRICTLY locked!")
             
+            # If the database has empty values for some fields, update them even in date-lock mode!
+            def _fill_if_empty(field_name: str, new_val: Any):
+                old_val = getattr(existing, field_name)
+                old_str = str(old_val).strip() if old_val is not None else ""
+                new_str = str(new_val).strip() if new_val is not None else ""
+                if not old_str and new_str:
+                    print(f"      📥 [Boş Veri Doldurma] '{field_name}' was empty in DB. Populating: '{new_str[:30]}...'")
+                    setattr(existing, field_name, new_val)
+
+            _fill_if_empty("ai_marketing_text", campaign.ai_marketing_text)
+            _fill_if_empty("description", campaign.description)
+            _fill_if_empty("reward_text", campaign.reward_text)
+            _fill_if_empty("reward_value", campaign.reward_value)
+            _fill_if_empty("reward_type", campaign.reward_type)
+            _fill_if_empty("participation", campaign.participation)
+            _fill_if_empty("conditions", campaign.conditions)
+            _fill_if_empty("eligible_cards", campaign.eligible_cards)
+            _fill_if_empty("clean_text", campaign.clean_text)
+
             # 📅 YENİ: Metin içindeki tarihleri otomatik güncelle (Proactive mantığı)
             old_end_date_for_text = existing.end_date
             

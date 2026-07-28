@@ -247,7 +247,8 @@ class TrendyolPlusScraper:
                         bank_name=self.BANK_NAME,
                         scraper_sector=None,
                         tracking_url=tracking_url,
-                        og_title=title
+                        og_title=title,
+                        force=force
                     )
                     
                     if not ai_data or ai_data.get("_ai_failed"):
@@ -422,10 +423,33 @@ class TrendyolPlusScraper:
             return "error"
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--limit", type=int, help="Limit number of campaigns")
-    parser.add_argument("--force", action="store_true", help="Force update existing records")
-    args = parser.parse_args()
+    import argparse
+    import sys
     
+    # Check if a positional numeric argument is passed instead of named arguments
+    limit = None
+    force = False
+    
+    if len(sys.argv) > 1 and sys.argv[1].isdigit():
+        limit = int(sys.argv[1])
+        if len(sys.argv) > 2 and sys.argv[2] == "--force":
+            force = True
+    else:
+        parser = argparse.ArgumentParser()
+        parser.add_argument("--limit", type=int, help="Limit number of campaigns")
+        parser.add_argument("--force", action="store_true", help="Force update existing records")
+        args = parser.parse_args()
+        limit = args.limit
+        force = args.force
+        
     scraper = TrendyolPlusScraper()
-    scraper.run(limit=args.limit, force=args.force)
+    try:
+        scraper.run(limit=limit, force=force)
+    finally:
+        try:
+            from src.database import engine
+            print("🧹 Disposing database connection pool...")
+            engine.dispose()
+            print("✅ Database pool disposed successfully.")
+        except Exception as e:
+            print(f"⚠️ Error disposing database pool: {e}")
