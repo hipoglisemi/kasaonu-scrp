@@ -961,6 +961,7 @@ def run_autofix(limit: int = 250, campaign_id: Optional[int] = None, force_all: 
                 
                 spa_domains_block = ["maximum.com.tr", "maximiles.com.tr", "privia.com.tr", "worldcard.com.tr"]
                 is_spa_url = any(spa in (c_tracking_url or "") for spa in spa_domains_block)
+                is_trendyol_plus = (c.card.bank.slug == "trendyol-plus") if (c.card and c.card.bank) else False
                 db_text_len = len(c_clean_text)
                 
                 is_rescue_active = force_rescue
@@ -972,12 +973,24 @@ def run_autofix(limit: int = 250, campaign_id: Optional[int] = None, force_all: 
                     is_rescue_active = False  # Never force-fetch SPAs with good DB data
                     print(f"   🔒 SPA domain detected. Force-rescue disabled. Using DB text ({db_text_len} chars).")
                 
+                if is_trendyol_plus and db_text_len > 10:
+                    is_rescue_active = False
+                    force_campaign = False
+                    print(f"   🔒 Trendyol Plus campaign detected. URL fetch disabled. Using DB text ({db_text_len} chars).")
+
                 # Initialize repair metadata
                 repair_meta = {"source": "DB", "status": "CLEAN_TEXT_USED"}
                 og_title = None
                 
                 if True: # Dummy context to preserve 20-space indentation downstream
-                    if c_clean_text and len(c_clean_text) >= 250 and not is_truncated and not mojibake_pattern.search(c_clean_text) and not is_rescue_active and not force_campaign:
+                    use_db_text = False
+                    if c_clean_text:
+                        if is_trendyol_plus:
+                            use_db_text = True
+                        elif len(c_clean_text) >= 250 and not is_truncated and not mojibake_pattern.search(c_clean_text) and not is_rescue_active and not force_campaign:
+                            use_db_text = True
+
+                    if use_db_text:
                         print(f"   ⚡ Using pre-cleaned text from DB ({len(c_clean_text)} chars)")
                         text_to_parse = c_clean_text
                     else:
