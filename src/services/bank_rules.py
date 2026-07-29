@@ -164,6 +164,8 @@ ZIRAAT BANKKART SPECIFIC RULES:
     - 4. **BANKKART LITERAL (CRITICAL)**: Always include "Bankkart" (without any suffixes) as a card if it is mentioned as included. Do NOT omit it.
     - 5. **REWARD TRAP (CRITICAL)**: "**Bankkart Lira**" is a reward unit (like points), NOT a card. **NEVER** include "Bankkart Lira" in the cards list.
     - 6. **PRESTIJ BOILERPLATE (CRITICAL)**: Sentences mentioning "Katlanan Bankkart Lira özelliği" or "Bankkart Prestij/Bankkart Prestij Plus kredi kartları için sunulan" are just informational boilerplate. Do NOT extract "Bankkart Prestij" or "Bankkart Prestij Plus" from these sentences unless they are explicitly listed in the main "dahildir" sentence.
+- REWARDS (reward_value & reward_type):
+    - 🚨 **TAKSİT ÖDÜL KURALI (ÇOK KRİTİK)**: Kampanya sadece "Taksit" (Örn: "Vakkorama'da 4 Taksit", "+2 Taksit") kampanyası ise (indirim veya puan yoksa), `reward_type` alanını KESİNLİKLE "taksit" olarak ayarla ve `reward_value` alanına taksit sayısını rakam olarak (Örn: 4.0 veya 2.0) YAZ. ASLA 0.0 veya None olarak bırakma!
 - TERMINOLOGY: "Bankkart Lira". 1 Bankkart Lira = 1 TL.
 - PARTICIPATION:
     - SMS: Look for specific keywords (e.g., "SUBAT2500", "RAMAZAN", "MARKET") sent to **4757**.
@@ -439,6 +441,7 @@ ZİRAAT DİNAMİK SPECIFIC RULES:
     - 🚨 **BOŞ BIRAKMA YASAĞI**: Eğer metinde doğrudan bir kart adı geçmiyorsa veya emin olamadıysan, `cards` listesini ASLA BOŞ BIRAKMA. Varsayılan olarak en azından "Dinamik Bankkart" veya "Ziraat Dinamik Müşterileri" yaz.
 - 🚨 **FOOTER GÜRÜLTÜSÜ YASAĞI (ULTRA CRITICAL)**:
     - Ziraat Katılım ile aynı altyapıyı kullandığı için metnin sonundaki "Kıymetli Madenler Sorumlu Tedarik Zinciri", "SPK Duyuruları", "CİMERe Başvuru", "Satılık Menkuller" gibi gürültüleri tamamen yok say ve ASLA kampanya koşullarına ekleme.
+    - 🚨 **TAKSİT ÖDÜL KURALI (ÇOK KRİTİK)**: Kampanya sadece "Taksit" (Örn: "Oxxo'da 2 Taksit") kampanyası ise, `reward_type` alanını KESİNLİKLE "taksit" olarak ayarla ve `reward_value` alanına taksit sayısını rakam olarak (Örn: 2.0 veya 3.0) YAZ. ASLA 0.0 veya None olarak bırakma!
 - PARTICIPATION (katilim_sekli):
     - Genellikle "Ziraat Dinamik Mobil" veya "Ziraat Mobil" üzerinden katılım sağlanır.
 """,

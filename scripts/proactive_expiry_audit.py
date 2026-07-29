@@ -62,6 +62,7 @@ def extract_dates_via_ai(title: str, clean_text: str, key_index: int = 1, today_
         "5. Çıktıyı her zaman belirtilen JSON formatında ver.\n"
         "6. Kart başvurusu, kampanyaya katılım (Juzdan/SMS katılım süresi) veya ana promosyonun (örn. indirim/chip-para kazanma) bitiş tarihi ile son harcama/ödül kullanım süresi farklı ise, her zaman KATILIM / BAŞVURU / ANA PROMOSYONUN son gününü kampanya bitiş tarihi (end_date) olarak seç. Harcama veya puan son kullanım tarihini bitiş tarihi olarak alma. Örn: '1-30 Haziran arasında başvuranlar 15 Temmuz'a kadar harcayabilir' veya '1-30 Haziran tarihleri arasında başvurulabilir' ifadesinde bitiş tarihi 2026-06-30 olmalıdır.\n"
         "7. ÇOK ÖNEMLİ: Eğer sayfa metni, sana verilen KAMPANYA BAŞLIĞI ile tamamen ilgisizse (örneğin başlık 'Felix' ama metin tamamen 'Opet Pay Nakit İade' veya genel kredi kartı özelliklerini anlatıyorsa), bankanın sayfayı sildiğini ve seni alakasız bir sayfaya yönlendirdiğini anla ve KESİNLİKLE 'is_expired' alanını true yap.\n"
+        "8. YANILGI UYARISI (ÇOK KRİTİK): Sayfada sadece menü linki olarak geçen 'ARŞİV', 'Süresi Dolan Kampanyalar', 'Geçmiş Kampanyalar' kelimelerini görüp KESİNLİKLE 'is_expired' true YAPMA. Kampanyanın gerçekten bittiğine emin olmak için 'Bu kampanya sona ermiştir' gibi kesin bir cümle ara.\n"
     )
     
     prompt = f"""
@@ -240,6 +241,14 @@ def proactive_expiry_audit(max_audits=2500, specific_ids=None):
                 if resp.encoding and resp.encoding.upper() in ('ISO-8859-1', 'LATIN-1', 'LATIN1'):
                     resp.encoding = 'utf-8'
                 html_content = resp.text
+                
+                # ZIRAAT SPECIFIC CHECK (Fast Fail)
+                if 'bankkart.com.tr' in c["url"] or 'ziraatdinamik.com.tr' in c["url"] or 'ziraatbank.com.tr' in c["url"]:
+                    lower_html = html_content.lower()
+                    if "aradığınız sayfaya ulaşılamıyor (http 404)" in lower_html or "kampanya süresi sona ermiştir" in lower_html:
+                        print(f"   💀 [Ziraat 404/Pasif] #{c['id']} | Kampanya bitiş ibaresi bulundu.")
+                        return {**c, "html": "", "final_url": final_url, "url_changed": url_changed, "is_404": True}
+
                 if _needs_selenium(html_content, c["url"]):
                     print(f"   🔍 [JS Render Gerekli] #{c['id']} için Selenium başlatılıyor...")
                     rendered_html = _run_selenium(c["url"])

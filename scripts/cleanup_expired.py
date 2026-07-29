@@ -133,6 +133,13 @@ def is_link_dead(url: str, title: str = "") -> tuple:
                 if final_url.endswith('/kampanyalar') or final_url.endswith('/kampanyalar/') or final_url.endswith('/kampanya'):
                     return (True, final_url)
                     
+            # 7. ZIRAAT / BANKKART / DINAMIK SPECIFIC CHECK
+            if 'bankkart.com.tr' in url or 'ziraatdinamik.com.tr' in url or 'ziraatbank.com.tr' in url:
+                resp_text = resp.text.lower()
+                if "aradığınız sayfaya ulaşılamıyor (http 404)" in resp_text or "kampanya süresi sona ermiştir" in resp_text:
+                    print(f"      🚨 [Ziraat 404/Pasif] Kampanya bitiş veya 404 ibaresi bulundu! Marking as dead link.")
+                    return (True, final_url)
+                    
             # Check for generic "Kampanya Sona Erdi" texts in HTML content
             if resp.status_code == 200:
                 try:
