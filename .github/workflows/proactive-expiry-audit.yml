@@ -43,15 +43,7 @@ jobs:
     - name: Run Proactive Expiry Audit
       env:
         DATABASE_URL: ${{ secrets.DATABASE_URL }}
-        GEMINI_API_KEY_1: ${{ secrets.GEMINI_API_KEY_1 }}
-        GEMINI_API_KEY_2: ${{ secrets.GEMINI_API_KEY_2 }}
-        GEMINI_API_KEY_3: ${{ secrets.GEMINI_API_KEY_3 }}
-        GEMINI_API_KEY_4: ${{ secrets.GEMINI_API_KEY_4 }}
-        GEMINI_API_KEY_5: ${{ secrets.GEMINI_API_KEY_5 }}
-        GEMINI_API_KEY_6: ${{ secrets.GEMINI_API_KEY_6 }}
-        GEMINI_API_KEY_7: ${{ secrets.GEMINI_API_KEY_7 }}
-        GEMINI_API_KEY_8: ${{ secrets.GEMINI_API_KEY_8 }}
-        REVERSE_KEYS: "False"
+        GEMINI_PROACTIVE_API_KEY: ${{ secrets.GEMINI_PROACTIVE_API_KEY }}
         DISPLAY: ':99'
       run: |
         Xvfb :99 -screen 0 1920x1080x24 &

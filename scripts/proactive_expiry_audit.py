@@ -1,3 +1,7 @@
+from dotenv import load_dotenv
+load_dotenv('.env.local')
+load_dotenv('.env')
+
 import os
 import sys
 import json
@@ -9,6 +13,10 @@ import threading
 import time
 import calendar
 
+urllib3.disable_warnings()
+
+import re
+from google.genai import types # type: ignore
 # Setup path to include project root for src.* imports
 project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if project_root not in sys.path:
@@ -17,15 +25,10 @@ if project_root not in sys.path:
 from src.database import get_db_session
 from src.models import Campaign
 from src.services.text_cleaner import clean_campaign_text
-from dotenv import load_dotenv
-load_dotenv('.env')
-
-urllib3.disable_warnings()
-
-import re
-from google.genai import types # type: ignore
-from src.utils.gemini_client import generate_with_rotation, generate_with_rotation_tracked
+from src.utils.gemini_client import generate_with_rotation, generate_with_rotation_tracked, load_proactive_keys
 from bs4 import BeautifulSoup
+
+PROACTIVE_KEYS = load_proactive_keys()
 
 def clean_html_to_text(html: str, title: str = "") -> str:
     """
@@ -102,6 +105,7 @@ GÖREV: Sayfa metnini ve kampanya başlığını inceleyerek kampanyanın başla
             model="gemini-3.5-flash-lite",
             fallback_model="models/gemma-4-31b-it",
             config=config,
+            override_keys=PROACTIVE_KEYS,
             key_indices=key_indices
         )
         
@@ -137,13 +141,44 @@ GÖREV: Sayfa metnini ve kampanya başlığını inceleyerek kampanyanın başla
 chrome_lock = threading.Lock()
 
 def _needs_selenium(raw_html: str, url: str) -> bool:
-    """Hızlı içerik kalite kontrolü — sayfanın JS render gerektirip gerektirmediğini tespit eder."""
+    """Hızlı içerik kalite kontrolü — sayfanın JS render veya Playwright gerektirip gerektirmediğini tespit eder."""
+    if not raw_html or len(raw_html) < 500:
+        return True
+    
+    # Bilinen JS-heavy / dinamik domainler
+    js_domains = ["bankkart.com.tr", "ziraatdinamik.com.tr", "ziraatbank.com.tr", "hopi.com.tr", "opet.com.tr", "petrolofisi.com.tr"]
+    if any(domain in url.lower() for domain in js_domains):
+        if len(raw_html) < 8000:
+            return True
+
+    # Bot engeli veya Soft 404 kalıpları
+    lower_html = raw_html.lower()
+    block_phrases = ["access denied", "cloudflare", "security check", "güvenlik kontrolü", "are you human", "robot olmadığınızı"]
+    if any(bp in lower_html for bp in block_phrases):
+        return True
+        
     return False
 
 
 def _run_selenium(url: str) -> str:
-    """Playwright ile sayfayı açar ve HTML döner. (Fonksiyon adı uyumluluk için aynı bırakıldı)"""
-    return ""
+    """Playwright (sync/headless) kullanarak canlı sayfayı render eder ve tam HTML döner."""
+    try:
+        from playwright.sync_api import sync_playwright
+        with sync_playwright() as p:
+            browser = p.chromium.launch(headless=True, args=['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'])
+            context = browser.new_context(
+                user_agent="Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36",
+                viewport={'width': 1280, 'height': 800}
+            )
+            page = context.new_page()
+            page.goto(url, wait_until="domcontentloaded", timeout=20000)
+            page.wait_for_timeout(1500)  # JS tam çalışsın
+            content = page.content()
+            browser.close()
+            return content
+    except Exception as e:
+        print(f"      ⚠️ Playwright render hatası ({url[:40]}...): {e}")
+        return ""
 
 
 def proactive_expiry_audit(max_audits=2500, specific_ids=None):
@@ -207,7 +242,14 @@ def proactive_expiry_audit(max_audits=2500, specific_ids=None):
         
     extended_count = 0
     session = requests.Session()
-    session.headers.update({'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/120.0.0.0 Safari/537.36'})
+    session.headers.update({
+        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
+        'Accept-Language': 'tr-TR,tr;q=0.9,en-US;q=0.8,en;q=0.7',
+        'Sec-Ch-Ua': '"Not/A)Brand";v="8", "Chromium";v="126", "Google Chrome";v="126"',
+        'Sec-Ch-Ua-Mobile': '?0',
+        'Sec-Ch-Ua-Platform': '"macOS"'
+    })
     
     # Fetch HTML pages in parallel first to speed up the network bottleneck
     print(f"🌐 Fetching {len(campaigns_to_audit)} campaign pages in parallel...")
@@ -242,19 +284,19 @@ def proactive_expiry_audit(max_audits=2500, specific_ids=None):
                     resp.encoding = 'utf-8'
                 html_content = resp.text
                 
-                # ZIRAAT SPECIFIC CHECK (Fast Fail)
+                # ZIRAAT SPECIFIC CHECK (Fast Fail) — Sadece tam 404 sayfasında kapat
                 if 'bankkart.com.tr' in c["url"] or 'ziraatdinamik.com.tr' in c["url"] or 'ziraatbank.com.tr' in c["url"]:
                     lower_html = html_content.lower()
-                    if "aradığınız sayfaya ulaşılamıyor (http 404)" in lower_html or "kampanya süresi sona ermiştir" in lower_html:
-                        print(f"   💀 [Ziraat 404/Pasif] #{c['id']} | Kampanya bitiş ibaresi bulundu.")
+                    if "aradığınız sayfaya ulaşılamıyor (http 404)" in lower_html and "kampanyalar" not in lower_html:
+                        print(f"   💀 [Ziraat 404/Pasif] #{c['id']} | Gerçek 404 bulundu.")
                         return {**c, "html": "", "final_url": final_url, "url_changed": url_changed, "is_404": True}
 
                 if _needs_selenium(html_content, c["url"]):
-                    print(f"   🔍 [JS Render Gerekli] #{c['id']} için Selenium başlatılıyor...")
+                    print(f"   🚀 [Playwright Yükseltme] #{c['id']} için Playwright başlatılıyor: {c['url']}")
                     rendered_html = _run_selenium(c["url"])
                     if rendered_html and len(rendered_html) > len(html_content):
                         html_content = rendered_html
-                        print(f"   ✅ [Selenium Başarılı] #{c['id']} için {len(html_content)} karakter çekildi.")
+                        print(f"   ✅ [Playwright Başarılı] #{c['id']} için {len(html_content)} karakter çekildi.")
                         
                 return {**c, "html": html_content, "final_url": final_url, "url_changed": url_changed, "is_404": False}
             elif resp.status_code == 404 or resp.status_code == 410:
@@ -289,10 +331,10 @@ def proactive_expiry_audit(max_audits=2500, specific_ids=None):
     total_output_tokens = 0
     token_lock = threading.Lock()
     
-    # Gemini 3.1 Flash-Lite fiyatları (resmi)
-    PRICE_INPUT_PER_M = 0.25   # $0.25 per 1M input tokens
-    PRICE_OUTPUT_PER_M = 1.50  # $1.50 per 1M output tokens
-    USD_TO_TRY = 47.0          # Güncel kur
+    # Gemini 3.5 Flash-Lite resmi fiyatları ($0.30 input / $2.50 output per 1M tokens)
+    PRICE_INPUT_PER_M = 0.30   # $0.30 per 1M input tokens
+    PRICE_OUTPUT_PER_M = 2.50  # $2.50 per 1M output tokens
+    USD_TO_TRY = 50.0          # Güncel kur
 
     NUM_WORKERS = 8  # 8 işçi × 8 anahtar, her biri kendi key'ine kilitli
 
@@ -353,7 +395,17 @@ def proactive_expiry_audit(max_audits=2500, specific_ids=None):
             is_indefinite = ai_dates.get("is_indefinite", False)
 
             if is_expired:
-                # Kullanıcı talebi: Banka kampanyayı kaldırdıysa veya sayfa "süresi doldu" diyorsa anında pasife al.
+                # 🛡️ EXPIRED PROTECTION GUARD:
+                # Eğer kampanya veritabanında henüz bitmemişse (end_date >= bugün) ve HTTP 200 geldiyse,
+                # AI'ın tek turluk kararsız okumasına güvenip anında pasife alma!
+                # SADECE metinde doğrulayıcı kesin bitiş kelimesi varsa pasife al.
+                verified_expiry_phrases = ["bu kampanya sona ermiştir", "kampanyamız sona ermiştir", "kampanya süresi dolmuştur", "kampanya sonlanmıştır"]
+                has_verified_phrase = any(phrase in lower_text for phrase in verified_expiry_phrases)
+                
+                if not has_verified_phrase and c.get("end_date") and c["end_date"] >= today:
+                    print(f"   🛡️ [Expired Protection Guard] AI 'bitti' dedi ama metinde kesin bitiş ibaresi yok ve DB bitiş tarihi ({c['end_date']}) gelecekte. Pasife alınmıyor | ID: #{c['id']} | {c['title'][:50]}")
+                    return False
+
                 print(f"   💀 [AI Expired] AI kampanya bitmiş/kaldırılmış dedi, pasife alınıyor | ID: #{c['id']} | {c['title'][:50]}")
                 with get_db_session() as db:
                     camp = db.query(Campaign).filter(Campaign.id == c["id"]).first()

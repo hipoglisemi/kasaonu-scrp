@@ -25,8 +25,9 @@ def _load_keys() -> List[str]:
     """
     Finds all GEMINI_API_KEY environment variables and returns them in a fixed order.
     Original GEMINI_API_KEY comes first, then _1, _2, etc.
+    NOTE: GEMINI_PROACTIVE_API_KEY is explicitly excluded so scrapers never consume proactive keys.
     """
-    all_env_keys = [k for k in os.environ.keys() if k.startswith("GEMINI_API_KEY")]
+    all_env_keys = [k for k in os.environ.keys() if k.startswith("GEMINI_API_KEY") and not k.startswith("GEMINI_PROACTIVE")]
     
     # 🛡️ PROTECT TIER-1 KEY: Never allow the base GEMINI_API_KEY (paid key) for any scrapers/scripts.
     # All scripts (including proactive audit) must only use rotation/free keys (GEMINI_API_KEY_1, _2, etc.)
@@ -55,6 +56,28 @@ def _load_keys() -> List[str]:
     
     if not keys:
         raise ValueError("Hiç Gemini API anahtarı bulunamadı.")
+    return keys
+
+
+def load_proactive_keys() -> List[str]:
+    """
+    Dedicated key loader for Proactive Expiry Audit (GEMINI_PROACTIVE_API_KEY).
+    Isolated exclusively for proactive audit runs so scrapers never touch this key.
+    """
+    proactive_keys = [k for k in os.environ.keys() if k.startswith("GEMINI_PROACTIVE_API_KEY")]
+    keys = []
+    for k in sorted(proactive_keys):
+        value = os.environ.get(k, "").strip()
+        if not value: continue
+        if value.startswith('"') and value.endswith('"'): value = value[1:-1]
+        if value.startswith("'") and value.endswith("'"): value = value[1:-1]
+        if value and value not in keys:
+            keys.append(value)
+            
+    if not keys:
+        print("⚠️ [Proactive Key Alert] GEMINI_PROACTIVE_API_KEY not found in environment. Falling back to default scraper key pool.")
+        return _load_keys()
+    
     return keys
 
 
@@ -109,7 +132,8 @@ def _generate_internal(
     else:
         config = _types.GenerateContentConfig(**kwargs) if kwargs else None
 
-    keys = _load_keys()
+    override_keys = kwargs.pop("override_keys", None)
+    keys = override_keys if override_keys else _load_keys()
     
     # Pair keys with their original 1-based index
     indexed_keys = [{"value": val, "original_index": i + 1} for i, val in enumerate(keys)]
