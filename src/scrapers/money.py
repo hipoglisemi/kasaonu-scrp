@@ -10,7 +10,7 @@ import re
 import time
 import requests
 from typing import Optional, List, Dict, Any, Tuple
-from datetime import datetime
+from datetime import datetime, date
 from bs4 import BeautifulSoup
 from urllib.parse import urljoin
 
@@ -31,7 +31,7 @@ MONTHS = {
 }
 
 
-def parse_tr_date_range(text: str) -> Tuple[Optional[datetime.date], Optional[datetime.date]]:
+def parse_tr_date_range(text: str) -> Tuple[Optional[date], Optional[date]]:
     """Parse Turkish date strings like '1 Temmuz-31 Ağustos 2026' into start and end dates."""
     if not text:
         return None, None
@@ -340,9 +340,11 @@ class MoneyScraper:
             # Database Upsert
             with get_db_session() as db:
                 updated_camp, op_status = upsert_campaign(db, new_campaign)
+                db.commit()
                 
                 if op_status in ("saved", "updated", "revived"):
-                    cid = getattr(updated_camp, "id", None)
+                    db.refresh(updated_camp)
+                    cid = updated_camp.id
                     brands_list = parsed.get("brands", [])
                     if cid and isinstance(brands_list, list) and brands_list:
                         clean_b = cleanup_brands(brands_list)
