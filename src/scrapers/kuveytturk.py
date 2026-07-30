@@ -409,11 +409,14 @@ class KuveytTurkScraper:
             brands_list = parsed_data.get("brands", [])
             if isinstance(brands_list, list):
                 self.db.query(CampaignBrand).filter_by(campaign_id=campaign.id).delete()  # type: ignore # pyre-ignore[16]
+                added_brand_ids = set()
                 for brand_name in brands_list:
                     if not brand_name: continue
                     brand_obj = self._get_or_create_brand(brand_name)
-                    cb = CampaignBrand(campaign_id=campaign.id, brand_id=brand_obj.id)  # type: ignore # pyre-ignore[16]
-                    self.db.merge(cb)
+                    if brand_obj and brand_obj.id not in added_brand_ids:
+                        added_brand_ids.add(brand_obj.id)
+                        cb = CampaignBrand(campaign_id=campaign.id, brand_id=brand_obj.id)  # type: ignore # pyre-ignore[16]
+                        self.db.merge(cb)
                     
             self.db.commit()  # type: ignore # pyre-ignore[16]
             return op_status
