@@ -121,11 +121,20 @@ GÖREV: Sayfa metnini ve kampanya başlığını inceleyerek kampanyanın başla
                 lines = lines[:-1]
             cleaned_result = "\n".join(lines).strip()
             
-        # Clean any single-quote malformations directly on this quick response
-        if "'" in cleaned_result:
-            cleaned_result = cleaned_result.replace("'", '"')
-            
-        data = json.loads(cleaned_result)
+        try:
+            data = json.loads(cleaned_result)
+        except Exception:
+            try:
+                data = json.loads(cleaned_result.replace("'", '"'))
+            except Exception:
+                data = {}
+
+        if isinstance(data, list) and len(data) > 0:
+            data = data[0]
+
+        if not isinstance(data, dict):
+            data = {}
+
         return {
             "start_date": data.get("start_date"),
             "end_date": data.get("end_date"),
@@ -307,7 +316,7 @@ def proactive_expiry_audit(max_audits=2500, specific_ids=None):
             try:
                 rendered_html = _run_selenium(c["url"])
                 if rendered_html:
-                    return {**c, "html": rendered_html, "final_url": c["url"], "url_changed": False}
+                    return {**c, "html": rendered_html, "final_url": c["url"], "url_changed": False, "is_404": False}
             except Exception as pe:
                 print(f"   ⚠️ Playwright fallback also failed for #{c['id']}: {pe}")
         return None
