@@ -398,12 +398,17 @@ class PetrolOfisiScraper:
         """Scrapes extra campaigns exclusive to Petrol Ofisi Mobil App via API."""
         import requests
         
+        token = os.getenv("PETROL_OFISI_BEARER_TOKEN", "")
+        if not token:
+            print("   ⚠️ PETROL_OFISI_BEARER_TOKEN not found in environment. Skipping mobile API stage.")
+            return
+
         headers = {
             'X-Load-Test-Secret': '021ea2f3-bc71-4112-8d50-b97b0af2b890',
             'Content-Type': 'application/json',
             'X-Channel': 'ANDROID',
             'Accept-Language': 'tr',
-            'Authorization': 'Bearer eyJhbGciOiJSUzI1NiJ9.eyJzdWIiOiIzODRhMDc3ZS0xZTQ2LTQ1NmYtYWFhYy1mMjQyODEyYzliMTEiLCJleHAiOjE3OTA3MTEwMjAsImlhdCI6MTc4NTUyNzAyMCwianRpIjoiZDEwYTI0OWMtMWQ4OC00Mzk5LWE0NzUtNjVjZDNjNzVmODQxIiwic2NvcGUiOiJHVUVTVCJ9.ZBcmnWvIkRrk_80d8-KjjeFkSoWy2IGUhKTvAV9nafu1dPn_f4Eh7Q9-3ONWO7gUIAkYmfJpgeLCiSMCRuAAV8ox-DuFGkryLofKi6rg4sgWKLvgAhXYVXi0kNQtMLKEe8m7nfG274gcyctJ41sUQiP8vNTFhkQO7HkiIwUym092DSEVLod3QCqLkXftZe-0GZOmqX3VMTxhDiw8zmBU8f_FWmAd6ZhBz6eMbuYnQFAXGP1h6zMvtgh_vpQkFXf4z7_Az1-wdpu4jucbu-Rq6voiHW16jIhXMlZQ2RoBIdDQuHwYipRLBmlnMngHDMxyX-GLiVFK9cRjO0PGOaxi_A',
+            'Authorization': f'Bearer {token}',
             'User-Agent': 'okhttp/4.10.0'
         }
 
