@@ -129,13 +129,15 @@ class PetrolOfisiScraper:
         self.db = get_db_session()
         
         limit = limit or 999 # Safe high default for 'all'
+        cards: List[Any] = []
         
-        stats = {
+        stats: Dict[str, Any] = {
             "total_found": 0,
             "total_saved": 0,
             "total_skipped": 0,
             "total_failed": 0,
             "total_revived": 0,
+            "status": "SUCCESS",
             "errors": []
         }
 
@@ -380,7 +382,7 @@ class PetrolOfisiScraper:
         finally:
             if self.driver:
                 self.driver.quit()
-            if self.db:
+            if self.db is not None:
                 self.db.close()
             
         # Log Result
@@ -388,7 +390,7 @@ class PetrolOfisiScraper:
             db=self.db,
             scraper_name=self.SOURCE_NAME,
             status=stats.get("status", "SUCCESS"),
-            total_found=len(cards) if 'cards' in locals() else 0,
+            total_found=len(cards),
             total_revived=stats["total_revived"],
             error_details={"errors": stats["errors"]} if stats["errors"] else None
         )
@@ -465,7 +467,8 @@ class PetrolOfisiScraper:
                     continue
                     
                 # Skip duplicate english titles
-                if any(title.startswith(x) for x in ['Discount for', 'Enjoy an', '40% Discount', '30% Discount']):
+                english_indicators = ['discount', 'campaign', 'now', 'up to', 'members', 'exclusive', 'join the', 'enjoy an', 'from petrol ofisi', 'customers']
+                if any(x in title.lower() for x in english_indicators):
                     continue
                     
                 # DB / Blocklist check
