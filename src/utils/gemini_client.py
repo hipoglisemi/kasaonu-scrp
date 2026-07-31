@@ -142,7 +142,12 @@ def _generate_internal(
     # Check if a custom subset of 1-based key indices is specified (e.g. key_indices=[8, 7])
     key_indices = kwargs.pop("key_indices", None)
     if key_indices:
-        indexed_keys = [ik for idx in key_indices for ik in indexed_keys if ik["original_index"] == idx]
+        num_keys = len(indexed_keys)
+        if num_keys > 0:
+            valid_indices = [((idx - 1) % num_keys) + 1 for idx in key_indices]
+            indexed_keys = [ik for idx in valid_indices for ik in indexed_keys if ik["original_index"] == idx]
+        else:
+            indexed_keys = []
     else:
         # Check for reverse keys env
         reverse_keys = os.getenv("REVERSE_KEYS", "False").lower() == "true"
