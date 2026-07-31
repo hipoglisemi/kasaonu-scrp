@@ -47,6 +47,15 @@ class PetrolOfisiScraper:
         self.card_cache: Dict[str, Card] = {}
         self.brand_cache: Dict[str, Brand] = {}
 
+    def _clean_campaign_title(self, title: str) -> str:
+        if not title:
+            return ""
+        cleaned = re.sub(r'_(Ocak|Şubat|Mart|Nisan|Mayıs|Haziran|Temmuz|Ağustos|Eylül|Ekim|Kasım|Aralık)(-[A-Za-zÇĞİÖŞÜçğıöşü]+)?\s*\d{4}', '', title, flags=re.IGNORECASE)
+        cleaned = re.sub(r'\s+(Ocak|Şubat|Mart|Nisan|Mayıs|Haziran|Temmuz|Ağustos|Eylül|Ekim|Kasım|Aralık)\s+\d{4}', '', cleaned, flags=re.IGNORECASE)
+        cleaned = re.sub(r'\s+202\d$', '', cleaned)
+        cleaned = re.sub(r'\s+Kampanyası$', '', cleaned, flags=re.IGNORECASE)
+        return cleaned.strip()
+
     def setup_driver(self):
         """Initialize Selenium with Stealth Mode."""
         if self.driver:
@@ -477,12 +486,11 @@ class PetrolOfisiScraper:
                 # Check if upper title is in English
                 english_indicators = ['discount', 'campaign', 'now', 'up to', 'members', 'exclusive', 'join the', 'enjoy an', 'from petrol ofisi', 'customers']
                 if any(x in title.lower() for x in english_indicators):
-                    if c_name:
-                        print(f"   🔄 Swapped English title '{title[:35]}...' -> TR campaignName '{c_name}'")
-                        title = c_name
-                    else:
-                        continue
-                    
+                # Clean campaign title to match web campaign format and enable deduplication
+                title = self._clean_campaign_title(title)
+                if not title:
+                    continue
+
                 # DB / Blocklist check
                 if is_url_blocked(self.db, tracking_url):
                     continue
