@@ -8,7 +8,7 @@ import re  # type: ignore # pyre-ignore[21]
 import uuid  # type: ignore # pyre-ignore[21]
 import asyncio  # type: ignore # pyre-ignore[21]
 import random  # type: ignore # pyre-ignore[21]
-from datetime import datetime  # type: ignore # pyre-ignore[21]
+from datetime import datetime, timezone  # type: ignore # pyre-ignore[21]
 from typing import Optional, Dict, Any, List, Tuple  # type: ignore # pyre-ignore[21]
 from urllib.parse import urljoin  # type: ignore # pyre-ignore[21]
 
@@ -105,7 +105,7 @@ class KuveytTurkScraper:
                         is_test_mode = os.environ.get('TEST_MODE') == '1'
                         
                         if existing and not is_test_mode:
-                            if existing.updated_at and (datetime.utcnow() - existing.updated_at).days < 2:
+                            if existing.updated_at and (datetime.now(timezone.utc).replace(tzinfo=None) - existing.updated_at).days < 2:
                                 print(f"   ⏭️  Skipping recently updated campaign.")
                                 stats['skipped'] += 1  # type: ignore # pyre-ignore[58]
                                 continue
@@ -245,7 +245,7 @@ class KuveytTurkScraper:
             with get_db_session() as db:
                 existing = db.query(Campaign).filter(Campaign.tracking_url == url).first()  # type: ignore # pyre-ignore[16]
                 if existing and existing.is_active and existing.is_approved:
-                    existing.last_seen_at = datetime.utcnow()
+                    existing.last_seen_at = datetime.now(timezone.utc).replace(tzinfo=None)
                     db.commit()
                     print(f"   ⏭️ Skipped (Already active & last_seen_at updated): {existing.title[:40]}")
                     stats["skipped"] = stats.get("skipped", 0) + 1
@@ -469,7 +469,7 @@ class KuveytTurkScraper:
         return re.sub(r'\s+', ' ', text.replace('\xa0', ' ')).strip()  # type: ignore # pyre-ignore[7]
 
     def _generate_slug(self, title: str) -> str:
-        slug = str(title).lower().replace('ı', 'i').replace('ğ', 'g').replace('ü', 'u').replace('ş', 's').replace('ö', 'o').replace('ç', 'c')
+        slug = title.lower().replace('ı', 'i').replace('ğ', 'g').replace('ü', 'u').replace('ş', 's').replace('ö', 'o').replace('ç', 'c')
         slug = re.sub(r'[^a-z0-9\s-]', '', slug)
         return re.sub(r'[\s-]+', '-', slug).strip('-')  # type: ignore # pyre-ignore[7]
 

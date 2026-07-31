@@ -4,7 +4,7 @@ import random
 import re
 import sys
 from typing import List, Dict, Any, Optional
-from datetime import datetime
+from datetime import datetime, timezone
 from urllib.parse import urljoin
 
 # Ensure src is in path
@@ -485,7 +485,9 @@ class PetrolOfisiScraper:
 
                 # Check if upper title is in English
                 english_indicators = ['discount', 'campaign', 'now', 'up to', 'members', 'exclusive', 'join the', 'enjoy an', 'from petrol ofisi', 'customers']
-                if any(x in title.lower() for x in english_indicators):
+                if any(x in title.lower() for x in english_indicators) and c_name:
+                    title = c_name
+
                 # Clean campaign title to match web campaign format and enable deduplication
                 title = self._clean_campaign_title(title)
                 if not title:
@@ -497,7 +499,7 @@ class PetrolOfisiScraper:
 
                 existing = self.db.query(Campaign).filter(Campaign.tracking_url == tracking_url).first()
                 if existing and existing.is_active and existing.is_approved:
-                    existing.last_seen_at = datetime.utcnow()
+                    existing.last_seen_at = datetime.now(timezone.utc).replace(tzinfo=None)
                     self.db.commit()
                     stats["total_skipped"] += 1
                     continue
