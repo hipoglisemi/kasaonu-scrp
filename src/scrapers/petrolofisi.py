@@ -463,7 +463,11 @@ class PetrolOfisiScraper:
                     
                 data = r.json()
                 title = data.get("title", "").strip()
-                if not title:
+                # Skip internal developer test posts or broken posts
+                title_lower = title.lower()
+                desc_lower = (data.get("description") or "").lower()
+                test_indicators = ["katılımcı testi", "401 hatası", "test kampanya", "katılımcı"]
+                if any(x in title_lower or x in desc_lower for x in test_indicators):
                     continue
                     
                 # Extract internal Turkish campaign name if available
