@@ -490,13 +490,19 @@ class PetrolOfisiScraper:
                     stats["total_skipped"] += 1
                     continue
 
-                # Image URL
+                # Image URL fix: JSON key is 'image'
                 medias = data.get("medias", [])
                 image_url = None
-                if medias and isinstance(medias, list):
-                    image_url = medias[0].get("url") if isinstance(medias[0], dict) else None
+                if medias and isinstance(medias, list) and len(medias) > 0 and isinstance(medias[0], dict):
+                    image_url = medias[0].get("image") or medias[0].get("url")
 
                 description_html = data.get("description", "")
+                
+                # Skip if detail description text is in English
+                eng_content_words = ['campaign is valid', 'fuel purchases', 'download the petrol', 'each customer', 'transaction', 'gift card']
+                if any(w in description_html.lower() for w in eng_content_words):
+                    print(f"   ⏭️ Skipped English detail content for post #{post_id}")
+                    continue
                 
                 # AI Parsing
                 ai_data = parse_api_campaign(
