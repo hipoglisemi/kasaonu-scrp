@@ -10,7 +10,7 @@ import re
 import time
 import requests
 from typing import Optional, List, Dict, Any, Tuple
-from datetime import datetime, date
+from datetime import datetime, date, timedelta
 from bs4 import BeautifulSoup
 from urllib.parse import urljoin
 
@@ -32,10 +32,18 @@ MONTHS = {
 
 
 def parse_tr_date_range(text: str) -> Tuple[Optional[date], Optional[date]]:
-    """Parse Turkish date strings like '1 Temmuz-31 Ağustos 2026' into start and end dates."""
+    """Parse Turkish date strings like '1 Temmuz-31 Ağustos 2026' or 'Son 1 gün' into start and end dates."""
     if not text:
         return None, None
     text_clean = text.lower().strip()
+
+    # Countdown phrase pattern (e.g. 'Faydalanmak İçin Son 1 gün!')
+    m_count = re.search(r'son\s*(\d+)\s*g[üu]n', text_clean)
+    if m_count:
+        days_left = int(m_count.group(1))
+        today = date.today()
+        e_date = today + timedelta(days=days_left)
+        return today, e_date
 
     # Pattern: 1 temmuz-31 ağustos 2026 or 1 temmuz - 31 ağustos 2026
     m = re.search(r'(\d{1,2})\s*([a-zğüşıöc]+)\s*[-–—]\s*(\d{1,2})\s*([a-zğüşıöc]+)\s*(\d{4})', text_clean)
