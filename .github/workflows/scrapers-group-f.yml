@@ -24,6 +24,7 @@ jobs:
           - hayhay
           - hopi
           - trendyol_plus
+          - money
 
     name: "🤖 ${{ matrix.scraper }}"
 
