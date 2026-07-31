@@ -367,6 +367,12 @@ class PetrolOfisiScraper:
                     stats["errors"].append(str(e))
                     self.db.rollback()
 
+            # -------------------------------------------------------------
+            # STAGE 2: Mobile App API Scraping (Extra Mobile Campaigns)
+            # -------------------------------------------------------------
+            print("\n📱 Stage 2: Fetching Extra Mobile App Campaigns via API...")
+            self._scrape_mobile_api(bank, card, stats)
+
         except Exception as e:
             print(f"   ❌ Scraper Crashed: {e}")
             stats["status"] = "FAILED"
@@ -388,6 +394,137 @@ class PetrolOfisiScraper:
         )
         print(f"🏁 Finished {self.SOURCE_NAME}. Saved: {stats['total_saved']}, Revived: {stats['total_revived']}, Skipped: {stats['total_skipped']}, Failed: {stats['total_failed']}")
 
+    def _scrape_mobile_api(self, bank: Bank, card: Card, stats: Dict[str, Any]):
+        """Scrapes extra campaigns exclusive to Petrol Ofisi Mobil App via API."""
+        import requests
+        
+        headers = {
+            'X-Load-Test-Secret': '021ea2f3-bc71-4112-8d50-b97b0af2b890',
+            'Content-Type': 'application/json',
+            'X-Channel': 'ANDROID',
+            'Accept-Language': 'tr',
+            'Authorization': 'Bearer eyJhbGciOiJSUzI1NiJ9.eyJzdWIiOiIzODRhMDc3ZS0xZTQ2LTQ1NmYtYWFhYy1mMjQyODEyYzliMTEiLCJleHAiOjE3OTA3MTEwMjAsImlhdCI6MTc4NTUyNzAyMCwianRpIjoiZDEwYTI0OWMtMWQ4OC00Mzk5LWE0NzUtNjVjZDNjNzVmODQxIiwic2NvcGUiOiJHVUVTVCJ9.ZBcmnWvIkRrk_80d8-KjjeFkSoWy2IGUhKTvAV9nafu1dPn_f4Eh7Q9-3ONWO7gUIAkYmfJpgeLCiSMCRuAAV8ox-DuFGkryLofKi6rg4sgWKLvgAhXYVXi0kNQtMLKEe8m7nfG274gcyctJ41sUQiP8vNTFhkQO7HkiIwUym092DSEVLod3QCqLkXftZe-0GZOmqX3VMTxhDiw8zmBU8f_FWmAd6ZhBz6eMbuYnQFAXGP1h6zMvtgh_vpQkFXf4z7_Az1-wdpu4jucbu-Rq6voiHW16jIhXMlZQ2RoBIdDQuHwYipRLBmlnMngHDMxyX-GLiVFK9cRjO0PGOaxi_A',
+            'User-Agent': 'okhttp/4.10.0'
+        }
+
+        # Scan recent post ID window
+        start_id = 8200
+        end_id = 8450
+        
+        for post_id in range(start_id, end_id):
+            tracking_url = f"https://mobilapi.petrolofisi.com.tr/api/posts/{post_id}"
+            
+            try:
+                r = requests.get(tracking_url, headers=headers, timeout=5)
+                if r.status_code != 200:
+                    continue
+                    
+                data = r.json()
+                title = data.get("title", "").strip()
+                if not title:
+                    continue
+                    
+                # Skip duplicate english titles
+                if any(title.startswith(x) for x in ['Discount for', 'Enjoy an', '40% Discount', '30% Discount']):
+                    continue
+                    
+                # DB / Blocklist check
+                if is_url_blocked(self.db, tracking_url):
+                    continue
+
+                existing = self.db.query(Campaign).filter(Campaign.tracking_url == tracking_url).first()
+                if existing and existing.is_active and existing.is_approved:
+                    existing.last_seen_at = datetime.utcnow()
+                    self.db.commit()
+                    stats["total_skipped"] += 1
+                    continue
+
+                # Image URL
+                medias = data.get("medias", [])
+                image_url = None
+                if medias and isinstance(medias, list):
+                    image_url = medias[0].get("url") if isinstance(medias[0], dict) else None
+
+                description_html = data.get("description", "")
+                
+                # AI Parsing
+                ai_data = parse_api_campaign(
+                    title=title,
+                    short_description=None,
+                    content_html=description_html,
+                    bank_name="Petrol Ofisi",
+                    scraper_sector=None,
+                    tracking_url=tracking_url,
+                    og_title=title
+                )
+
+                if not ai_data or ai_data.get("_ai_failed"):
+                    continue
+
+                # Dates
+                s_date = ai_data.get('start_date')
+                e_date = ai_data.get('end_date')
+                try: start_dt = datetime.strptime(s_date, "%Y-%m-%d").date() if s_date else None
+                except: start_dt = None
+                try: end_dt = datetime.strptime(e_date, "%Y-%m-%d").date() if e_date else None
+                except: end_dt = None
+
+                campaign_slug = get_unique_slug(title, self.db, Campaign)
+
+                new_campaign = Campaign(
+                    card_id=card.id,
+                    slug=campaign_slug,
+                    title=ai_data.get("title", title),
+                    reward_text=ai_data.get("reward_text"),
+                    reward_value=ai_data.get("reward_value"),
+                    reward_type=ai_data.get("reward_type"),
+                    description=ai_data.get("description"),
+                    ai_marketing_text=ai_data.get("ai_marketing_text"),
+                    conditions="\n".join(ai_data.get("conditions", [])),
+                    image_url=image_url or ai_data.get("image_url"),
+                    participation=ai_data.get("participation"),
+                    eligible_cards=", ".join(ai_data.get("cards", [])),
+                    start_date=start_dt,
+                    end_date=end_dt,
+                    tracking_url=tracking_url,
+                    is_active=True,
+                    clean_text=ai_data.get("_clean_text"),
+                    sector_id=self._get_sector_id(ai_data.get("sector")),
+                    category=ai_data.get("sector", "diger")
+                )
+
+                new_campaign, op_status = upsert_campaign(self.db, new_campaign)
+                self.db.commit()
+
+                if op_status == "revived":
+                    print(f"      📱 ♻️  Revived Mobile Campaign: {new_campaign.title[:50]}...")
+                    stats["total_revived"] += 1
+                elif op_status == "saved":
+                    print(f"      📱 ✅ Saved Mobile Campaign: {new_campaign.title[:50]}...")
+                    stats["total_saved"] += 1
+
+                self.db.refresh(new_campaign)
+
+                # Brand matching
+                brand_names = ai_data.get("brands", [])
+                brand_ids = get_or_create_brands_list(
+                    db=self.db,
+                    names=brand_names,
+                    brand_cache=self.brand_cache
+                )
+
+                for b_id in brand_ids:
+                    existing_link = self.db.query(CampaignBrand).filter_by(campaign_id=new_campaign.id, brand_id=b_id).first()
+                    if not existing_link:
+                        cb = CampaignBrand(campaign_id=new_campaign.id, brand_id=b_id)
+                        self.db.add(cb)
+
+                self.db.commit()
+
+            except Exception as e:
+                print(f"      ⚠️ Error in mobile post #{post_id}: {e}")
+                self.db.rollback()
+
     def _get_sector_id(self, sector_slug: Optional[str]) -> Optional[int]:
         """Maps AI sector slug to DB sector ID."""
         if not sector_slug:
@@ -403,3 +540,4 @@ if __name__ == "__main__":
     
     scraper = PetrolOfisiScraper()
     scraper.scrape(limit=args.limit)
+
