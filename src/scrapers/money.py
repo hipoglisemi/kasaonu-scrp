@@ -356,6 +356,8 @@ class MoneyScraper:
                     brands_list = parsed.get("brands", [])
                     if cid and isinstance(brands_list, list) and brands_list:
                         clean_b = cleanup_brands(brands_list)
+                        # Migros / Money is the issuing entity, not a target campaign brand
+                        clean_b = [b for b in clean_b if b.lower() not in ('migros', 'money', 'money kart', 'migros sanal market', 'migros hemen', 'macrocenter')]
                         from src.services.brand_matcher import get_or_create_brands_list
                         brand_ids = get_or_create_brands_list(
                             db_session=db,
