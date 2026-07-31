@@ -394,13 +394,48 @@ class PetrolOfisiScraper:
         )
         print(f"🏁 Finished {self.SOURCE_NAME}. Saved: {stats['total_saved']}, Revived: {stats['total_revived']}, Skipped: {stats['total_skipped']}, Failed: {stats['total_failed']}")
 
+    def _get_guest_token(self) -> Optional[str]:
+        """
+        Returns an active Guest Bearer Token.
+        First checks PETROL_OFISI_BEARER_TOKEN from .env.
+        If missing or expired, dynamically fetches a fresh 60-day Guest token from Mobile API.
+        """
+        import requests
+        
+        env_token = os.getenv("PETROL_OFISI_BEARER_TOKEN")
+        if env_token:
+            return env_token
+            
+        print("   🔑 Fetching fresh dynamic Guest Token from Petrol Ofisi Mobile Auth API...")
+        auth_url = "https://mobilapi.petrolofisi.com.tr/api/auth/guest"
+        headers = {
+            'X-Load-Test-Secret': '021ea2f3-bc71-4112-8d50-b97b0af2b890',
+            'Content-Type': 'application/json',
+            'X-Channel': 'ANDROID',
+            'Accept-Language': 'tr',
+            'User-Agent': 'okhttp/4.10.0'
+        }
+        
+        try:
+            res = requests.post(auth_url, headers=headers, json={}, timeout=10)
+            if res.status_code == 200:
+                token_data = res.json()
+                access_token = token_data.get("accessToken")
+                if access_token:
+                    print("   ✅ Successfully generated new dynamic 60-day Guest Bearer Token!")
+                    return access_token
+        except Exception as e:
+            print(f"   ⚠️ Dynamic Guest token fetch error: {e}")
+            
+        return None
+
     def _scrape_mobile_api(self, bank: Bank, card: Card, stats: Dict[str, Any]):
         """Scrapes extra campaigns exclusive to Petrol Ofisi Mobil App via API."""
         import requests
         
-        token = os.getenv("PETROL_OFISI_BEARER_TOKEN", "")
+        token = self._get_guest_token()
         if not token:
-            print("   ⚠️ PETROL_OFISI_BEARER_TOKEN not found in environment. Skipping mobile API stage.")
+            print("   ⚠️ Failed to acquire Guest Token. Skipping mobile API stage.")
             return
 
         headers = {
