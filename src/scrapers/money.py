@@ -32,12 +32,17 @@ MONTHS = {
 
 
 def parse_tr_date_range(text: str) -> Tuple[Optional[date], Optional[date]]:
-    """Parse Turkish date strings like '1 Temmuz-31 Ağustos 2026' or 'Son 1 gün' into start and end dates."""
+    """Parse Turkish date strings like '1 Temmuz-31 Ağustos 2026' or 'Faydalanmak İçin Son gün!' into start and end dates."""
     if not text:
         return None, None
     text_clean = text.lower().strip()
 
-    # Countdown phrase pattern (e.g. 'Faydalanmak İçin Son 1 gün!')
+    # Special handling for 'Son gün' / 'Son 1 gün' / 'Faydalanmak için son gün'
+    if 'son gün' in text_clean or 'son gun' in text_clean:
+        today = date.today()
+        return today, today
+
+    # Countdown phrase pattern (e.g. 'Faydalanmak İçin Son 3 gün!')
     m_count = re.search(r'son\s*(\d+)\s*g[üu]n', text_clean)
     if m_count:
         days_left = int(m_count.group(1))
