@@ -466,10 +466,18 @@ class PetrolOfisiScraper:
                 if not title:
                     continue
                     
-                # Skip duplicate english titles
+                # Extract internal Turkish campaign name if available
+                c_list = data.get("data", {}).get("campaigns", [])
+                c_name = c_list[0].get("campaignName") if (c_list and isinstance(c_list, list) and len(c_list) > 0 and isinstance(c_list[0], dict)) else None
+
+                # Check if upper title is in English
                 english_indicators = ['discount', 'campaign', 'now', 'up to', 'members', 'exclusive', 'join the', 'enjoy an', 'from petrol ofisi', 'customers']
                 if any(x in title.lower() for x in english_indicators):
-                    continue
+                    if c_name:
+                        print(f"   🔄 Swapped English title '{title[:35]}...' -> TR campaignName '{c_name}'")
+                        title = c_name
+                    else:
+                        continue
                     
                 # DB / Blocklist check
                 if is_url_blocked(self.db, tracking_url):
