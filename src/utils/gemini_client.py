@@ -1,6 +1,7 @@
 import os
 import time
 import random
+import json
 from typing import Optional, Union, List, Any
 try:
     from dotenv import load_dotenv # type: ignore
@@ -245,6 +246,113 @@ def get_gemini_client() -> Any:
     """
     if not HAS_GENAI:
         raise ImportError("google-genai kütüphanesi yüklü değil.")
+    keys = load_proactive_keys()
+    return _sdk.Client(api_key=keys[0])
+
+
+# ─── Gemini Batch API Helper Functions (%50 Discount) ────────────────────────
+def submit_proactive_batch_job(
+    requests_list: List[dict],
+    model: str = "gemini-3.5-flash-lite",
+    batch_filename: str = "proactive_audit_batch.jsonl"
+) -> Any:
+    """
+    Submits a batch job to Google AI Studio Batch API (%50 cost discount).
+    requests_list: List of dicts formatted with custom_id and request parameters.
+    """
+    if not HAS_GENAI:
+        raise ImportError("google-genai kütüphanesi yüklü değil.")
+    
+    proactive_keys = load_proactive_keys()
+    client = _sdk.Client(api_key=proactive_keys[0])
+    
+    # Save requests to JSONL
+    with open(batch_filename, "w", encoding="utf-8") as f:
+        for item in requests_list:
+            f.write(json.dumps(item, ensure_ascii=False) + "\n")
+            
+    print(f"📦 [Batch API] Packaged {len(requests_list)} requests into '{batch_filename}'. Uploading to Google AI Studio...")
+    
+    uploaded_file = client.files.upload(
+        file=batch_filename,
+        config=_types.UploadFileConfig(mime_type="text/plain")
+    )
+    print(f"✅ [Batch API] File uploaded successfully: {uploaded_file.name}")
+    
+    batch_job = client.batches.create(
+        model=model,
+        src=uploaded_file.name
+    )
+    print(f"🚀 [Batch API] Batch Job submitted successfully!")
+    print(f"   🆔 Job Name: {batch_job.name}")
+    print(f"   📊 Initial State: {batch_job.state}")
+    
+    return batch_job, uploaded_file.name
+
+
+def poll_and_download_batch_results(
+    batch_job_name: str,
+    max_wait_seconds: int = 1500,
+    check_interval: int = 25
+) -> dict:
+    """
+    Polls Gemini Batch API until completion (SUCCEEDED/FAILED) and returns parsed dict by custom_id.
+    """
+    if not HAS_GENAI:
+        raise ImportError("google-genai kütüphanesi yüklü değil.")
+        
+    proactive_keys = load_proactive_keys()
+    client = _sdk.Client(api_key=proactive_keys[0])
+    
+    start_time = time.time()
+    print(f"⏳ [Batch API Polling] Waiting for Batch Job '{batch_job_name}' to complete (Max wait: {max_wait_seconds/60:.1f} mins)...")
+    
+    while time.time() - start_time < max_wait_seconds:
+        job = client.batches.get(name=batch_job_name)
+        state_str = str(job.state).upper()
+        elapsed_mins = (time.time() - start_time) / 60
+        
+        if "SUCCEEDED" in state_str:
+            print(f"🎉 [Batch API Success] Job completed successfully in {elapsed_mins:.1f} mins!")
+            dest_obj = getattr(job, "dest", None)
+            output_file_name = None
+            if dest_obj:
+                if hasattr(dest_obj, "file_name") and dest_obj.file_name:
+                    output_file_name = dest_obj.file_name
+                elif isinstance(dest_obj, str):
+                    output_file_name = dest_obj
+            if not output_file_name:
+                output_file_name = getattr(job, "output_file_name", None)
+            
+            if not output_file_name:
+                raise RuntimeError(f"Batch Job succeeded but no output file path could be extracted. Job: {job}")
+                
+            print(f"📥 [Batch API Download] Downloading output file '{output_file_name}'...")
+            file_content = client.files.download(file=output_file_name)
+            lines = file_content.decode("utf-8").splitlines()
+            
+            results_map = {}
+            for line in lines:
+                if not line.strip(): continue
+                try:
+                    data = json.loads(line.strip())
+                    custom_id = data.get("custom_id")
+                    if custom_id:
+                        results_map[custom_id] = data
+                except Exception as e:
+                    print(f"⚠️ [Batch API Line Parse Error]: {e}")
+                    
+            print(f"✅ [Batch API Download] Successfully downloaded and parsed {len(results_map)} campaign responses!")
+            return results_map
+            
+        elif "FAILED" in state_str or "CANCELLED" in state_str:
+            raise RuntimeError(f"🚨 [Batch API Error] Job failed or cancelled with state: {job.state} | Error: {getattr(job, 'error', None)}")
+            
+        print(f"   ⏳ [Batch API Polling] State: {job.state} | Elapsed: {elapsed_mins:.1f} mins | Retrying in {check_interval}s...")
+        time.sleep(check_interval)
+        
+    raise TimeoutError(f"⏰ [Batch API Timeout] Job did not complete within {max_wait_seconds/60:.1f} minutes.")
+
 
     keys = _load_keys()
     key = random.choice(keys)

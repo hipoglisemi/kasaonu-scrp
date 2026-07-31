@@ -25,7 +25,13 @@ if project_root not in sys.path:
 from src.database import get_db_session
 from src.models import Campaign
 from src.services.text_cleaner import clean_campaign_text
-from src.utils.gemini_client import generate_with_rotation, generate_with_rotation_tracked, load_proactive_keys
+from src.utils.gemini_client import (
+    generate_with_rotation, 
+    generate_with_rotation_tracked, 
+    load_proactive_keys,
+    submit_proactive_batch_job,
+    poll_and_download_batch_results
+)
 from bs4 import BeautifulSoup
 
 PROACTIVE_KEYS = load_proactive_keys()
@@ -347,7 +353,7 @@ def proactive_expiry_audit(max_audits=2500, specific_ids=None):
 
     NUM_WORKERS = 8  # 8 işçi × 8 anahtar, her biri kendi key'ine kilitli
 
-    def audit_one(args):
+    def audit_one(args, ai_dates_override=None):
         """Audit a single campaign: AI parse → DB update. Thread-safe."""
         nonlocal total_input_tokens, total_output_tokens
         c, worker_idx = args
@@ -390,13 +396,15 @@ def proactive_expiry_audit(max_audits=2500, specific_ids=None):
                             db.commit()
                     return
 
-            ai_dates = extract_dates_via_ai(c["title"], clean_text, key_index=key_index, today_date=today)
-            
-            # Token kullanımını kaydet
-            usage = ai_dates.get("_usage", {})
-            with token_lock:
-                total_input_tokens += usage.get("input_tokens", 0)
-                total_output_tokens += usage.get("output_tokens", 0)
+            if ai_dates_override is not None:
+                ai_dates = ai_dates_override
+            else:
+                ai_dates = extract_dates_via_ai(c["title"], clean_text, key_index=key_index, today_date=today)
+                # Token kullanımını kaydet
+                usage = ai_dates.get("_usage", {})
+                with token_lock:
+                    total_input_tokens += usage.get("input_tokens", 0)
+                    total_output_tokens += usage.get("output_tokens", 0)
 
             ai_start_date_str = ai_dates.get("start_date")
             ai_end_date_str = ai_dates.get("end_date")
@@ -574,17 +582,102 @@ def proactive_expiry_audit(max_audits=2500, specific_ids=None):
             print(f"   ⚠️ Error | #{c['id']} | {c['title'][:50]} | {e}")
             return False
 
-    with ThreadPoolExecutor(max_workers=NUM_WORKERS) as executor:
-        # Her kampanyaya (c, worker_idx) tuple geçiyoruz; worker_idx anahtar seçimini belirler
-        futures = {executor.submit(audit_one, (c, i % NUM_WORKERS)): c for i, c in enumerate(campaigns_with_html)}
-        for future in as_completed(futures):
-            result = future.result()
-            with lock:
-                processed_count += 1
-                if result:
-                    extended_count += 1
-                if processed_count % 25 == 0:
-                    print(f"   📊 Progress: {processed_count}/{total} audited, {extended_count} extended so far...")
+    use_batch_mode = os.getenv("USE_BATCH_API", "True").lower() == "true"
+    batch_success = False
+
+    if use_batch_mode and campaigns_with_html:
+        print(f"📦 [Batch API %50 İndirimli Mod] {len(campaigns_with_html)} kampanya için Batch isteği hazırlanıyor...")
+        batch_requests = []
+        campaign_map = {str(c["id"]): c for c in campaigns_with_html}
+        
+        system_instruction = (
+            "Sen Kasaonu projesinde kampanya tarihlerini ve durumunu tespit eden uzman bir veri analistisin.\n"
+            "Gönderilen metni analiz ederek kampanyanın durumunu ve başlangıç/bitiş tarihlerini bulmalısın.\n\n"
+            "ÇOK ÖNEMLİ KURALLAR:\n"
+            "1. Eğer metinde kampanyanın bittiğine, süresinin dolduğuna veya yayından kaldırıldığına dair bir ibare varsa ('Kampanya sona ermiştir', 'Süresi doldu', 'Sayfa bulunamadı', '404' vb.) veya tarihler geçmişte kalmışsa 'is_expired' alanını true yap.\n"
+            "2. Eğer metin tek bir kampanyayı değil, many farklı kampanyayı listeliyorsa (genel banka anasayfasına yönlendirilmişse) 'is_expired' alanını true yap.\n"
+            "3. Kampanya aktif olmasına rağmen metinde herhangi bir bitiş tarihi belirtilmemişse 'is_indefinite' alanını true yap.\n"
+            "4. Sadece kampanya aktifse ve bitiş tarihi varsa 'end_date' alanını YYYY-MM-DD formatında doldur, aksi halde null bırak.\n"
+            "5. Çıktıyı her zaman belirtilen JSON formatında ver.\n"
+            "6. Katılım / başvuru son gününü kampanya bitiş tarihi olarak seç.\n"
+        )
+
+        for c in campaigns_with_html:
+            clean_text = clean_html_to_text(c["html"], title=c.get("title", ""))
+            prompt = f"""BUGÜNÜN TARİHİ: {today.strftime('%Y-%m-%d')}\nKAMPANYA BAŞLIĞI: {c.get('title', '')}\nKAMPANYA SAYFA METNİ:\n---\n{clean_text}\n---\nGÖREV: Kampanyanın tarihlerini ve durumunu tespit et.\n```json\n{{\n  "start_date": "YYYY-MM-DD",\n  "end_date": "YYYY-MM-DD",\n  "is_expired": false,\n  "is_indefinite": false\n}}\n```"""
+            
+            req_item = {
+                "custom_id": str(c["id"]),
+                "request": {
+                    "contents": [{"role": "user", "parts": [{"text": prompt}]}],
+                    "systemInstruction": {"parts": [{"text": system_instruction}]},
+                    "generationConfig": {
+                        "temperature": 0.0,
+                        "topP": 0.1,
+                        "topK": 1,
+                        "responseMimeType": "application/json"
+                    }
+                }
+            }
+            batch_requests.append(req_item)
+            
+        try:
+            batch_job, uploaded_file = submit_proactive_batch_job(batch_requests, model="gemini-3.5-flash-lite")
+            results_map = poll_and_download_batch_results(batch_job.name, max_wait_seconds=1500)
+            
+            # Batch API fiyatları %50 indirimli ($0.15 input / $1.25 output per 1M tokens)
+            PRICE_INPUT_PER_M = 0.15
+            PRICE_OUTPUT_PER_M = 1.25
+            
+            for custom_id, resp_obj in results_map.items():
+                c = campaign_map.get(custom_id)
+                if not c: continue
+                
+                response_data = resp_obj.get("response", {})
+                candidates = response_data.get("candidates", [])
+                usage_meta = response_data.get("usageMetadata", {})
+                
+                total_input_tokens += usage_meta.get("promptTokenCount", 0)
+                total_output_tokens += usage_meta.get("candidatesTokenCount", 0)
+                
+                if candidates:
+                    parts = candidates[0].get("content", {}).get("parts", [])
+                    if parts:
+                        text_res = parts[0].get("text", "")
+                        try:
+                            cleaned_res = text_res.strip()
+                            if cleaned_res.startswith("```"):
+                                lines_res = cleaned_res.split("\n")
+                                if lines_res[0].startswith("```"): lines_res = lines_res[1:]
+                                if lines_res[-1].startswith("```"): lines_res = lines_res[:-1]
+                                cleaned_res = "\n".join(lines_res).strip()
+                            ai_dates = json.loads(cleaned_res)
+                        except Exception:
+                            ai_dates = {"start_date": None, "end_date": None, "is_expired": False, "is_indefinite": False}
+                            
+                        # Apply audit DB logic
+                        res_ok = audit_one((c, 0), ai_dates_override=ai_dates)
+                        processed_count += 1
+                        if res_ok: extended_count += 1
+
+            batch_success = True
+            print(f"🎉 [Batch API Entegrasyonu Tamamlandı] {processed_count} kampanya %50 indirimli fiyatla işlendi!")
+        except Exception as batch_err:
+            print(f"⚠️ [Batch API Fallback Uyarısı] Batch işlemi başarısız veya zaman aşımına uğradı: {batch_err}")
+            print(f"🔄 Kesintisiz mod devrede: 8 paralel worker ile canlı API taramasına geçiliyor...")
+            batch_success = False
+
+    if not batch_success:
+        with ThreadPoolExecutor(max_workers=NUM_WORKERS) as executor:
+            futures = {executor.submit(audit_one, (c, i % NUM_WORKERS)): c for i, c in enumerate(campaigns_with_html)}
+            for future in as_completed(futures):
+                result = future.result()
+                with lock:
+                    processed_count += 1
+                    if result:
+                        extended_count += 1
+                    if processed_count % 25 == 0:
+                        print(f"   📊 Progress: {processed_count}/{total} audited, {extended_count} extended so far...")
 
     run_end_time = time.time()
     run_duration = run_end_time - run_start_time
