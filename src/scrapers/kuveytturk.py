@@ -240,13 +240,14 @@ class KuveytTurkScraper:
             print(f"      ❌ List load failed: {e}")
             return [], []
 
-    async def _scrape_single_detail(self, context: Any, url: str, bank_id: Any, card_id: Any, stats: Any) -> bool:
         # Database Pre-check (Skip Logic)
         try:
             with get_db_session() as db:
                 existing = db.query(Campaign).filter(Campaign.tracking_url == url).first()  # type: ignore # pyre-ignore[16]
                 if existing and existing.is_active and existing.is_approved:
-                    print(f"   ⏭️ Skipped (Already exists and active): {existing.title}")
+                    existing.last_seen_at = datetime.utcnow()
+                    db.commit()
+                    print(f"   ⏭️ Skipped (Already active & last_seen_at updated): {existing.title[:40]}")
                     stats["skipped"] = stats.get("skipped", 0) + 1
                     return True
         except Exception as e:
