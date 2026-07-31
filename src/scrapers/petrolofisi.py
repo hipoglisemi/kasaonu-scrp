@@ -498,12 +498,6 @@ class PetrolOfisiScraper:
 
                 description_html = data.get("description", "")
                 
-                # Skip if detail description text is in English
-                eng_content_words = ['campaign is valid', 'fuel purchases', 'download the petrol', 'each customer', 'transaction', 'gift card']
-                if any(w in description_html.lower() for w in eng_content_words):
-                    print(f"   ⏭️ Skipped English detail content for post #{post_id}")
-                    continue
-                
                 # AI Parsing
                 ai_data = parse_api_campaign(
                     title=title,
