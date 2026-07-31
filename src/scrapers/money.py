@@ -329,6 +329,7 @@ class MoneyScraper:
                 title=final_title,
                 slug=generate_slug(final_title),
                 description=parsed.get("description", ""),
+                ai_marketing_text=parsed.get("ai_marketing_text", ""),
                 reward_text=parsed.get("reward_text", ""),
                 reward_value=parsed.get("reward_value"),
                 reward_type=parsed.get("reward_type"),
