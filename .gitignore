@@ -25,4 +25,5 @@ temp_backup/
 scripts/proactive_audit_local.py
 chrome_profile/
 scratch/
+*.jsonl
 
