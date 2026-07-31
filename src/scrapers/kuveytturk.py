@@ -240,21 +240,8 @@ class KuveytTurkScraper:
             print(f"      ❌ List load failed: {e}")
             return [], []
 
-        # Database Pre-check (Skip Logic)
-        try:
-            with get_db_session() as db:
-                existing = db.query(Campaign).filter(Campaign.tracking_url == url).first()  # type: ignore # pyre-ignore[16]
-                if existing and existing.is_active and existing.is_approved:
-                    existing.last_seen_at = datetime.now(timezone.utc).replace(tzinfo=None)
-                    db.commit()
-                    print(f"   ⏭️ Skipped (Already active & last_seen_at updated): {existing.title[:40]}")
-                    stats["skipped"] = stats.get("skipped", 0) + 1
-                    return True
-        except Exception as e:
-            print(f"   ⚠️ DB Pre-check error: {e}")
-            # Continue to scrape if DB check fails for some reason
-
-
+    async def _scrape_single_detail(self, context: Any, url: str, bank_id: int, card_id: int, stats: Dict[str, Any]) -> bool:
+        success = False
         page = await context.new_page()
         try:
             await page.goto(url, wait_until="domcontentloaded", timeout=45000)
@@ -270,6 +257,7 @@ class KuveytTurkScraper:
             if is_url_blocked(self.db, url):
                 print(f"   🚫 Skipped (Blocklisted): {title}")
                 stats['skipped'] += 1  # type: ignore # pyre-ignore[58]
+                await page.close()
                 return True
             
             # Clean unwanted elements
@@ -277,67 +265,47 @@ class KuveytTurkScraper:
                 unwanted.decompose()
 
             content_row = soup.select_one("div.row.search-content")
-            
-            main_description = ""
-            conditions_text = ""
-            if content_row:
-                text_col = content_row.select_one("div.col-md-6:nth-child(1)")
-                if text_col:
-                    list_items = text_col.select("ul.list > li")
-                    if list_items:
-                        main_description = self._clean(list_items[0].get_text())
-                        conditions_text = "\n".join([f"- {self._clean(li.get_text())}" for li in list_items[1:]])  # type: ignore # pyre-ignore[16,6]
-            
-            if not main_description:
-                content_div = soup.select_one(".search-content, .subpage-wrapper .container, .ck-content")
-                if content_div:
-                    main_description = self._clean(content_div.get_text())[:800]  # type: ignore # pyre-ignore[16,6]
-            
-            # Image
+            if not content_row:
+                content_row = soup
+
+            img_el = content_row.select_one("img.img-fluid, .campaign-detail img, img")
             image_url = None
-            img_candidates = soup.select("img")
-            for img in img_candidates:
-                src = img.get("src") or img.get("data-src")
-                if not src or src.startswith("data:"): continue
-                lower_src = src.lower()
-                if any(x in lower_src for x in ["campaign", "kampanya", "detail", ".vsf", "banner"]):  # type: ignore # pyre-ignore[16,6]
-                    image_url = urljoin(self.BASE_URL, src)
-                    break
+            if img_el and img_el.get("src"):
+                image_url = urljoin(url, img_el["src"])
+
+            main_description = self._clean(content_row.text) if content_row else ""
             
-            if not image_url and content_row:
-                img_el = content_row.select_one("img")
-                if img_el:
-                    image_url = urljoin(self.BASE_URL, img_el.get("src") or img_el.get("data-src")) # type: ignore # pyre-ignore[16]
-
-            print("   🤖 Parsing with AI...")
-            # og:title for Header Sniper
-            og_title_el = soup.find("meta", property="og:title")
-            og_title = og_title_el.get("content", "").strip() if og_title_el else title
-
-            # Full body HTML → parse_api_campaign centralised pipeline
-            body_el = soup.find("body")
-            raw_html = str(body_el) if body_el else html_content
+            conditions_text = ""
+            cond_headers = content_row.find_all(lambda tag: tag.name in ['h2', 'h3', 'h4', 'strong', 'b', 'p'] and 'kampanya detay' in tag.text.lower())
+            
+            if cond_headers:
+                header = cond_headers[0]
+                parent = header.parent
+                conditions_text = self._clean(parent.text) if parent else ""
+            
+            if not conditions_text:
+                conditions_text = main_description
 
             parsed_data = parse_api_campaign(
                 title=title,
                 short_description=None,
-                content_html=raw_html,
+                content_html=str(content_row),
                 bank_name=self.BANK_NAME,
                 scraper_sector=None,
-                tracking_url=url,
-                og_title=og_title
-            ) or {}
+                tracking_url=url
+            )
             
             if not parsed_data:
-                print("   ❌ AI Parse failed")
+                print(f"      ⚠️ AI parsing failed for {title}")
                 stats['failed'] += 1  # type: ignore # pyre-ignore[58]
-                return False  # type: ignore # pyre-ignore[7]
-                
+                await page.close()
+                return False
+
             raw_data = {
                 "title": title,
                 "image_url": image_url,
                 "description": main_description,
-                "raw_text": raw_html,
+                "raw_text": html_content,
                 "source_url": url,
                 "date_text": conditions_text # Fallback for date extraction
             }
@@ -347,16 +315,17 @@ class KuveytTurkScraper:
                 if status == "saved": stats['new'] += 1  # type: ignore # pyre-ignore[58,16,6]
                 elif status == "revived": stats['revived'] += 1
                 else: stats['updated'] += 1  # type: ignore # pyre-ignore[58,16,6]
-                return True  # type: ignore # pyre-ignore[7]
+                success = True
             else:
-                stats['failed'] += 1 # type: ignore
-                return False
+                stats['failed'] += 1  # type: ignore
+                success = False
         except Exception as e:
             print(f"      ❌ Detail error: {e}")
-            return False
+            success = False
         finally:
             await page.close()
-        return False
+
+        return success
 
     def _save_campaign(self, bank_id: int, card_id: int, parsed_data: Dict[str, Any], raw_data: Dict[str, Any]):  # type: ignore # pyre-ignore[16,6]
         title = raw_data["title"]
