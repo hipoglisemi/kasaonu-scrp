@@ -274,7 +274,7 @@ class MoneyScraper:
 
             # Clean HTML container
             container = d_soup.select_one(".inner-content") or d_soup.select_one("main") or d_soup
-            for tag in container.select('script, style, header, footer, nav, .share, .social, a[href*="facebook"], a[href*="whatsapp"], a[href*="linkedin"], a[href*="twitter"]'):
+            for tag in container.select('script, style, header, footer, nav, .campaign-other, .all-campaigns-list, #special-campaigns-list, .sidebar-content, iframe, modal, .share, .social, a[href*="facebook"], a[href*="whatsapp"], a[href*="linkedin"], a[href*="twitter"]'):
                 tag.decompose()
 
             raw_text = container.text
@@ -363,20 +363,17 @@ class MoneyScraper:
                             brand_cache={},
                             sector_id=sector_id
                         )
+                        # Clear old links for this campaign before re-linking
+                        db.query(CampaignBrand).filter(CampaignBrand.campaign_id == cid).delete()
                         for bid in brand_ids:
                             try:
-                                link = db.query(CampaignBrand).filter(
-                                    CampaignBrand.campaign_id == cid,
-                                    CampaignBrand.brand_id == bid
-                                ).first()
-                                if not link:
-                                    db.execute(
-                                        CampaignBrand.__table__.insert().values(
-                                            campaign_id=cid,
-                                            brand_id=bid
-                                        )
+                                db.execute(
+                                    CampaignBrand.__table__.insert().values(
+                                        campaign_id=cid,
+                                        brand_id=bid
                                     )
-                                    db.commit()
+                                )
+                                db.commit()
                             except Exception as e:
                                 db.rollback()
                                 print(f"   ⚠️ CampaignBrand link failed: {e}")
