@@ -249,26 +249,40 @@ class VakifbankScraper:
             title = ai_data.get("title", "Kampanya")
             desc = ai_data.get("description", "")
             
-            # Map Sector
-            cat_map = {
-                "Market & Gıda": "Market",
-                "Giyim & Aksesuar": "Giyim",
-                "Restoran & Kafe": "Restoran & Kafe",
-                "Seyahat": "Seyahat",
-                "Turizm & Konaklama": "Seyahat",
-                "Elektronik": "Elektronik",
-                "Mobilya & Dekorasyon": "Mobilya & Dekorasyon",
-                "Kozmetik & Sağlık": "Kozmetik & Sağlık",
-                "E-Ticaret": "E-Ticaret",
-                "Otomotiv": "Otomotiv",
-                "Sigorta": "Sigorta",
-                "Diğer": "Diğer"
+            # Map Sector Slugs
+            slug_map = {
+                "Market & Gıda": "market-gida",
+                "Market": "market-gida",
+                "Giyim & Aksesuar": "giyim-aksesuar",
+                "Giyim": "giyim-aksesuar",
+                "Restoran & Kafe": "restoran-kafe",
+                "Seyahat": "turizm-konaklama",
+                "Turizm & Konaklama": "turizm-konaklama",
+                "Elektronik": "elektronik",
+                "Mobilya & Dekorasyon": "mobilya-dekorasyon",
+                "Kozmetik & Sağlık": "kozmetik-saglik",
+                "E-Ticaret": "e-ticaret",
+                "Akaryakıt": "akaryakit",
+                "Otomotiv": "otomotiv",
+                "Sigorta": "sigorta",
+                "Eğitim": "egitim",
+                "Vergi & Kamu": "vergi-kamu",
+                "Kitap, Kırtasiye & Ofis": "kitap-kirtasiye-ofis",
+                "Fatura & Telekomünikasyon": "fatura-telekomunikasyon",
+                "Finans & Yatırım": "finans-yatirim",
+                "Kültür, Sanat & Spor": "kultur-sanat-spor",
+                "Diğer": "diger"
             }
             ai_cat = ai_data.get("sector", "Diğer")
-            db_sector_name = cat_map.get(ai_cat, "Diğer")
+            target_slug = slug_map.get(ai_cat)
             
-            sector = self.db.query(Sector).filter(Sector.slug == db_sector_name).first()  # type: ignore # pyre-ignore[16]
-            if not sector: sector = self.db.query(Sector).filter(Sector.slug == 'diger').first()  # type: ignore # pyre-ignore[16]
+            sector = None
+            if target_slug:
+                sector = self.db.query(Sector).filter(Sector.slug == target_slug).first()
+            if not sector:
+                sector = self.db.query(Sector).filter(Sector.name == ai_cat).first()
+            if not sector:
+                sector = self.db.query(Sector).filter(Sector.slug == 'diger').first()
             
             # Generate Unique Slug
             from src.utils.slug_generator import get_unique_slug
