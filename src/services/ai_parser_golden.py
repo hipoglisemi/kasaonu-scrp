@@ -154,7 +154,12 @@ CONDITION_BOILERPLATE = [
     "kullanılmayan puanlar geri alınacaktır",
     "tarihleri arasında geçerlidir", "tarihleri arasında geçerli",
     "tarihleri arasında yapılacak", "döneminde geçerli",
-    "kampanya dönemi", "tarihine kadar geçerli"
+    "kampanya dönemi", "tarihine kadar geçerli",
+    "dileğinde durdurma ve/veya kampanya koşullarını değiştirme",
+    "durdurma ve/veya kampanya koşullarını değiştirme",
+    "dileğinde durdurma", "koşullarını değiştirme hakkı",
+    "nafaka ve haciz kesintileri", "promosyon ödenmesine ilişkin protokol",
+    "promosyon taahhütnamesi", "vefat haricinde herhangi bir nedenle"
 ]
 
 # Passthrough card terms (generic categories that are always valid)
@@ -369,16 +374,22 @@ Kampanya Sahibi Banka/Kurum: {bank_name}
 
 5. **KOŞULLAR**: 
     - En fazla 10 madde.
+    - 🚨 **ÖDÜL VE KAZANÇ TUTARI (ZORUNLU - İLK MADDELER)**: Kampanyanın sunduğu tüm net kazanç, indirim, promosyon veya puan tutarlarını (Örn: "15.000 TL Nakit Promosyon + 5.000 TL Chip-para", "%20 İndirim", "200 TL Hediye Çeki") KESİNLİKLE koşulların ilk maddelerine açıkça yaz.
+    - 🚨 **HARCAMA ŞARTI VE EŞİĞİ (ZORUNLU)**: Kullanıcının ne kadarlık harcama veya işlem yapması gerektiğini yaz (Örn: "Tek seferde 1.000 TL ve üzeri harcamalara", "Mobilden ilk kez müşteri olup maaşını taşıyanlara").
     - 🚨 İKİNCİL ÖDÜLLER: Ana ödülden farklı olan taksit, ek fayda vb. durumları ve onlara özel geçerli kartları burada belirt (Örn: "Peşin fiyatına 6 taksit fırsatından Axess kartlar da yararlanabilir").
     - 🚨 GEÇERLİ OLAN VE OLMAYAN KANALLAR (ZORUNLU): Kampanyanın geçerli olduğu (dahil olan) veya geçerli olmadığı (hariç tutulan) website, mobil uygulama, fiziksel mağaza, marka, platform veya bayi gibi kanal bilgilerini MUTLAKA 'conditions' listesine ayrı ayrı maddeler halinde her zaman ekle (Örn: "Kampanya X mobil uygulamasında geçerlidir", "Y web sitesinde geçerli değildir", "Z fiziksel mağazaları hariçtir").
-    - 🚨 GEÇERLİ OLDUĞU YERLER (ZORUNLU): Kampanyanın dahil olduğu/geçerli olduğu mağaza, marka, platform veya web siteleri metinde geçiyorsa, bunu EKSİKSİZ VE KESİN OLARAK maddelerden biri yap (Örn: "Kampanya sadece www.ornek.com ve X mağazalarında geçerlidir").
+    - 🚨 GEÇERLİ OLDUĞU YERLER (ZORUNLU): Kampanyanın dahil olduğu/geçerli olduğu mağaza, marka, platform veya web siteleri metinde geçiyorsa, bunu EKSİKSİZ VE KESİN OLARAK maddelerden biri yap. 🚨 AÇIK MARKA LİSTESİ KURALI: Eğer metinde geçerli olan firma, marka veya platform isimleri liste/madde halinde geçiyorsa (Örn: ChatGPT, Gemini, Claude, Midjourney vb.), bunları "seçili firmalar" diyerek ÖZETLEME! Geçerli marka/firma isimlerini koşul maddesinde KESİNLİKLE TEK TEK AÇIKÇA LİSTELE (Örn: "Kampanya ChatGPT, Google Gemini, Claude, Midjourney, GitHub Copilot, Canva Pro vb. platformlarda geçerlidir").
     - 🚨 İSTİSNALAR VE HARİÇ OLANLAR (KRİTİK): Kampanya kapsamında **geçerli OLMAYAN** markalar, ürün grupları, mağazalar veya kart tipleri metinde belirtilmişse (Örn: "Tütün harcamaları dahil değildir", "X mağazaları hariçtir", "Ticari kartlar geçerli değildir"), bunları MUTLAKA 'conditions' listesine madde olarak ekle. Kullanıcı neyin kapsam dışı olduğunu bilmeli.
     - 🚨 MAĞAZA/POS KURALI: Eğer 'sadece X Bankası POS cihazlarından geçen işlemler' gibi fiziksel/altyapı şartları varsa, bunu DİREKT OLARAK maddelerden biri yap.
     - 🚨 ULTRA KRİTİK - YASAK: Tarih (başlangıç, bitiş tarihleri), Geçerli Kartlar ve Katılım Adımları/Yönergeleri KESİNLİKLE 'conditions' listesi içerisine YAZILMAMALIDIR. Kullanıcının kampanyaya nasıl katılacağını anlatan adımları (Örn: SMS gönderimi, 'Kampanyaya Git' butonuna tıklama, uygulamadan onaylama) SADECE 'participation' alanına yaz, 'conditions' içinde ASLA tekrar etme. Aynı şekilde tarihler ve kartlar da diğer alanlarda zaten mevcuttur; buraya yazılmaları gereksiz tekrar olur.
-    - 🚨 JURIDICAL BOILERPLATE REMOVAL (ULTRA STRICT): Aşağıdaki jenerik hukuki metinleri KESİNLİKLE SİL, ASLA MADDE OLARAK YAZMA:
+    - 🚨 JURIDICAL BOILERPLATE REMOVAL (ULTRA STRICT): Aşağıdaki jenerik hukuki ve ticari metinleri KESİNLİKLE SİL, ASLA MADDE OLARAK YAZMA:
+      * "Bankamız dilediği zaman kampanyayı durdurma ve/veya koşullarını değiştirme hakkına sahiptir."
       * "Taksit sayısı ürün gruplarına göre yasal mevzuat çerçevesinde belirlenir."
       * "Bireysel kredi kartlarıyla.. BDDK kuralları gereği..."
       * "Yasal mevzuat gereği azami taksit sayısı..."
+      * "Nafaka ve haciz kesintileri bulunan kişilerin promosyon ödemesi..."
+      * "Taahhüt süresi içinde vefat haricinde herhangi bir nedenle..."
+      * "Promosyon ödenmesine ilişkin protokol ve taahhütname koşulları geçerlidir."
       * "Kampanya farklı kampanyalarla birleştirilemez."
       * "Kazanılan Jest Liralar Bankkart Prestij ve Bankkart Prestij Plus kredi kartları için sunulan Katlanan Jest Lira özelliği kapsamında kullanılamaz."
     - Sıkıcı hukuki detayları silebilirsin, odak sadece müşteri kazancı.
@@ -392,7 +403,7 @@ JSON FORMATI:
   "ai_marketing_text": "Kullanıcıyı heyecanlandıracak, SEO odaklı pazarlama metni. 🚨 ASLA description ile aynı olmamalıdır. Kampanya içeriğiyle (Sektör ve Marka) doğrudan ilgili, çeşitli ve yaratıcı emojiler kullanarak enerjik bir dil kur. 'Hadi hemen katıl!', 'Fırsatı kaçırma!' gibi genel eylem çağrıları içermelidir ancak 🚨 ASLA 'Fırsatı Kullan butonuna tıklayarak şifre alabilirsiniz', 'Uygulamadan şifre alın' gibi ADIM ADIM KATILIM YÖNERGELERİNİ VEYA ŞİFRE/KOD ALMA TALİMATLARINI buraya yazma (bunlar sadece 'participation' alanında olmalıdır). 🚨 ASLA kampanya geçerlilik tarihlerini (başlangıç/bitiş veya son katılım tarihleri) bu metne dahil etme.",
   "reward_value": 0.0,
   "reward_type": "puan/indirim/taksit/mil/cashback",
-  "reward_text": "Kısa ve Çarpıcı. Peşin fiyatına gibi detayları yazma. Örn: '150 TL Yakıt Puan' veya '%20 İndirim'",
+  "reward_text": "Kısa ve Çarpıcı. Örn: '150 TL Yakıt Puan', '%20 İndirim' veya 'Ücretsiz Ulaşım'. 🚨 KESİNLİKLE 'Kampanya detaylarını inceleyiniz', 'Detaylar sitede', 'Fırsatı kaçırma' gibi jenerik/manasız metinler yazma.",
   "min_spend": 0.0,
   "start_date": "YYYY-MM-DD",
   "end_date": "YYYY-MM-DD",

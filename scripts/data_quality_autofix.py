@@ -1302,13 +1302,12 @@ def run_autofix(limit: int = 250, campaign_id: Optional[int] = None, force_all: 
                             updated = True
                             print(f"   ✨ Repaired End Date: {c.end_date}")
                             
-                    # Update Conditions if missing, corrupted or force_campaign
+                    # Update Conditions if missing, corrupted or whenever AI re-parse runs
                     is_cond_corrupted = c.conditions and any(kw in c.conditions.lower() for kw in ["güvenlik uyarısı", "sertifika hatası", "request rejected", "access denied", "ssl"])
-                    if not c.conditions or c.conditions.strip() == "" or corrupted_regex.search(c.conditions) or is_cond_corrupted or force_campaign:
-                        if ai_data.get("conditions"):
-                            print(f"   ✨ Repaired Conditions!")
-                            c.conditions = "\n".join(cond for cond in ai_data.get("conditions", []))
-                            updated = True
+                    if ai_data.get("conditions"):
+                        print(f"   ✨ Repaired Conditions!")
+                        c.conditions = "\n".join(cond for cond in ai_data.get("conditions", []))
+                        updated = True
 
 
                     # Clean and update Participation
