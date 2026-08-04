@@ -458,17 +458,25 @@ class PetrolOfisiScraper:
             'User-Agent': 'okhttp/4.10.0'
         }
 
-        # Scan recent post ID window
+        # Scan recent post ID window dynamically
         start_id = 8200
-        end_id = 8450
+        max_id = 9000
+        consecutive_404s = 0
+        max_consecutive_404s = 35
         
-        for post_id in range(start_id, end_id):
+        for post_id in range(start_id, max_id):
             tracking_url = f"https://mobilapi.petrolofisi.com.tr/api/posts/{post_id}"
             
             try:
                 r = requests.get(tracking_url, headers=headers, timeout=5)
                 if r.status_code != 200:
+                    consecutive_404s += 1
+                    if consecutive_404s >= max_consecutive_404s and post_id > 8550:
+                        print(f"   ℹ️ Petrol Ofisi API: Reached {consecutive_404s} consecutive 404s at post_id={post_id}. Stopping scan.")
+                        break
                     continue
+                
+                consecutive_404s = 0
                     
                 data = r.json()
                 title = data.get("title", "").strip()
