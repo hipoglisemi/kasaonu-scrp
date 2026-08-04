@@ -482,10 +482,13 @@ def upsert_campaign(db: Session, campaign: Campaign) -> Tuple[Campaign, str]:
                 print(f"      🔗 [URL Güncelleme] tracking_url changed even in date-lock: {existing.tracking_url} → {campaign.tracking_url}")
                 existing.tracking_url = campaign.tracking_url
             # 🖼️ Image URL Update: If the bank changed the image URL (or to fix broken extensions),
-            # update image_url even in date-lock mode.
+            # update image_url even in date-lock mode, EXCEPT if we have manually cached it locally.
             if campaign.image_url and existing.image_url != campaign.image_url:
-                print(f"      🖼️ [Görsel Güncelleme] image_url changed even in date-lock: {existing.image_url} → {campaign.image_url}")
-                existing.image_url = campaign.image_url
+                if existing.image_url and existing.image_url.startswith('/uploads/'):
+                    print(f"      🖼️ [Görsel Korundu] Local image preserved: {existing.image_url}")
+                else:
+                    print(f"      🖼️ [Görsel Güncelleme] image_url changed even in date-lock: {existing.image_url} → {campaign.image_url}")
+                    existing.image_url = campaign.image_url
         else:
             # Update URLs and Slug ONLY when it's a completely new/modified campaign
             existing.tracking_url = campaign.tracking_url  
@@ -504,6 +507,11 @@ def upsert_campaign(db: Session, campaign: Campaign) -> Tuple[Campaign, str]:
                 # 🛡️ PROTECT AI MARKETING TEXT: Never overwrite it if it's already set in the DB
                 if field_name == "ai_marketing_text" and old_str:
                     print(f"         🛡️ [Kalkan] Rejection: 'ai_marketing_text' is protected. Shielding from override.")
+                    return
+
+                # 🛡️ PROTECT LOCAL IMAGES: Never overwrite locally downloaded images
+                if field_name == "image_url" and old_str.startswith('/uploads/'):
+                    print(f"         🛡️ [Kalkan] Rejection: Local '{field_name}' preserved: {old_str}")
                     return
 
                 # If existing is populated, but new is empty/junk, reject the new value!
