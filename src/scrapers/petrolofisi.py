@@ -492,9 +492,13 @@ class PetrolOfisiScraper:
                 c_name = c_list[0].get("campaignName") if (c_list and isinstance(c_list, list) and len(c_list) > 0 and isinstance(c_list[0], dict)) else None
 
                 # Check if upper title is in English
-                english_indicators = ['discount', 'campaign', 'now', 'up to', 'members', 'exclusive', 'join the', 'enjoy an', 'from petrol ofisi', 'customers']
-                if any(x in title.lower() for x in english_indicators) and c_name:
-                    title = c_name
+                english_indicators = ['discount', 'campaign', 'now', 'up to', 'members', 'exclusive', 'join the', 'enjoy an', 'from petrol ofisi', 'customers', 'get ', 'special', 'buy ', 'offer', ' earn ', 'points']
+                if any(x in title.lower() for x in english_indicators):
+                    if c_name and not any(x in c_name.lower() for x in english_indicators):
+                        title = c_name
+                    else:
+                        print(f"      ⏭️ Skipping English mobile campaign: {title}")
+                        continue
 
                 # Clean campaign title to match web campaign format and enable deduplication
                 title = self._clean_campaign_title(title)
@@ -509,6 +513,21 @@ class PetrolOfisiScraper:
                 if existing and existing.is_active and existing.is_approved:
                     existing.last_seen_at = datetime.now(timezone.utc).replace(tzinfo=None)
                     self.db.commit()
+                    stats["total_skipped"] += 1
+                    continue
+
+                # NEW: Check for title duplicates (twins) from the web scraper
+                from src.utils.scraper_utils import normalize_text_for_comparison
+                norm_title = normalize_text_for_comparison(title)
+                twin_exists = False
+                if norm_title:
+                    all_camps = self.db.query(Campaign).filter(Campaign.card_id == card.id).all()
+                    for c in all_camps:
+                        if normalize_text_for_comparison(c.title) == norm_title and c.tracking_url != tracking_url:
+                            print(f"      ⏭️ Skipping duplicate mobile twin: '{title}' (Twin of {c.id})")
+                            twin_exists = True
+                            break
+                if twin_exists:
                     stats["total_skipped"] += 1
                     continue
 
