@@ -35,7 +35,7 @@ class TurkcellScraper:
     """
     
     BASE_URL = "https://www.turkcell.com.tr"
-    LISTING_URL = "https://www.turkcell.com.tr/kampanyalar/marka-kampanyalari"
+    LISTING_URL = "https://www.turkcell.com.tr/kampanyalar/marka-kampanyalari/marka-kampanyalari"
     
     def __init__(self, max_campaigns: int = 1000, headless: bool = True):
         self.max_campaigns = max_campaigns
