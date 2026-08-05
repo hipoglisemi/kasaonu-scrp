@@ -518,15 +518,28 @@ class PetrolOfisiScraper:
 
                 # NEW: Check for title duplicates (twins) from the web scraper
                 from src.utils.scraper_utils import normalize_text_for_comparison
+                from rapidfuzz import fuzz
+                
                 norm_title = normalize_text_for_comparison(title)
                 twin_exists = False
                 if norm_title:
                     all_camps = self.db.query(Campaign).filter(Campaign.card_id == card.id).all()
                     for c in all_camps:
-                        if normalize_text_for_comparison(c.title) == norm_title and c.tracking_url != tracking_url:
-                            print(f"      ⏭️ Skipping duplicate mobile twin: '{title}' (Twin of {c.id})")
-                            twin_exists = True
-                            break
+                        c_norm = normalize_text_for_comparison(c.title)
+                        if c_norm and c.tracking_url != tracking_url:
+                            # Strict equality or substring match or fuzzy match
+                            is_match = False
+                            if c_norm == norm_title:
+                                is_match = True
+                            elif (norm_title in c_norm or c_norm in norm_title) and min(len(norm_title), len(c_norm)) > 20:
+                                is_match = True
+                            elif fuzz.ratio(c_norm, norm_title) > 85:
+                                is_match = True
+                                
+                            if is_match:
+                                print(f"      ⏭️ Skipping duplicate mobile twin: '{title}' (Twin of {c.id})")
+                                twin_exists = True
+                                break
                 if twin_exists:
                     stats["total_skipped"] += 1
                     continue
