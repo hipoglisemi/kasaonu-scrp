@@ -11,6 +11,7 @@ from typing import List, Tuple, Set, Dict, Optional, Any, cast
 from dotenv import load_dotenv  # type: ignore
 from slugify import slugify  # type: ignore
 from src.utils.gemini_client import generate_with_rotation  # type: ignore
+import json
 
 load_dotenv()
 
@@ -180,7 +181,7 @@ def get_top_campaigns(bank_id=None, sector_id=None, limit=5):
         conn.close()
 
 
-def save_to_database(title, slug, content_html, excerpt, meta_description, image_url):
+def save_to_database(title, slug, content_html, excerpt, meta_description, image_url, faqs=None, image_alt=None):
     """
     Blogu veritabanına kaydet.
     is_published = False → admin panelinden onaylanana kadar yayınlanmaz.
@@ -188,14 +189,17 @@ def save_to_database(title, slug, content_html, excerpt, meta_description, image
     conn = get_connection()
     try:
         cur = conn.cursor()
+        faqs_json = json.dumps(faqs, ensure_ascii=False) if faqs else '[]'
+        if image_alt is None:
+            image_alt = title
         cur.execute(
             """
             INSERT INTO blogs
-              (title, slug, content_html, meta_description, image_url, category, is_published, created_at)
-            VALUES (%s, %s, %s, %s, %s, %s, TRUE, NOW())
+              (title, slug, content_html, meta_description, image_url, image_alt, category, is_published, created_at, faqs)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, TRUE, NOW(), %s::jsonb)
             RETURNING id
             """,
-            (title, slug, content_html, meta_description, image_url, "Rehber"),
+            (title, slug, content_html, meta_description, image_url, image_alt, "Rehber", faqs_json),
         )
         blog_id = cur.fetchone()[0]
         conn.commit()
@@ -274,7 +278,7 @@ def generate_topics(banks: List[Any], sectors: List[Any], existing_titles: Set[s
 
 # ── Gemini çağrıları ─────────────────────────────────────────────────────────
 
-def build_campaign_context(bank: str = None, sector: str = None) -> str:
+def build_campaign_context(bank: Optional[Any] = None, sector: Optional[Any] = None) -> str:
     """Aktif kampanyalardan AI'ya bağlam oluştur."""
     site_domain = os.getenv("SITE_DOMAIN") or os.getenv("NEXT_PUBLIC_SITE_URL", "https://kartavantaj.com").replace("https://", "").replace("http://", "").rstrip("/")
     campaigns = get_top_campaigns(
@@ -293,11 +297,15 @@ def build_campaign_context(bank: str = None, sector: str = None) -> str:
     return "\n".join(lines)
 
 
-def generate_article(topic_title, bank, sector):
+def generate_article(topic_title, bank, sector, h2_draft=None):
     """Gemini 2.5 Flash ile SEO makalesi üret."""
     print(f"✍️   Makale üretiliyor: {topic_title}")
     campaign_context = build_campaign_context(bank, sector)
     site_domain = os.getenv("SITE_DOMAIN") or os.getenv("NEXT_PUBLIC_SITE_URL", "https://kartavantaj.com").replace("https://", "").replace("http://", "").rstrip("/")
+
+    h2_instruction = ""
+    if h2_draft:
+        h2_instruction = f"\nÖZEL İÇERİK YAPISI VE H2 TASLAĞI:\nAşağıdaki taslağı birebir kullanarak makaleyi kurgula:\n{h2_draft}\n"
 
     prompt = f"""
 Sen Kasaonu'ın kıdemli finans editörüsün. 
@@ -307,6 +315,7 @@ gerçek kullanıcıya değer katan, özgün ve derinlemesine bir blog makalesi y
 KONU: "{topic_title}"
 
 {campaign_context}
+{h2_instruction}
 
 YAZIM KURALLARI:
 1. Uzunluk: 1000-1300 kelime. Ne fazla ne az.
@@ -373,38 +382,106 @@ def generate_excerpt(meta_description):
     """Meta description'dan kısa excerpt türet."""
     return meta_description[:160] if meta_description else ""
 
+def generate_faqs(topic_title, html_content):
+    """Makale için 5 adet FAQ üret."""
+    print("❓  Sıkça Sorulan Sorular (FAQ) üretiliyor...")
+    prompt = f"""
+Sen bir SEO ve içerik uzmanısın.
+Aşağıda başlığı verilen makale için Google FAQPage Schema'sına uygun tam 5 adet soru ve cevap üret.
+
+BAŞLIK: {topic_title}
+
+KURALLAR:
+1. Sorular kullanıcıların Google'da arayacağı tarzda olsun (Örn: "Maximum kart aidatı ne kadar?", "Öğrenci kredi kartı limiti neye göre belirlenir?").
+2. Cevaplar doğrudan, net ve tatmin edici olsun (1-2 cümle).
+3. SADECE JSON DIZISI (Array) dondur. Markdown isaretleri, ```json, veya ekstra aciklama kullanma.
+4. JSON Formatı asagidaki gibi olmalidir:
+[
+  {{ "question": "Soru 1?", "answer": "Cevap 1" }},
+  {{ "question": "Soru 2?", "answer": "Cevap 2" }}
+]
+"""
+    try:
+        response_text = generate_with_rotation(
+            prompt=prompt,
+            model=BLOG_MODEL,
+            temperature=0.3,
+            max_output_tokens=1000,
+        )
+        clean_text = response_text.strip()
+        if clean_text.startswith("```json"):
+            clean_text = clean_text[7:]
+        if clean_text.startswith("```"):
+            clean_text = clean_text[3:]
+        if clean_text.endswith("```"):
+            clean_text = clean_text[:-3]
+        
+        import re
+        match = re.search(r'\[.*\]', clean_text, re.DOTALL)
+        if match:
+            clean_text = match.group(0)
+
+        clean_text = clean_text.replace('\n', ' ').replace('\r', '')
+        try:
+            data = json.loads(clean_text)
+        except json.JSONDecodeError as je:
+            print(f"⚠️ JSON Parse Hatası: {je}, düzeltilmeye çalışılıyor...")
+            import ast
+            try:
+                data = ast.literal_eval(clean_text)
+            except Exception:
+                data = []
+
+        if isinstance(data, list) and len(data) > 0:
+             return data
+        return []
+    except Exception as e:
+        print(f"⚠️  FAQ üretilirken hata oluştu: {e}")
+        return []
 
 # ── Ana akış ─────────────────────────────────────────────────────────────────
 
 def main():
     import random
+    import argparse
+
+    parser = argparse.ArgumentParser(description="Kasaonu SEO Blog Generator")
+    parser.add_argument("--title", type=str, help="Özel makale başlığı")
+    parser.add_argument("--h2-draft", type=str, help="H2 taslak içeriği")
+    parser.add_argument("--bank", type=str, help="Banka ID'si (opsiyonel)")
+    parser.add_argument("--sector", type=str, help="Sektör ID'si (opsiyonel)")
+    args = parser.parse_args()
 
     print("🚀  Kasaonu SEO Blog Üreticisi başlatıldı")
 
-    existing_titles, existing_slugs, existing_urls = get_existing_data()
-    banks, sectors = get_banks_and_sectors()
-
-    print(f"🏦  {len(banks)} aktif banka, 📁 {len(sectors)} aktif sektör bulundu")
-
-    topics = generate_topics(banks, sectors, existing_titles, existing_slugs)
-
-    if not topics:
-        print("📭  Yazılacak yeni konu bulunamadı. Tüm kombinasyonlar mevcut.")
-        return
-
-    topic = random.choice(topics)
-    title = topic["title"]
-    bank = topic["bank"]
-    sector = topic["sector"]
-
-    image_url = get_ai_image_url(title, bank, sector)
-
-    print(f"📝  Seçilen konu: {title}")
+    if args.title:
+        title = args.title
+        bank = (args.bank, "Genel") if args.bank else None
+        sector = (args.sector, "Genel") if args.sector else None
+        h2_draft = getattr(args, "h2_draft", None)
+        image_url = get_ai_image_url(title, bank, sector)
+        print(f"📝  Seçilen konu (Custom): {title}")
+    else:
+        existing_titles, existing_slugs, existing_urls = get_existing_data()
+        banks, sectors = get_banks_and_sectors()
+        print(f"🏦  {len(banks)} aktif banka, 📁 {len(sectors)} aktif sektör bulundu")
+        topics = generate_topics(banks, sectors, existing_titles, existing_slugs)
+        if not topics:
+            print("📭  Yazılacak yeni konu bulunamadı. Tüm kombinasyonlar mevcut.")
+            return
+        topic = random.choice(topics)
+        title = topic["title"]
+        bank = topic["bank"]
+        sector = topic["sector"]
+        h2_draft = None
+        image_url = get_ai_image_url(title, bank, sector)
+        print(f"📝  Seçilen konu (Auto): {title}")
 
     # İçerik üret
-    html_content = generate_article(title, bank, sector)
+    html_content = generate_article(title, bank, sector, h2_draft=h2_draft)
     meta_description = generate_meta(title, html_content)
     excerpt = generate_excerpt(meta_description)
+    faqs = generate_faqs(title, html_content)
 
     # Temiz slug — timestamp yok
     slug = slugify(title)
@@ -420,7 +497,7 @@ def main():
         conn.close()
 
     # Kaydet (taslak olarak)
-    save_to_database(title, slug, html_content, excerpt, meta_description, image_url)
+    save_to_database(title, slug, html_content, excerpt, meta_description, image_url, faqs)
 
     print("✨  Tamamlandı. Blog admin panelinden onaylanmayı bekliyor.")
 
