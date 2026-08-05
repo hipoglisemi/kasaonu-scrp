@@ -510,11 +510,6 @@ class PetrolOfisiScraper:
                     continue
 
                 existing = self.db.query(Campaign).filter(Campaign.tracking_url == tracking_url).first()
-                if existing and existing.is_active and existing.is_approved:
-                    existing.last_seen_at = datetime.now(timezone.utc).replace(tzinfo=None)
-                    self.db.commit()
-                    stats["total_skipped"] += 1
-                    continue
 
                 # NEW: Check for title duplicates (twins) from the web scraper
                 from src.utils.scraper_utils import normalize_text_for_comparison
@@ -523,7 +518,13 @@ class PetrolOfisiScraper:
                 norm_title = normalize_text_for_comparison(title)
                 twin_exists = False
                 if norm_title:
-                    all_camps = self.db.query(Campaign).filter(Campaign.card_id == card.id).all()
+                    # Sadece Web (petrolofisi.com.tr) üzerinden eklenmiş ve AKTİF kampanyaları baz alalım
+                    all_camps = self.db.query(Campaign).filter(
+                        Campaign.card_id == card.id,
+                        Campaign.is_active == True,
+                        Campaign.tracking_url.like('%www.petrolofisi.com.tr%')
+                    ).all()
+                    
                     for c in all_camps:
                         c_norm = normalize_text_for_comparison(c.title)
                         if c_norm and c.tracking_url != tracking_url:
@@ -537,10 +538,25 @@ class PetrolOfisiScraper:
                                 is_match = True
                                 
                             if is_match:
-                                print(f"      ⏭️ Skipping duplicate mobile twin: '{title}' (Twin of {c.id})")
+                                print(f"      ⏭️ Web ikizi bulundu: '{c.title}' (Web ID: {c.id}). Mobil versiyon gizlenecek.")
                                 twin_exists = True
                                 break
+
+                # Eğer Web'de bu kampanya aktifse ve Mobil API'de de varsa (yani twin_exists == True ise)
                 if twin_exists:
+                    # Eskiden mobilden eklenmiş ve şu an sistemimizde aktif duran kaydı varsa onu pasife çekiyoruz
+                    if existing and existing.is_active:
+                        existing.is_active = False
+                        self.db.commit()
+                        print(f"      🛑 Eski mobil kampanya (ID: {existing.id}) Web ikizi geldiği için pasife çekildi.")
+                    
+                    stats["total_skipped"] += 1
+                    continue
+                
+                # Eğer web'de ikizi yoksa normal işleyişine devam et:
+                if existing and existing.is_active and existing.is_approved:
+                    existing.last_seen_at = datetime.now(timezone.utc).replace(tzinfo=None)
+                    self.db.commit()
                     stats["total_skipped"] += 1
                     continue
 
