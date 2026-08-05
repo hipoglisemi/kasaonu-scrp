@@ -115,6 +115,18 @@ def process_missing_seos():
                 conn.commit()
                 print(f"✅  {c_name_clean} (Kart) güncellendi.")
 
+        # 4. Brands
+        cur.execute("SELECT id, name FROM brands WHERE seo_summary IS NULL OR TRIM(seo_summary) = '' OR LENGTH(seo_summary) < 500")
+        brands = cur.fetchall()
+        print(f"🔍  SEO özeti eksik/kısa {len(brands)} marka bulundu.")
+        for b_id, b_name in brands:
+            b_name_clean = b_name.strip()
+            summary = generate_seo_content(b_name_clean, "marka")
+            if summary:
+                cur.execute("UPDATE brands SET seo_summary = %s WHERE id = %s", (summary, b_id))
+                conn.commit()
+                print(f"✅  {b_name_clean} (Marka) güncellendi.")
+
     except Exception as e:
         print(f"❌  Hata: {e}")
         conn.rollback()
