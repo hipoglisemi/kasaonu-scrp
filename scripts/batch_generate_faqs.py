@@ -49,6 +49,7 @@ KURALLAR:
             model=BLOG_MODEL,
             temperature=0.3,
             max_output_tokens=1000,
+            response_mime_type="application/json",
         )
         clean_text = response_text.strip()
         if clean_text.startswith("```json"):
