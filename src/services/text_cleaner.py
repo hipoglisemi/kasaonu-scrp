@@ -424,7 +424,8 @@ def clean_campaign_text(raw_text: str, og_title: Optional[str] = None, title: Op
         r"(?i)\bilgili\s+kampanyalar\b",
         r"(?i)\bbenzer\s+kampanyalar\b",
         r"(?i)\bbenzer\s+fırsatlar\b",
-        r"(?i)\bdiğer\s+kampanyalar\b",
+        r"(?i)^\s*diğer\s+kampanyalar\s*$",
+        r"(?i)(?<!bu kampanya\s)\bdiğer\s+kampanyalar\b(?!\s+ile\s+birleştirilemez)",
         r"(?i)\bgeçmiş\s+kampanyalar\b",
         r"(?i)\bsizin\s+için\s+seçtiklerimiz\b",
         # ⚠️ Yasal hak saklı tutma uyarıları cümle ortasında geçebildiği için HARD_CUT_MARKERS'tan kaldırıldı.
