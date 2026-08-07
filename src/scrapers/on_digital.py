@@ -221,7 +221,7 @@ class ONDigitalScraper:
         soup = BeautifulSoup(driver.page_source, 'html.parser')
 
         # Clean noise directly in soup before passing to AI parser
-        for noise_sel in ['.owl-carousel', 'select.mobile-equal-level-pages', '.horizontal-scroller', 'footer', 'header', 'nav']:
+        for noise_sel in ['.owl-carousel', 'select.mobile-equal-level-pages', '.horizontal-scroller', 'footer', 'header', 'nav', '.header-top', '.header-menu', '.top-bar', '.navbar', '.header', '.site-header', '.navigation']:
             for el in soup.select(noise_sel):
                 el.decompose()
 

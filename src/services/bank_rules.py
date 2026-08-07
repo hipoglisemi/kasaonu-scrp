@@ -542,6 +542,17 @@ ZUBİZU SPECIFIC RULES:
 - CONDITIONS (CRITICAL LAST LINE):
     - 'conditions' (koşullar) listesinin EN SON SATIRINA (son maddesine) KESİNLİKLE ve EKSİKSİZ olarak şu cümleyi ekleyin:
       "Güncel kampanya detayları ve katılım şartları için Zubizu uygulamasını kontrol ediniz."
+""",
+    'burgan': """
+BURGAN BANK / ON DİJİTAL SPECIFIC RULES:
+- ELIGIBLE CARDS (cards):
+    - 🚨 **HEADER GÜRÜLTÜSÜ VE KART AYRIMI (CRITICAL)**:
+      * Sitenin üst navigasyon menüsündeki genel 'Kartlar -> ON Kredi Kartı ON Banka Kartı' gibi menü linklerini KESİNLİKLE dikkate alma.
+      * Metinde sadece "ON Kredi Kartı" veya "ON Dijital" geçiyorsa, `cards` listesine YALNIZCA **["ON Kredi Kartı", "ON Sanal Kredi Kartı"]** yaz.
+      * "ON Banka Kartı" ifadesini SADECE kampanya metninde veya koşullarında AÇIKÇA ve DOĞRUDAN banka kartının geçerli olduğu yazıyorsa ekle.
+      * Eğer kampanya sadece vadeli hesap, hoş geldin faizi veya para transferi gibi genel bankacılık işlemlerine yönelikse `cards` listesine **["ON Müşterileri"]** yaz.
+- PARTICIPATION:
+    - Katılım genellikle "ON Dijital Mobil" veya "ON İnternet Şubesi" üzerindendir.
 """
 }
 
